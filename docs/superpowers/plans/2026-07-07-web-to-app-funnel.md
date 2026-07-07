@@ -42,7 +42,7 @@ NEXT_PUBLIC_PLAYSTORE_URL=https://play.google.com/store/apps/details?id=ai.nutre
 - Create: `vitest.config.ts`
 - Modify: `package.json` (add `test` scripts)
 
-- [ ] **Step 1: Scaffold into a temp dir and merge** (create-next-app refuses non-empty dirs; this repo already has `docs/`)
+- [x] **Step 1: Scaffold into a temp dir and merge** (create-next-app refuses non-empty dirs; this repo already has `docs/`)
 
 ```bash
 cd /Users/truongle/nutree_web_funnel
@@ -50,14 +50,14 @@ npx create-next-app@latest scaffold --typescript --tailwind --eslint --app --src
 rsync -a scaffold/ ./ && rm -rf scaffold
 ```
 
-- [ ] **Step 2: Install runtime + test dependencies**
+- [x] **Step 2: Install runtime + test dependencies**
 
 ```bash
 npm install zustand @revenuecat/purchases-js qrcode.react
 npm install -D vitest @playwright/test
 ```
 
-- [ ] **Step 3: Create `vitest.config.ts`**
+- [x] **Step 3: Create `vitest.config.ts`**
 
 ```ts
 import { defineConfig } from 'vitest/config';
@@ -74,7 +74,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 4: Add test scripts to `package.json`** (inside `"scripts"`)
+- [x] **Step 4: Add test scripts to `package.json`** (inside `"scripts"`)
 
 ```json
 "test": "vitest run",
@@ -82,12 +82,12 @@ export default defineConfig({
 "test:e2e": "playwright test"
 ```
 
-- [ ] **Step 5: Verify build and empty test run**
+- [x] **Step 5: Verify build and empty test run**
 
 Run: `npm run build && npm test`
 Expected: build succeeds; vitest exits with "No test files found" (pass with `--passWithNoTests` not needed — if vitest errors on zero tests, add `passWithNoTests: true` to the `test` block of `vitest.config.ts`).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -A
