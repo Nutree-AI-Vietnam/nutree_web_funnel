@@ -591,7 +591,7 @@ git commit -m "feat: onboarding payload types and quiz step navigation"
 - Create: `src/lib/quiz/store.ts`
 - Test: `src/lib/quiz/store.test.ts`
 
-- [ ] **Step 1: Write failing tests `src/lib/quiz/store.test.ts`**
+- [x] **Step 1: Write failing tests `src/lib/quiz/store.test.ts`**
 
 zustand stores are plain JS outside React — testable in node. `persist` no-ops when `localStorage` is missing, so give it an in-memory stub.
 
@@ -660,12 +660,12 @@ describe('quiz store', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- store`
 Expected: FAIL — cannot resolve `./store`.
 
-- [ ] **Step 3: Create `src/lib/quiz/store.ts`**
+- [x] **Step 3: Create `src/lib/quiz/store.ts`**
 
 ```ts
 import { create } from 'zustand';
@@ -724,12 +724,12 @@ export function useHydrated(): boolean {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- store`
 Expected: 5 tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/quiz/store.ts src/lib/quiz/store.test.ts
