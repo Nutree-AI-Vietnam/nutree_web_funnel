@@ -3,17 +3,31 @@
 import type { ComponentType } from 'react';
 import { vi } from '@/lib/copy/vi';
 import type { QuizStep } from '@/lib/quiz/steps';
+import { HeightWeightStep } from './height-weight';
 import { MultiChoiceStep } from './multi-choice';
+import { NumberInputStep } from './number-input-step';
 import { SingleChoiceStep } from './single-choice';
+import { NameAskStep } from './text-input-step';
 
 /** slug -> screen component. Every QuizStep must have an entry (registry check in page.tsx). */
 export const STEP_COMPONENTS: Partial<Record<QuizStep, ComponentType>> = {
+  name_ask: () => <NameAskStep step="name_ask" />,
   goal: () => (
     <SingleChoiceStep
       step="goal"
       field="fitness_goal"
       question={vi.goal.question}
       options={vi.goal.options}
+    />
+  ),
+  target_weight: () => (
+    <NumberInputStep
+      step="target_weight"
+      field="target_weight_kg"
+      question={vi.target_weight.question}
+      unit={vi.target_weight.unit}
+      min={30}
+      max={250}
     />
   ),
   challenges: () => (
@@ -43,6 +57,29 @@ export const STEP_COMPONENTS: Partial<Record<QuizStep, ComponentType>> = {
   ),
   sex: () => (
     <SingleChoiceStep step="sex" field="gender" question={vi.sex.question} options={vi.sex.options} />
+  ),
+  age: () => (
+    <NumberInputStep
+      step="age"
+      field="age"
+      question={vi.age.question}
+      unit={vi.age.unit}
+      min={13}
+      max={100}
+    />
+  ),
+  height_weight: () => <HeightWeightStep />,
+  body_fat: () => (
+    <NumberInputStep
+      step="body_fat"
+      field="body_fat_percentage"
+      question={vi.body_fat.question}
+      unit={vi.body_fat.unit}
+      min={3}
+      max={60}
+      hint={vi.body_fat.hint}
+      optional
+    />
   ),
   experience: () => (
     <SingleChoiceStep

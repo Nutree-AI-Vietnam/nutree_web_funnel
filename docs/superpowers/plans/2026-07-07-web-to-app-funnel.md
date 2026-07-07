@@ -1670,7 +1670,7 @@ git commit -m "feat: quiz step registry, generic choice steps, dynamic /quiz/[st
 - Create: `src/components/steps/height-weight.tsx`
 - Modify: `src/components/steps/registry.tsx`
 
-- [ ] **Step 1: Create `src/components/steps/text-input-step.tsx`** (used for name_ask; skippable like the app)
+- [x] **Step 1: Create `src/components/steps/text-input-step.tsx`** (used for name_ask; skippable like the app)
 
 ```tsx
 'use client';
@@ -1725,7 +1725,7 @@ export function NameAskStep({ step }: { step: QuizStep }) {
 }
 ```
 
-- [ ] **Step 2: Create `src/components/steps/number-input-step.tsx`** (generic: target_weight, age, body_fat)
+- [x] **Step 2: Create `src/components/steps/number-input-step.tsx`** (generic: target_weight, age, body_fat)
 
 ```tsx
 'use client';
@@ -1812,7 +1812,7 @@ export function NumberInputStep({
 }
 ```
 
-- [ ] **Step 3: Create `src/components/steps/height-weight.tsx`**
+- [x] **Step 3: Create `src/components/steps/height-weight.tsx`**
 
 ```tsx
 'use client';
@@ -1875,7 +1875,7 @@ export function HeightWeightStep() {
 }
 ```
 
-- [ ] **Step 4: Add registry entries** — in `src/components/steps/registry.tsx`, add imports and entries:
+- [x] **Step 4: Add registry entries** — in `src/components/steps/registry.tsx`, add imports and entries:
 
 ```tsx
 import { NameAskStep } from './text-input-step';
@@ -1915,12 +1915,12 @@ and inside `STEP_COMPONENTS`:
   ),
 ```
 
-- [ ] **Step 5: Verify in dev**
+- [x] **Step 5: Verify in dev**
 
 Run: `npm run build`
 Expected: passes. In `npm run dev`, walk `/quiz/name_ask` → name persists across a page reload (localStorage); `/quiz/body_fat` shows the skip button.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/components/steps
