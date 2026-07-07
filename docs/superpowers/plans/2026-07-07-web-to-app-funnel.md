@@ -1939,7 +1939,7 @@ git commit -m "feat: text/number input quiz steps (name, target weight, age, hei
 - Test: `src/lib/quiz/reflection.test.ts`
 - Modify: `src/components/steps/registry.tsx`
 
-- [ ] **Step 1: Write failing test `src/lib/quiz/reflection.test.ts`** for template interpolation
+- [x] **Step 1: Write failing test `src/lib/quiz/reflection.test.ts`** for template interpolation
 
 ```ts
 import { describe, it, expect } from 'vitest';
@@ -1968,12 +1968,12 @@ describe('buildReflection', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- reflection`
 Expected: FAIL — cannot resolve `./reflection`.
 
-- [ ] **Step 3: Create `src/lib/quiz/reflection.ts`**
+- [x] **Step 3: Create `src/lib/quiz/reflection.ts`**
 
 ```ts
 import { vi } from '../copy/vi';
@@ -2002,12 +2002,12 @@ export function buildReflection(data: OnboardingPayload): string {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test -- reflection`
 Expected: 2 tests PASS.
 
-- [ ] **Step 5: Create `src/components/steps/training-days.tsx`** (0–7 chips; range mirrors `TdeePreviewRequest` 0–7)
+- [x] **Step 5: Create `src/components/steps/training-days.tsx`** (0–7 chips; range mirrors `TdeePreviewRequest` 0–7)
 
 ```tsx
 'use client';
@@ -2048,7 +2048,7 @@ export function TrainingDaysStep() {
 }
 ```
 
-- [ ] **Step 6: Create `src/components/steps/reflection.tsx`**
+- [x] **Step 6: Create `src/components/steps/reflection.tsx`**
 
 ```tsx
 'use client';
@@ -2075,7 +2075,7 @@ export function ReflectionStep() {
 }
 ```
 
-- [ ] **Step 7: Create `src/components/steps/promo.tsx`** (shared by the 3 promo screens)
+- [x] **Step 7: Create `src/components/steps/promo.tsx`** (shared by the 3 promo screens)
 
 ```tsx
 'use client';
@@ -2110,7 +2110,7 @@ export function PromoStep({
 }
 ```
 
-- [ ] **Step 8: Add registry entries** — in `registry.tsx` add imports:
+- [x] **Step 8: Add registry entries** — in `registry.tsx` add imports:
 
 ```tsx
 import { TrainingDaysStep } from './training-days';
@@ -2141,7 +2141,7 @@ and entries:
   ),
 ```
 
-- [ ] **Step 9: Add `TrainingDurationStep` to `src/components/steps/training-days.tsx`** (same file — both are tiny training inputs; stores `training_minutes_per_session` as a number)
+- [x] **Step 9: Add `TrainingDurationStep` to `src/components/steps/training-days.tsx`** (same file — both are tiny training inputs; stores `training_minutes_per_session` as a number)
 
 ```tsx
 export function TrainingDurationStep({
@@ -2180,12 +2180,12 @@ export function TrainingDurationStep({
 
 (Also add the import in registry: `import { TrainingDaysStep, TrainingDurationStep } from './training-days';` — replace the earlier single import.)
 
-- [ ] **Step 10: Verify all quiz input steps work end-to-end**
+- [x] **Step 10: Verify all quiz input steps work end-to-end**
 
 Run: `npm run build && npm test`
 Expected: build + all unit tests pass. In dev, walking `/quiz/name_ask` through `/quiz/smart_meals_promo` never hits "Chưa triển khai" except `calculating`, `tdee_targets`, `result_promising` (next tasks).
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add src/components/steps src/lib/quiz/reflection.ts src/lib/quiz/reflection.test.ts
@@ -2200,7 +2200,7 @@ git commit -m "feat: training, reflection, and promo quiz steps"
 - Create: `src/components/steps/calculating.tsx`
 - Modify: `src/components/steps/registry.tsx`
 
-- [ ] **Step 1: Create `src/components/steps/calculating.tsx`**
+- [x] **Step 1: Create `src/components/steps/calculating.tsx`**
 
 Behavior: on mount, fire `previewTdee`; run a ~4s staged progress animation; when both the animation and the request settle, store the result (API, or local fallback on failure) and advance. Guard against double-run in React StrictMode.
 
@@ -2270,7 +2270,7 @@ export function CalculatingStep() {
 }
 ```
 
-- [ ] **Step 2: Register it** — in `registry.tsx`:
+- [x] **Step 2: Register it** — in `registry.tsx`:
 
 ```tsx
 import { CalculatingStep } from './calculating';
@@ -2278,12 +2278,12 @@ import { CalculatingStep } from './calculating';
   calculating: () => <CalculatingStep />,
 ```
 
-- [ ] **Step 3: Verify fallback path in dev**
+- [x] **Step 3: Verify fallback path in dev**
 
 With `NEXT_PUBLIC_API_BASE_URL` pointing at a non-existent host in `.env.local`, fill the quiz then visit `/quiz/calculating`.
 Expected: ~4s animation, then navigation to `/quiz/tdee_targets`; `localStorage.nutree_funnel_v1` contains `tdee` with `tdeeSource: "fallback"`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/components/steps/calculating.tsx src/components/steps/registry.tsx
@@ -2300,7 +2300,7 @@ git commit -m "feat: calculating screen with previewTdee and local fallback"
 - Create: `src/components/steps/tdee-targets.tsx`
 - Modify: `src/components/steps/registry.tsx`
 
-- [ ] **Step 1: Write failing tests `src/lib/tdee/insights.test.ts`**
+- [x] **Step 1: Write failing tests `src/lib/tdee/insights.test.ts`**
 
 ```ts
 import { describe, it, expect } from 'vitest';
@@ -2332,12 +2332,12 @@ describe('weeksToTarget', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- insights`
 Expected: FAIL — cannot resolve `./insights`.
 
-- [ ] **Step 3: Create `src/lib/tdee/insights.ts`**
+- [x] **Step 3: Create `src/lib/tdee/insights.ts`**
 
 ```ts
 export function bmi(weightKg: number, heightCm: number): number {
@@ -2368,12 +2368,12 @@ export function weeksToTarget(p: {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- insights`
 Expected: 5 tests PASS.
 
-- [ ] **Step 5: Create `src/components/steps/tdee-targets.tsx`**
+- [x] **Step 5: Create `src/components/steps/tdee-targets.tsx`**
 
 ```tsx
 'use client';
@@ -2468,7 +2468,7 @@ export function TdeeTargetsStep() {
 }
 ```
 
-- [ ] **Step 6: Register it** — in `registry.tsx`:
+- [x] **Step 6: Register it** — in `registry.tsx`:
 
 ```tsx
 import { TdeeTargetsStep } from './tdee-targets';
@@ -2476,12 +2476,12 @@ import { TdeeTargetsStep } from './tdee-targets';
   tdee_targets: () => <TdeeTargetsStep />,
 ```
 
-- [ ] **Step 7: Verify build + tests, view in dev**
+- [x] **Step 7: Verify build + tests, view in dev**
 
 Run: `npm run build && npm test`
 Expected: pass. In dev after completing the quiz: calories card, 3 macro cards, BMI marker positioned, projection row visible when target weight set.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/lib/tdee/insights.ts src/lib/tdee/insights.test.ts src/components/steps/tdee-targets.tsx src/components/steps/registry.tsx
@@ -2496,7 +2496,7 @@ git commit -m "feat: TDEE results screen with BMI bar, macro cards, target proje
 - Create: `src/components/steps/result-promising.tsx`
 - Modify: `src/components/steps/registry.tsx`
 
-- [ ] **Step 1: Create `src/components/steps/result-promising.tsx`** — SVG potential chart ("with Nutree" vs "without"), then CTA into conversion
+- [x] **Step 1: Create `src/components/steps/result-promising.tsx`** — SVG potential chart ("with Nutree" vs "without"), then CTA into conversion
 
 ```tsx
 'use client';
@@ -2545,7 +2545,7 @@ export function ResultPromisingStep() {
 }
 ```
 
-- [ ] **Step 2: Register it** — in `registry.tsx`:
+- [x] **Step 2: Register it** — in `registry.tsx`:
 
 ```tsx
 import { ResultPromisingStep } from './result-promising';
@@ -2562,12 +2562,12 @@ export function StepRenderer({ step }: { step: QuizStep }) {
 }
 ```
 
-- [ ] **Step 3: Verify full quiz is registered**
+- [x] **Step 3: Verify full quiz is registered**
 
 Run: `npm run build`
 Expected: passes; the `Record<QuizStep, …>` type would fail compilation if any of the 23 steps lacked an entry.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/components/steps src/app/quiz
@@ -2583,7 +2583,7 @@ git commit -m "feat: result promising screen; step registry complete for all 23 
 - Create: `src/lib/quiz/email.ts`
 - Test: `src/lib/quiz/email.test.ts`
 
-- [ ] **Step 1: Write failing test `src/lib/quiz/email.test.ts`**
+- [x] **Step 1: Write failing test `src/lib/quiz/email.test.ts`**
 
 ```ts
 import { describe, it, expect } from 'vitest';
@@ -2603,12 +2603,12 @@ describe('isValidEmail', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- email`
 Expected: FAIL — cannot resolve `./email`.
 
-- [ ] **Step 3: Create `src/lib/quiz/email.ts`**
+- [x] **Step 3: Create `src/lib/quiz/email.ts`**
 
 ```ts
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -2618,12 +2618,12 @@ export function isValidEmail(value: string): boolean {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test -- email`
 Expected: 2 tests PASS.
 
-- [ ] **Step 5: Create `src/app/email/page.tsx`**
+- [x] **Step 5: Create `src/app/email/page.tsx`**
 
 ```tsx
 'use client';
@@ -2695,12 +2695,12 @@ export default function EmailPage() {
 }
 ```
 
-- [ ] **Step 6: Verify build + tests**
+- [x] **Step 6: Verify build + tests**
 
 Run: `npm run build && npm test`
 Expected: pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/app/email src/lib/quiz/email.ts src/lib/quiz/email.test.ts
@@ -2717,7 +2717,7 @@ git commit -m "feat: email capture page creating web-funnel lead"
 
 RevenueCat's `purchase()` renders its own hosted checkout UI (Stripe under the hood) and resolves when payment completes. Verify method names against the installed `@revenuecat/purchases-js` version's docs if the SDK has moved (current major: `Purchases.configure`, `getOfferings`, `purchase({ rcPackage })`).
 
-- [ ] **Step 1: Create `src/lib/billing/revenuecat.ts`**
+- [x] **Step 1: Create `src/lib/billing/revenuecat.ts`**
 
 ```ts
 import { Purchases, type Package } from '@revenuecat/purchases-js';
@@ -2753,7 +2753,7 @@ export async function purchasePackage(
 }
 ```
 
-- [ ] **Step 2: Create `src/app/paywall/page.tsx`**
+- [x] **Step 2: Create `src/app/paywall/page.tsx`**
 
 ```tsx
 'use client';
@@ -2864,14 +2864,14 @@ export default function PaywallPage() {
 }
 ```
 
-- [ ] **Step 3: Verify build; smoke-test with sandbox key if available**
+- [x] **Step 3: Verify build; smoke-test with sandbox key if available**
 
 Run: `npm run build`
 Expected: passes. With a real `NEXT_PUBLIC_RC_WEB_BILLING_KEY` (sandbox) in `.env.local` and a lead created, `/paywall` lists packages; RC sandbox checkout opens on CTA. Without a key, `/paywall` shows the load-error state — acceptable.
 
 If `pkg.webBillingProduct` doesn't exist on the installed SDK version, check `node_modules/@revenuecat/purchases-js/dist/index.d.ts` for the product accessor on `Package` (older versions expose `rcBillingProduct`) and adjust.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/lib/billing/revenuecat.ts src/app/paywall
@@ -2887,7 +2887,7 @@ git commit -m "feat: paywall with RevenueCat Web Billing checkout"
 - Test: `src/lib/handoff/links.test.ts`
 - Create: `src/app/success/page.tsx`
 
-- [ ] **Step 1: Write failing test `src/lib/handoff/links.test.ts`**
+- [x] **Step 1: Write failing test `src/lib/handoff/links.test.ts`**
 
 ```ts
 import { describe, it, expect, beforeEach, afterEach, vi as vitest } from 'vitest';
@@ -2914,12 +2914,12 @@ describe('buildDownloadLink', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- links`
 Expected: FAIL — cannot resolve `./links`.
 
-- [ ] **Step 3: Create `src/lib/handoff/links.ts`**
+- [x] **Step 3: Create `src/lib/handoff/links.ts`**
 
 ```ts
 /**
@@ -2937,12 +2937,12 @@ export function buildDownloadLink(claimToken: string): string {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test -- links`
 Expected: 2 tests PASS.
 
-- [ ] **Step 5: Create `src/app/success/page.tsx`**
+- [x] **Step 5: Create `src/app/success/page.tsx`**
 
 ```tsx
 'use client';
@@ -3003,12 +3003,12 @@ export default function SuccessPage() {
 
 (Both badges use the Airbridge link — it routes to the correct store per device and carries attribution + the claim token. The raw store URLs env vars remain available for the landing page footer if wanted.)
 
-- [ ] **Step 6: Verify build + tests**
+- [x] **Step 6: Verify build + tests**
 
 Run: `npm run build && npm test`
 Expected: pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/lib/handoff src/app/success
@@ -3022,7 +3022,7 @@ git commit -m "feat: success page with QR + Airbridge claim-token download links
 **Files:**
 - Modify: `src/app/page.tsx` (replace scaffold content)
 
-- [ ] **Step 1: Replace `src/app/page.tsx`**
+- [x] **Step 1: Replace `src/app/page.tsx`**
 
 ```tsx
 'use client';
@@ -3061,12 +3061,12 @@ export default function LandingPage() {
 }
 ```
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 Run: `npm run build`
 Expected: passes; `/` shows hero + CTA linking into the quiz.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/app/page.tsx
@@ -3081,7 +3081,7 @@ git commit -m "feat: landing page"
 - Create: `src/components/analytics-scripts.tsx`
 - Modify: `src/app/layout.tsx`
 
-- [ ] **Step 1: Create `src/components/analytics-scripts.tsx`** — each script renders only when its env id is set, so dev/E2E run clean
+- [x] **Step 1: Create `src/components/analytics-scripts.tsx`** — each script renders only when its env id is set, so dev/E2E run clean
 
 ```tsx
 'use client';
@@ -3138,7 +3138,7 @@ export function AnalyticsScripts() {
 }
 ```
 
-- [ ] **Step 2: Wire into `src/app/layout.tsx`** — add import and render inside `<body>` before `{children}`:
+- [x] **Step 2: Wire into `src/app/layout.tsx`** — add import and render inside `<body>` before `{children}`:
 
 ```tsx
 import { AnalyticsScripts } from '@/components/analytics-scripts';
@@ -3149,12 +3149,12 @@ import { AnalyticsScripts } from '@/components/analytics-scripts';
       </body>
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `npm run build`
 Expected: passes. In dev with no analytics env vars set, pages render with zero third-party scripts (check the network tab).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/components/analytics-scripts.tsx src/app/layout.tsx
@@ -3169,7 +3169,7 @@ git commit -m "feat: GA4/Meta/TikTok pixels and Airbridge web SDK (env-gated)"
 - Create: `playwright.config.ts`
 - Create: `e2e/funnel.spec.ts`
 
-- [ ] **Step 1: Create `playwright.config.ts`**
+- [x] **Step 1: Create `playwright.config.ts`**
 
 ```ts
 import { defineConfig } from '@playwright/test';
@@ -3189,13 +3189,13 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 2: Install browsers**
+- [x] **Step 2: Install browsers**
 
 ```bash
 npx playwright install chromium
 ```
 
-- [ ] **Step 3: Create `e2e/funnel.spec.ts`**
+- [x] **Step 3: Create `e2e/funnel.spec.ts`**
 
 ```ts
 import { test, expect, type Page } from '@playwright/test';
@@ -3297,12 +3297,12 @@ test('unknown quiz step 404s', async ({ page }) => {
 });
 ```
 
-- [ ] **Step 4: Run E2E**
+- [x] **Step 4: Run E2E**
 
 Run: `npm run test:e2e`
 Expected: 3 tests PASS. If selectors drift from the implemented markup, fix the spec (or the markup's accessible names) — accessible names above match the copy module exactly.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add playwright.config.ts e2e
@@ -3313,7 +3313,7 @@ git commit -m "test: Playwright E2E for full funnel, resume, and 404"
 
 ## Task 21: Full verification pass
 
-- [ ] **Step 1: Run everything**
+- [x] **Step 1: Run everything**
 
 ```bash
 npm run lint && npx tsc --noEmit && npm test && npm run build && npm run test:e2e
@@ -3321,12 +3321,12 @@ npm run lint && npx tsc --noEmit && npm test && npm run build && npm run test:e2
 
 Expected: all green. Fix anything that isn't before proceeding.
 
-- [ ] **Step 2: Manual smoke of the fallback path**
+- [x] **Step 2: Manual smoke of the fallback path**
 
 Set `NEXT_PUBLIC_API_BASE_URL=https://nonexistent.invalid` in `.env.local`, `npm run dev`, complete the quiz.
 Expected: calculating screen still lands on TDEE results (fallback calculator), values match the unit-test expectations for your inputs.
 
-- [ ] **Step 3: Commit any fixes**
+- [x] **Step 3: Commit any fixes**
 
 ```bash
 git add -A
@@ -3342,7 +3342,7 @@ git commit -m "fix: verification pass fixes"
 **Files:**
 - Modify: `README.md` (replace create-next-app boilerplate)
 
-- [ ] **Step 1: Replace `README.md`**
+- [x] **Step 1: Replace `README.md`**
 
 ````markdown
 # Nutree Web Funnel
@@ -3396,7 +3396,7 @@ Import the repo in Vercel, set the env vars above for Production/Preview, and po
   `NEXT_PUBLIC_AIRBRIDGE_TRACKING_LINK`).
 ````
 
-- [ ] **Step 2: Create `.env.example`** with every variable from the table (empty values).
+- [x] **Step 2: Create `.env.example`** with every variable from the table (empty values).
 
 ```bash
 NEXT_PUBLIC_API_BASE_URL=
@@ -3411,7 +3411,7 @@ NEXT_PUBLIC_APPSTORE_URL=
 NEXT_PUBLIC_PLAYSTORE_URL=
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add README.md .env.example
@@ -3420,7 +3420,7 @@ git commit -m "docs: README with env vars, deploy, and external dependencies"
 
 ---
 
-## Follow-ups outside this plan
+ outside this plan
 
 1. **`nutree_ai` mobile plan** (separate repo): Airbridge deferred deep link handler for `nutree://claim?token=…`, claim service (fetch payload → hydrate `OnboardingData` → `saveProfile` → RC `logIn`), route past onboarding. Includes the token-invalid fallback (normal onboarding + restore purchases).
 2. **Backend team**: implement `POST /v1/web-funnel/leads`, `POST /v1/web-funnel/claim`, RC Web Billing webhook → mark lead paid + send confirmation email (universal link with claim token), abandoned-cart email. Contract in the design spec.

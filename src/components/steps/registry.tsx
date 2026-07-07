@@ -3,14 +3,20 @@
 import type { ComponentType } from 'react';
 import { vi } from '@/lib/copy/vi';
 import type { QuizStep } from '@/lib/quiz/steps';
+import { CalculatingStep } from './calculating';
 import { HeightWeightStep } from './height-weight';
 import { MultiChoiceStep } from './multi-choice';
 import { NumberInputStep } from './number-input-step';
+import { PromoStep } from './promo';
+import { ReflectionStep } from './reflection';
+import { ResultPromisingStep } from './result-promising';
 import { SingleChoiceStep } from './single-choice';
+import { TdeeTargetsStep } from './tdee-targets';
 import { NameAskStep } from './text-input-step';
+import { TrainingDaysStep, TrainingDurationStep } from './training-days';
 
 /** slug -> screen component. Every QuizStep must have an entry (registry check in page.tsx). */
-export const STEP_COMPONENTS: Partial<Record<QuizStep, ComponentType>> = {
+export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
   name_ask: () => <NameAskStep step="name_ask" />,
   goal: () => (
     <SingleChoiceStep
@@ -55,6 +61,7 @@ export const STEP_COMPONENTS: Partial<Record<QuizStep, ComponentType>> = {
       options={vi.duration.options}
     />
   ),
+  reflection: () => <ReflectionStep />,
   sex: () => (
     <SingleChoiceStep step="sex" field="gender" question={vi.sex.question} options={vi.sex.options} />
   ),
@@ -79,6 +86,13 @@ export const STEP_COMPONENTS: Partial<Record<QuizStep, ComponentType>> = {
       max={60}
       hint={vi.body_fat.hint}
       optional
+    />
+  ),
+  training_days: () => <TrainingDaysStep />,
+  training_duration: () => (
+    <TrainingDurationStep
+      question={vi.training_duration.question}
+      options={vi.training_duration.options}
     />
   ),
   experience: () => (
@@ -115,4 +129,31 @@ export const STEP_COMPONENTS: Partial<Record<QuizStep, ComponentType>> = {
       options={vi.diet.options}
     />
   ),
+  tdee_science_promo: () => (
+    <PromoStep
+      step="tdee_science_promo"
+      emoji="🔬"
+      headline={vi.tdee_science_promo.headline}
+      body={vi.tdee_science_promo.body}
+    />
+  ),
+  smart_macro_promo: () => (
+    <PromoStep
+      step="smart_macro_promo"
+      emoji="🥗"
+      headline={vi.smart_macro_promo.headline}
+      body={vi.smart_macro_promo.body}
+    />
+  ),
+  smart_meals_promo: () => (
+    <PromoStep
+      step="smart_meals_promo"
+      emoji="🤖"
+      headline={vi.smart_meals_promo.headline}
+      body={vi.smart_meals_promo.body}
+    />
+  ),
+  calculating: () => <CalculatingStep />,
+  tdee_targets: () => <TdeeTargetsStep />,
+  result_promising: () => <ResultPromisingStep />,
 };

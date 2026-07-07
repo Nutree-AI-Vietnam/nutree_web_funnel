@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Be_Vietnam_Pro } from 'next/font/google';
+import { AnalyticsScripts } from '@/components/analytics-scripts';
 import './globals.css';
 
 const beVietnam = Be_Vietnam_Pro({
@@ -20,6 +21,7 @@ export default function RootLayout({
   return (
     <html lang="vi" className="h-full">
       <body className={`${beVietnam.variable} flex min-h-full flex-col font-sans antialiased`}>
+        <AnalyticsScripts />
         {children}
       </body>
     </html>
