@@ -746,7 +746,7 @@ git commit -m "feat: persisted quiz state store"
 
 Expected values below were hand-computed from the Dart formulas (Mifflin-St Jeor / Katch-McArdle, job multiplier, goal-based macros with clamps) — they ARE the parity check.
 
-- [ ] **Step 1: Write failing tests `src/lib/tdee/calculator.test.ts`**
+- [x] **Step 1: Write failing tests `src/lib/tdee/calculator.test.ts`**
 
 ```ts
 import { describe, it, expect } from 'vitest';
@@ -846,12 +846,12 @@ describe('computeTdeeResult (end-to-end from payload)', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- calculator`
 Expected: FAIL — cannot resolve `./calculator`.
 
-- [ ] **Step 3: Create `src/lib/tdee/calculator.ts`**
+- [x] **Step 3: Create `src/lib/tdee/calculator.ts`**
 
 ```ts
 /**
@@ -969,12 +969,12 @@ export function computeTdeeResult(data: OnboardingPayload): TdeeResult | null {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- calculator`
 Expected: 11 tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/tdee/calculator.ts src/lib/tdee/calculator.test.ts
