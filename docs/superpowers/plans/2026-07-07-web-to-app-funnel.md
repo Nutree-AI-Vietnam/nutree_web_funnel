@@ -989,7 +989,7 @@ git commit -m "feat: local TDEE fallback calculator (parity with tdee_calculator
 - Create: `src/lib/api/client.ts`
 - Test: `src/lib/api/client.test.ts`
 
-- [ ] **Step 1: Write failing tests `src/lib/api/client.test.ts`**
+- [x] **Step 1: Write failing tests `src/lib/api/client.test.ts`**
 
 ```ts
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -1103,12 +1103,12 @@ describe('createLead', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- client`
 Expected: FAIL — cannot resolve `./client`.
 
-- [ ] **Step 3: Create `src/lib/api/client.ts`**
+- [x] **Step 3: Create `src/lib/api/client.ts`**
 
 ```ts
 import type { OnboardingPayload, TdeeResult, Lead } from '../quiz/types';
@@ -1181,12 +1181,12 @@ export async function createLead(email: string, payload: OnboardingPayload): Pro
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- client`
 Expected: 4 tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/api/client.ts src/lib/api/client.test.ts
