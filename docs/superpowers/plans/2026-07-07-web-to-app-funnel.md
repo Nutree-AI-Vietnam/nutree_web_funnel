@@ -1428,7 +1428,7 @@ git commit -m "feat: shared UI components and quiz shell with progress + step an
 - Create: `src/components/steps/registry.tsx` (placeholder entries filled by Tasks 10–14)
 - Create: `src/app/quiz/[step]/page.tsx`
 
-- [ ] **Step 1: Create `src/components/steps/single-choice.tsx`** — selecting an option saves and auto-advances (matches app behavior)
+- [x] **Step 1: Create `src/components/steps/single-choice.tsx`** — selecting an option saves and auto-advances (matches app behavior)
 
 ```tsx
 'use client';
@@ -1473,7 +1473,7 @@ export function SingleChoiceStep<K extends keyof OnboardingPayload>({
 }
 ```
 
-- [ ] **Step 2: Create `src/components/steps/multi-choice.tsx`** — toggle + explicit continue
+- [x] **Step 2: Create `src/components/steps/multi-choice.tsx`** — toggle + explicit continue
 
 ```tsx
 'use client';
@@ -1529,7 +1529,7 @@ export function MultiChoiceStep({
 }
 ```
 
-- [ ] **Step 3: Create `src/components/steps/registry.tsx`** — the single map from slug → screen. Start with the steps expressible via the generic components; later tasks add their imports/entries here.
+- [x] **Step 3: Create `src/components/steps/registry.tsx`** — the single map from slug → screen. Start with the steps expressible via the generic components; later tasks add their imports/entries here.
 
 ```tsx
 'use client';
@@ -1607,7 +1607,7 @@ export const STEP_COMPONENTS: Partial<Record<QuizStep, React.ComponentType>> = {
 };
 ```
 
-- [ ] **Step 4: Create `src/app/quiz/[step]/page.tsx`**
+- [x] **Step 4: Create `src/app/quiz/[step]/page.tsx`**
 
 ```tsx
 import { notFound } from 'next/navigation';
@@ -1630,7 +1630,7 @@ export default async function QuizStepPage({ params }: { params: Promise<{ step:
 }
 ```
 
-- [ ] **Step 5: Create `src/app/quiz/[step]/step-renderer.tsx`** (client component bridging the server route to the registry)
+- [x] **Step 5: Create `src/app/quiz/[step]/step-renderer.tsx`** (client component bridging the server route to the registry)
 
 ```tsx
 'use client';
@@ -1648,12 +1648,12 @@ export function StepRenderer({ step }: { step: QuizStep }) {
 }
 ```
 
-- [ ] **Step 6: Verify in dev**
+- [x] **Step 6: Verify in dev**
 
 Run: `npm run build`
 Expected: build passes. Then `npm run dev` and open `http://localhost:3000/quiz/goal` — 3 goal options render; clicking one navigates to `/quiz/target_weight` (placeholder text for now). `http://localhost:3000/quiz/bogus` → 404.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/components/steps src/app/quiz
