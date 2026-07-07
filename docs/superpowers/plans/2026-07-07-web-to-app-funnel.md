@@ -1300,7 +1300,7 @@ git commit -m "feat: analytics fan-out module with funnel_step_viewed"
 
 These are presentational; correctness is covered by the Playwright E2E in Task 21.
 
-- [ ] **Step 1: Create `src/components/primary-button.tsx`**
+- [x] **Step 1: Create `src/components/primary-button.tsx`**
 
 ```tsx
 'use client';
@@ -1330,7 +1330,7 @@ export function PrimaryButton({
 }
 ```
 
-- [ ] **Step 2: Create `src/components/option-card.tsx`**
+- [x] **Step 2: Create `src/components/option-card.tsx`**
 
 ```tsx
 'use client';
@@ -1358,7 +1358,7 @@ export function OptionCard({
 }
 ```
 
-- [ ] **Step 3: Create `src/components/quiz-shell.tsx`** — progress bar, back link, `funnel_step_viewed`, hydration gate
+- [x] **Step 3: Create `src/components/quiz-shell.tsx`** — progress bar, back link, `funnel_step_viewed`, hydration gate
 
 ```tsx
 'use client';
@@ -1406,12 +1406,12 @@ export function QuizShell({ step, children }: { step: QuizStep; children: React.
 }
 ```
 
-- [ ] **Step 4: Verify typecheck**
+- [x] **Step 4: Verify typecheck**
 
 Run: `npx tsc --noEmit`
 Expected: no errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/components/primary-button.tsx src/components/option-card.tsx src/components/quiz-shell.tsx
