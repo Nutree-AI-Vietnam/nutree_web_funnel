@@ -103,7 +103,7 @@ git commit -m "chore: scaffold Next.js app with Tailwind, vitest, playwright"
 - Modify: `src/app/layout.tsx`
 - Create: `src/lib/copy/vi.ts`
 
-- [ ] **Step 1: Replace `src/app/globals.css` with brand tokens** (colors from `nutree_ai/lib/core/theme/tokens/brand_colors.dart`)
+- [x] **Step 1: Replace `src/app/globals.css` with brand tokens** (colors from `nutree_ai/lib/core/theme/tokens/brand_colors.dart`)
 
 ```css
 @import "tailwindcss";
@@ -134,7 +134,7 @@ body {
 }
 ```
 
-- [ ] **Step 2: Replace `src/app/layout.tsx`** — Be Vietnam Pro font (same as the app's Vietnamese typography), `lang="vi"` metadata
+- [x] **Step 2: Replace `src/app/layout.tsx`** — Be Vietnam Pro font (same as the app's Vietnamese typography), `lang="vi"` metadata
 
 ```tsx
 import type { Metadata } from 'next';
@@ -166,7 +166,7 @@ export default function RootLayout({
 }
 ```
 
-- [ ] **Step 3: Create `src/lib/copy/vi.ts`** — every user-facing string, keyed by screen slug (Vietnamese copy taken from the app's RC defaults in `onboarding_flow_defaults.dart`)
+- [x] **Step 3: Create `src/lib/copy/vi.ts`** — every user-facing string, keyed by screen slug (Vietnamese copy taken from the app's RC defaults in `onboarding_flow_defaults.dart`)
 
 ```ts
 /**
@@ -403,12 +403,12 @@ export const vi = {
 export type ViCopy = typeof vi;
 ```
 
-- [ ] **Step 4: Verify typecheck**
+- [x] **Step 4: Verify typecheck**
 
 Run: `npx tsc --noEmit`
 Expected: no errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/app/globals.css src/app/layout.tsx src/lib/copy/vi.ts
