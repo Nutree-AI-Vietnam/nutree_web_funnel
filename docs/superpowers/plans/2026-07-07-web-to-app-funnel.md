@@ -1203,7 +1203,7 @@ git commit -m "feat: backend API client (tdee preview + web-funnel leads)"
 
 Pixel `<script>` tags are added in Task 20; this module is the call-site API and must exist before screens are built so they can fire `funnel_step_viewed`.
 
-- [ ] **Step 1: Write failing tests `src/lib/analytics/track.test.ts`**
+- [x] **Step 1: Write failing tests `src/lib/analytics/track.test.ts`**
 
 ```ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -1239,12 +1239,12 @@ describe('analytics', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- track`
 Expected: FAIL — cannot resolve `./track`.
 
-- [ ] **Step 3: Create `src/lib/analytics/track.ts`**
+- [x] **Step 3: Create `src/lib/analytics/track.ts`**
 
 ```ts
 /**
@@ -1277,12 +1277,12 @@ export function trackStepViewed(step: string): void {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- track`
 Expected: 3 tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/analytics/track.ts src/lib/analytics/track.test.ts
