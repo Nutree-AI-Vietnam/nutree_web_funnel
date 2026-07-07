@@ -424,7 +424,7 @@ git commit -m "feat: brand theme, Be Vietnam Pro font, Vietnamese copy module"
 - Create: `src/lib/quiz/steps.ts`
 - Test: `src/lib/quiz/steps.test.ts`
 
-- [ ] **Step 1: Create `src/lib/quiz/types.ts`** (field names mirror `OnboardingData`'s `@JsonKey` names — the backend contract; no mapping layer)
+- [x] **Step 1: Create `src/lib/quiz/types.ts`** (field names mirror `OnboardingData`'s `@JsonKey` names — the backend contract; no mapping layer)
 
 ```ts
 /** Snake_case keys match the backend / nutree_ai OnboardingData JSON fields. */
@@ -466,7 +466,7 @@ export interface Lead {
 }
 ```
 
-- [ ] **Step 2: Write failing tests `src/lib/quiz/steps.test.ts`**
+- [x] **Step 2: Write failing tests `src/lib/quiz/steps.test.ts`**
 
 ```ts
 import { describe, it, expect } from 'vitest';
@@ -506,12 +506,12 @@ describe('quiz steps', () => {
 });
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `npm test -- steps`
 Expected: FAIL — cannot resolve `./steps`.
 
-- [ ] **Step 4: Create `src/lib/quiz/steps.ts`**
+- [x] **Step 4: Create `src/lib/quiz/steps.ts`**
 
 ```ts
 /** Step slugs = OnboardingScreenId.rcKey from nutree_ai; order per design spec. */
@@ -571,12 +571,12 @@ export function stepIndex(step: QuizStep): number {
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `npm test -- steps`
 Expected: 6 tests PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/lib/quiz/types.ts src/lib/quiz/steps.ts src/lib/quiz/steps.test.ts
