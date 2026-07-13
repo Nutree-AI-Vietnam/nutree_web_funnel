@@ -32,7 +32,7 @@ export function TdeeTargetsStep() {
   });
 
   const macroCard = (label: string, grams: number, colorClass: string) => (
-    <div className="flex flex-col items-center gap-1 rounded-2xl bg-white p-4 shadow-sm">
+    <div className="flex min-h-24 flex-col items-center justify-center gap-1 rounded-2xl bg-white p-4 shadow-sm transition hover:-translate-y-0.5">
       <span className={`text-2xl font-extrabold ${colorClass}`}>{Math.round(grams)}g</span>
       <span className="text-sm text-muted-brand">{label}</span>
     </div>
@@ -42,7 +42,7 @@ export function TdeeTargetsStep() {
     <div className="flex flex-1 flex-col gap-6">
       <h1 className="text-2xl font-bold text-forest">{vi.tdee_targets.headline}</h1>
 
-      <div className="rounded-3xl bg-forest p-6 text-center text-white">
+      <div className="rounded-3xl bg-forest p-6 text-center text-white shadow-sm animate-soft-enter">
         <div className="text-5xl font-extrabold">{Math.round(tdee.calories)}</div>
         <div className="mt-1 text-sm opacity-80">{vi.tdee_targets.calories}</div>
       </div>

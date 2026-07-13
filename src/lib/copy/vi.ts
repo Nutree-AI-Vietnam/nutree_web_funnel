@@ -19,6 +19,23 @@ export const vi = {
       'Macro tối ưu theo mục tiêu của bạn',
       'Gợi ý bữa ăn AI phù hợp macro',
     ],
+    slides: [
+      {
+        title: 'Macro cá nhân hóa',
+        body: 'Tính calo, protein, carb và fat dựa trên chiều cao, cân nặng, mục tiêu và mức vận động của bạn.',
+        metric: '4 chỉ số',
+      },
+      {
+        title: 'Bữa ăn khớp mục tiêu',
+        body: 'Nutree gợi ý bữa ăn AI theo macro đã tính, giúp bạn chọn món nhanh hơn mỗi ngày.',
+        metric: 'AI meal',
+      },
+      {
+        title: 'Điều chỉnh theo tiến độ',
+        body: 'Khi cân nặng và thói quen thay đổi, kế hoạch có thể được cập nhật để bám sát mục tiêu hơn.',
+        metric: 'Theo dõi',
+      },
+    ],
   },
   name_ask: {
     question: 'Tên bạn là gì?',
@@ -209,11 +226,13 @@ export const vi = {
   },
   paywall: {
     headline: 'Mở khóa kế hoạch đầy đủ của bạn',
+    eyebrow: 'Kế hoạch của bạn đã sẵn sàng',
     bullets: [
       'Mục tiêu calo & macro cá nhân hóa',
       'Gợi ý bữa ăn AI mỗi ngày',
       'Theo dõi tiến độ & điều chỉnh tự động',
     ],
+    recommended: 'Đề xuất',
     cta: 'Bắt đầu ngay',
     loading: 'Đang tải các gói...',
     error: 'Không tải được gói đăng ký. Vui lòng thử lại.',

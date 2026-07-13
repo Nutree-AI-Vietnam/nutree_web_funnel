@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+/test-results
 
 # next.js
 /.next/
@@ -36,6 +37,9 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# local agent/worktree state
+/.claude
 
 # typescript
 *.tsbuildinfo

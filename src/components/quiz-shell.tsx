@@ -32,12 +32,14 @@ export function QuizShell({ step, children }: { step: QuizStep; children: React.
         </button>
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-border-brand">
           <div
-            className="h-full rounded-full bg-teal-brand transition-all"
+            className="h-full rounded-full bg-teal-brand transition-all duration-300 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
-      <div className="flex flex-1 flex-col">{children}</div>
+      <div key={step} className="flex flex-1 flex-col animate-soft-enter">
+        {children}
+      </div>
     </main>
   );
 }
