@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { QUIZ_STEPS, isQuizStep, nextRoute, prevRoute, stepIndex } from './steps';
 
 describe('quiz steps', () => {
-  it('has 23 steps in spec order, starting with name_ask and ending with result_promising', () => {
-    expect(QUIZ_STEPS).toHaveLength(23);
+  it('has 24 steps in spec order, starting with name_ask and ending with result_promising', () => {
+    expect(QUIZ_STEPS).toHaveLength(24);
     expect(QUIZ_STEPS[0]).toBe('name_ask');
     expect(QUIZ_STEPS[QUIZ_STEPS.length - 1]).toBe('result_promising');
   });
@@ -30,6 +30,8 @@ describe('quiz steps', () => {
 
   it('exposes 1-based progress index', () => {
     expect(stepIndex('name_ask')).toBe(1);
-    expect(stepIndex('result_promising')).toBe(23);
+    expect(stepIndex('height')).toBe(10);
+    expect(stepIndex('weight')).toBe(11);
+    expect(stepIndex('result_promising')).toBe(24);
   });
 });

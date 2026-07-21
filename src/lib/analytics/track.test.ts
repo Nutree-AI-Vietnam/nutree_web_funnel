@@ -23,10 +23,10 @@ describe('analytics', () => {
   });
 
   it('trackStepViewed sends the step slug', () => {
-    trackStepViewed('height_weight');
+    trackStepViewed('height');
     const w = window as unknown as { gtag: ReturnType<typeof vi.fn> };
     expect(w.gtag).toHaveBeenCalledWith('event', 'funnel_step_viewed', {
-      step: 'height_weight',
+      step: 'height',
     });
   });
 

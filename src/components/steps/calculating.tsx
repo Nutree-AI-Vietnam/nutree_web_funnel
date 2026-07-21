@@ -49,15 +49,62 @@ export function CalculatingStep() {
     return () => clearInterval(timer);
   }, [data, router, setTdee]);
 
+  const activePercent = Math.round(((stage + 1) / vi.calculating.steps.length) * 100);
+
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
-      <div className="h-16 w-16 animate-spin rounded-full border-4 border-mist border-t-teal-brand" />
-      <h1 className="text-2xl font-bold text-forest">
-        {vi.calculating.text.replace('[name]', data.name || vi.reflection.fallbackName)}
-      </h1>
-      <p className="text-slate-brand" aria-live="polite">
-        {vi.calculating.steps[stage]}
-      </p>
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
+      <section className="relative w-full overflow-hidden rounded-[2rem] border border-white/80 bg-white/86 p-5 shadow-[0_26px_80px_rgb(26_71_57_/_0.16)] backdrop-blur">
+        <div className="absolute inset-x-8 top-8 h-28 rounded-full bg-teal-brand/15 blur-3xl" />
+        <div className="relative mx-auto flex h-40 w-40 items-center justify-center">
+          <div className="analysis-ring absolute inset-0 rounded-full" />
+          <div className="absolute inset-5 rounded-full border border-white bg-bg-brand shadow-inner" />
+          <div className="relative flex h-24 w-24 flex-col items-center justify-center rounded-full bg-forest-dark text-white shadow-xl">
+            <span className="text-3xl font-extrabold">AI</span>
+            <span className="text-[0.7rem] font-bold text-teal-brand">Nutree</span>
+          </div>
+          {vi.calculating.orbits.map((item, index) => (
+            <span
+              key={item}
+              className="calculating-float absolute rounded-full border border-white/90 bg-white px-3 py-1 text-[0.68rem] font-extrabold text-forest shadow-md"
+              style={{
+                left: index === 0 ? '-2%' : index === 1 ? '70%' : '33%',
+                top: index === 2 ? '80%' : '18%',
+                animationDelay: `${index * 160}ms`,
+              }}
+            >
+              {item}
+            </span>
+          ))}
+        </div>
+
+        <div className="relative mt-4 grid gap-2 text-left">
+          {vi.calculating.steps.map((item, index) => (
+            <div key={item} className="flex items-center gap-3 rounded-2xl bg-bg-brand/85 px-3 py-2">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-xs font-extrabold text-forest shadow-sm">
+                {index < stage ? '✓' : index === stage ? '•' : index + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-extrabold text-forest">{item}</div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white">
+                  <div
+                    className="h-full rounded-full bg-[linear-gradient(90deg,#29b6a1,#1a4739)] transition-all duration-500"
+                    style={{ width: index < stage ? '100%' : index === stage ? `${activePercent}%` : '0%' }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div>
+        <h1 className="text-[1.8rem] font-extrabold leading-tight text-forest">
+          {vi.calculating.text.replace('[name]', data.name || vi.reflection.fallbackName)}
+        </h1>
+        <p className="mt-2 min-h-6 text-sm font-semibold text-slate-brand" aria-live="polite">
+          {vi.calculating.steps[stage]}
+        </p>
+      </div>
     </div>
   );
 }

@@ -11,68 +11,80 @@ export function ResultPromisingStep() {
   const name = useQuizStore((s) => s.data.name);
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      <div>
-        <p className="mb-2 text-sm font-bold text-emerald-brand">{vi.result_promising.eyebrow}</p>
-        <h1 className="text-2xl font-extrabold leading-tight text-forest">
+    <div className="flex flex-1 flex-col gap-2.5">
+      <div className="rounded-[1.7rem] border border-white/80 bg-white/78 p-3.5 shadow-[0_20px_64px_rgb(26_71_57_/_0.12)] backdrop-blur">
+        <p className="mb-1 text-sm font-bold text-emerald-brand">{vi.result_promising.eyebrow}</p>
+        <h1 className="text-[1.45rem] font-extrabold leading-tight text-forest">
           {vi.result_promising.headline.replace('[name]', name || vi.reflection.fallbackName)}
         </h1>
-        <p className="mt-3 text-slate-brand">{vi.result_promising.body}</p>
+        <p className="mt-1.5 text-xs leading-relaxed text-slate-brand">{vi.result_promising.body}</p>
       </div>
 
-      <svg viewBox="0 0 320 200" className="w-full rounded-2xl bg-white p-2 shadow-sm" role="img">
-        <line x1="30" y1="170" x2="300" y2="170" stroke="#d4e5de" strokeWidth="2" />
-        <line x1="30" y1="20" x2="30" y2="170" stroke="#d4e5de" strokeWidth="2" />
-        <path
-          d="M30 160 C 110 150, 190 145, 300 140"
-          fill="none"
-          stroke="#9ba8a3"
-          strokeWidth="3"
-          strokeDasharray="6 5"
-        />
-        <path
-          d="M30 160 C 120 140, 180 90, 300 40"
-          fill="none"
-          stroke="#29b6a1"
-          strokeWidth="4"
-          strokeLinecap="round"
-        />
-        <circle cx="300" cy="40" r="6" fill="#29b6a1" />
-        <text x="200" y="30" fontSize="12" fill="#1a4739" fontWeight="700">
-          {vi.result_promising.withNutree}
-        </text>
-        <text x="210" y="130" fontSize="12" fill="#6b7b75">
-          {vi.result_promising.withoutNutree}
-        </text>
-      </svg>
+      <section className="relative overflow-hidden rounded-[1.7rem] bg-forest-dark p-3.5 text-white shadow-[0_26px_80px_rgb(15_31_26_/_0.22)]">
+        <div className="absolute -right-10 -top-12 h-36 w-36 rounded-full bg-teal-brand/25 blur-2xl" />
+        <div className="relative mb-2 flex items-center justify-between gap-3">
+          <div>
+            <div className="text-xs font-bold text-teal-brand">{vi.result_promising.withNutree}</div>
+            <div className="text-lg font-extrabold">Tiến độ rõ mỗi tuần</div>
+          </div>
+          <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/70">
+            {vi.result_promising.withoutNutree}
+          </div>
+        </div>
+        <svg viewBox="0 0 320 132" className="relative h-[106px] w-full" role="img" aria-label={vi.result_promising.chartLabel}>
+          <defs>
+            <linearGradient id="promise-fill" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="#29b6a1" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="#29b6a1" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d="M18 112h284" stroke="#ffffff" strokeOpacity=".18" strokeWidth="2" strokeLinecap="round" />
+          <path d="M18 24v88" stroke="#ffffff" strokeOpacity=".18" strokeWidth="2" strokeLinecap="round" />
+          <path
+            className="promise-line-muted"
+            d="M20 104 C 88 96, 164 92, 300 84"
+            fill="none"
+            stroke="#ffffff"
+            strokeOpacity=".48"
+            strokeWidth="4"
+            strokeDasharray="7 7"
+            strokeLinecap="round"
+          />
+          <path
+            d="M20 110 C 94 101, 154 78, 214 45 C 250 26, 278 20, 302 18 L302 112 L20 112 Z"
+            fill="url(#promise-fill)"
+          />
+          <path
+            className="promise-line"
+            d="M20 110 C 94 101, 154 78, 214 45 C 250 26, 278 20, 302 18"
+            fill="none"
+            stroke="#29b6a1"
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
+          <circle className="promise-dot" cx="302" cy="18" r="8" fill="#29b6a1" />
+          <circle cx="20" cy="110" r="4" fill="#29b6a1" />
+        </svg>
+      </section>
 
-      <section className="rounded-2xl bg-white p-5 shadow-sm">
+      <section className="rounded-2xl bg-white/86 p-3.5 shadow-sm backdrop-blur">
         <h2 className="text-base font-extrabold text-forest">{vi.result_promising.nextTitle}</h2>
-        <div className="mt-3 grid gap-2">
-          {vi.result_promising.nextItems.map((item) => (
-            <div key={item} className="flex items-center gap-3 rounded-xl bg-bg-brand px-3 py-2 text-sm font-semibold text-slate-brand">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-mist text-xs text-emerald-deep">
+        <div className="mt-2 grid gap-1.5">
+          {vi.result_promising.nextItems.map((item, index) => (
+            <div key={item} className="grid grid-cols-[1.75rem_1fr_auto] items-center gap-2 rounded-2xl bg-bg-brand px-3 py-1.5 text-[0.7rem] font-semibold text-slate-brand">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-xs font-extrabold text-forest shadow-sm">
+                {index + 1}
+              </span>
+              <span>{item}</span>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-brand text-xs text-white">
                 ✓
               </span>
-              {item}
             </div>
           ))}
         </div>
       </section>
 
-      <section>
-        <h2 className="mb-3 text-base font-extrabold text-forest">{vi.result_promising.proofTitle}</h2>
-        <div className="grid gap-3">
-          {vi.result_promising.proofCards.map((card) => (
-            <div key={card.title} className="rounded-2xl bg-white p-4 shadow-sm">
-              <div className="text-sm font-extrabold text-forest">{card.title}</div>
-              <p className="mt-2 text-sm font-medium leading-relaxed text-slate-brand">{card.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <div className="mt-auto pt-4">
+      <div className="mt-auto pt-1">
         <PrimaryButton onClick={() => router.push(nextRoute('result_promising'))}>
           {vi.result_promising.cta}
         </PrimaryButton>

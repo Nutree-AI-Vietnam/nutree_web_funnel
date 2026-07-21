@@ -15,7 +15,7 @@ export function SingleChoiceStep<K extends keyof OnboardingPayload>({
   step: QuizStep;
   field: K;
   question: string;
-  options: ReadonlyArray<{ readonly key: string; readonly label: string }>;
+  options: ReadonlyArray<{ readonly key: string; readonly label: string; readonly icon?: string }>;
 }) {
   const router = useRouter();
   const value = useQuizStore((s) => s.data[field]);
@@ -28,6 +28,7 @@ export function SingleChoiceStep<K extends keyof OnboardingPayload>({
         <OptionCard
           key={o.key}
           label={o.label}
+          icon={o.icon}
           selected={value === o.key}
           onClick={() => {
             setData({ [field]: o.key } as Partial<OnboardingPayload>);

@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/nutree-logo.png',
+        url: '/nutree-logo-simple.png',
         width: 156,
         height: 60,
         alt: 'Nutree',
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     title: 'Nutree - Kế hoạch dinh dưỡng cá nhân hóa',
     description:
       'Trả lời vài câu hỏi để nhận kế hoạch calo & macro dựa trên khoa học, thiết kế riêng cho bạn.',
-    images: ['/nutree-logo.png'],
+    images: ['/nutree-logo-simple.png'],
   },
   robots: {
     index: true,

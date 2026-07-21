@@ -11,7 +11,8 @@ export const QUIZ_STEPS = [
   // Section 2: Personal info
   'sex',
   'age',
-  'height_weight',
+  'height',
+  'weight',
   'body_fat',
   // Section 3: Training
   'training_days',

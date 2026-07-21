@@ -4,7 +4,6 @@ import type { ComponentType } from 'react';
 import { vi } from '@/lib/copy/vi';
 import type { QuizStep } from '@/lib/quiz/steps';
 import { CalculatingStep } from './calculating';
-import { HeightWeightStep } from './height-weight';
 import { MultiChoiceStep } from './multi-choice';
 import { NumberInputStep } from './number-input-step';
 import { PromoStep } from './promo';
@@ -75,7 +74,26 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       max={100}
     />
   ),
-  height_weight: () => <HeightWeightStep />,
+  height: () => (
+    <NumberInputStep
+      step="height"
+      field="height_cm"
+      question={vi.height.question}
+      unit={vi.height.heightUnit}
+      min={100}
+      max={250}
+    />
+  ),
+  weight: () => (
+    <NumberInputStep
+      step="weight"
+      field="weight_kg"
+      question={vi.weight.question}
+      unit={vi.weight.weightUnit}
+      min={30}
+      max={250}
+    />
+  ),
   body_fat: () => (
     <NumberInputStep
       step="body_fat"
@@ -132,7 +150,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
   tdee_science_promo: () => (
     <PromoStep
       step="tdee_science_promo"
-      emoji="🔬"
+      variant="science"
       headline={vi.tdee_science_promo.headline}
       body={vi.tdee_science_promo.body}
       section={vi.tdee_science_promo.section}
@@ -143,7 +161,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
   smart_macro_promo: () => (
     <PromoStep
       step="smart_macro_promo"
-      emoji="🥗"
+      variant="macro"
       headline={vi.smart_macro_promo.headline}
       body={vi.smart_macro_promo.body}
       section={vi.smart_macro_promo.section}
@@ -154,7 +172,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
   smart_meals_promo: () => (
     <PromoStep
       step="smart_meals_promo"
-      emoji="🤖"
+      variant="meals"
       headline={vi.smart_meals_promo.headline}
       body={vi.smart_meals_promo.body}
       section={vi.smart_meals_promo.section}

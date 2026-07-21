@@ -2,79 +2,107 @@
 
 import { useEffect } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
+import { BackgroundBeams } from '@/components/ui/background-beams';
+import { MovingBorderLink } from '@/components/ui/moving-border-button';
 import { trackStepViewed } from '@/lib/analytics/track';
 import { vi } from '@/lib/copy/vi';
+
+function PlanPreview() {
+  return (
+    <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/88 p-4 shadow-[0_26px_80px_rgb(26_71_57_/_0.14)] backdrop-blur">
+      <div className="absolute -right-14 -top-14 h-36 w-36 rounded-full bg-teal-brand/15 blur-2xl" />
+      <div className="relative flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-teal-brand">
+            {vi.landing.planTitle}
+          </p>
+          <h2 className="mt-1 text-xl font-extrabold leading-tight text-forest">
+            1.470 calo / ngày
+          </h2>
+          <p className="mt-1 text-sm font-semibold text-muted-brand">{vi.landing.planSubtitle}</p>
+        </div>
+        <div className="grid h-20 w-20 shrink-0 place-items-center rounded-full p-2 shadow-inner [background:conic-gradient(#29b6a1_0_72%,#e8f2ee_72%_100%)]">
+          <div className="grid h-full w-full place-items-center rounded-full bg-white text-center">
+            <span className="text-xs font-extrabold leading-tight text-forest">
+              72%
+              <br />
+              khớp
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative mt-4 rounded-2xl bg-bg-brand p-3">
+        <div className="space-y-2">
+          {[
+            { label: 'Protein', value: '132g', width: 82, tone: 'bg-protein' },
+            { label: 'Carbs', value: '127g', width: 66, tone: 'bg-carbs' },
+            { label: 'Chất béo', value: '48g', width: 46, tone: 'bg-fat' },
+          ].map((item) => (
+            <div key={item.label}>
+              <div className="mb-1 flex items-center justify-between text-xs font-bold text-slate-brand">
+                <span>{item.label}</span>
+                <span>{item.value}</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-mist">
+                <div className={`h-full rounded-full ${item.tone}`} style={{ width: `${item.width}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="relative mt-3 grid grid-cols-3 gap-2">
+        {['Sáng', 'Trưa', 'Tối'].map((meal, index) => (
+          <div key={meal} className="rounded-2xl bg-white px-3 py-2 shadow-sm">
+            <div className="text-xs font-extrabold text-teal-brand">{meal}</div>
+            <div className="mt-1 text-sm font-extrabold text-forest">
+              {[420, 560, 490][index]}
+            </div>
+            <div className="text-[0.65rem] font-bold text-muted-brand">calo</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default function LandingPage() {
   useEffect(() => trackStepViewed('landing'), []);
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-5 overflow-hidden px-5 pb-8 pt-6">
-      <div className="flex items-center justify-between">
+    <main className="relative mx-auto flex min-h-dvh w-full max-w-lg flex-col overflow-hidden px-5 pb-4 pt-5">
+      <BackgroundBeams />
+      <div className="relative z-10 flex items-center justify-between">
         <Image
-          src="/nutree-logo.png"
+          src="/nutree-logo-simple.png"
           alt="Nutree"
-          width={156}
-          height={60}
+          width={72}
+          height={64}
           priority
-          className="h-[42px] w-[110px] object-contain"
+          className="h-12 w-12 object-contain"
         />
-        <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-emerald-deep shadow-sm">
+        <span className="rounded-full border border-white/70 bg-white/75 px-3 py-1 text-xs font-bold text-emerald-deep shadow-sm backdrop-blur">
           {vi.landing.language}
         </span>
       </div>
 
-      <section className="relative flex flex-1 flex-col justify-center gap-5">
-        <div aria-hidden="true" className="absolute -right-3 top-0 text-[7.5rem] font-extrabold leading-none text-mist/80">
-          01
-        </div>
-        <div className="relative">
-          <p className="mb-3 text-sm font-bold text-emerald-brand">{vi.landing.eyebrow}</p>
-          <h1 className="text-[2.6rem] font-extrabold leading-[1.05] text-forest">
+      <section className="relative z-10 flex flex-1 flex-col justify-center gap-4 pt-5">
+        <div>
+          <h1 className="text-[2.45rem] font-extrabold leading-[1.03] text-forest">
             {vi.landing.headline}
           </h1>
-          <p className="mt-4 text-lg leading-relaxed text-slate-brand">{vi.landing.subheadline}</p>
+          <p className="mt-3 max-w-[27rem] text-base font-semibold leading-relaxed text-slate-brand">
+            {vi.landing.subheadline}
+          </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          {vi.landing.proofStats.map((stat) => (
-            <div key={stat.value} className="rounded-2xl bg-white p-3 text-center shadow-sm">
-              <div className="text-lg font-extrabold text-forest">{stat.value}</div>
-              <div className="mt-1 text-[0.72rem] leading-snug text-muted-brand">{stat.label}</div>
-            </div>
-          ))}
-        </div>
-
-        <div className="rounded-3xl border border-border-brand bg-white/90 p-4 shadow-[0_18px_42px_rgb(26_71_57_/_0.08)]">
-          <div className="mb-3 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-mist text-xl">
-              {vi.landing.planBadge}
-            </div>
-            <div>
-              <div className="font-extrabold text-forest">{vi.landing.planTitle}</div>
-              <div className="text-sm text-muted-brand">{vi.landing.planSubtitle}</div>
-            </div>
-          </div>
-          <ul className="grid gap-2">
-            {vi.landing.bullets.map((item) => (
-              <li key={item} className="flex items-center gap-2 rounded-xl bg-bg-brand px-3 py-2 text-sm font-semibold text-slate-brand">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-brand text-xs text-white">
-                  ✓
-                </span>
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <PlanPreview />
 
         <div className="mt-auto flex flex-col gap-3">
-          <Link
-            href="/quiz/name_ask"
-            className="min-h-12 rounded-2xl bg-teal-brand px-6 py-4 text-center text-lg font-semibold text-white shadow-sm transition hover:bg-emerald-brand focus:outline-none focus:ring-4 focus:ring-teal-brand/20 active:scale-[0.99]"
-          >
+          <MovingBorderLink href="/quiz/name_ask">
             {vi.landing.cta}
-          </Link>
+          </MovingBorderLink>
           <p className="text-center text-xs leading-relaxed text-muted-brand">{vi.landing.legal}</p>
         </div>
       </section>
