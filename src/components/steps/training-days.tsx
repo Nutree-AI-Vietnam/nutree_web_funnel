@@ -6,10 +6,10 @@ import { nextRoute } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 
 const optionClass = (selected: boolean) =>
-  `rounded-2xl border-2 transition ${
+  `rounded-2xl border-2 shadow-sm transition focus:outline-none focus:ring-4 focus:ring-teal-brand/15 active:scale-[0.99] ${
     selected
-      ? 'border-teal-brand bg-mist text-forest'
-      : 'border-border-brand bg-white text-charcoal hover:border-teal-brand/50'
+      ? 'border-teal-brand bg-mist text-forest ring-2 ring-teal-brand/15'
+      : 'border-border-brand bg-white text-charcoal hover:border-teal-brand/50 hover:bg-mist/40'
   }`;
 
 export function TrainingDaysStep() {
@@ -30,9 +30,17 @@ export function TrainingDaysStep() {
               setData({ training_days_per_week: d });
               router.push(nextRoute('training_days'));
             }}
-            className={`${optionClass(value === d)} py-4 text-xl font-bold`}
+            className={`${optionClass(value === d)} relative min-h-14 py-4 text-xl font-bold`}
           >
             {d}
+            {value === d && (
+              <span
+                aria-hidden="true"
+                className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-teal-brand text-xs text-white"
+              >
+                ✓
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -64,9 +72,19 @@ export function TrainingDurationStep({
             setData({ training_minutes_per_session: Number(o.key) });
             router.push(nextRoute('training_duration'));
           }}
-          className={`${optionClass(value === Number(o.key))} w-full px-5 py-4 text-left text-base font-medium`}
+          className={`${optionClass(value === Number(o.key))} flex min-h-12 w-full items-center justify-between gap-3 px-5 py-4 text-left text-base font-semibold`}
         >
-          {o.label}
+          <span>{o.label}</span>
+          <span
+            aria-hidden="true"
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-sm transition ${
+              value === Number(o.key)
+                ? 'border-teal-brand bg-teal-brand text-white'
+                : 'border-border-brand text-transparent'
+            }`}
+          >
+            ✓
+          </span>
         </button>
       ))}
     </div>

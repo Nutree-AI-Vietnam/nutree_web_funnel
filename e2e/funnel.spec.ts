@@ -25,7 +25,7 @@ test('full funnel: landing -> quiz -> results -> email capture -> paywall', asyn
   await page.getByPlaceholder('Nhập tên của bạn').fill('Anh');
   await page.getByRole('button', { name: 'Tiếp tục' }).click();
   await page.getByRole('button', { name: 'Giảm cân' }).click();
-  await page.getByRole('spinbutton').fill('70');
+  await page.getByRole('spinbutton', { name: 'Cân nặng mục tiêu' }).fill('70');
   await page.getByRole('button', { name: 'Tiếp tục' }).click();
   await page.getByRole('button', { name: 'Không có thời gian' }).click();
   await page.getByRole('button', { name: 'Tiếp tục' }).click();
@@ -37,11 +37,11 @@ test('full funnel: landing -> quiz -> results -> email capture -> paywall', asyn
 
   await page.getByRole('button', { name: 'Nam' }).click();
   await expect(page).toHaveURL(/\/quiz\/age/);
-  await page.getByRole('spinbutton').fill('30');
+  await page.getByRole('spinbutton', { name: 'Tuổi' }).fill('30');
   await page.getByRole('button', { name: 'Tiếp tục' }).click();
   await expect(page).toHaveURL(/\/quiz\/height_weight/);
-  await page.getByLabel('Chiều cao (cm)').fill('175');
-  await page.getByLabel('Cân nặng (kg)').fill('75');
+  await page.getByRole('spinbutton', { name: 'Chiều cao' }).fill('175');
+  await page.getByRole('spinbutton', { name: 'Cân nặng hiện tại' }).fill('75');
   await expect(page.getByRole('button', { name: 'Tiếp tục' })).toBeEnabled();
   await page.getByRole('button', { name: 'Tiếp tục' }).click();
   await page.getByRole('button', { name: 'Bỏ qua' }).click();
@@ -56,9 +56,13 @@ test('full funnel: landing -> quiz -> results -> email capture -> paywall', asyn
   await page.getByRole('button', { name: 'Không có yêu cầu' }).click();
   await page.getByRole('button', { name: 'Tiếp tục' }).click();
 
-  for (let i = 0; i < 3; i++) {
-    await page.getByRole('button', { name: 'Tiếp tục' }).click();
-  }
+  await expect(page).toHaveURL(/\/quiz\/tdee_science_promo/);
+  await page.getByRole('button', { name: 'Tiếp tục' }).click();
+  await expect(page).toHaveURL(/\/quiz\/smart_macro_promo/);
+  await page.getByRole('button', { name: 'Tiếp tục' }).click();
+  await expect(page).toHaveURL(/\/quiz\/smart_meals_promo/);
+  await page.getByRole('button', { name: 'Tiếp tục' }).click();
+  await expect(page).toHaveURL(/\/quiz\/calculating/);
 
   await expect(page).toHaveURL(/tdee_targets/, { timeout: 15_000 });
   await expect(page.getByText('1539')).toBeVisible();
@@ -85,6 +89,28 @@ test('mid-quiz resume from localStorage', async ({ page }) => {
     'aria-pressed',
     'true',
   );
+});
+
+test('metric inputs validate ranges and support bounded steppers', async ({ page }) => {
+  await mockBackend(page);
+  await page.goto('/quiz/target_weight');
+
+  const targetWeight = page.getByRole('spinbutton', { name: 'Cân nặng mục tiêu' });
+  await targetWeight.fill('20');
+  await page.getByRole('button', { name: 'Tiếp tục' }).click();
+  await expect(page.getByText('Cân nặng mục tiêu cần nằm trong khoảng 30-250 kg.')).toBeVisible();
+  await expect(page).toHaveURL(/\/quiz\/target_weight/);
+
+  await targetWeight.fill('30');
+  await targetWeight.blur();
+  await expect(page.getByRole('button', { name: 'Giảm Cân nặng mục tiêu' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Tăng Cân nặng mục tiêu' }).click();
+  await expect(targetWeight).toHaveValue('30.5');
+
+  await page.getByRole('button', { name: '+2.5 kg' }).click();
+  await expect(targetWeight).toHaveValue('33');
+  await targetWeight.press('Enter');
+  await expect(page).toHaveURL(/\/quiz\/challenges/);
 });
 
 test('unknown quiz step 404s', async ({ page }) => {

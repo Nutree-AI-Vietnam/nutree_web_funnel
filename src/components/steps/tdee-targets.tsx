@@ -40,7 +40,15 @@ export function TdeeTargetsStep() {
 
   return (
     <div className="flex flex-1 flex-col gap-6">
-      <h1 className="text-2xl font-bold text-forest">{vi.tdee_targets.headline}</h1>
+      <div className="relative overflow-hidden rounded-3xl bg-mist/70 p-5">
+        <div aria-hidden="true" className="absolute right-3 top-0 text-[5rem] font-extrabold leading-none text-white/70">
+          07
+        </div>
+        <p className="relative text-sm font-bold text-emerald-brand">{vi.tdee_targets.eyebrow}</p>
+        <h1 className="relative mt-2 text-2xl font-extrabold leading-tight text-forest">
+          {vi.tdee_targets.headline}
+        </h1>
+      </div>
 
       <div className="rounded-3xl bg-forest p-6 text-center text-white shadow-sm animate-soft-enter">
         <div className="text-5xl font-extrabold">{Math.round(tdee.calories)}</div>
@@ -52,6 +60,7 @@ export function TdeeTargetsStep() {
         {macroCard(vi.tdee_targets.carbs, tdee.carbs_g, 'text-carbs')}
         {macroCard(vi.tdee_targets.fat, tdee.fat_g, 'text-fat')}
       </div>
+      <p className="-mt-3 text-center text-sm text-muted-brand">{vi.tdee_targets.macroNote}</p>
 
       <div className="rounded-2xl bg-white p-5 shadow-sm">
         <div className="mb-2 flex items-baseline justify-between gap-3">
@@ -77,6 +86,20 @@ export function TdeeTargetsStep() {
           </div>
         </div>
       )}
+
+      <div className="rounded-2xl bg-white p-5 shadow-sm">
+        <div className="mb-3 font-semibold text-forest">{vi.tdee_targets.sourceTitle}</div>
+        <div className="grid gap-2">
+          {vi.tdee_targets.sourceItems.map((item) => (
+            <div key={item} className="flex items-center justify-between gap-3 rounded-xl bg-bg-brand px-3 py-2 text-sm font-medium text-slate-brand">
+              <span>{item}</span>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-brand text-xs text-white">
+                ✓
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="mt-auto pt-4">
         <PrimaryButton onClick={() => router.push(nextRoute('tdee_targets'))}>

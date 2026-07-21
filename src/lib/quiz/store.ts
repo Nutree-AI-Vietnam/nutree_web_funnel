@@ -10,10 +10,12 @@ interface QuizState {
   tdee: TdeeResult | null;
   tdeeSource: 'api' | 'fallback' | null;
   lead: Lead | null;
+  momoOrderId: string | null;
   purchased: boolean;
   setData: (patch: Partial<OnboardingPayload>) => void;
   setTdee: (result: TdeeResult, source: 'api' | 'fallback') => void;
   setLead: (lead: Lead) => void;
+  setMomoOrderId: (orderId: string | null) => void;
   setPurchased: (v: boolean) => void;
   reset: () => void;
 }
@@ -23,6 +25,7 @@ const initial = {
   tdee: null,
   tdeeSource: null,
   lead: null,
+  momoOrderId: null,
   purchased: false,
 };
 
@@ -33,6 +36,7 @@ export const useQuizStore = create<QuizState>()(
       setData: (patch) => set((s) => ({ data: { ...s.data, ...patch } })),
       setTdee: (result, source) => set({ tdee: result, tdeeSource: source }),
       setLead: (lead) => set({ lead }),
+      setMomoOrderId: (momoOrderId) => set({ momoOrderId }),
       setPurchased: (purchased) => set({ purchased }),
       reset: () => set({ ...initial, data: { ...initial.data } }),
     }),

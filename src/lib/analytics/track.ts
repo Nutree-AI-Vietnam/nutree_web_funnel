@@ -1,8 +1,8 @@
 /**
  * Fan-out event tracking: GA4 (gtag), Meta Pixel (fbq), TikTok Pixel (ttq).
  * Step names use OnboardingScreenId.rcKey slugs to align with the app's
- * analytics taxonomy. Purchase conversions are fired server-side from the
- * RevenueCat webhook (backend), so do not fire purchase pixels here.
+ * analytics taxonomy. Purchase conversions are fired from backend payment
+ * webhooks, so do not fire purchase pixels here.
  */
 type AnyWindow = Window & {
   gtag?: (...args: unknown[]) => void;

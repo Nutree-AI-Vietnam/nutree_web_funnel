@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { previewTdee, createLead } from './client';
+import {
+  createLead,
+  createMomoSubscriptionCheckout,
+  getPaymentStatus,
+  previewTdee,
+} from './client';
 import type { OnboardingPayload } from '../quiz/types';
 
 const payload: OnboardingPayload = {
@@ -114,5 +119,47 @@ describe('createLead', () => {
     expect(body.email).toBe('a@b.vn');
     expect(body.onboarding_payload).toMatchObject({ fitness_goal: 'cut' });
     expect(lead).toEqual({ email: 'a@b.vn', web_user_id: 'w_1', claim_token: 'ct_1' });
+  });
+});
+
+describe('createMomoSubscriptionCheckout', () => {
+  it('creates a monthly MoMo subscription checkout', async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          order_id: 'NUTREE1',
+          pay_url: 'https://payment.test/pay',
+          deeplink: null,
+          qr_code_url: null,
+          status: 'pending',
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const checkout = await createMomoSubscriptionCheckout('web_1');
+    expect(fetch).toHaveBeenCalledWith(
+      'https://api.test/v1/web-funnel/momo/subscription-checkouts',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    const body = JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
+    expect(body).toEqual({ web_user_id: 'web_1', plan_id: 'monthly' });
+    expect(checkout.pay_url).toBe('https://payment.test/pay');
+  });
+});
+
+describe('getPaymentStatus', () => {
+  it('fetches payment status by order id', async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Response(JSON.stringify({ order_id: 'NUTREE1', status: 'paid', paid: true }), {
+        status: 200,
+      }),
+    );
+
+    const status = await getPaymentStatus('NUTREE1');
+    expect(fetch).toHaveBeenCalledWith(
+      'https://api.test/v1/web-funnel/payment-orders/NUTREE1/status',
+    );
+    expect(status.paid).toBe(true);
   });
 });

@@ -35,3 +35,18 @@ export interface Lead {
   web_user_id: string;
   claim_token: string;
 }
+
+export interface MomoCheckout {
+  order_id: string;
+  pay_url: string;
+  deeplink?: string | null;
+  qr_code_url?: string | null;
+  status: string;
+}
+
+export interface PaymentStatus {
+  order_id: string;
+  status: string;
+  paid: boolean;
+  user_id?: string | null;
+}

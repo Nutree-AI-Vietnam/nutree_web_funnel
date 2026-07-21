@@ -16,7 +16,7 @@ export function PrimaryButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className="min-h-12 w-full rounded-2xl bg-teal-brand px-6 py-4 text-lg font-semibold text-white shadow-sm transition duration-150 hover:bg-emerald-brand active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100"
+      className="min-h-12 w-full rounded-2xl bg-teal-brand px-6 py-4 text-lg font-semibold text-white shadow-sm transition duration-150 hover:bg-emerald-brand focus:outline-none focus:ring-4 focus:ring-teal-brand/20 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45 disabled:active:scale-100"
     >
       {children}
     </button>

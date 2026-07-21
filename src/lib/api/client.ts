@@ -1,4 +1,10 @@
-import type { Lead, OnboardingPayload, TdeeResult } from '../quiz/types';
+import type {
+  Lead,
+  MomoCheckout,
+  OnboardingPayload,
+  PaymentStatus,
+  TdeeResult,
+} from '../quiz/types';
 
 function baseUrl(): string {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -58,11 +64,27 @@ export async function previewTdee(data: OnboardingPayload): Promise<TdeeResult> 
   };
 }
 
-/** Stores a web lead; backend returns identity for RC checkout + claim handoff. */
+/** Stores a web lead; backend returns identity for MoMo checkout + claim handoff. */
 export async function createLead(email: string, payload: OnboardingPayload): Promise<Lead> {
   const r = await post<{ web_user_id: string; claim_token: string }>('/v1/web-funnel/leads', {
     email,
     onboarding_payload: payload,
   });
   return { email, web_user_id: r.web_user_id, claim_token: r.claim_token };
+}
+
+export async function createMomoSubscriptionCheckout(
+  webUserId: string,
+  planId = 'monthly',
+): Promise<MomoCheckout> {
+  return post<MomoCheckout>('/v1/web-funnel/momo/subscription-checkouts', {
+    web_user_id: webUserId,
+    plan_id: planId,
+  });
+}
+
+export async function getPaymentStatus(orderId: string): Promise<PaymentStatus> {
+  const res = await fetch(`${baseUrl()}/v1/web-funnel/payment-orders/${orderId}/status`);
+  if (!res.ok) throw new Error(`GET payment status failed: ${res.status}`);
+  return res.json() as Promise<PaymentStatus>;
 }

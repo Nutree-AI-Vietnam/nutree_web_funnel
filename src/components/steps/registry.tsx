@@ -135,6 +135,9 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       emoji="🔬"
       headline={vi.tdee_science_promo.headline}
       body={vi.tdee_science_promo.body}
+      section={vi.tdee_science_promo.section}
+      kicker={vi.tdee_science_promo.kicker}
+      proof={vi.tdee_science_promo.proof}
     />
   ),
   smart_macro_promo: () => (
@@ -143,6 +146,9 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       emoji="🥗"
       headline={vi.smart_macro_promo.headline}
       body={vi.smart_macro_promo.body}
+      section={vi.smart_macro_promo.section}
+      kicker={vi.smart_macro_promo.kicker}
+      proof={vi.smart_macro_promo.proof}
     />
   ),
   smart_meals_promo: () => (
@@ -151,6 +157,9 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       emoji="🤖"
       headline={vi.smart_meals_promo.headline}
       body={vi.smart_meals_promo.body}
+      section={vi.smart_meals_promo.section}
+      kicker={vi.smart_meals_promo.kicker}
+      proof={vi.smart_meals_promo.proof}
     />
   ),
   calculating: () => <CalculatingStep />,

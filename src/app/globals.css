@@ -55,6 +55,41 @@ body {
   animation: subtle-pulse 1600ms ease-out infinite;
 }
 
+.metric-stepper {
+  min-height: 48px;
+  min-width: 48px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-brand);
+  background: white;
+  color: var(--color-forest);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    transform 150ms ease;
+}
+
+.metric-stepper:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-teal-brand) 65%, white);
+  background: var(--color-mist);
+}
+
+.metric-stepper:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgb(41 182 161 / 0.15);
+}
+
+.metric-stepper:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.metric-stepper:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

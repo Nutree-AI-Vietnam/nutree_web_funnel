@@ -4,6 +4,8 @@
 
 **Goal:** Build the Nutree web onboarding funnel (quiz → TDEE results → email capture → RevenueCat Web Billing checkout → app download handoff) as a Next.js app in this repo.
 
+**Payment direction update (2026-07-13):** the RevenueCat Web Billing section is now superseded by `plans/260713-2334-momo-hard-paywall-backend-contract/plan.md` for the MoMo hard-paywall path. Keep this document for the original quiz/TDEE/email/Airbridge context.
+
 **Architecture:** Next.js App Router with one URL per quiz step (`/quiz/[step]` dynamic route driven by a step config array). Client-side quiz state in a zustand store persisted to `localStorage`, with keys matching the backend's snake_case fields. TDEE comes from the existing backend `POST /v1/tdee/preview` endpoint, with a local TypeScript port of the mobile app's calculator as fallback. Payment via RevenueCat Web Billing (`@revenuecat/purchases-js`); handoff via backend-issued claim token carried on Airbridge links.
 
 **Tech Stack:** Next.js 15 (App Router) + TypeScript + Tailwind CSS 4, zustand, @revenuecat/purchases-js, qrcode.react, Vitest (unit), Playwright (E2E). Vietnamese-only copy in a single strings module.

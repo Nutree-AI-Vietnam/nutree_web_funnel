@@ -7,8 +7,48 @@ import { vi } from '@/lib/copy/vi';
 import { nextRoute, type QuizStep } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
+import {
+  isMetricValueValid,
+  MetricInput,
+  parseMetricDraft,
+  type QuickAdjustment,
+} from './metric-input';
 
 type NumberField = 'target_weight_kg' | 'age' | 'body_fat_percentage';
+
+const fieldConfig: Record<
+  NumberField,
+  {
+    label: string;
+    hint?: string;
+    step: number;
+    quickAdjustments?: QuickAdjustment[];
+  }
+> = {
+  target_weight_kg: {
+    label: vi.target_weight.label,
+    hint: vi.target_weight.hint,
+    step: 0.5,
+    quickAdjustments: [
+      { label: '-2.5 kg', amount: -2.5 },
+      { label: '+2.5 kg', amount: 2.5 },
+    ],
+  },
+  age: {
+    label: vi.age.label,
+    hint: vi.age.hint,
+    step: 1,
+    quickAdjustments: [
+      { label: '-10 tuổi', amount: -10 },
+      { label: '+10 tuổi', amount: 10 },
+    ],
+  },
+  body_fat_percentage: {
+    label: vi.body_fat.label,
+    hint: vi.body_fat.inputHint,
+    step: 0.5,
+  },
+};
 
 export function NumberInputStep({
   step,
@@ -33,11 +73,19 @@ export function NumberInputStep({
   const saved = useQuizStore((s) => s.data[field]);
   const setData = useQuizStore((s) => s.setData);
   const [value, setValue] = useState(saved != null ? String(saved) : '');
+  const [touched, setTouched] = useState(false);
+  const [attempted, setAttempted] = useState(false);
+  const config = fieldConfig[field];
 
-  const parsed = Number(value);
-  const valid = value !== '' && Number.isFinite(parsed) && parsed >= min && parsed <= max;
+  const parsed = parseMetricDraft(value);
+  const valid = isMetricValueValid(value, min, max);
+  const showError = (touched || attempted) && !valid;
+  const error = vi.metric.rangeError(config.label, min, max, unit);
 
   const submit = () => {
+    setAttempted(true);
+    if (!valid || parsed == null) return;
+
     setData({ [field]: parsed } as Partial<OnboardingPayload>);
     router.push(nextRoute(step));
   };
@@ -46,37 +94,44 @@ export function NumberInputStep({
     <div className="flex flex-1 flex-col gap-4">
       <h1 className="text-2xl font-bold text-forest">{question}</h1>
       {hint && <p className="text-sm text-muted-brand">{hint}</p>}
-      <div className="flex items-center gap-3">
-        <input
-          type="number"
-          inputMode="decimal"
+      <form
+        className="flex flex-1 flex-col gap-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          submit();
+        }}
+      >
+        <MetricInput
+          id={`${step}-${field}`}
+          label={config.label}
+          unit={unit}
           value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && valid && submit()}
           min={min}
           max={max}
+          step={config.step}
+          hint={hint ?? config.hint}
           autoFocus
-          className="w-40 rounded-2xl border-2 border-border-brand bg-white px-5 py-4 text-center text-2xl font-bold outline-none focus:border-teal-brand"
+          error={showError ? error : undefined}
+          quickAdjustments={config.quickAdjustments}
+          onChange={setValue}
+          onBlur={() => setTouched(true)}
         />
-        <span className="text-lg text-muted-brand">{unit}</span>
-      </div>
-      <div className="mt-auto flex flex-col gap-3 pt-6">
-        <PrimaryButton disabled={!valid} onClick={submit}>
-          {vi.common.continue}
-        </PrimaryButton>
-        {optional && (
-          <button
-            type="button"
-            onClick={() => {
-              setData({ [field]: undefined } as Partial<OnboardingPayload>);
-              router.push(nextRoute(step));
-            }}
-            className="py-2 text-sm font-medium text-muted-brand hover:text-slate-brand"
-          >
-            {vi.common.skip}
-          </button>
-        )}
-      </div>
+        <div className="mt-auto flex flex-col gap-3 pt-6">
+          <PrimaryButton type="submit">{vi.common.continue}</PrimaryButton>
+          {optional && (
+            <button
+              type="button"
+              onClick={() => {
+                setData({ [field]: undefined } as Partial<OnboardingPayload>);
+                router.push(nextRoute(step));
+              }}
+              className="min-h-11 py-2 text-sm font-medium text-muted-brand transition hover:text-slate-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-brand"
+            >
+              {vi.common.skip}
+            </button>
+          )}
+        </div>
+      </form>
     </div>
   );
 }
