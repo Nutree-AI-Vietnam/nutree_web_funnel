@@ -10,9 +10,45 @@ const beVietnam = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
-  title: 'Nutree — Kế hoạch dinh dưỡng cá nhân hóa',
+  metadataBase: new URL('https://start.nutree.ai'),
+  applicationName: 'Nutree',
+  title: {
+    default: 'Nutree - Kế hoạch dinh dưỡng cá nhân hóa',
+    template: '%s | Nutree',
+  },
   description:
     'Trả lời vài câu hỏi để nhận kế hoạch calo & macro dựa trên khoa học, thiết kế riêng cho bạn.',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'Nutree - Kế hoạch dinh dưỡng cá nhân hóa',
+    description:
+      'Trả lời vài câu hỏi để nhận kế hoạch calo & macro dựa trên khoa học, thiết kế riêng cho bạn.',
+    url: '/',
+    siteName: 'Nutree',
+    locale: 'vi_VN',
+    type: 'website',
+    images: [
+      {
+        url: '/nutree-logo.png',
+        width: 156,
+        height: 60,
+        alt: 'Nutree',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Nutree - Kế hoạch dinh dưỡng cá nhân hóa',
+    description:
+      'Trả lời vài câu hỏi để nhận kế hoạch calo & macro dựa trên khoa học, thiết kế riêng cho bạn.',
+    images: ['/nutree-logo.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
