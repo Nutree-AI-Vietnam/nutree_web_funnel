@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { OptionCard } from '@/components/option-card';
 import { nextRoute, type QuizStep } from '@/lib/quiz/steps';
@@ -21,6 +22,20 @@ export function SingleChoiceStep<K extends keyof OnboardingPayload>({
   const router = useRouter();
   const value = useQuizStore((s) => s.data[field]);
   const setData = useQuizStore((s) => s.setData);
+  // Show the selection, then advance — feedback before navigation feels responsive.
+  const [pending, setPending] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+
+  const choose = (key: string) => {
+    if (pending) return;
+    setData({ [field]: key } as Partial<OnboardingPayload>);
+    setPending(key);
+    timerRef.current = setTimeout(() => router.push(nextRoute(step)), 240);
+  };
 
   return (
     <QuizStepFrame title={question} className="gap-3">
@@ -29,11 +44,8 @@ export function SingleChoiceStep<K extends keyof OnboardingPayload>({
           key={o.key}
           label={o.label}
           icon={o.icon}
-          selected={value === o.key}
-          onClick={() => {
-            setData({ [field]: o.key } as Partial<OnboardingPayload>);
-            router.push(nextRoute(step));
-          }}
+          selected={pending ? pending === o.key : value === o.key}
+          onClick={() => choose(o.key)}
         />
       ))}
     </QuizStepFrame>

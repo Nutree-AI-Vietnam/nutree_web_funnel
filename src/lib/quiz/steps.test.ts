@@ -22,7 +22,6 @@ describe('quiz steps', () => {
       'eating_pattern',
       'diet',
       'support_style',
-      'plan_summary',
       'calculating',
       'result',
     ]);
@@ -51,7 +50,7 @@ describe('quiz steps', () => {
   it('exposes 1-based progress index', () => {
     expect(stepIndex('goal')).toBe(1);
     expect(stepIndex('height')).toBe(9);
-    expect(stepIndex('result')).toBe(21);
+    expect(stepIndex('result')).toBe(20);
     expect(chapterLabel('training_days')).toBe('Thói quen');
   });
 });

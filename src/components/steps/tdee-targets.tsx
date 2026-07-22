@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
-import { vi } from '@/lib/copy/vi';
+import { useCopy } from '@/lib/copy/use-copy';
 import { nextRoute } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 import { bmi, bmiCategory } from '@/lib/tdee/insights';
@@ -12,6 +12,7 @@ const BMI_MIN = 15;
 const BMI_MAX = 35;
 
 export function TdeeTargetsStep() {
+  const vi = useCopy();
   const router = useRouter();
   const data = useQuizStore((s) => s.data);
   const tdee = useQuizStore((s) => s.tdee);
@@ -53,7 +54,6 @@ export function TdeeTargetsStep() {
     <div className="flex flex-1 flex-col gap-3">
       <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/88 p-3.5 shadow-[0_24px_72px_rgb(26_71_57_/_0.15),inset_0_1px_0_rgb(255_255_255_/_0.82)] backdrop-blur animate-soft-enter">
         <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-teal-brand/20 blur-2xl" />
-        <div className="relative mb-3 h-1 w-16 rounded-full bg-teal-brand" />
         <p className="relative text-xs font-extrabold uppercase tracking-[0.16em] text-teal-brand">{vi.tdee_targets.eyebrow}</p>
         <h1 className="relative mt-1 text-[1.45rem] font-extrabold leading-tight text-forest">{vi.tdee_targets.headline}</h1>
         <p className="relative mt-1.5 text-xs font-semibold leading-relaxed text-slate-brand">{vi.tdee_targets.aha}</p>
@@ -78,7 +78,7 @@ export function TdeeTargetsStep() {
         <div className="relative mt-3 overflow-hidden rounded-2xl bg-bg-brand/88 p-2 shadow-[inset_0_1px_18px_rgb(26_71_57_/_0.04)]">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-extrabold text-forest">{vi.tdee_targets.macroNote}</span>
-            <span className="text-[0.7rem] font-bold text-muted-brand">g/ngày</span>
+            <span className="text-[0.7rem] font-bold text-muted-brand">{vi.tdee_targets.perDayUnit}</span>
           </div>
           <div className="flex h-3 overflow-hidden rounded-full bg-white">
             {macroItems.map((item) => (

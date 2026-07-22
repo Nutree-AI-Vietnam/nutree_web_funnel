@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
-import { vi } from '@/lib/copy/vi';
+import { useCopy } from '@/lib/copy/use-copy';
 import { nextRoute, type QuizStep } from '@/lib/quiz/steps';
 import { cn } from '@/lib/utils';
 
@@ -60,6 +60,7 @@ export function PromoStep({
   kicker?: string;
   proof?: readonly string[];
 }) {
+  const vi = useCopy();
   const router = useRouter();
   return (
     <div className="relative flex flex-1 flex-col justify-center gap-5 overflow-hidden">

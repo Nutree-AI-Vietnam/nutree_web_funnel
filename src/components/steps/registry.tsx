@@ -1,12 +1,11 @@
 'use client';
 
 import type { ComponentType } from 'react';
-import { vi } from '@/lib/copy/vi';
+import { useCopy } from '@/lib/copy/use-copy';
 import type { QuizStep } from '@/lib/quiz/steps';
 import { CalculatingStep } from './calculating';
 import {
   BodyReviewStep,
-  PlanSummaryStep,
   TargetWeightStep,
 } from './final-web-steps';
 import { MultiChoiceStep } from './multi-choice';
@@ -17,119 +16,159 @@ import { TdeeTargetsStep } from './tdee-targets';
 import { NameAskStep } from './text-input-step';
 import { TrainingDaysStep, TrainingDurationStep } from './training-days';
 
-/** slug -> screen component. Every QuizStep must have an entry (registry check in page.tsx). */
+/**
+ * slug -> screen component. Every QuizStep must have an entry (registry check in page.tsx).
+ * Each entry is a component, so screens that need copy read it with `useCopy()` and
+ * re-render live when the active locale changes.
+ */
 export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
-  goal: () => (
-    <SingleChoiceStep
-      step="goal"
-      field="fitness_goal"
-      question={vi.goal.question}
-      options={vi.goal.options}
-    />
-  ),
+  goal: () => {
+    const c = useCopy();
+    return (
+      <SingleChoiceStep
+        step="goal"
+        field="fitness_goal"
+        question={c.goal.question}
+        options={c.goal.options}
+      />
+    );
+  },
   name_ask: () => <NameAskStep step="name_ask" />,
-  challenges: () => (
-    <MultiChoiceStep
-      step="challenges"
-      field="pain_points"
-      question={vi.challenges.question}
-      hint={vi.challenges.hint}
-      options={vi.challenges.options}
-    />
-  ),
-  duration: () => (
-    <SingleChoiceStep
-      step="duration"
-      field="challenge_duration"
-      question={vi.duration.question}
-      options={vi.duration.options}
-    />
-  ),
-  motivation: () => (
-    <SingleChoiceStep
-      step="motivation"
-      field="motivation"
-      question={vi.motivation.question}
-      options={vi.motivation.options}
-    />
-  ),
+  challenges: () => {
+    const c = useCopy();
+    return (
+      <MultiChoiceStep
+        step="challenges"
+        field="pain_points"
+        question={c.challenges.question}
+        hint={c.challenges.hint}
+        options={c.challenges.options}
+      />
+    );
+  },
+  duration: () => {
+    const c = useCopy();
+    return (
+      <SingleChoiceStep
+        step="duration"
+        field="challenge_duration"
+        question={c.duration.question}
+        options={c.duration.options}
+      />
+    );
+  },
+  motivation: () => {
+    const c = useCopy();
+    return (
+      <SingleChoiceStep
+        step="motivation"
+        field="motivation"
+        question={c.motivation.question}
+        options={c.motivation.options}
+      />
+    );
+  },
   reflection: () => <ReflectionStep />,
-  sex: () => (
-    <SingleChoiceStep step="sex" field="gender" question={vi.sex.question} options={vi.sex.options} />
-  ),
-  age: () => (
-    <NumberInputStep
-      step="age"
-      field="age"
-      question={vi.age.question}
-      unit={vi.age.unit}
-      min={18}
-      max={100}
-    />
-  ),
-  height: () => (
-    <NumberInputStep
-      step="height"
-      field="height_cm"
-      question={vi.height.question}
-      unit={vi.height.heightUnit}
-      min={100}
-      max={230}
-    />
-  ),
-  weight: () => (
-    <NumberInputStep
-      step="weight"
-      field="weight_kg"
-      question={vi.weight.question}
-      unit={vi.weight.weightUnit}
-      min={30}
-      max={250}
-    />
-  ),
+  sex: () => {
+    const c = useCopy();
+    return <SingleChoiceStep step="sex" field="gender" question={c.sex.question} options={c.sex.options} />;
+  },
+  age: () => {
+    const c = useCopy();
+    return (
+      <NumberInputStep
+        step="age"
+        field="age"
+        question={c.age.question}
+        unit={c.age.unit}
+        min={18}
+        max={100}
+      />
+    );
+  },
+  height: () => {
+    const c = useCopy();
+    return (
+      <NumberInputStep
+        step="height"
+        field="height_cm"
+        question={c.height.question}
+        unit={c.height.heightUnit}
+        min={100}
+        max={230}
+      />
+    );
+  },
+  weight: () => {
+    const c = useCopy();
+    return (
+      <NumberInputStep
+        step="weight"
+        field="weight_kg"
+        question={c.weight.question}
+        unit={c.weight.weightUnit}
+        min={30}
+        max={250}
+      />
+    );
+  },
   target_weight: () => <TargetWeightStep />,
   body_review: () => <BodyReviewStep />,
-  activity_level: () => (
-    <SingleChoiceStep
-      step="activity_level"
-      field="job_type"
-      question={vi.activity_level.question}
-      options={vi.activity_level.options}
-    />
-  ),
+  activity_level: () => {
+    const c = useCopy();
+    return (
+      <SingleChoiceStep
+        step="activity_level"
+        field="job_type"
+        question={c.activity_level.question}
+        options={c.activity_level.options}
+      />
+    );
+  },
   training_days: () => <TrainingDaysStep />,
-  training_duration: () => (
-    <TrainingDurationStep
-      question={vi.training_duration.question}
-      options={vi.training_duration.options}
-    />
-  ),
-  eating_pattern: () => (
-    <SingleChoiceStep
-      step="eating_pattern"
-      field="hardest_eating_moment"
-      question={vi.eating_pattern.question}
-      options={vi.eating_pattern.options}
-    />
-  ),
-  diet: () => (
-    <MultiChoiceStep
-      step="diet"
-      field="dietary_preferences"
-      question={vi.diet.question}
-      hint={vi.diet.hint}
-      options={vi.diet.options}
-    />
-  ),
-  support_style: () => (
-    <SingleChoiceStep
-      step="support_style"
-      field="support_style"
-      question={vi.support_style.question}
-      options={vi.support_style.options}
-    />
-  ),
-  plan_summary: () => <PlanSummaryStep />,
+  training_duration: () => {
+    const c = useCopy();
+    return (
+      <TrainingDurationStep
+        question={c.training_duration.question}
+        options={c.training_duration.options}
+      />
+    );
+  },
+  eating_pattern: () => {
+    const c = useCopy();
+    return (
+      <SingleChoiceStep
+        step="eating_pattern"
+        field="hardest_eating_moment"
+        question={c.eating_pattern.question}
+        options={c.eating_pattern.options}
+      />
+    );
+  },
+  diet: () => {
+    const c = useCopy();
+    return (
+      <MultiChoiceStep
+        step="diet"
+        field="dietary_preferences"
+        question={c.diet.question}
+        hint={c.diet.hint}
+        options={c.diet.options}
+      />
+    );
+  },
+  support_style: () => {
+    const c = useCopy();
+    return (
+      <SingleChoiceStep
+        step="support_style"
+        field="support_style"
+        question={c.support_style.question}
+        options={c.support_style.options}
+      />
+    );
+  },
   calculating: () => <CalculatingStep />,
   result: () => <TdeeTargetsStep />,
 };

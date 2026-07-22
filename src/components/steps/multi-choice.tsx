@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { OptionCard } from '@/components/option-card';
 import { PrimaryButton } from '@/components/primary-button';
-import { vi } from '@/lib/copy/vi';
+import { useCopy } from '@/lib/copy/use-copy';
 import { nextRoute, type QuizStep } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
@@ -25,6 +25,7 @@ export function MultiChoiceStep({
   hint?: string;
   options: ReadonlyArray<{ readonly key: string; readonly label: string; readonly icon?: string }>;
 }) {
+  const vi = useCopy();
   const router = useRouter();
   const values = useQuizStore((s) => s.data[field]) ?? [];
   const setData = useQuizStore((s) => s.setData);

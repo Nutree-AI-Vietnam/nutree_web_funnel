@@ -6,12 +6,13 @@ import { QRCodeSVG } from 'qrcode.react';
 import { ConversionShell } from '@/components/conversion-shell';
 import { GlowingCard } from '@/components/ui/glowing-card';
 import { trackStepViewed } from '@/lib/analytics/track';
-import { vi } from '@/lib/copy/vi';
+import { useCopy } from '@/lib/copy/use-copy';
 import { buildDownloadLink } from '@/lib/handoff/links';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 
 export default function SuccessPage() {
   const router = useRouter();
+  const vi = useCopy();
   const hydrated = useHydrated();
   const lead = useQuizStore((s) => s.lead);
   const purchased = useQuizStore((s) => s.purchased);
@@ -28,7 +29,6 @@ export default function SuccessPage() {
   return (
     <ConversionShell className="text-center">
       <div>
-        <div className="mx-auto mb-3 h-1 w-16 rounded-full bg-teal-brand" />
         <h1 className="text-3xl font-extrabold leading-tight text-forest">{vi.success.headline}</h1>
         <p className="mt-3 text-slate-brand">{vi.success.body}</p>
       </div>

@@ -2,17 +2,17 @@
 
 import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
-import { vi } from '@/lib/copy/vi';
+import { useCopy } from '@/lib/copy/use-copy';
 import { useQuizStore } from '@/lib/quiz/store';
 
 export function ResultPromisingStep() {
+  const vi = useCopy();
   const router = useRouter();
   const name = useQuizStore((s) => s.data.name);
 
   return (
     <div className="flex flex-1 flex-col gap-2.5">
       <div className="rounded-[1.7rem] border border-white/80 bg-white/78 p-3.5 shadow-[0_20px_64px_rgb(26_71_57_/_0.12)] backdrop-blur">
-        <div className="mb-3 h-1 w-16 rounded-full bg-teal-brand" />
         <p className="mb-1 text-sm font-bold text-emerald-brand">{vi.result_promising.eyebrow}</p>
         <h1 className="text-[1.45rem] font-extrabold leading-tight text-forest">
           {vi.result_promising.headline.replace('[name]', name || vi.reflection.fallbackName)}
@@ -25,7 +25,7 @@ export function ResultPromisingStep() {
         <div className="relative mb-2 flex items-center justify-between gap-3">
           <div>
             <div className="text-xs font-bold text-teal-brand">{vi.result_promising.withNutree}</div>
-            <div className="text-lg font-extrabold">Tiến độ rõ mỗi tuần</div>
+            <div className="text-lg font-extrabold">{vi.result_promising.withNutreeValue}</div>
           </div>
           <div className="rounded-full bg-mist px-3 py-1 text-xs font-bold text-muted-brand">
             {vi.result_promising.withoutNutree}

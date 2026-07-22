@@ -16,13 +16,14 @@ export function GlowingCard({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 4 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18 }}
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        'surface-grain group relative overflow-hidden rounded-[1.25rem] bg-white/86 shadow-[0_12px_34px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.78)] backdrop-blur transition-colors duration-200',
-        compact && 'rounded-[1rem] shadow-[0_10px_26px_rgb(26_71_57_/_0.07),inset_0_1px_0_rgb(255_255_255_/_0.76)]',
-        active && 'bg-mist/86 shadow-[0_14px_36px_rgb(41_182_161_/_0.16),inset_0_0_0_1px_rgb(41_182_161_/_0.58)]',
+        'surface-grain group relative overflow-hidden rounded-[1.25rem] bg-white/80 shadow-[inset_0_0_0_1px_rgb(255_255_255_/_0.6),0_2px_6px_rgb(16_39_32_/_0.05),0_14px_36px_rgb(16_39_32_/_0.10)] backdrop-blur-md transition-[transform,box-shadow,background-color] duration-300 hover:-translate-y-px',
+        compact && 'rounded-[1rem]',
+        active &&
+          'bg-mist/88 shadow-[inset_0_0_0_1.5px_rgb(31_168_146_/_0.7),0_6px_16px_rgb(31_168_146_/_0.14),0_18px_44px_rgb(31_168_146_/_0.16)]',
         className,
       )}
     >

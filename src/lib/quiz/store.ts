@@ -1,18 +1,21 @@
 import { useSyncExternalStore } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { DEFAULT_LOCALE, type Locale } from '@/lib/copy';
 import type { Lead, OnboardingPayload, TdeeResult } from './types';
 
 export const STORAGE_KEY = 'nutree_funnel_v1';
 
 interface QuizState {
   data: OnboardingPayload;
+  locale: Locale;
   tdee: TdeeResult | null;
   tdeeSource: 'api' | 'fallback' | null;
   lead: Lead | null;
   momoOrderId: string | null;
   purchased: boolean;
   setData: (patch: Partial<OnboardingPayload>) => void;
+  setLocale: (locale: Locale) => void;
   setTdee: (result: TdeeResult, source: 'api' | 'fallback') => void;
   setLead: (lead: Lead) => void;
   setMomoOrderId: (orderId: string | null) => void;
@@ -22,6 +25,7 @@ interface QuizState {
 
 const initial = {
   data: { measurement_unit: 'metric' } as OnboardingPayload,
+  locale: DEFAULT_LOCALE,
   tdee: null,
   tdeeSource: null,
   lead: null,
@@ -34,11 +38,13 @@ export const useQuizStore = create<QuizState>()(
     (set) => ({
       ...initial,
       setData: (patch) => set((s) => ({ data: { ...s.data, ...patch } })),
+      setLocale: (locale) => set({ locale }),
       setTdee: (result, source) => set({ tdee: result, tdeeSource: source }),
       setLead: (lead) => set({ lead }),
       setMomoOrderId: (momoOrderId) => set({ momoOrderId }),
       setPurchased: (purchased) => set({ purchased }),
-      reset: () => set({ ...initial, data: { ...initial.data } }),
+      // Language is a UI preference, not quiz data — keep it across a reset.
+      reset: () => set((s) => ({ ...initial, data: { ...initial.data }, locale: s.locale })),
     }),
     {
       name: STORAGE_KEY,

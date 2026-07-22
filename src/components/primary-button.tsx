@@ -21,7 +21,7 @@ export function PrimaryButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'min-h-14 w-full rounded-2xl bg-forest px-5 py-4 text-base font-extrabold text-white shadow-[0_14px_32px_rgb(10_34_27_/_0.18)] transition hover:-translate-y-0.5 hover:bg-forest-dark focus:outline-none focus:ring-4 focus:ring-teal-brand/20 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0',
+        'cta-premium group relative min-h-14 w-full overflow-hidden rounded-2xl px-5 py-4 text-base font-extrabold tracking-tight text-white transition-transform duration-300 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/30 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0',
         className,
       )}
     >

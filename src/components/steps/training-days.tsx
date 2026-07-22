@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { vi } from '@/lib/copy/vi';
+import { useCopy } from '@/lib/copy/use-copy';
 import { nextRoute } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,7 @@ const optionClass = (selected: boolean) =>
   }`;
 
 export function TrainingDaysStep() {
+  const vi = useCopy();
   const router = useRouter();
   const value = useQuizStore((s) => s.data.training_days_per_week);
   const setData = useQuizStore((s) => s.setData);

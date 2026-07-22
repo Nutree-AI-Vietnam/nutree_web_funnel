@@ -135,8 +135,8 @@ export function OptionCard({
         onClick={onClick}
         aria-pressed={selected}
         className={cn(
-          'flex w-full items-center justify-between gap-3 text-left font-semibold transition duration-300 focus:outline-none focus:ring-4 focus:ring-inset focus:ring-teal-brand/15 active:scale-[0.99] group-hover:translate-x-0.5',
-          compact ? 'min-h-10 px-4 py-2 text-sm' : 'min-h-12 px-5 py-4 text-base',
+          'flex w-full items-center justify-between gap-3 text-left font-semibold transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-teal-brand/20 active:scale-[0.99] group-hover:translate-x-0.5',
+          compact ? 'min-h-11 px-4 py-2.5 text-sm' : 'min-h-[3.25rem] px-5 py-4 text-base',
           selected ? 'text-forest' : 'text-charcoal hover:text-forest',
         )}
       >
@@ -147,11 +147,11 @@ export function OptionCard({
         <span
           aria-hidden="true"
           className={cn(
-            'flex shrink-0 items-center justify-center rounded-full text-sm transition duration-300',
+            'flex shrink-0 items-center justify-center rounded-full text-sm transition-all duration-300',
             compact ? 'h-5 w-5 text-[0.7rem]' : 'h-6 w-6',
             selected
-              ? 'bg-teal-brand text-white shadow-[0_8px_18px_rgb(41_182_161_/_0.30)]'
-              : 'scale-75 bg-transparent text-transparent opacity-0',
+              ? 'scale-100 bg-[linear-gradient(135deg,#34d0b4,#1fa892)] text-white shadow-[0_6px_16px_rgb(31_168_146_/_0.40)]'
+              : 'scale-50 border border-dashed border-border-brand bg-transparent text-transparent opacity-0 group-hover:scale-75 group-hover:opacity-100',
           )}
         >
           ✓

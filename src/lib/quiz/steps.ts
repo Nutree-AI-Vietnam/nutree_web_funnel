@@ -18,7 +18,6 @@ export const QUIZ_STEPS = [
   'eating_pattern',
   'diet',
   'support_style',
-  'plan_summary',
   'calculating',
   'result',
 ] as const;
@@ -45,7 +44,6 @@ export const STEP_CHAPTERS: Record<QuizStep, QuizChapter> = {
   eating_pattern: 'routine',
   diet: 'routine',
   support_style: 'routine',
-  plan_summary: 'plan',
   calculating: 'plan',
   result: 'plan',
 };

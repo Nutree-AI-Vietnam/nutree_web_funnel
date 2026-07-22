@@ -3,12 +3,20 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
-const ITEM_HEIGHT = 44;
+const ITEM_HEIGHT = 56;
 const VISIBLE_ITEMS = 5;
 
 function buildOptions(min: number, max: number, step: number): number[] {
   const count = Math.floor((max - min) / step) + 1;
   return Array.from({ length: count }, (_, index) => Number((min + index * step).toFixed(2)));
+}
+
+// iOS-style depth: uniform base size, scaled + faded by distance from the center.
+function depth(distance: number) {
+  if (distance === 0) return { scale: 1, opacity: 1 };
+  const scale = Math.max(0.42, 1 - distance * 0.26);
+  const opacity = Math.max(0.14, 0.5 - (distance - 1) * 0.19);
+  return { scale, opacity };
 }
 
 export function MetricWheelPicker({
@@ -88,7 +96,8 @@ export function MetricWheelPicker({
       aria-label={label}
       aria-activedescendant={`${id}-option-${activeIndex}`}
       tabIndex={0}
-      className="relative h-[220px] overflow-hidden rounded-[1.45rem] bg-[linear-gradient(180deg,rgb(255_255_255_/_0.94),rgb(245_251_248_/_0.88))] shadow-[inset_0_1px_24px_rgb(26_71_57_/_0.08),inset_0_0_0_1px_rgb(255_255_255_/_0.86)] outline-none focus:ring-4 focus:ring-teal-brand/15"
+      className="relative mx-auto h-[280px] w-full max-w-[20rem] overflow-hidden rounded-3xl outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/15"
+      style={{ height: VISIBLE_ITEMS * ITEM_HEIGHT }}
       onKeyDown={(event) => {
         if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
         event.preventDefault();
@@ -97,18 +106,29 @@ export function MetricWheelPicker({
         onChange(next);
       }}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-20 bg-gradient-to-b from-white via-white/90 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-20 bg-gradient-to-t from-white via-white/90 to-transparent" />
-      <div className="pointer-events-none absolute left-4 right-4 top-1/2 z-10 h-12 -translate-y-1/2 rounded-[1rem] bg-mist/60 shadow-[inset_0_0_0_2px_rgb(41_182_161_/_0.82),0_0_0_7px_rgb(41_182_161_/_0.08)]" />
+      {/* Subtle iOS selection guides framing the centered value */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-6 top-1/2 z-10 -translate-y-1/2 border-y border-forest/10"
+        style={{ height: ITEM_HEIGHT }}
+      />
       <div
         ref={listRef}
         tabIndex={-1}
-        className="wheel-picker-scroll relative z-20 h-full snap-y snap-mandatory overflow-y-auto overscroll-contain outline-none"
-        style={{ paddingBlock: verticalPadding }}
+        className="wheel-picker-scroll relative z-20 h-full snap-y snap-mandatory overflow-y-auto overscroll-contain outline-none [touch-action:pan-y]"
+        style={{
+          paddingBlock: verticalPadding,
+          WebkitMaskImage:
+            'linear-gradient(to bottom, transparent 0%, #000 26%, #000 74%, transparent 100%)',
+          maskImage:
+            'linear-gradient(to bottom, transparent 0%, #000 26%, #000 74%, transparent 100%)',
+        }}
         onScroll={selectFromScroll}
       >
         {options.map((option, index) => {
-          const active = index === activeIndex;
+          const distance = Math.abs(index - activeIndex);
+          const active = distance === 0;
+          const { scale, opacity } = depth(distance);
           return (
             <button
               id={`${id}-option-${index}`}
@@ -118,12 +138,13 @@ export function MetricWheelPicker({
               aria-selected={active}
               onClick={() => onChange(option)}
               className={cn(
-                'flex h-11 w-full snap-center items-center justify-center gap-2 text-center transition',
-                active ? 'text-[2rem] font-extrabold text-forest' : 'text-lg font-bold text-muted-brand/45',
+                'flex w-full snap-center items-baseline justify-center gap-2 text-center font-extrabold tabular-nums transition-[transform,opacity,color] duration-200 ease-out will-change-transform',
+                active ? 'text-forest' : 'text-charcoal',
               )}
+              style={{ height: ITEM_HEIGHT, transform: `scale(${scale})`, opacity }}
             >
-              <span>{formatValue(option)}</span>
-              {active && <span className="text-base font-extrabold text-muted-brand">{unit}</span>}
+              <span className="text-[2.5rem] leading-none">{formatValue(option)}</span>
+              {active && <span className="text-lg font-bold text-muted-brand">{unit}</span>}
             </button>
           );
         })}

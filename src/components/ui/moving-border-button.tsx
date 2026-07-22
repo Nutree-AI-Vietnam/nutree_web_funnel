@@ -22,9 +22,9 @@ export function MovingBorderButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      whileTap={disabled ? undefined : { scale: 0.99 }}
+      whileTap={disabled ? undefined : { scale: 0.985 }}
       className={cn(
-        'group relative min-h-12 w-full overflow-hidden rounded-2xl bg-forest px-6 py-4 text-lg font-extrabold text-white shadow-[0_14px_32px_rgb(10_34_27_/_0.18)] outline-none transition hover:-translate-y-0.5 hover:bg-forest-dark focus:ring-4 focus:ring-teal-brand/20 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0',
+        'cta-premium group relative min-h-[3.5rem] w-full overflow-hidden rounded-2xl px-6 py-4 text-lg font-extrabold tracking-tight text-white outline-none transition-transform duration-300 hover:-translate-y-0.5 focus-visible:ring-4 focus-visible:ring-teal-brand/30 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0',
         className,
       )}
     >
@@ -46,11 +46,12 @@ export function MovingBorderLink({
     <Link
       href={href}
       className={cn(
-        'flex min-h-12 w-full items-center justify-center rounded-2xl bg-forest px-6 py-4 text-center text-lg font-extrabold text-white shadow-[0_14px_32px_rgb(10_34_27_/_0.18)] outline-none transition hover:-translate-y-0.5 hover:bg-forest-dark focus:ring-4 focus:ring-teal-brand/20',
+        'cta-premium group flex min-h-[3.5rem] w-full items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-center text-lg font-extrabold tracking-tight text-white outline-none transition-transform duration-300 hover:-translate-y-0.5 focus-visible:ring-4 focus-visible:ring-teal-brand/30',
         className,
       )}
     >
-      {children}
+      <span>{children}</span>
+      <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1">→</span>
     </Link>
   );
 }
