@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { BackgroundBeams } from '@/components/ui/background-beams';
 import { trackStepViewed } from '@/lib/analytics/track';
 import { vi } from '@/lib/copy/vi';
-import { QUIZ_STEPS, prevRoute, stepIndex, type QuizStep } from '@/lib/quiz/steps';
+import { chapterLabel, QUIZ_STEPS, prevRoute, stepIndex, type QuizStep } from '@/lib/quiz/steps';
 import { useHydrated } from '@/lib/quiz/store';
 
 export function QuizShell({ step, children }: { step: QuizStep; children: React.ReactNode }) {
@@ -23,9 +23,9 @@ export function QuizShell({ step, children }: { step: QuizStep; children: React.
   const progress = (currentStep / QUIZ_STEPS.length) * 100;
 
   return (
-    <main className="relative mx-auto flex min-h-dvh w-full max-w-lg flex-col overflow-hidden px-5 pb-8 pt-4 sm:pt-6">
+    <main className="relative mx-auto flex min-h-dvh w-full max-w-lg flex-col overflow-hidden px-5 pb-5 pt-3 sm:pt-5">
       <BackgroundBeams className="opacity-70" />
-      <div className="relative z-10 mb-5 flex items-center justify-between gap-3">
+      <div className="relative z-10 mb-4 flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={() => router.push(prevRoute(step))}
@@ -50,12 +50,16 @@ export function QuizShell({ step, children }: { step: QuizStep; children: React.
         aria-valuemin={1}
         aria-valuemax={QUIZ_STEPS.length}
         aria-valuenow={currentStep}
-        className="relative z-10 mb-4 h-2 overflow-hidden rounded-full bg-white/80 shadow-inner"
+        className="relative z-10 mb-3 h-2 overflow-hidden rounded-full bg-white/80 shadow-inner"
       >
         <div
           className="h-full rounded-full bg-[linear-gradient(90deg,#29b6a1,#1a4739)] transition-all duration-300 ease-out"
           style={{ width: `${progress}%` }}
         />
+      </div>
+      <div className="relative z-10 mb-3 flex items-center justify-between text-xs font-extrabold text-muted-brand">
+        <span>{chapterLabel(step)}</span>
+        <span>{Math.round(progress)}%</span>
       </div>
       <div key={step} className="relative z-10 flex flex-1 flex-col animate-soft-enter">
         {children}

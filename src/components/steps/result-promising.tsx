@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
 import { vi } from '@/lib/copy/vi';
-import { nextRoute } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 
 export function ResultPromisingStep() {
@@ -13,6 +12,7 @@ export function ResultPromisingStep() {
   return (
     <div className="flex flex-1 flex-col gap-2.5">
       <div className="rounded-[1.7rem] border border-white/80 bg-white/78 p-3.5 shadow-[0_20px_64px_rgb(26_71_57_/_0.12)] backdrop-blur">
+        <div className="mb-3 h-1 w-16 rounded-full bg-teal-brand" />
         <p className="mb-1 text-sm font-bold text-emerald-brand">{vi.result_promising.eyebrow}</p>
         <h1 className="text-[1.45rem] font-extrabold leading-tight text-forest">
           {vi.result_promising.headline.replace('[name]', name || vi.reflection.fallbackName)}
@@ -20,14 +20,14 @@ export function ResultPromisingStep() {
         <p className="mt-1.5 text-xs leading-relaxed text-slate-brand">{vi.result_promising.body}</p>
       </div>
 
-      <section className="relative overflow-hidden rounded-[1.7rem] bg-forest-dark p-3.5 text-white shadow-[0_26px_80px_rgb(15_31_26_/_0.22)]">
-        <div className="absolute -right-10 -top-12 h-36 w-36 rounded-full bg-teal-brand/25 blur-2xl" />
+      <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/86 p-3.5 text-forest shadow-[0_24px_70px_rgb(26_71_57_/_0.13),inset_0_1px_0_rgb(255_255_255_/_0.82)] backdrop-blur">
+        <div className="absolute -right-10 -top-12 h-36 w-36 rounded-full bg-teal-brand/18 blur-2xl" />
         <div className="relative mb-2 flex items-center justify-between gap-3">
           <div>
             <div className="text-xs font-bold text-teal-brand">{vi.result_promising.withNutree}</div>
             <div className="text-lg font-extrabold">Tiến độ rõ mỗi tuần</div>
           </div>
-          <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/70">
+          <div className="rounded-full bg-mist px-3 py-1 text-xs font-bold text-muted-brand">
             {vi.result_promising.withoutNutree}
           </div>
         </div>
@@ -38,14 +38,13 @@ export function ResultPromisingStep() {
               <stop offset="100%" stopColor="#29b6a1" stopOpacity="0" />
             </linearGradient>
           </defs>
-          <path d="M18 112h284" stroke="#ffffff" strokeOpacity=".18" strokeWidth="2" strokeLinecap="round" />
-          <path d="M18 24v88" stroke="#ffffff" strokeOpacity=".18" strokeWidth="2" strokeLinecap="round" />
+          <path d="M18 112h284" stroke="#d4e5de" strokeWidth="2" strokeLinecap="round" />
+          <path d="M18 24v88" stroke="#d4e5de" strokeWidth="2" strokeLinecap="round" />
           <path
             className="promise-line-muted"
             d="M20 104 C 88 96, 164 92, 300 84"
             fill="none"
-            stroke="#ffffff"
-            strokeOpacity=".48"
+            stroke="#8aa199"
             strokeWidth="4"
             strokeDasharray="7 7"
             strokeLinecap="round"
@@ -67,7 +66,7 @@ export function ResultPromisingStep() {
         </svg>
       </section>
 
-      <section className="rounded-2xl bg-white/86 p-3.5 shadow-sm backdrop-blur">
+      <section className="rounded-2xl border border-white/75 bg-white/86 p-3.5 shadow-sm backdrop-blur">
         <h2 className="text-base font-extrabold text-forest">{vi.result_promising.nextTitle}</h2>
         <div className="mt-2 grid gap-1.5">
           {vi.result_promising.nextItems.map((item, index) => (
@@ -85,7 +84,7 @@ export function ResultPromisingStep() {
       </section>
 
       <div className="mt-auto pt-1">
-        <PrimaryButton onClick={() => router.push(nextRoute('result_promising'))}>
+        <PrimaryButton onClick={() => router.push('/email')}>
           {vi.result_promising.cta}
         </PrimaryButton>
       </div>

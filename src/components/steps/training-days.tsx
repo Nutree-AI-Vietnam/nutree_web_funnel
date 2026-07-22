@@ -4,12 +4,14 @@ import { useRouter } from 'next/navigation';
 import { vi } from '@/lib/copy/vi';
 import { nextRoute } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
+import { cn } from '@/lib/utils';
+import { QuizStepFrame } from './quiz-step-frame';
 
 const optionClass = (selected: boolean) =>
-  `rounded-2xl border-2 shadow-sm transition focus:outline-none focus:ring-4 focus:ring-teal-brand/15 active:scale-[0.99] ${
+  `rounded-2xl border shadow-sm backdrop-blur transition duration-300 focus:outline-none focus:ring-4 focus:ring-teal-brand/15 active:scale-[0.99] ${
     selected
-      ? 'border-teal-brand bg-mist text-forest ring-2 ring-teal-brand/15'
-      : 'border-border-brand bg-white text-charcoal hover:border-teal-brand/50 hover:bg-mist/40'
+      ? 'border-teal-brand/75 bg-mist/90 text-forest ring-2 ring-teal-brand/15'
+      : 'border-white/75 bg-white/82 text-charcoal hover:-translate-y-0.5 hover:border-teal-brand/50 hover:bg-white'
   }`;
 
 export function TrainingDaysStep() {
@@ -18,9 +20,8 @@ export function TrainingDaysStep() {
   const setData = useQuizStore((s) => s.setData);
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold text-forest">{vi.training_days.question}</h1>
-      <div className="grid grid-cols-4 gap-3">
+    <QuizStepFrame title={vi.training_days.question}>
+      <div className="grid grid-cols-4 gap-2.5">
         {[0, 1, 2, 3, 4, 5, 6, 7].map((d) => (
           <button
             key={d}
@@ -28,9 +29,9 @@ export function TrainingDaysStep() {
             aria-pressed={value === d}
             onClick={() => {
               setData({ training_days_per_week: d });
-              router.push(nextRoute('training_days'));
+              router.push(d === 0 ? '/quiz/eating_pattern' : nextRoute('training_days'));
             }}
-            className={`${optionClass(value === d)} relative min-h-14 py-4 text-xl font-bold`}
+            className={`${optionClass(value === d)} relative min-h-14 py-4 text-xl font-extrabold`}
           >
             {d}
             {value === d && (
@@ -44,8 +45,10 @@ export function TrainingDaysStep() {
           </button>
         ))}
       </div>
-      <p className="text-center text-sm text-muted-brand">{vi.training_days.unit}</p>
-    </div>
+      <p className="rounded-2xl bg-white/70 px-4 py-3 text-center text-sm font-semibold text-muted-brand shadow-sm backdrop-blur">
+        {vi.training_days.unit}
+      </p>
+    </QuizStepFrame>
   );
 }
 
@@ -61,8 +64,7 @@ export function TrainingDurationStep({
   const setData = useQuizStore((s) => s.setData);
 
   return (
-    <div className="flex flex-col gap-3">
-      <h1 className="mb-4 text-2xl font-bold text-forest">{question}</h1>
+    <QuizStepFrame title={question} className="gap-3">
       {options.map((o) => (
         <button
           key={o.key}
@@ -72,21 +74,24 @@ export function TrainingDurationStep({
             setData({ training_minutes_per_session: Number(o.key) });
             router.push(nextRoute('training_duration'));
           }}
-          className={`${optionClass(value === Number(o.key))} flex min-h-12 w-full items-center justify-between gap-3 px-5 py-4 text-left text-base font-semibold`}
+          className={cn(
+            optionClass(value === Number(o.key)),
+            'flex min-h-12 w-full items-center justify-between gap-3 px-5 py-4 text-left text-base font-semibold',
+          )}
         >
           <span>{o.label}</span>
           <span
             aria-hidden="true"
-            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-sm transition ${
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-sm transition duration-300 ${
               value === Number(o.key)
-                ? 'border-teal-brand bg-teal-brand text-white'
-                : 'border-border-brand text-transparent'
+                ? 'bg-teal-brand text-white shadow-[0_8px_18px_rgb(41_182_161_/_0.30)]'
+                : 'scale-75 bg-transparent text-transparent opacity-0'
             }`}
           >
             ✓
           </span>
         </button>
       ))}
-    </div>
+    </QuizStepFrame>
   );
 }

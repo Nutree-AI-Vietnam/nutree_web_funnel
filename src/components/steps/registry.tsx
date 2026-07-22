@@ -4,11 +4,14 @@ import type { ComponentType } from 'react';
 import { vi } from '@/lib/copy/vi';
 import type { QuizStep } from '@/lib/quiz/steps';
 import { CalculatingStep } from './calculating';
+import {
+  BodyReviewStep,
+  PlanSummaryStep,
+  TargetWeightStep,
+} from './final-web-steps';
 import { MultiChoiceStep } from './multi-choice';
 import { NumberInputStep } from './number-input-step';
-import { PromoStep } from './promo';
 import { ReflectionStep } from './reflection';
-import { ResultPromisingStep } from './result-promising';
 import { SingleChoiceStep } from './single-choice';
 import { TdeeTargetsStep } from './tdee-targets';
 import { NameAskStep } from './text-input-step';
@@ -16,7 +19,6 @@ import { TrainingDaysStep, TrainingDurationStep } from './training-days';
 
 /** slug -> screen component. Every QuizStep must have an entry (registry check in page.tsx). */
 export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
-  name_ask: () => <NameAskStep step="name_ask" />,
   goal: () => (
     <SingleChoiceStep
       step="goal"
@@ -25,16 +27,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       options={vi.goal.options}
     />
   ),
-  target_weight: () => (
-    <NumberInputStep
-      step="target_weight"
-      field="target_weight_kg"
-      question={vi.target_weight.question}
-      unit={vi.target_weight.unit}
-      min={30}
-      max={250}
-    />
-  ),
+  name_ask: () => <NameAskStep step="name_ask" />,
   challenges: () => (
     <MultiChoiceStep
       step="challenges"
@@ -44,20 +37,20 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       options={vi.challenges.options}
     />
   ),
-  referral_source: () => (
-    <MultiChoiceStep
-      step="referral_source"
-      field="referral_sources"
-      question={vi.referral_source.question}
-      options={vi.referral_source.options}
-    />
-  ),
   duration: () => (
     <SingleChoiceStep
       step="duration"
       field="challenge_duration"
       question={vi.duration.question}
       options={vi.duration.options}
+    />
+  ),
+  motivation: () => (
+    <SingleChoiceStep
+      step="motivation"
+      field="motivation"
+      question={vi.motivation.question}
+      options={vi.motivation.options}
     />
   ),
   reflection: () => <ReflectionStep />,
@@ -70,7 +63,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       field="age"
       question={vi.age.question}
       unit={vi.age.unit}
-      min={13}
+      min={18}
       max={100}
     />
   ),
@@ -81,7 +74,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       question={vi.height.question}
       unit={vi.height.heightUnit}
       min={100}
-      max={250}
+      max={230}
     />
   ),
   weight: () => (
@@ -94,16 +87,14 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       max={250}
     />
   ),
-  body_fat: () => (
-    <NumberInputStep
-      step="body_fat"
-      field="body_fat_percentage"
-      question={vi.body_fat.question}
-      unit={vi.body_fat.unit}
-      min={3}
-      max={60}
-      hint={vi.body_fat.hint}
-      optional
+  target_weight: () => <TargetWeightStep />,
+  body_review: () => <BodyReviewStep />,
+  activity_level: () => (
+    <SingleChoiceStep
+      step="activity_level"
+      field="job_type"
+      question={vi.activity_level.question}
+      options={vi.activity_level.options}
     />
   ),
   training_days: () => <TrainingDaysStep />,
@@ -113,29 +104,12 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       options={vi.training_duration.options}
     />
   ),
-  experience: () => (
+  eating_pattern: () => (
     <SingleChoiceStep
-      step="experience"
-      field="experience_level"
-      question={vi.experience.question}
-      options={vi.experience.options}
-    />
-  ),
-  training_type: () => (
-    <MultiChoiceStep
-      step="training_type"
-      field="training_types"
-      question={vi.training_type.question}
-      hint={vi.training_type.hint}
-      options={vi.training_type.options}
-    />
-  ),
-  activity_level: () => (
-    <SingleChoiceStep
-      step="activity_level"
-      field="job_type"
-      question={vi.activity_level.question}
-      options={vi.activity_level.options}
+      step="eating_pattern"
+      field="hardest_eating_moment"
+      question={vi.eating_pattern.question}
+      options={vi.eating_pattern.options}
     />
   ),
   diet: () => (
@@ -147,40 +121,15 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       options={vi.diet.options}
     />
   ),
-  tdee_science_promo: () => (
-    <PromoStep
-      step="tdee_science_promo"
-      variant="science"
-      headline={vi.tdee_science_promo.headline}
-      body={vi.tdee_science_promo.body}
-      section={vi.tdee_science_promo.section}
-      kicker={vi.tdee_science_promo.kicker}
-      proof={vi.tdee_science_promo.proof}
+  support_style: () => (
+    <SingleChoiceStep
+      step="support_style"
+      field="support_style"
+      question={vi.support_style.question}
+      options={vi.support_style.options}
     />
   ),
-  smart_macro_promo: () => (
-    <PromoStep
-      step="smart_macro_promo"
-      variant="macro"
-      headline={vi.smart_macro_promo.headline}
-      body={vi.smart_macro_promo.body}
-      section={vi.smart_macro_promo.section}
-      kicker={vi.smart_macro_promo.kicker}
-      proof={vi.smart_macro_promo.proof}
-    />
-  ),
-  smart_meals_promo: () => (
-    <PromoStep
-      step="smart_meals_promo"
-      variant="meals"
-      headline={vi.smart_meals_promo.headline}
-      body={vi.smart_meals_promo.body}
-      section={vi.smart_meals_promo.section}
-      kicker={vi.smart_meals_promo.kicker}
-      proof={vi.smart_meals_promo.proof}
-    />
-  ),
+  plan_summary: () => <PlanSummaryStep />,
   calculating: () => <CalculatingStep />,
-  tdee_targets: () => <TdeeTargetsStep />,
-  result_promising: () => <ResultPromisingStep />,
+  result: () => <TdeeTargetsStep />,
 };

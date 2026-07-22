@@ -49,7 +49,6 @@ export async function previewTdee(data: OnboardingPayload): Promise<TdeeResult> 
     job_type: data.job_type,
     training_days_per_week: data.training_days_per_week,
     training_minutes_per_session: data.training_minutes_per_session,
-    ...(data.experience_level && { training_level: data.experience_level }),
     goal: data.fitness_goal,
     unit_system: 'metric',
   };

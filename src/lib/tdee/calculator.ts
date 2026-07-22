@@ -5,7 +5,7 @@
 import type { OnboardingPayload, TdeeResult } from '../quiz/types';
 
 type Sex = 'male' | 'female';
-type Goal = 'cut' | 'bulk' | 'recomp';
+type Goal = 'cut' | 'bulk' | 'recomp' | 'maintain';
 type JobType = 'desk' | 'on_feet' | 'physical';
 type TrainingLevel = 'beginner' | 'intermediate' | 'advanced';
 
@@ -15,16 +15,17 @@ const JOB_TYPE_MULTIPLIER: Record<JobType, number> = {
   physical: 1.6,
 };
 
-const PROTEIN_PER_KG_BY_GOAL: Record<Goal, number> = { cut: 2.2, recomp: 2.0, bulk: 2.0 };
+const PROTEIN_PER_KG_BY_GOAL: Record<Goal, number> = { cut: 2.2, recomp: 2.0, maintain: 2.0, bulk: 2.0 };
 
 const PROTEIN_PER_KG_BY_TRAINING: Record<Goal, Record<TrainingLevel, number>> = {
   cut: { beginner: 2.2, intermediate: 2.2, advanced: 2.2 },
   recomp: { beginner: 1.8, intermediate: 2.0, advanced: 2.2 },
+  maintain: { beginner: 1.8, intermediate: 2.0, advanced: 2.2 },
   bulk: { beginner: 1.8, intermediate: 2.0, advanced: 2.2 },
 };
 
-const FAT_PER_KG_BY_GOAL: Record<Goal, number> = { cut: 0.8, recomp: 0.9, bulk: 1.0 };
-const FAT_MIN_PERCENT_BY_GOAL: Record<Goal, number> = { cut: 0.2, recomp: 0.25, bulk: 0.25 };
+const FAT_PER_KG_BY_GOAL: Record<Goal, number> = { cut: 0.8, recomp: 0.9, maintain: 0.9, bulk: 1.0 };
+const FAT_MIN_PERCENT_BY_GOAL: Record<Goal, number> = { cut: 0.2, recomp: 0.25, maintain: 0.25, bulk: 0.25 };
 
 const MIN_PROTEIN_G = 60;
 const MAX_PROTEIN_G = 300;
@@ -105,7 +106,6 @@ export function computeTdeeResult(data: OnboardingPayload): TdeeResult | null {
     tdee,
     goal: fitness_goal,
     weightKg: weight_kg,
-    trainingLevel: data.experience_level,
   });
   return { bmr, tdee, ...macros };
 }

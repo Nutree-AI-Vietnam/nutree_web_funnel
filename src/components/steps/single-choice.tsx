@@ -5,6 +5,7 @@ import { OptionCard } from '@/components/option-card';
 import { nextRoute, type QuizStep } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
+import { QuizStepFrame } from './quiz-step-frame';
 
 export function SingleChoiceStep<K extends keyof OnboardingPayload>({
   step,
@@ -22,8 +23,7 @@ export function SingleChoiceStep<K extends keyof OnboardingPayload>({
   const setData = useQuizStore((s) => s.setData);
 
   return (
-    <div className="flex flex-col gap-3">
-      <h1 className="mb-4 text-2xl font-bold text-forest">{question}</h1>
+    <QuizStepFrame title={question} className="gap-3">
       {options.map((o) => (
         <OptionCard
           key={o.key}
@@ -36,6 +36,6 @@ export function SingleChoiceStep<K extends keyof OnboardingPayload>({
           }}
         />
       ))}
-    </div>
+    </QuizStepFrame>
   );
 }

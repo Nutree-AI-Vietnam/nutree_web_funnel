@@ -62,7 +62,7 @@ export function MetricInput({
   const current = clamp(parsed ?? min, min, max);
 
   return (
-    <div className="rounded-[1.7rem] border border-white/80 bg-white/82 p-4 shadow-[0_16px_46px_rgb(26_71_57_/_0.10)] backdrop-blur">
+    <div className="surface-grain overflow-hidden rounded-[1.7rem] bg-white/82 p-4 shadow-[0_16px_46px_rgb(26_71_57_/_0.10),inset_0_1px_0_rgb(255_255_255_/_0.82)] backdrop-blur">
       <div className="mb-3">
         <div>
           <div className="block text-base font-extrabold text-forest">
@@ -76,13 +76,23 @@ export function MetricInput({
         </div>
       </div>
 
-      <input
-        type="hidden"
-        value={value}
-        readOnly
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy || undefined}
-      />
+      <div className="mb-3 flex items-center rounded-2xl border border-border-brand bg-white px-4 py-2 shadow-inner">
+        <input
+          id={`${id}-manual`}
+          inputMode="decimal"
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy || undefined}
+          onChange={(event) => onChange(event.target.value)}
+          onBlur={onBlur}
+          className="min-w-0 flex-1 bg-transparent text-2xl font-extrabold text-forest outline-none"
+        />
+        <span className="ml-3 text-base font-extrabold text-muted-brand">{unit}</span>
+      </div>
       <MetricWheelPicker
         id={id}
         label={label}

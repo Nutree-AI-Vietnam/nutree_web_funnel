@@ -16,7 +16,6 @@ const payload: OnboardingPayload = {
   fitness_goal: 'cut',
   training_days_per_week: 4,
   training_minutes_per_session: 60,
-  experience_level: 'intermediate',
   measurement_unit: 'metric',
 };
 
@@ -59,7 +58,6 @@ describe('previewTdee', () => {
       job_type: 'desk',
       training_days_per_week: 4,
       training_minutes_per_session: 60,
-      training_level: 'intermediate',
       goal: 'cut',
       unit_system: 'metric',
     });

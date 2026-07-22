@@ -51,15 +51,16 @@ export function TdeeTargetsStep() {
 
   return (
     <div className="flex flex-1 flex-col gap-3">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/88 p-4 shadow-[0_24px_72px_rgb(26_71_57_/_0.15)] backdrop-blur animate-soft-enter">
+      <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/88 p-3.5 shadow-[0_24px_72px_rgb(26_71_57_/_0.15),inset_0_1px_0_rgb(255_255_255_/_0.82)] backdrop-blur animate-soft-enter">
         <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-teal-brand/20 blur-2xl" />
+        <div className="relative mb-3 h-1 w-16 rounded-full bg-teal-brand" />
         <p className="relative text-xs font-extrabold uppercase tracking-[0.16em] text-teal-brand">{vi.tdee_targets.eyebrow}</p>
-        <h1 className="relative mt-1 text-[1.55rem] font-extrabold leading-tight text-forest">{vi.tdee_targets.headline}</h1>
+        <h1 className="relative mt-1 text-[1.45rem] font-extrabold leading-tight text-forest">{vi.tdee_targets.headline}</h1>
         <p className="relative mt-1.5 text-xs font-semibold leading-relaxed text-slate-brand">{vi.tdee_targets.aha}</p>
 
         <div className="relative mt-3 grid grid-cols-[1fr_auto] items-center gap-3">
           <div>
-            <div className="text-[3.25rem] font-extrabold leading-none text-forest">
+            <div className="text-[3rem] font-extrabold leading-none text-forest">
               {displayCalories || Math.round(tdee.calories)}
             </div>
             <div className="mt-1 text-sm font-extrabold text-muted-brand">{vi.tdee_targets.calories}</div>
@@ -74,7 +75,7 @@ export function TdeeTargetsStep() {
           </div>
         </div>
 
-        <div className="mt-3 overflow-hidden rounded-2xl bg-bg-brand p-2.5">
+        <div className="relative mt-3 overflow-hidden rounded-2xl bg-bg-brand/88 p-2 shadow-[inset_0_1px_18px_rgb(26_71_57_/_0.04)]">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-extrabold text-forest">{vi.tdee_targets.macroNote}</span>
             <span className="text-[0.7rem] font-bold text-muted-brand">g/ngày</span>
@@ -99,7 +100,7 @@ export function TdeeTargetsStep() {
         </div>
       </section>
 
-      <section className="rounded-2xl bg-white/86 p-3 shadow-sm backdrop-blur">
+      <section className="rounded-2xl bg-white/82 p-2.5 shadow-[0_12px_34px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.78)] backdrop-blur">
         <div className="mb-2 flex items-baseline justify-between gap-3">
           <span className="font-extrabold text-forest">{vi.tdee_targets.bmiTitle}</span>
           <span className="text-right text-sm font-semibold text-muted-brand">
@@ -114,11 +115,11 @@ export function TdeeTargetsStep() {
         </div>
       </section>
 
-      <section className="rounded-2xl bg-white/86 p-3 shadow-sm backdrop-blur">
+      <section className="rounded-2xl bg-white/82 p-2.5 shadow-[0_12px_34px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.78)] backdrop-blur">
         <div className="mb-2 text-sm font-extrabold text-forest">{vi.tdee_targets.sourceTitle}</div>
         <div className="grid gap-1">
           {vi.tdee_targets.sourceItems.map((item) => (
-            <div key={item} className="flex items-center gap-2 rounded-xl bg-bg-brand px-3 py-1 text-[0.7rem] font-semibold text-slate-brand">
+            <div key={item} className="flex items-center gap-2 rounded-xl bg-bg-brand px-3 py-0.5 text-[0.7rem] font-semibold text-slate-brand">
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal-brand text-xs text-white">
                 ✓
               </span>
@@ -129,7 +130,7 @@ export function TdeeTargetsStep() {
       </section>
 
       <div className="mt-auto pt-1">
-        <PrimaryButton onClick={() => router.push(nextRoute('tdee_targets'))}>
+        <PrimaryButton onClick={() => router.push(nextRoute('result'))}>
           {vi.common.continue}
         </PrimaryButton>
       </div>

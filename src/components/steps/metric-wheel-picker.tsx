@@ -88,7 +88,7 @@ export function MetricWheelPicker({
       aria-label={label}
       aria-activedescendant={`${id}-option-${activeIndex}`}
       tabIndex={0}
-      className="relative h-[220px] overflow-hidden rounded-[1.7rem] border border-border-brand bg-white/90 shadow-inner outline-none focus:ring-4 focus:ring-teal-brand/15"
+      className="relative h-[220px] overflow-hidden rounded-[1.45rem] bg-[linear-gradient(180deg,rgb(255_255_255_/_0.94),rgb(245_251_248_/_0.88))] shadow-[inset_0_1px_24px_rgb(26_71_57_/_0.08),inset_0_0_0_1px_rgb(255_255_255_/_0.86)] outline-none focus:ring-4 focus:ring-teal-brand/15"
       onKeyDown={(event) => {
         if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
         event.preventDefault();
@@ -99,7 +99,7 @@ export function MetricWheelPicker({
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-20 bg-gradient-to-b from-white via-white/90 to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-20 bg-gradient-to-t from-white via-white/90 to-transparent" />
-      <div className="pointer-events-none absolute left-4 right-4 top-1/2 z-10 h-12 -translate-y-1/2 rounded-2xl border-2 border-teal-brand bg-mist/45 shadow-[0_0_0_7px_rgb(41_182_161_/_0.08)]" />
+      <div className="pointer-events-none absolute left-4 right-4 top-1/2 z-10 h-12 -translate-y-1/2 rounded-[1rem] bg-mist/60 shadow-[inset_0_0_0_2px_rgb(41_182_161_/_0.82),0_0_0_7px_rgb(41_182_161_/_0.08)]" />
       <div
         ref={listRef}
         tabIndex={-1}

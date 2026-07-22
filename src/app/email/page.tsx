@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ConversionShell } from '@/components/conversion-shell';
 import { PrimaryButton } from '@/components/primary-button';
-import { BackgroundBeams } from '@/components/ui/background-beams';
 import { GlowingCard } from '@/components/ui/glowing-card';
 import { createLead } from '@/lib/api/client';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
@@ -45,11 +45,10 @@ export default function EmailPage() {
   };
 
   return (
-    <main className="relative mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center gap-4 overflow-hidden px-5 py-8">
-      <BackgroundBeams />
-      <div className="relative z-10 animate-soft-enter">
+    <ConversionShell>
         <GlowingCard className="rounded-3xl">
           <div className="flex flex-col gap-4 p-5">
+            <div className="h-1 w-16 rounded-full bg-teal-brand" />
             <h1 className="text-3xl font-extrabold leading-tight text-forest">{vi.email.headline}</h1>
             <p className="text-slate-brand">{vi.email.body}</p>
             <input
@@ -60,7 +59,7 @@ export default function EmailPage() {
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && void submit()}
               placeholder={vi.email.placeholder}
-              className="rounded-2xl border-2 border-border-brand bg-white/90 px-5 py-4 text-lg outline-none transition focus:border-teal-brand focus:ring-4 focus:ring-teal-brand/10"
+              className="rounded-2xl border border-white/80 bg-bg-brand/90 px-5 py-4 text-lg font-semibold text-forest shadow-inner outline-none transition placeholder:text-muted-brand/65 focus:border-teal-brand focus:ring-4 focus:ring-teal-brand/10"
             />
             {error && <p className="text-sm font-medium text-error-brand">{error}</p>}
             <PrimaryButton disabled={submitting || !currentEmail} onClick={submit}>
@@ -68,7 +67,6 @@ export default function EmailPage() {
             </PrimaryButton>
           </div>
         </GlowingCard>
-      </div>
-    </main>
+    </ConversionShell>
   );
 }

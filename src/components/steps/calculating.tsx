@@ -8,7 +8,7 @@ import { nextRoute } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 import { computeTdeeResult } from '@/lib/tdee/calculator';
 
-const STAGE_MS = 1000;
+const STAGE_MS = 220;
 
 export function CalculatingStep() {
   const router = useRouter();
@@ -25,9 +25,7 @@ export function CalculatingStep() {
       () => setStage((s) => Math.min(s + 1, vi.calculating.steps.length - 1)),
       STAGE_MS,
     );
-    const minDelay = new Promise((resolve) =>
-      setTimeout(resolve, STAGE_MS * vi.calculating.steps.length),
-    );
+    const minDelay = new Promise((resolve) => setTimeout(resolve, 900));
 
     const fetchTdee = previewTdee(data)
       .then((result) => ({ result, source: 'api' as const }))
@@ -52,15 +50,15 @@ export function CalculatingStep() {
   const activePercent = Math.round(((stage + 1) / vi.calculating.steps.length) * 100);
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
-      <section className="relative w-full overflow-hidden rounded-[2rem] border border-white/80 bg-white/86 p-5 shadow-[0_26px_80px_rgb(26_71_57_/_0.16)] backdrop-blur">
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+      <section className="relative w-full overflow-hidden rounded-[2rem] border border-white/80 bg-white/86 p-4 shadow-[0_26px_80px_rgb(26_71_57_/_0.16)] backdrop-blur">
         <div className="absolute inset-x-8 top-8 h-28 rounded-full bg-teal-brand/15 blur-3xl" />
-        <div className="relative mx-auto flex h-40 w-40 items-center justify-center">
+        <div className="relative mx-auto flex h-36 w-36 items-center justify-center">
           <div className="analysis-ring absolute inset-0 rounded-full" />
           <div className="absolute inset-5 rounded-full border border-white bg-bg-brand shadow-inner" />
-          <div className="relative flex h-24 w-24 flex-col items-center justify-center rounded-full bg-forest-dark text-white shadow-xl">
-            <span className="text-3xl font-extrabold">AI</span>
-            <span className="text-[0.7rem] font-bold text-teal-brand">Nutree</span>
+          <div className="relative flex h-[5.5rem] w-[5.5rem] flex-col items-center justify-center rounded-full bg-forest-dark text-white shadow-xl">
+            <span className="text-lg font-extrabold">Nutree</span>
+            <span className="mt-1 text-[0.7rem] font-bold text-teal-brand">Plan</span>
           </div>
           {vi.calculating.orbits.map((item, index) => (
             <span
@@ -98,6 +96,7 @@ export function CalculatingStep() {
       </section>
 
       <div>
+        <div className="mx-auto mb-3 h-1 w-16 rounded-full bg-teal-brand" />
         <h1 className="text-[1.8rem] font-extrabold leading-tight text-forest">
           {vi.calculating.text.replace('[name]', data.name || vi.reflection.fallbackName)}
         </h1>

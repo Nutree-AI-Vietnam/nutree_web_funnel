@@ -71,7 +71,7 @@ function OptionIcon({ icon, compact }: { icon: string; compact?: boolean }) {
       <span
         aria-hidden="true"
         className={cn(
-          'flex shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-border-brand/70',
+          'flex shrink-0 items-center justify-center rounded-xl bg-white/88 shadow-sm ring-1 ring-border-brand/70',
           compact ? 'h-7 w-7' : 'h-10 w-10',
         )}
       >
@@ -85,7 +85,7 @@ function OptionIcon({ icon, compact }: { icon: string; compact?: boolean }) {
       <span
         aria-hidden="true"
         className={cn(
-          'flex shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-border-brand/70',
+          'flex shrink-0 items-center justify-center rounded-xl bg-white/88 shadow-sm ring-1 ring-border-brand/70',
           compact ? 'h-7 w-7' : 'h-10 w-10',
         )}
       >
@@ -106,7 +106,7 @@ function OptionIcon({ icon, compact }: { icon: string; compact?: boolean }) {
     <span
       aria-hidden="true"
       className={cn(
-        'flex shrink-0 items-center justify-center rounded-full bg-white font-extrabold text-forest shadow-sm ring-1 ring-border-brand/70',
+        'flex shrink-0 items-center justify-center rounded-xl bg-white/88 font-extrabold text-forest shadow-sm ring-1 ring-border-brand/70',
         compact ? 'h-7 w-7 text-xs' : 'h-10 w-10 text-sm',
       )}
     >
@@ -135,7 +135,7 @@ export function OptionCard({
         onClick={onClick}
         aria-pressed={selected}
         className={cn(
-          'flex w-full items-center justify-between gap-3 text-left font-semibold transition duration-150 focus:outline-none focus:ring-4 focus:ring-inset focus:ring-teal-brand/15 active:scale-[0.99]',
+          'flex w-full items-center justify-between gap-3 text-left font-semibold transition duration-300 focus:outline-none focus:ring-4 focus:ring-inset focus:ring-teal-brand/15 active:scale-[0.99] group-hover:translate-x-0.5',
           compact ? 'min-h-10 px-4 py-2 text-sm' : 'min-h-12 px-5 py-4 text-base',
           selected ? 'text-forest' : 'text-charcoal hover:text-forest',
         )}
@@ -147,9 +147,11 @@ export function OptionCard({
         <span
           aria-hidden="true"
           className={cn(
-            'flex shrink-0 items-center justify-center rounded-full border text-sm transition',
+            'flex shrink-0 items-center justify-center rounded-full text-sm transition duration-300',
             compact ? 'h-5 w-5 text-[0.7rem]' : 'h-6 w-6',
-            selected ? 'border-teal-brand bg-teal-brand text-white' : 'border-border-brand text-transparent',
+            selected
+              ? 'bg-teal-brand text-white shadow-[0_8px_18px_rgb(41_182_161_/_0.30)]'
+              : 'scale-75 bg-transparent text-transparent opacity-0',
           )}
         >
           ✓

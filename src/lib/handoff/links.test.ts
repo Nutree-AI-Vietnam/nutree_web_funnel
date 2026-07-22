@@ -23,4 +23,11 @@ describe('buildDownloadLink', () => {
     expect(url.searchParams.get('campaign')).toBe('web_funnel');
     expect(url.searchParams.get('deeplink_url')).toBe('nutree://claim?token=ct_42');
   });
+
+  it('falls back to a safe same-origin link when tracking env is absent', () => {
+    vitest.unstubAllEnvs();
+    const url = new URL(buildDownloadLink('ct_42'));
+    expect(url.origin + url.pathname).toBe('https://start.nutree.ai/');
+    expect(url.searchParams.get('deeplink_url')).toBe('nutree://claim?token=ct_42');
+  });
 });

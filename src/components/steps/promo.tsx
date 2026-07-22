@@ -49,7 +49,6 @@ export function PromoStep({
   headline,
   body,
   variant,
-  section,
   kicker,
   proof = [],
 }: {
@@ -63,29 +62,27 @@ export function PromoStep({
 }) {
   const router = useRouter();
   return (
-    <div className="relative flex flex-1 flex-col justify-center gap-6 overflow-hidden">
-      {section && (
-        <div aria-hidden="true" className="absolute right-0 top-0 text-[8rem] font-extrabold leading-none text-mist/80">
-          {section}
+    <div className="relative flex flex-1 flex-col justify-center gap-5 overflow-hidden">
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/86 p-5 shadow-[0_26px_80px_rgb(26_71_57_/_0.14)] backdrop-blur">
+        <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-teal-brand/15 blur-2xl" />
+        <div className="relative h-1 w-16 rounded-full bg-teal-brand" />
+        <div className="relative mt-5">
+          <PromoIcon variant={variant} />
+          {kicker && <p className="mb-2 text-sm font-bold text-emerald-brand">{kicker}</p>}
+          <h1 className="text-[1.9rem] font-extrabold leading-tight text-forest">{headline}</h1>
+          <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-brand">{body}</p>
         </div>
-      )}
-      <div className="relative h-1 w-16 rounded-full bg-teal-brand" />
-      <div className="relative">
-        <PromoIcon variant={variant} />
-        {kicker && <p className="mb-2 text-sm font-bold text-emerald-brand">{kicker}</p>}
-        <h1 className="text-3xl font-extrabold leading-tight text-forest">{headline}</h1>
-        <p className="mt-3 text-base leading-relaxed text-slate-brand">{body}</p>
-      </div>
+      </section>
 
       <div className="grid grid-cols-3 gap-2">
         {proof.map((item) => (
-          <div key={item} className={cn('rounded-2xl bg-white/86 p-3 text-center text-sm font-bold text-slate-brand shadow-sm backdrop-blur')}>
+          <div key={item} className={cn('rounded-2xl bg-white/86 p-3 text-center text-sm font-bold text-slate-brand shadow-sm backdrop-blur transition duration-500 hover:-translate-y-1 hover:bg-white')}>
             {item}
           </div>
         ))}
       </div>
 
-      <div className="mt-auto pt-4">
+      <div className="mt-auto pt-2">
         <PrimaryButton onClick={() => router.push(nextRoute(step))}>{vi.common.continue}</PrimaryButton>
       </div>
     </div>

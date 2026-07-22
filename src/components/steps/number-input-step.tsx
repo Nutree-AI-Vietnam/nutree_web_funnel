@@ -8,6 +8,7 @@ import { nextRoute, type QuizStep } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
 import { isMetricValueValid, MetricInput, parseMetricDraft } from './metric-input';
+import { QuizStepFrame } from './quiz-step-frame';
 
 type NumberField = 'target_weight_kg' | 'height_cm' | 'weight_kg' | 'age' | 'body_fat_percentage';
 
@@ -23,7 +24,7 @@ const fieldConfig: Record<
   target_weight_kg: {
     label: vi.target_weight.label,
     hint: vi.target_weight.hint,
-    step: 0.5,
+    step: 1,
     defaultValue: 50,
   },
   height_cm: {
@@ -93,9 +94,7 @@ export function NumberInputStep({
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-4">
-      <h1 className="text-2xl font-bold text-forest">{question}</h1>
-      {hint && <p className="text-sm text-muted-brand">{hint}</p>}
+    <QuizStepFrame title={question} hint={hint}>
       <form
         className="flex flex-1 flex-col gap-4"
         onSubmit={(event) => {
@@ -133,6 +132,6 @@ export function NumberInputStep({
           )}
         </div>
       </form>
-    </div>
+    </QuizStepFrame>
   );
 }

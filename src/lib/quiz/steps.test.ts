@@ -1,11 +1,31 @@
 import { describe, it, expect } from 'vitest';
-import { QUIZ_STEPS, isQuizStep, nextRoute, prevRoute, stepIndex } from './steps';
+import { chapterLabel, QUIZ_STEPS, isQuizStep, nextRoute, prevRoute, stepIndex } from './steps';
 
 describe('quiz steps', () => {
-  it('has 24 steps in spec order, starting with name_ask and ending with result_promising', () => {
-    expect(QUIZ_STEPS).toHaveLength(24);
-    expect(QUIZ_STEPS[0]).toBe('name_ask');
-    expect(QUIZ_STEPS[QUIZ_STEPS.length - 1]).toBe('result_promising');
+  it('keeps one input or decision per quiz screen', () => {
+    expect(QUIZ_STEPS).toEqual([
+      'goal',
+      'name_ask',
+      'challenges',
+      'duration',
+      'motivation',
+      'reflection',
+      'sex',
+      'age',
+      'height',
+      'weight',
+      'target_weight',
+      'body_review',
+      'activity_level',
+      'training_days',
+      'training_duration',
+      'eating_pattern',
+      'diet',
+      'support_style',
+      'plan_summary',
+      'calculating',
+      'result',
+    ]);
   });
 
   it('validates step slugs', () => {
@@ -15,23 +35,23 @@ describe('quiz steps', () => {
   });
 
   it('navigates forward through quiz steps', () => {
-    expect(nextRoute('name_ask')).toBe('/quiz/goal');
-    expect(nextRoute('diet')).toBe('/quiz/tdee_science_promo');
+    expect(nextRoute('goal')).toBe('/quiz/name_ask');
+    expect(nextRoute('diet')).toBe('/quiz/support_style');
   });
 
   it('exits to /email after the last quiz step', () => {
-    expect(nextRoute('result_promising')).toBe('/email');
+    expect(nextRoute('result')).toBe('/email');
   });
 
   it('navigates backward, landing page before first step', () => {
-    expect(prevRoute('goal')).toBe('/quiz/name_ask');
-    expect(prevRoute('name_ask')).toBe('/');
+    expect(prevRoute('name_ask')).toBe('/quiz/goal');
+    expect(prevRoute('goal')).toBe('/');
   });
 
   it('exposes 1-based progress index', () => {
-    expect(stepIndex('name_ask')).toBe(1);
-    expect(stepIndex('height')).toBe(10);
-    expect(stepIndex('weight')).toBe(11);
-    expect(stepIndex('result_promising')).toBe(24);
+    expect(stepIndex('goal')).toBe(1);
+    expect(stepIndex('height')).toBe(9);
+    expect(stepIndex('result')).toBe(21);
+    expect(chapterLabel('training_days')).toBe('Thói quen');
   });
 });

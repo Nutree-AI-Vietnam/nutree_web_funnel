@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ConversionShell } from '@/components/conversion-shell';
 import { PrimaryButton } from '@/components/primary-button';
 import { getPaymentStatus } from '@/lib/api/client';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
@@ -60,16 +61,17 @@ function MomoReturnContent() {
   if (!hydrated) return null;
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center gap-5 px-5 py-8">
-      <div className="rounded-3xl bg-forest p-5 text-white shadow-sm animate-soft-enter">
-        <div className="text-sm font-semibold opacity-80">MoMo</div>
+    <ConversionShell className="gap-5">
+      <div className="rounded-3xl bg-forest p-5 text-white shadow-sm">
+        <div className="h-1 w-16 rounded-full bg-teal-brand" />
         <h1 className="mt-2 text-3xl font-extrabold">{vi.momoReturn.headline}</h1>
+        <div className="mt-3 text-sm font-semibold opacity-80">MoMo</div>
       </div>
       <p className="text-slate-brand">{statusText}</p>
       <PrimaryButton disabled={checking} onClick={() => void check()}>
         {checking ? '...' : vi.momoReturn.retry}
       </PrimaryButton>
-    </main>
+    </ConversionShell>
   );
 }
 

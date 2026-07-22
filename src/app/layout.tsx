@@ -55,7 +55,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="vi" className="h-full">
+    <html lang="vi" className="h-full" data-scroll-behavior="smooth">
       <body className={`${beVietnam.variable} flex min-h-full flex-col font-sans antialiased`}>
         <AnalyticsScripts />
         {children}

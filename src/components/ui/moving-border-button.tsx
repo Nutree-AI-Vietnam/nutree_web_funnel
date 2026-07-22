@@ -24,14 +24,11 @@ export function MovingBorderButton({
       disabled={disabled}
       whileTap={disabled ? undefined : { scale: 0.99 }}
       className={cn(
-        'group relative min-h-12 w-full overflow-hidden rounded-2xl p-px text-lg font-semibold text-white shadow-[0_18px_40px_rgb(41_182_161_/_0.22)] outline-none transition focus:ring-4 focus:ring-teal-brand/20 disabled:cursor-not-allowed disabled:opacity-45',
+        'group relative min-h-12 w-full overflow-hidden rounded-2xl bg-forest px-6 py-4 text-lg font-extrabold text-white shadow-[0_14px_32px_rgb(10_34_27_/_0.18)] outline-none transition hover:-translate-y-0.5 hover:bg-forest-dark focus:ring-4 focus:ring-teal-brand/20 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0',
         className,
       )}
     >
-      <span className="absolute inset-[-120%] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0deg,#29b6a1_80deg,#9ef6df_135deg,transparent_210deg)] opacity-80 transition duration-500 group-hover:rotate-180" />
-      <span className="relative flex min-h-12 items-center justify-center rounded-[calc(1rem-1px)] bg-forest-dark px-6 py-4 transition group-hover:bg-emerald-deep">
-        {children}
-      </span>
+      {children}
     </motion.button>
   );
 }
@@ -49,14 +46,11 @@ export function MovingBorderLink({
     <Link
       href={href}
       className={cn(
-        'group relative min-h-12 w-full overflow-hidden rounded-2xl p-px text-lg font-semibold text-white shadow-[0_18px_40px_rgb(41_182_161_/_0.22)] outline-none transition focus:ring-4 focus:ring-teal-brand/20',
+        'flex min-h-12 w-full items-center justify-center rounded-2xl bg-forest px-6 py-4 text-center text-lg font-extrabold text-white shadow-[0_14px_32px_rgb(10_34_27_/_0.18)] outline-none transition hover:-translate-y-0.5 hover:bg-forest-dark focus:ring-4 focus:ring-teal-brand/20',
         className,
       )}
     >
-      <span className="absolute inset-[-120%] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0deg,#29b6a1_80deg,#9ef6df_135deg,transparent_210deg)] opacity-80 transition duration-500 group-hover:rotate-180" />
-      <span className="relative flex min-h-12 items-center justify-center rounded-[calc(1rem-1px)] bg-forest-dark px-6 py-4 transition group-hover:bg-emerald-deep">
-        {children}
-      </span>
+      {children}
     </Link>
   );
 }

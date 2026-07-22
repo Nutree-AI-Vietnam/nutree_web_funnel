@@ -6,6 +6,7 @@ import { PrimaryButton } from '@/components/primary-button';
 import { vi } from '@/lib/copy/vi';
 import { nextRoute, type QuizStep } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
+import { QuizStepFrame } from './quiz-step-frame';
 
 export function NameAskStep({ step }: { step: QuizStep }) {
   const router = useRouter();
@@ -19,8 +20,7 @@ export function NameAskStep({ step }: { step: QuizStep }) {
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-4">
-      <h1 className="text-2xl font-bold text-forest">{vi.name_ask.question}</h1>
+    <QuizStepFrame title={vi.name_ask.question}>
       <input
         type="text"
         value={value}
@@ -28,7 +28,7 @@ export function NameAskStep({ step }: { step: QuizStep }) {
         onKeyDown={(e) => e.key === 'Enter' && value.trim() && submit()}
         placeholder={vi.name_ask.placeholder}
         autoFocus
-        className="rounded-2xl border-2 border-border-brand bg-white px-5 py-4 text-lg outline-none focus:border-teal-brand"
+        className="rounded-2xl border border-white/80 bg-white/90 px-5 py-4 text-lg font-semibold text-forest shadow-inner outline-none transition placeholder:text-muted-brand/65 focus:border-teal-brand focus:ring-4 focus:ring-teal-brand/10"
       />
       <div className="mt-auto flex flex-col gap-3 pt-6">
         <PrimaryButton disabled={!value.trim()} onClick={submit}>
@@ -45,6 +45,6 @@ export function NameAskStep({ step }: { step: QuizStep }) {
           {vi.common.skip}
         </button>
       </div>
-    </div>
+    </QuizStepFrame>
   );
 }

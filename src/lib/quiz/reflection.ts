@@ -8,17 +8,19 @@ const label = (
 
 /** Fills the reflection template with the user's earlier answers (lowercased inline). */
 export function buildReflection(data: OnboardingPayload): string {
-  const goal = label(vi.goal.options, data.fitness_goal) ?? '';
-  const duration = label(vi.duration.options, data.challenge_duration) ?? '';
-  const challenges = (data.pain_points ?? [])
+  const goal = label(vi.goal.options, data.fitness_goal)?.toLowerCase() ?? 'của bạn';
+  const duration = label(vi.duration.options, data.challenge_duration)?.toLowerCase() ?? 'từng ngày';
+  const challenges =
+    (data.pain_points ?? [])
     .slice(0, 3)
     .map((k) => label(vi.challenges.options, k))
     .filter((v): v is string => Boolean(v))
-    .join(', ');
+      .join(', ')
+      .toLowerCase() || 'thiếu một kế hoạch rõ ràng';
 
   return vi.reflection.template
     .replace('[name]', data.name || vi.reflection.fallbackName)
-    .replace('[goal]', goal.toLowerCase())
-    .replace('[challenges]', challenges.toLowerCase())
-    .replace('[duration]', duration.toLowerCase());
+    .replace('[goal]', goal)
+    .replace('[challenges]', challenges)
+    .replace('[duration]', duration);
 }

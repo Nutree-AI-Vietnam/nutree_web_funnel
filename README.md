@@ -8,7 +8,7 @@ Design spec: `docs/superpowers/specs/2026-07-07-web-to-app-funnel-design.md`
 ## Stack
 
 Next.js (App Router) · TypeScript · Tailwind CSS · zustand ·
-Vitest · Playwright. Vietnamese-only copy lives in `src/lib/copy/vi.ts`.
+Vitest. Vietnamese-only copy lives in `src/lib/copy/vi.ts`.
 
 ## Development
 
@@ -17,7 +17,7 @@ npm install
 cp .env.example .env.local   # fill in values
 npm run dev                  # http://localhost:3000
 npm test                     # unit tests (vitest)
-npm run test:e2e             # Playwright (mocked backend)
+npm run build                # production build check
 ```
 
 ## Environment Variables

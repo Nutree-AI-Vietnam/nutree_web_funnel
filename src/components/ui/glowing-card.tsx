@@ -16,21 +16,27 @@ export function GlowingCard({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -2 }}
-      transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+      transition={{ duration: 0.18 }}
       className={cn(
-        'relative overflow-hidden rounded-2xl border border-white/70 bg-white/88 shadow-[0_18px_50px_rgb(26_71_57_/_0.10)] backdrop-blur',
-        compact && 'rounded-[1.15rem] shadow-[0_10px_26px_rgb(26_71_57_/_0.07)]',
-        active && 'border-teal-brand/70 bg-mist/88 shadow-[0_14px_36px_rgb(41_182_161_/_0.16)]',
+        'surface-grain group relative overflow-hidden rounded-[1.25rem] bg-white/86 shadow-[0_12px_34px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.78)] backdrop-blur transition-colors duration-200',
+        compact && 'rounded-[1rem] shadow-[0_10px_26px_rgb(26_71_57_/_0.07),inset_0_1px_0_rgb(255_255_255_/_0.76)]',
+        active && 'bg-mist/86 shadow-[0_14px_36px_rgb(41_182_161_/_0.16),inset_0_0_0_1px_rgb(41_182_161_/_0.58)]',
         className,
       )}
     >
       <div
+        aria-hidden="true"
         className={cn(
-          'absolute inset-px rounded-[calc(1rem-1px)] bg-[linear-gradient(135deg,rgb(255_255_255_/_0.70),transparent_42%,rgb(41_182_161_/_0.10))]',
-          compact && 'rounded-[calc(1.15rem-1px)]',
+          'absolute inset-y-3 left-0 w-1 rounded-r-full bg-transparent transition duration-300',
+          active && 'bg-teal-brand',
+        )}
+      />
+      <div
+        className={cn(
+          'absolute inset-px rounded-[calc(1.25rem-1px)] bg-[linear-gradient(135deg,rgb(255_255_255_/_0.58),transparent_70%)]',
+          compact && 'rounded-[calc(1rem-1px)]',
         )}
       />
       <div className="relative">{children}</div>

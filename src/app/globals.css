@@ -26,6 +26,55 @@ body {
     radial-gradient(circle at 50% -18%, rgb(41 182 161 / 0.16), transparent 38rem),
     linear-gradient(180deg, #f5fbf8 0%, var(--color-bg-brand) 58%, #eef8f4 100%);
   color: var(--color-charcoal);
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  font-variant-numeric: tabular-nums;
+  text-rendering: geometricPrecision;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+h1,
+h2,
+h3,
+p {
+  text-wrap: pretty;
+}
+
+::selection {
+  background: rgb(41 182 161 / 0.22);
+  color: var(--color-forest-dark);
+}
+
+.taste-grain::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  opacity: 0.2;
+  mix-blend-mode: multiply;
+  background-image:
+    radial-gradient(circle at 25% 18%, rgb(26 71 57 / 0.08) 0 1px, transparent 1px),
+    radial-gradient(circle at 78% 76%, rgb(41 182 161 / 0.10) 0 1px, transparent 1px);
+  background-size: 18px 18px, 23px 23px;
+}
+
+.surface-grain {
+  position: relative;
+}
+
+.surface-grain::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  opacity: 0.16;
+  mix-blend-mode: multiply;
+  background-image:
+    radial-gradient(circle at 18% 24%, rgb(26 71 57 / 0.10) 0 0.7px, transparent 0.8px),
+    radial-gradient(circle at 78% 64%, rgb(41 182 161 / 0.12) 0 0.7px, transparent 0.8px);
+  background-size: 15px 15px, 19px 19px;
 }
 
 @keyframes soft-enter {
@@ -71,6 +120,15 @@ body {
   }
   50% {
     transform: translateY(-8px);
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
   }
 }
 
