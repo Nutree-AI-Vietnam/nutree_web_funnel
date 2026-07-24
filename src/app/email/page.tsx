@@ -40,7 +40,7 @@ export default function EmailPage() {
       const result = await createLead(currentEmail.trim(), data);
       setLead(result);
       trackEvent('lead_created', {});
-      router.push('/paywall');
+      router.push('/welcome-gift');
     } catch {
       setError(vi.email.error);
       setSubmitting(false);
@@ -83,7 +83,7 @@ export default function EmailPage() {
             </PrimaryButton>
             <button
               type="button"
-              onClick={() => router.push('/paywall')}
+              onClick={() => router.push('/welcome-gift')}
               className="min-h-11 text-center text-sm font-semibold text-muted-brand transition hover:text-forest focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-brand"
             >
               {vi.email.skip}
