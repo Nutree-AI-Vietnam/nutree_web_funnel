@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ConversionShell } from '@/components/conversion-shell';
@@ -12,25 +13,7 @@ import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 
 const OFFER_SECONDS = 600;
-
-type IconName = 'clipboard' | 'camera' | 'nutrition' | 'activity' | 'coach' | 'goal' | 'person' | 'energy' | 'training';
-
-function FeatureIcon({ name }: { name: IconName }) {
-  const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
-  const paths = {
-    clipboard: <><rect x="7" y="5" width="10" height="15" rx="2" {...common} /><path d="M10 5.5V4h4v1.5M10 10h4M10 14h4" {...common} /></>,
-    camera: <><path d="M5 8h3l1.2-2h5.6L16 8h3v10H5z" {...common} /><circle cx="12" cy="13" r="3.2" {...common} /></>,
-    nutrition: <><path d="M7 4v7M5 4v4a2 2 0 0 0 4 0V4M7 11v9M16 4v16M16 4c2.5 1.5 2.5 5 0 6" {...common} /></>,
-    activity: <><path d="m4 13 3-3 3 3 4-6 3 3h3" {...common} /><path d="M5 19h14" {...common} /></>,
-    coach: <><path d="M5 6.5A3.5 3.5 0 0 1 8.5 3h7A3.5 3.5 0 0 1 19 6.5v6a3.5 3.5 0 0 1-3.5 3.5h-5L6 20v-4.5A3.5 3.5 0 0 1 5 12.5z" {...common} /><path d="M9 9h.01M12 9h.01M15 9h.01" {...common} /></>,
-    goal: <><circle cx="12" cy="12" r="7" {...common} /><circle cx="12" cy="12" r="3" {...common} /><path d="m15 9 5-5M16 4h4v4" {...common} /></>,
-    person: <><circle cx="12" cy="8" r="3" {...common} /><path d="M5.5 20a6.5 6.5 0 0 1 13 0" {...common} /></>,
-    energy: <><path d="m13 2-7 11h5l-1 9 7-12h-5z" {...common} /></>,
-    training: <><path d="M7 5h10M6 8h12M8 8v8M16 8v8M5 16h14" {...common} /></>,
-  };
-
-  return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6">{paths[name]}</svg>;
-}
+const benefitEmoji = ['📋', '📸', '🍽️', '🔥', '💬'];
 
 function formatCountdown(seconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
@@ -113,33 +96,87 @@ export default function PaywallPage() {
     }
   };
 
-  const benefits = copy.paywall.benefits.map((benefit, index) => ({ ...benefit, icon: (['clipboard', 'camera', 'nutrition', 'activity', 'coach'] as IconName[])[index] }));
+  const benefits = copy.paywall.benefits.map((benefit, index) => ({ ...benefit, icon: benefitEmoji[index] ?? '✅' }));
   const personalRows = [
-    { icon: 'goal' as const, label: copy.paywall.goalLabel, value: goal },
-    { icon: 'person' as const, label: copy.paywall.personalizedFor, value: gender },
-    { icon: 'energy' as const, label: copy.paywall.calorieLabel, value: tdee ? `${Math.round(tdee.calories).toLocaleString(activeLocale === 'vi' ? 'vi-VN' : 'en-US')} kcal` : copy.paywall.calorieFallback },
-    { icon: 'training' as const, label: copy.paywall.activityLabel, value: copy.paywall.activityValue(data.training_days_per_week ?? 0) },
+    { icon: '🔥', label: copy.paywall.goalLabel, value: goal },
+    { icon: '🎯', label: copy.paywall.personalizedFor, value: gender },
+    { icon: '🥦', label: copy.paywall.calorieLabel, value: tdee ? `${Math.round(tdee.calories).toLocaleString(activeLocale === 'vi' ? 'vi-VN' : 'en-US')} kcal` : copy.paywall.calorieFallback },
+    { icon: '🚶', label: copy.paywall.activityLabel, value: copy.paywall.activityValue(data.training_days_per_week ?? 0) },
   ];
+
+  const renderPlanSection = (id: string, title: string) => (
+    <section id={id} className="mt-5 rounded-[2rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-6">
+      <h2 className="text-center text-[1.45rem] font-extrabold tracking-[-0.03em] text-forest">{title}</h2>
+      <p className="mt-4 rounded-[1.25rem] bg-[#e8f4ef] px-4 py-3 text-center text-base font-extrabold text-forest tabular-nums">{copy.paywall.offerEnds(countdown)}</p>
+      <div role="radiogroup" aria-label={copy.paywall.selectPlanAria} className="mt-5 grid gap-4">
+        {context.offers.map((offer) => {
+          const active = offer.id === selected.id;
+          const periodDays = offer.period_unit === 'YEAR' ? 365 : offer.period_count * 30;
+          const dailyAmount = offer.currency === 'VND' ? Math.round(offer.amount_due_today / periodDays) : offer.amount_due_today / periodDays;
+          const standardDailyAmount = offer.currency === 'VND' ? Math.round(offer.standard_amount / periodDays) : offer.standard_amount / periodDays;
+          const discountPercent = Math.round(100 - (offer.amount_due_today / offer.standard_amount) * 100);
+          const showDiscount = offer.reward_applied && (offer.recommended || offer.period_count > 1 || offer.period_unit === 'YEAR');
+          return (
+            <button
+              key={`${id}-${offer.id}`}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => {
+                setSelectedId(offer.id);
+                trackEvent('offer_selected', { offer_id: offer.id, market: offer.market });
+              }}
+              className={cn('overflow-hidden rounded-[1.55rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-[#ff6a1f] shadow-[0_16px_34px_rgb(255_106_31_/_0.12)]' : 'border-[#dfe7e3] hover:border-teal-brand/60')}
+            >
+              {offer.recommended && <span className="block bg-gradient-to-r from-[#ef4d59] to-[#ff7a1a] px-4 py-2 text-center text-[0.7rem] font-extrabold uppercase tracking-[0.24em] text-white">{copy.paywall.recommendedTag}</span>}
+              <span className={cn('grid min-h-28 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-4', active && 'bg-[#fffafa]')}>
+                <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-full border-2', active ? 'border-[#111418]' : 'border-[#c8cfcc]')}>
+                  {active && <span className="h-4 w-4 rounded-full bg-forest" />}
+                </span>
+                <span className="min-w-0 self-center">
+                  <span className={cn('block text-[1.35rem] font-extrabold leading-[1.05] tracking-[-0.03em]', active ? 'text-[#111418]' : 'text-[#5f6764]')}>{offer.label}</span>
+                  <span className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="text-[0.95rem] font-bold text-muted-brand line-through">{formatOfferAmount(offer.standard_amount, offer.currency)}</span>
+                    {showDiscount && <span className="rounded-lg bg-[#fff0eb] px-2 py-1 text-sm font-extrabold text-[#ff5f2a]">{copy.paywall.discountTag(discountPercent)}</span>}
+                  </span>
+                  <span className={cn('mt-1 block text-[1.2rem] font-extrabold leading-tight tracking-[-0.02em]', active ? 'text-[#111418]' : 'text-[#5f6764]')}>{formatOfferAmount(offer.amount_due_today, offer.currency)}</span>
+                  <span className="mt-2 block text-[0.95rem] font-bold text-muted-brand line-through">{formatOfferAmount(standardDailyAmount, offer.currency)}</span>
+                </span>
+                <span className="min-w-[5.8rem] rounded-[1.25rem] bg-[#f4f5f4] px-3 py-3.5 text-center text-[#111418] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.85)]">
+                  <span className="block text-[1.7rem] font-extrabold leading-none tracking-[-0.05em]">{formatOfferAmount(dailyAmount, offer.currency)}</span>
+                  <span className="mt-1 block text-xs font-extrabold text-muted-brand">{copy.paywall.perDay}</span>
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-5 text-[0.98rem] leading-relaxed text-slate-brand">{copy.paywall.planRecommendation}</p>
+      <p className="mt-1.5 text-sm font-medium text-muted-brand">{copy.paywall.planResearchNote}</p>
+      <button type="button" disabled={busy} onClick={beginCheckout} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta(targetWeight)}</button>
+      <p className="mt-4 text-center text-sm leading-relaxed text-muted-brand">{copy.paywall.exactPriceSummary(standardAmount, todayAmount, renewalAmount)}</p>
+    </section>
+  );
 
   return (
     <ConversionShell className="gap-5">
-      <div className="sticky top-0 z-30 -mx-5 -mt-1 border-b border-[#dfe9e4] bg-white/96 px-5 py-3 shadow-[0_10px_26px_rgb(16_39_32_/_0.08)] backdrop-blur">
+      <div className="fixed left-1/2 top-0 z-50 w-full max-w-lg -translate-x-1/2 border-b border-white/50 bg-white/70 px-5 py-3 shadow-[0_12px_34px_rgb(16_39_32_/_0.12)] backdrop-blur-xl">
         <div className="grid grid-cols-[1fr_auto] items-center gap-3">
           <div className="min-w-0">
-            <p className="text-[0.98rem] font-bold leading-tight text-muted-brand"><span className="text-[1.3rem] font-extrabold text-[#ef4d59]">50%</span> {copy.paywall.offerReserved}</p>
+            <p className="text-[0.98rem] font-bold leading-tight text-muted-brand"><span className="text-[1.3rem] font-extrabold text-teal-brand">50%</span> {copy.paywall.offerReserved}</p>
             <strong className="mt-1 block text-[1.8rem] font-extrabold leading-none tracking-[-0.04em] text-[#111418] tabular-nums">{countdown}</strong>
           </div>
           <button
             type="button"
             disabled={busy}
             onClick={beginCheckout}
-            className="min-h-12 rounded-[1.15rem] bg-[#ef4d59] px-5 text-base font-extrabold text-white shadow-[0_10px_24px_rgb(239_77_89_/_0.18)] transition hover:bg-[#e34250] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#ef4d59]/20 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-12 rounded-[1.15rem] bg-forest px-5 text-base font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy ? copy.paywall.loading : copy.paywall.topCta}
           </button>
         </div>
       </div>
-      <div>
+      <div className="pt-[5.75rem]">
           <section className="rounded-[2rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-8">
             <p className="text-center text-lg font-semibold text-slate-brand">{copy.paywall.goalIntro}</p>
             <h1 className="mx-auto mt-1 max-w-2xl text-center text-[1.75rem] font-extrabold leading-tight tracking-[-0.04em] text-forest sm:text-[2.25rem]">{copy.paywall.goalHeadline(targetWeight, targetDate)}</h1>
@@ -155,58 +192,40 @@ export default function PaywallPage() {
             <p className="mx-auto mt-4 max-w-[35rem] text-center text-base leading-relaxed text-muted-brand">{copy.paywall.goalNote}</p>
           </section>
 
-          <section id="plans" className="mt-5 rounded-[2rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-6">
-            <h2 className="text-center text-[1.55rem] font-extrabold tracking-[-0.035em] text-forest">{copy.paywall.planTitle}</h2>
-            <p className="mt-5 rounded-[1.35rem] bg-[#e8f4ef] px-4 py-4 text-center text-[1.05rem] font-extrabold text-forest tabular-nums">{copy.paywall.offerEnds(countdown)}</p>
-            <div role="radiogroup" aria-label={copy.paywall.selectPlanAria} className="mt-5 grid gap-4">
-              {context.offers.map((offer) => {
-                const active = offer.id === selected.id;
-                const daily = offer.amount_due_today / (offer.period_unit === 'YEAR' ? 365 : offer.period_count * 30);
-                const standardDaily = offer.standard_amount / (offer.period_unit === 'YEAR' ? 365 : offer.period_count * 30);
-                const dailyAmount = offer.currency === 'VND' ? Math.round(daily) : daily;
-                const standardDailyAmount = offer.currency === 'VND' ? Math.round(standardDaily) : standardDaily;
-                const discountPercent = Math.round(100 - (offer.amount_due_today / offer.standard_amount) * 100);
-                const showDiscount = offer.reward_applied && (offer.recommended || offer.period_count > 1 || offer.period_unit === 'YEAR');
-                return <button key={offer.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(offer.id); trackEvent('offer_selected', { offer_id: offer.id, market: offer.market }); }} className={cn('overflow-hidden rounded-[1.65rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-[#ff6a1f] shadow-[0_16px_34px_rgb(255_106_31_/_0.12)]' : 'border-[#dfe7e3] hover:border-teal-brand/60')}>
-                  {offer.recommended && <span className="block bg-gradient-to-r from-[#ef4d59] to-[#ff7a1a] px-4 py-2.5 text-center text-xs font-extrabold uppercase tracking-[0.24em] text-white">{copy.paywall.recommendedTag}</span>}
-                  <span className={cn('grid min-h-32 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-5 sm:gap-4 sm:px-5', active && 'bg-[#fffafa]')}>
-                    <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-full border-2', active ? 'border-[#111418]' : 'border-[#c8cfcc]')}>
-                      {active && <span className="h-4 w-4 rounded-full bg-forest" />}
-                    </span>
-                    <span className="min-w-0 self-center">
-                      <span className={cn('block text-[1.45rem] font-extrabold leading-[1.05] tracking-[-0.035em]', active ? 'text-[#111418]' : 'text-[#5f6764]')}>{offer.label}</span>
-                      <span className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="text-base font-bold text-muted-brand line-through">{formatOfferAmount(offer.standard_amount, offer.currency)}</span>
-                        {showDiscount && <span className="rounded-lg bg-[#fff0eb] px-2 py-1 text-sm font-extrabold text-[#ff5f2a]">{copy.paywall.discountTag(discountPercent)}</span>}
-                      </span>
-                      <span className={cn('mt-1 block text-[1.35rem] font-extrabold leading-tight tracking-[-0.02em]', active ? 'text-[#111418]' : 'text-[#5f6764]')}>{formatOfferAmount(offer.amount_due_today, offer.currency)}</span>
-                      <span className="mt-2 block text-base font-bold text-muted-brand line-through">{formatOfferAmount(standardDailyAmount, offer.currency)}</span>
-                    </span>
-                    <span className="min-w-[7rem] rounded-[1.35rem] bg-[#f4f5f4] px-3 py-4 text-center text-[#111418] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.85)]">
-                      <span className="block text-[2.05rem] font-extrabold leading-none tracking-[-0.05em]">{formatOfferAmount(dailyAmount, offer.currency)}</span>
-                      <span className="mt-1 block text-xs font-extrabold text-muted-brand">{copy.paywall.perDay}</span>
-                    </span>
-                  </span>
-                </button>;
-              })}
-            </div>
-            <p className="mt-6 text-base leading-relaxed text-slate-brand">{copy.paywall.planRecommendation}</p><p className="mt-2 text-sm font-medium text-muted-brand">{copy.paywall.planResearchNote}</p>
-            <button type="button" disabled={busy} onClick={beginCheckout} className="mt-6 min-h-16 w-full rounded-2xl bg-forest px-5 text-lg font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta(targetWeight)}</button>
-            <p className="mt-4 text-center text-sm leading-relaxed text-muted-brand">{copy.paywall.exactPriceSummary(standardAmount, todayAmount, renewalAmount)}</p>
-          </section>
+          {renderPlanSection('plans', copy.paywall.planTitle)}
 
           <section className="mt-5 rounded-[2rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8">
             <h2 className="text-[1.75rem] font-extrabold tracking-[-0.04em] text-forest">{copy.paywall.includesTitle}</h2>
             <div className="mt-6 grid gap-5">
-              {benefits.map((benefit) => <div key={benefit.title} className="grid grid-cols-[3rem_1fr] gap-4"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-mist text-emerald-deep"><FeatureIcon name={benefit.icon} /></span><div><h3 className="text-lg font-extrabold text-forest">{benefit.title}</h3><p className="mt-0.5 text-base leading-relaxed text-muted-brand">{benefit.body}</p></div></div>)}
+              {benefits.map((benefit) => <div key={benefit.title} className="grid grid-cols-[3rem_1fr] gap-4"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-mist text-[1.45rem]" aria-hidden="true">{benefit.icon}</span><div><h3 className="text-lg font-extrabold text-forest">{benefit.title}</h3><p className="mt-0.5 text-base leading-relaxed text-muted-brand">{benefit.body}</p></div></div>)}
             </div>
           </section>
 
           <section className="mt-5 rounded-[2rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8">
             <h2 className="text-[1.75rem] font-extrabold tracking-[-0.04em] text-forest">{copy.paywall.personalTitle}</h2>
             <div className="mt-6 grid gap-5">
-              {personalRows.map((row) => <div key={row.label} className="grid grid-cols-[3rem_1fr] items-center gap-4"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#edf7f3] text-emerald-deep"><FeatureIcon name={row.icon} /></span><p className="text-base leading-relaxed text-muted-brand">{row.label} <strong className="font-extrabold text-forest">{row.value}</strong></p></div>)}
+              {personalRows.map((row) => <div key={row.label} className="grid grid-cols-[3rem_1fr] items-center gap-4"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#edf7f3] text-[1.45rem]" aria-hidden="true">{row.icon}</span><p className="text-base leading-relaxed text-muted-brand">{row.label} <strong className="font-extrabold text-forest">{row.value}</strong></p></div>)}
             </div>
+          </section>
+
+          <section className="mt-5 rounded-[2rem] bg-white p-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8">
+            <h2 className="text-[1.55rem] font-extrabold leading-tight tracking-[-0.035em] text-[#ef4d59]">{copy.paywall.appStoreTitle}</h2>
+            <div className="mt-5 rounded-[1.65rem] bg-[#f6f6f6] px-4 py-5">
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-[2.1rem]" aria-hidden="true"></span>
+                <span className="text-[1.35rem] tracking-[0.08em] text-[#f5a11a]" aria-label="5 stars">★★★★★</span>
+              </div>
+              <p className="mt-2 text-[1.8rem] font-extrabold leading-none tracking-[-0.035em] text-[#111418]">{copy.paywall.appStoreRating}</p>
+              <p className="mt-2 text-base font-semibold leading-relaxed text-muted-brand">{copy.paywall.appStoreReviews}</p>
+            </div>
+          </section>
+
+          {renderPlanSection('plans-repeat', copy.paywall.repeatPlanTitle)}
+
+          <section className="mt-5 rounded-[2rem] bg-white p-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8">
+            <Image src="/guarantee-30day.webp" alt="" width={180} height={180} className="mx-auto h-36 w-36 object-contain" />
+            <h2 className="mt-3 text-[1.55rem] font-extrabold leading-tight tracking-[-0.035em] text-[#111418]">{copy.paywall.guaranteeTitle}</h2>
+            <p className="mt-3 text-base font-medium leading-relaxed text-muted-brand">{copy.paywall.guaranteeBody}</p>
           </section>
 
           {context.provider === 'PAYPAL' && <p className="mt-5 rounded-2xl bg-white px-4 py-3 text-center text-sm font-semibold leading-relaxed text-muted-brand">{copy.paywall.paypalSummary(todayAmount, selected.renewal_description)}</p>}
