@@ -35,7 +35,9 @@ export interface TdeeResult {
 export interface Lead {
   email: string;
   web_user_id: string;
-  claim_token: string;
+  lead_id?: string;
+  masked_email?: string;
+  claim_token?: string;
 }
 
 export interface MomoCheckout {
@@ -51,4 +53,79 @@ export interface PaymentStatus {
   status: string;
   paid: boolean;
   user_id?: string | null;
+}
+
+export type Market = 'VN' | 'INTL';
+export type PaymentProvider = 'MOMO' | 'PAYPAL';
+export type Currency = 'VND' | 'USD';
+
+export interface WelcomeReward {
+  id?: string;
+  code: 'WELCOME50';
+  status: 'RESERVED' | 'REVEALED' | 'REDEEMED' | 'EXPIRED';
+  discount_percent: 50;
+  price_locked_while_active?: boolean;
+}
+
+export interface FunnelOffer {
+  id: string;
+  market: Market;
+  provider: PaymentProvider;
+  currency: Currency;
+  label: string;
+  description: string;
+  period_unit: 'MONTH' | 'YEAR';
+  period_count: number;
+  standard_amount: number;
+  welcome_amount: number;
+  amount_due_today: number;
+  renewal_amount: number;
+  renewal_description: string;
+  next_billing_date: string;
+  reward_id: string | null;
+  reward_applied: boolean;
+  price_locked_while_active: boolean;
+  recommended: boolean;
+  provider_plan_id: string;
+}
+
+export interface FunnelContext {
+  session_id: string;
+  detected_country: string;
+  billing_country: string;
+  country_source: string;
+  market: Market;
+  locale: 'vi' | 'en';
+  provider: PaymentProvider;
+  currency: Currency;
+  welcome_reward: WelcomeReward;
+  offers: FunnelOffer[];
+}
+
+export interface CheckoutResponse {
+  checkoutId: string;
+  provider: PaymentProvider;
+  countryCode: string;
+  currency: Currency;
+  offerId: string;
+  rewardId: string;
+  rewardApplied: true;
+  discountPercent: 50;
+  standardAmount: number;
+  amountDueToday: number;
+  renewalAmount: number;
+  renewalDescription: string;
+  nextBillingDate: string;
+  priceLockedWhileActive: true;
+  status: 'CREATED' | 'PENDING_APPROVAL' | 'PENDING_PAYMENT';
+  momo?: {
+    orderId: string;
+    payUrl: string;
+    deeplink: string | null;
+    qrCodeUrl: string | null;
+  };
+  paypal?: {
+    planId: string;
+    customId: string;
+  };
 }

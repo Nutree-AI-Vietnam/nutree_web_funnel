@@ -22,7 +22,7 @@ export function SingleChoiceStep<K extends keyof OnboardingPayload>({
   const router = useRouter();
   const value = useQuizStore((s) => s.data[field]);
   const setData = useQuizStore((s) => s.setData);
-  // Show the selection, then advance — feedback before navigation feels responsive.
+  // Show the selection, then advance so feedback lands before navigation.
   const [pending, setPending] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

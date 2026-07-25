@@ -24,7 +24,7 @@ export default function SuccessPage() {
 
   if (!hydrated || !lead || !purchased) return null;
 
-  const link = buildDownloadLink(lead.claim_token);
+  const link = lead.claim_token ? buildDownloadLink(lead.claim_token) : buildDownloadLink('');
 
   return (
     <ConversionShell className="text-center">

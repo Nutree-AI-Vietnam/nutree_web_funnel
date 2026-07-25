@@ -9,8 +9,10 @@ export function buildDownloadLink(claimToken: string): string {
     process.env.NEXT_PUBLIC_APPSTORE_URL ||
     process.env.NEXT_PUBLIC_PLAYSTORE_URL ||
     '/';
-  const origin = typeof window === 'undefined' ? 'https://start.nutree.ai' : window.location.origin;
+  const origin = typeof window === 'undefined' ? 'https://quiz.nutreeai.com' : window.location.origin;
   const url = new URL(base, origin);
-  url.searchParams.set('deeplink_url', `nutree://claim?token=${claimToken}`);
+  if (claimToken) {
+    url.searchParams.set('deeplink_url', `nutree://claim?token=${claimToken}`);
+  }
   return url.toString();
 }

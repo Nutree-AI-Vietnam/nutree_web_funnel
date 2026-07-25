@@ -14,14 +14,15 @@ const TOTAL_MS = 6400;
 const RING_R = 52;
 const RING_C = 2 * Math.PI * RING_R;
 
-// easeOutCubic — fast reveal that decelerates onto the final number.
+// easeOutCubic: fast reveal that decelerates onto the final number.
 const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
 
 function usePrefersReducedMotion() {
-  const [reduce, setReduce] = useState(false);
+  const [reduce, setReduce] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReduce(mq.matches);
     const on = () => setReduce(mq.matches);
     mq.addEventListener('change', on);
     return () => mq.removeEventListener('change', on);
@@ -88,7 +89,6 @@ export function CalculatingStep() {
 
   const calories = preview ? Math.round((preview.calories * frac) / 5) * 5 : null;
 
-  const macroTotal = preview ? preview.protein_g + preview.carbs_g + preview.fat_g : 0;
   const macroMax = preview ? Math.max(preview.protein_g, preview.carbs_g, preview.fat_g) : 1;
   const macros = preview
     ? [
@@ -112,7 +112,7 @@ export function CalculatingStep() {
       </header>
 
       <div className="flex flex-1 flex-col justify-center gap-7 py-5">
-        {/* Animated calorie ring — counts up to the user's real target */}
+        {/* Animated calorie ring counts up to the user's real target */}
         <div className="flex flex-col items-center">
           <div className="relative grid h-44 w-44 place-items-center">
             <div className="absolute inset-3 rounded-full bg-teal-brand/12 blur-2xl motion-safe:animate-pulse" aria-hidden="true" />
@@ -155,7 +155,7 @@ export function CalculatingStep() {
           </div>
         </div>
 
-        {/* Macro split — bars grow toward the real allocation */}
+        {/* Macro split bars grow toward the real allocation */}
         {preview && (
           <section aria-label={vi.calculating.macroCaption} className="grid gap-3">
             <p className="text-center text-xs font-bold uppercase tracking-wide text-muted-brand">

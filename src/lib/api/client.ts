@@ -1,4 +1,7 @@
 import type {
+  CheckoutResponse,
+  FunnelContext,
+  FunnelOffer,
   Lead,
   MomoCheckout,
   OnboardingPayload,
@@ -19,6 +22,12 @@ async function post<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
+  return res.json() as Promise<T>;
+}
+
+async function get<T>(path: string): Promise<T> {
+  const res = await fetch(`${baseUrl()}${path}`);
+  if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
   return res.json() as Promise<T>;
 }
 
@@ -65,11 +74,50 @@ export async function previewTdee(data: OnboardingPayload): Promise<TdeeResult> 
 
 /** Stores a web lead; backend returns identity for MoMo checkout + claim handoff. */
 export async function createLead(email: string, payload: OnboardingPayload): Promise<Lead> {
-  const r = await post<{ web_user_id: string; claim_token: string }>('/v1/web-funnel/leads', {
+  const r = await post<{
+    lead_id?: string;
+    web_user_id: string;
+    masked_email?: string;
+    claim_token?: string;
+  }>('/v1/web-funnel/leads', {
     email,
     onboarding_payload: payload,
   });
-  return { email, web_user_id: r.web_user_id, claim_token: r.claim_token };
+  return {
+    email,
+    lead_id: r.lead_id,
+    web_user_id: r.web_user_id,
+    masked_email: r.masked_email,
+    claim_token: r.claim_token,
+  };
+}
+
+export async function getFunnelContext(): Promise<FunnelContext> {
+  return get<FunnelContext>('/api/funnel/context');
+}
+
+export async function revealWelcomeReward(sessionId: string, leadId: string): Promise<FunnelContext> {
+  return post<FunnelContext>(`/v1/web-funnel/sessions/${sessionId}/welcome-reward/reveal`, {
+    lead_id: leadId,
+  });
+}
+
+export async function createCheckout({
+  leadId,
+  offer,
+  billingCountry,
+}: {
+  leadId: string;
+  offer: FunnelOffer;
+  billingCountry: string;
+}): Promise<CheckoutResponse> {
+  return post<CheckoutResponse>('/v1/web-funnel/checkouts', {
+    lead_id: leadId,
+    offer_id: offer.id,
+    reward_id: offer.reward_id,
+    billing_country: billingCountry,
+    idempotency_key: crypto.randomUUID(),
+  });
 }
 
 export async function createMomoSubscriptionCheckout(

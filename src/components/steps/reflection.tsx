@@ -21,7 +21,7 @@ export function ReflectionStep() {
   const data = useQuizStore((s) => s.data);
 
   const goalLabel = findLabel(copy.goal.options, data.fitness_goal) ?? copy.reflection.goalFallback;
-  const durationLabel = findLabel(copy.duration.options, data.challenge_duration) ?? '—';
+  const durationLabel = findLabel(copy.duration.options, data.challenge_duration) ?? '-';
   const challengeLabel =
     (data.pain_points ?? []).map((k) => findLabel(copy.challenges.options, k)).find(Boolean) ??
     copy.reflection.challengeFallback;

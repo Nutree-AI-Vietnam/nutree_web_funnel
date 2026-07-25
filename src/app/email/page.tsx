@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ConversionShell } from '@/components/conversion-shell';
 import { PrimaryButton } from '@/components/primary-button';
-import { GlowingCard } from '@/components/ui/glowing-card';
 import { createLead } from '@/lib/api/client';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
@@ -48,13 +47,14 @@ export default function EmailPage() {
   };
 
   return (
-    <ConversionShell>
-        <GlowingCard className="rounded-3xl">
-          <div className="flex flex-col gap-4 p-5">
-            <h1 className="text-3xl font-extrabold leading-tight text-forest">{vi.email.headline}</h1>
-            <p className="text-slate-brand">{vi.email.body}</p>
-            <label htmlFor="email" className="sr-only">
-              {vi.email.placeholder}
+    <ConversionShell className="justify-center">
+      <section className="rounded-[1.5rem] border border-border-brand bg-white/92 p-5 shadow-[0_18px_55px_rgb(16_39_32_/_0.08)]">
+        <div className="flex flex-col gap-4">
+          <h1 className="text-3xl font-extrabold leading-tight text-forest">{vi.email.headline}</h1>
+          <p className="text-base font-semibold leading-relaxed text-slate-brand">{vi.email.body}</p>
+          <div className="grid gap-2">
+            <label htmlFor="email" className="text-sm font-extrabold text-forest">
+              Email
             </label>
             <input
               ref={inputRef}
@@ -70,26 +70,23 @@ export default function EmailPage() {
               onKeyDown={(e) => e.key === 'Enter' && void submit()}
               placeholder={vi.email.placeholder}
               aria-invalid={error ? true : undefined}
-              aria-describedby={error ? 'email-error' : undefined}
-              className="rounded-2xl border border-white/80 bg-bg-brand/90 px-5 py-4 text-lg font-semibold text-forest shadow-inner outline-none transition placeholder:text-muted-brand/65 focus:border-teal-brand focus:ring-4 focus:ring-teal-brand/10 aria-[invalid=true]:border-error-brand aria-[invalid=true]:focus:ring-error-brand/15"
+              aria-describedby="email-helper email-error"
+              className="min-h-14 rounded-2xl border border-border-brand bg-bg-brand px-5 py-4 text-lg font-semibold text-forest outline-none transition placeholder:text-muted-brand focus:border-teal-brand focus:ring-4 focus:ring-teal-brand/15 aria-[invalid=true]:border-error-brand aria-[invalid=true]:focus:ring-error-brand/15"
             />
+            <p id="email-helper" className="text-sm font-medium text-muted-brand">
+              {vi.email.body}
+            </p>
             {error && (
-              <p id="email-error" role="alert" className="text-sm font-medium text-error-brand">
+              <p id="email-error" role="alert" className="text-sm font-bold text-error-brand">
                 {error}
               </p>
             )}
-            <PrimaryButton disabled={submitting || !currentEmail} onClick={submit}>
-              {submitting ? '...' : vi.email.cta}
-            </PrimaryButton>
-            <button
-              type="button"
-              onClick={() => router.push('/welcome-gift')}
-              className="min-h-11 text-center text-sm font-semibold text-muted-brand transition hover:text-forest focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-brand"
-            >
-              {vi.email.skip}
-            </button>
           </div>
-        </GlowingCard>
+          <PrimaryButton disabled={submitting || !currentEmail} onClick={submit}>
+            {submitting ? '...' : vi.email.cta}
+          </PrimaryButton>
+        </div>
+      </section>
     </ConversionShell>
   );
 }
