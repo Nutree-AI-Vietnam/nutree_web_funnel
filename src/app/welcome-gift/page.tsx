@@ -8,7 +8,7 @@ import { ConversionShell } from '@/components/conversion-shell';
 import { getFunnelContext, revealWelcomeReward } from '@/lib/api/client';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
-import { createFallbackFunnelContext, formatOfferAmount, getRecommendedOffer } from '@/lib/funnel/catalog';
+import { createFallbackFunnelContext } from '@/lib/funnel/catalog';
 import type { FunnelContext } from '@/lib/quiz/types';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 
@@ -81,9 +81,6 @@ export default function WelcomeGiftPage() {
     });
   };
 
-  const recommended = getRecommendedOffer(context.offers);
-  const welcomeAmount = formatOfferAmount(recommended.amount_due_today, recommended.currency);
-
   return (
     <ConversionShell hideLogo className="min-h-[calc(100dvh-3rem)] justify-between gap-8">
       <div className="flex justify-center pt-1">
@@ -103,7 +100,7 @@ export default function WelcomeGiftPage() {
 
         <div
           ref={ticketRef}
-          className="relative mx-auto mt-8 aspect-[2.28/1] w-full max-w-[24rem] overflow-hidden rounded-[1.55rem] bg-[linear-gradient(135deg,#17453a_0%,#21a891_58%,#68ddca_100%)] px-6 py-7 text-center text-white shadow-[0_24px_64px_rgb(31_168_146_/_0.22)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99] sm:rounded-[1.8rem]"
+          className="relative mx-auto mt-8 aspect-[2.28/1] w-full max-w-[25.5rem] overflow-hidden rounded-[1.45rem] bg-[linear-gradient(135deg,#696ff4_0%,#9c63ee_50%,#5fbbe4_100%)] px-6 py-7 text-center text-white shadow-[0_26px_74px_rgb(111_113_244_/_0.24),0_0_0_22px_rgb(236_241_255_/_0.72)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99] sm:rounded-[1.65rem]"
           aria-label={revealed ? copy.welcomeGift.ticketAria : copy.welcomeGift.scratchAria}
           role="img"
           onPointerDown={(event) => {
@@ -116,17 +113,17 @@ export default function WelcomeGiftPage() {
             updateScratchProgress(event.clientX);
           }}
         >
-          <span className="absolute left-0 top-1/2 h-11 w-5 -translate-x-1/2 -translate-y-1/2 rounded-r-full bg-mint/95" />
-          <span className="absolute right-0 top-1/2 h-11 w-5 -translate-y-1/2 translate-x-1/2 rounded-l-full bg-mint/95" />
-          <span className="absolute inset-0 bg-[radial-gradient(circle_at_28%_24%,rgb(255_255_255_/_0.16),transparent_27%),radial-gradient(circle_at_82%_80%,rgb(255_255_255_/_0.14),transparent_30%)]" />
-          <span className="relative mt-1 block text-[0.68rem] font-extrabold uppercase tracking-[0.42em] text-white/88">
-            {copy.welcomeGift.ticketLabel}
+          <span className="absolute left-0 top-1/2 h-12 w-6 -translate-x-1/2 -translate-y-1/2 rounded-r-full bg-mist/95" />
+          <span className="absolute right-0 top-1/2 h-12 w-6 -translate-y-1/2 translate-x-1/2 rounded-l-full bg-mist/95" />
+          <span className="absolute inset-0 bg-[radial-gradient(circle_at_35%_35%,rgb(255_255_255_/_0.14),transparent_28%),radial-gradient(circle_at_82%_76%,rgb(255_255_255_/_0.12),transparent_32%)]" />
+          <span className="relative mt-2 block text-[0.68rem] font-extrabold uppercase tracking-[0.36em] text-white/88">
+            ✨ {copy.welcomeGift.eyebrow} ✨
           </span>
-          <span className="relative mt-4 block text-[3.35rem] font-extrabold leading-[0.9] tracking-[-0.055em] text-white/92 sm:text-[4.15rem]">
+          <span className="relative mt-3 block text-[3.65rem] font-extrabold leading-[0.88] tracking-[-0.055em] text-white/92 sm:text-[4.55rem]">
             {copy.welcomeGift.ticketValue}
           </span>
-          <span className="relative mt-3 block text-[0.9rem] font-extrabold tracking-[-0.01em] text-white/90">
-            {copy.welcomeGift.priceLine(welcomeAmount, recommended.label)}
+          <span className="relative mt-3 block text-[0.98rem] font-extrabold tracking-[-0.01em] text-white/90">
+            {revealed ? copy.welcomeGift.revealedHeadline : copy.welcomeGift.subhead}
           </span>
           <div
             className="absolute inset-0 touch-none rounded-[1.55rem] bg-[linear-gradient(112deg,#d6dbe5_0%,#ffffff_26%,#c8d0dc_50%,#f7f9fc_74%,#b9c4d2_100%)] transition-[clip-path,opacity] duration-300 motion-reduce:transition-none sm:rounded-[1.8rem]"
