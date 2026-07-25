@@ -82,7 +82,7 @@ export default function WelcomeGiftPage() {
         Nut<span className="text-teal-brand">ree</span>
       </div>
 
-      <section className="mx-auto flex w-full max-w-[44rem] flex-1 flex-col pt-[26vh] sm:pt-[28vh]">
+      <section className="mx-auto flex w-full max-w-lg flex-1 flex-col pt-[26vh] sm:pt-[28vh]">
         <div>
           <h1 className="text-[2.25rem] font-extrabold leading-[1.08] tracking-[-0.055em] text-forest sm:text-[3.25rem]">
             Quà chào mừng của bạn đã sẵn sàng 🎁
@@ -94,7 +94,7 @@ export default function WelcomeGiftPage() {
 
         <div
           ref={ticketRef}
-          className="relative mx-auto mt-12 aspect-[2.16/1] w-full max-w-[40rem] overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#17453a_0%,#1fa892_54%,#55d9c4_100%)] px-8 py-10 text-center text-white shadow-[0_44px_110px_rgb(31_168_146_/_0.24)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99] sm:mt-16 sm:rounded-[2.4rem]"
+          className="relative mx-auto mt-12 aspect-[2.16/1] w-full max-w-lg overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#17453a_0%,#1fa892_54%,#55d9c4_100%)] px-8 py-10 text-center text-white shadow-[0_44px_110px_rgb(31_168_146_/_0.24)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99] sm:mt-16 sm:rounded-[2.4rem]"
           aria-label={revealed ? 'Ưu đãi chào mừng 50 phần trăm đã mở' : 'Cào thẻ để mở ưu đãi Nutree'}
           role="img"
           onPointerDown={(event) => {
@@ -142,7 +142,7 @@ export default function WelcomeGiftPage() {
         </div>
       </section>
 
-      <div className="mx-auto w-full max-w-[40rem]">
+      <div className="mx-auto w-full max-w-lg">
         <button
           type="button"
           onClick={claimGift}

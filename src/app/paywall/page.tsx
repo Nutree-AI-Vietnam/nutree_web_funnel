@@ -123,9 +123,9 @@ export default function PaywallPage() {
 
   return (
     <main className="min-h-dvh bg-[#f6faf8] px-4 pb-[max(2rem,env(safe-area-inset-bottom))] text-charcoal sm:px-6">
-      <div className="mx-auto w-full max-w-[48rem]">
+      <div className="mx-auto w-full max-w-lg">
         <header className="sticky top-0 z-30 -mx-4 border-b border-[#dce7e2] bg-[#f6faf8]/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
-          <div className="mx-auto flex max-w-[48rem] items-center gap-2.5">
+          <div className="mx-auto flex max-w-lg items-center gap-2.5">
             <Image src="/nutree-logo.png" alt="Nutree" width={40} height={40} className="h-9 w-9 object-contain" priority />
             <span className="text-[1.55rem] font-extrabold leading-none tracking-[-0.055em] text-forest">Nut<span className="text-teal-brand">ree</span></span>
             <div className="ml-auto text-right leading-none">
