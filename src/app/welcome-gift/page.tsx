@@ -100,7 +100,7 @@ export default function WelcomeGiftPage() {
 
         <div
           ref={ticketRef}
-          className="relative mx-auto mt-8 aspect-[2.28/1] w-full max-w-[25.5rem] overflow-hidden rounded-[1.45rem] bg-[linear-gradient(135deg,#696ff4_0%,#9c63ee_50%,#5fbbe4_100%)] px-6 py-7 text-center text-white shadow-[0_26px_74px_rgb(111_113_244_/_0.24),0_0_0_22px_rgb(236_241_255_/_0.72)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99] sm:rounded-[1.65rem]"
+          className="relative mx-auto mt-8 aspect-[2.18/1] w-[calc(100%+1rem)] max-w-[27rem] -translate-x-0 overflow-hidden rounded-[1.55rem] bg-[linear-gradient(135deg,#696ff4_0%,#9c63ee_50%,#5fbbe4_100%)] px-6 py-8 text-center text-white shadow-[0_30px_82px_rgb(111_113_244_/_0.25),0_0_0_24px_rgb(236_241_255_/_0.72)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99] sm:rounded-[1.75rem]"
           aria-label={revealed ? copy.welcomeGift.ticketAria : copy.welcomeGift.scratchAria}
           role="img"
           onPointerDown={(event) => {
@@ -113,16 +113,16 @@ export default function WelcomeGiftPage() {
             updateScratchProgress(event.clientX);
           }}
         >
-          <span className="absolute left-0 top-1/2 h-12 w-6 -translate-x-1/2 -translate-y-1/2 rounded-r-full bg-mist/95" />
-          <span className="absolute right-0 top-1/2 h-12 w-6 -translate-y-1/2 translate-x-1/2 rounded-l-full bg-mist/95" />
+          <span className="absolute left-0 top-1/2 h-14 w-7 -translate-x-1/2 -translate-y-1/2 rounded-r-full bg-mist/95" />
+          <span className="absolute right-0 top-1/2 h-14 w-7 -translate-y-1/2 translate-x-1/2 rounded-l-full bg-mist/95" />
           <span className="absolute inset-0 bg-[radial-gradient(circle_at_35%_35%,rgb(255_255_255_/_0.14),transparent_28%),radial-gradient(circle_at_82%_76%,rgb(255_255_255_/_0.12),transparent_32%)]" />
-          <span className="relative mt-2 block text-[0.68rem] font-extrabold uppercase tracking-[0.36em] text-white/88">
+          <span className="relative mt-2 block text-[0.72rem] font-extrabold uppercase tracking-[0.36em] text-white/88">
             ✨ {copy.welcomeGift.eyebrow} ✨
           </span>
-          <span className="relative mt-3 block text-[3.65rem] font-extrabold leading-[0.88] tracking-[-0.055em] text-white/92 sm:text-[4.55rem]">
+          <span className="relative mt-3 block text-[4.05rem] font-extrabold leading-[0.88] tracking-[-0.055em] text-white/92 sm:text-[4.9rem]">
             {copy.welcomeGift.ticketValue}
           </span>
-          <span className="relative mt-3 block text-[0.98rem] font-extrabold tracking-[-0.01em] text-white/90">
+          <span className="relative mt-3 block text-[1.02rem] font-extrabold tracking-[-0.01em] text-white/90">
             {revealed ? copy.welcomeGift.revealedHeadline : copy.welcomeGift.subhead}
           </span>
           <div
