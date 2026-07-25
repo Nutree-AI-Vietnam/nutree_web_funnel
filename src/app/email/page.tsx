@@ -21,6 +21,7 @@ export default function EmailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const canBypassEmail = process.env.NODE_ENV !== 'production';
 
   useEffect(() => trackStepViewed('email_capture'), []);
   const currentEmail = email || lead?.email || '';
@@ -44,6 +45,17 @@ export default function EmailPage() {
       setError(vi.email.error);
       setSubmitting(false);
     }
+  };
+
+  const bypassEmailForLocal = () => {
+    setLead({
+      email: 'local-preview@nutree.dev',
+      lead_id: 'lead_local_preview',
+      web_user_id: 'web_local_preview',
+      masked_email: 'local-preview@nutree.dev',
+    });
+    trackEvent('email_bypassed_local', {});
+    router.push('/welcome-gift');
   };
 
   return (
@@ -74,7 +86,7 @@ export default function EmailPage() {
               className="min-h-14 rounded-2xl border border-border-brand bg-bg-brand px-5 py-4 text-lg font-semibold text-forest outline-none transition placeholder:text-muted-brand focus:border-teal-brand focus:ring-4 focus:ring-teal-brand/15 aria-[invalid=true]:border-error-brand aria-[invalid=true]:focus:ring-error-brand/15"
             />
             <p id="email-helper" className="text-sm font-medium text-muted-brand">
-              {vi.email.body}
+              {vi.email.helper}
             </p>
             {error && (
               <p id="email-error" role="alert" className="text-sm font-bold text-error-brand">
@@ -85,6 +97,15 @@ export default function EmailPage() {
           <PrimaryButton disabled={submitting || !currentEmail} onClick={submit}>
             {submitting ? '...' : vi.email.cta}
           </PrimaryButton>
+          {canBypassEmail && (
+            <button
+              type="button"
+              onClick={bypassEmailForLocal}
+              className="min-h-12 rounded-2xl border border-border-brand bg-white px-4 text-sm font-extrabold text-forest transition hover:bg-mist focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.98]"
+            >
+              {vi.email.devBypass}
+            </button>
+          )}
         </div>
       </section>
     </ConversionShell>

@@ -2,7 +2,9 @@ import { useSyncExternalStore } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { DEFAULT_LOCALE, type Locale } from '@/lib/copy';
-import type { Lead, OnboardingPayload, TdeeResult } from './types';
+import type { CheckoutResponse, Lead, OnboardingPayload, TdeeResult } from './types';
+
+export type PayPalCheckout = CheckoutResponse & { offerLabel: string };
 
 export const STORAGE_KEY = 'nutree_funnel_v1';
 
@@ -12,12 +14,14 @@ interface QuizState {
   tdee: TdeeResult | null;
   tdeeSource: 'api' | 'fallback' | null;
   lead: Lead | null;
+  paypalCheckout: PayPalCheckout | null;
   momoOrderId: string | null;
   purchased: boolean;
   setData: (patch: Partial<OnboardingPayload>) => void;
   setLocale: (locale: Locale) => void;
   setTdee: (result: TdeeResult, source: 'api' | 'fallback') => void;
   setLead: (lead: Lead) => void;
+  setPayPalCheckout: (checkout: PayPalCheckout | null) => void;
   setMomoOrderId: (orderId: string | null) => void;
   setPurchased: (v: boolean) => void;
   reset: () => void;
@@ -29,6 +33,7 @@ const initial = {
   tdee: null,
   tdeeSource: null,
   lead: null,
+  paypalCheckout: null,
   momoOrderId: null,
   purchased: false,
 };
@@ -41,6 +46,7 @@ export const useQuizStore = create<QuizState>()(
       setLocale: (locale) => set({ locale }),
       setTdee: (result, source) => set({ tdee: result, tdeeSource: source }),
       setLead: (lead) => set({ lead }),
+      setPayPalCheckout: (paypalCheckout) => set({ paypalCheckout }),
       setMomoOrderId: (momoOrderId) => set({ momoOrderId }),
       setPurchased: (purchased) => set({ purchased }),
       // Language is a UI preference, not quiz data — keep it across a reset.
