@@ -8,7 +8,18 @@ Design spec: `docs/superpowers/specs/2026-07-07-web-to-app-funnel-design.md`
 ## Stack
 
 Next.js (App Router) · TypeScript · Tailwind CSS · zustand ·
-Vitest. Vietnamese-only copy lives in `src/lib/copy/vi.ts`.
+Vitest. Localized copy lives in `src/lib/copy/vi.ts` and
+`src/lib/copy/en.ts`.
+
+## Localization and Pricing
+
+- Vietnam (`VN`) uses Vietnamese copy and VND pricing.
+- Every non-Vietnam market uses English copy and USD pricing.
+- Keep text and currency aligned on every screen: do not show Vietnamese copy
+  with USD, and do not show English copy with VND.
+- Market detection should stay automatic from browser/backend country context;
+  do not add manual country switching to the funnel screens unless explicitly
+  requested.
 
 ## Development
 
