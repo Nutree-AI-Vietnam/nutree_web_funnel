@@ -158,20 +158,28 @@ export default function PaywallPage() {
               {context.offers.map((offer) => {
                 const active = offer.id === selected.id;
                 const daily = offer.amount_due_today / (offer.period_unit === 'YEAR' ? 365 : offer.period_count * 30);
+                const standardDaily = offer.standard_amount / (offer.period_unit === 'YEAR' ? 365 : offer.period_count * 30);
                 const dailyAmount = offer.currency === 'VND' ? Math.round(daily) : daily;
-                return <button key={offer.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(offer.id); trackEvent('offer_selected', { offer_id: offer.id, market: offer.market }); }} className={cn('overflow-hidden rounded-[1.55rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-teal-brand shadow-[0_14px_30px_rgb(31_168_146_/_0.13)]' : 'border-[#d8e5df] hover:border-teal-brand/60')}>
-                  {offer.recommended && <span className="block bg-forest px-4 py-2 text-center text-xs font-extrabold uppercase tracking-[0.22em] text-white">{copy.paywall.recommendedTag}</span>}
-                  <span className="grid min-h-28 grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-4">
-                    <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-full border-2', active ? 'border-forest' : 'border-[#b9c8c1]')}>
+                const standardDailyAmount = offer.currency === 'VND' ? Math.round(standardDaily) : standardDaily;
+                const discountPercent = Math.round(100 - (offer.amount_due_today / offer.standard_amount) * 100);
+                const showDiscount = offer.reward_applied && (offer.recommended || offer.period_count > 1 || offer.period_unit === 'YEAR');
+                return <button key={offer.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(offer.id); trackEvent('offer_selected', { offer_id: offer.id, market: offer.market }); }} className={cn('overflow-hidden rounded-[1.55rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-[#ff6a1f] shadow-[0_14px_30px_rgb(255_106_31_/_0.13)]' : 'border-[#dfe7e3] hover:border-teal-brand/60')}>
+                  {offer.recommended && <span className="block bg-gradient-to-r from-[#ef4d59] to-[#ff7a1a] px-4 py-2 text-center text-xs font-extrabold uppercase tracking-[0.18em] text-white">{copy.paywall.recommendedTag}</span>}
+                  <span className={cn('grid min-h-28 grid-cols-[auto_minmax(4.5rem,1fr)_minmax(3.8rem,auto)_auto] items-center gap-2.5 px-3 py-4 sm:grid-cols-[auto_1fr_auto_auto] sm:gap-4 sm:px-4', active && 'bg-[#fffaf9]')}>
+                    <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-full border-2', active ? 'border-[#111418]' : 'border-[#c8cfcc]')}>
                       {active && <span className="h-4 w-4 rounded-full bg-forest" />}
                     </span>
                     <span className="min-w-0">
-                      <span className="block text-[1.55rem] font-extrabold leading-tight tracking-[-0.035em] text-forest">{offer.label}</span>
+                      <span className={cn('block text-[1.25rem] font-extrabold leading-tight tracking-[-0.035em] sm:text-[1.45rem]', active ? 'text-[#111418]' : 'text-[#666b6a]')}>{offer.label}</span>
                       <span className="mt-1 block text-base font-bold text-muted-brand line-through">{formatOfferAmount(offer.standard_amount, offer.currency)}</span>
-                      <span className="block text-[1.35rem] font-extrabold leading-tight tracking-[-0.02em] text-forest">{formatOfferAmount(offer.amount_due_today, offer.currency)}</span>
+                      <span className={cn('block text-[1.15rem] font-extrabold leading-tight tracking-[-0.02em] sm:text-[1.25rem]', active ? 'text-[#111418]' : 'text-[#666b6a]')}>{formatOfferAmount(offer.amount_due_today, offer.currency)}</span>
                     </span>
-                    <span className="min-w-[6.4rem] rounded-[1.25rem] bg-[#f6f8f7] px-3 py-3 text-center text-forest shadow-[inset_0_1px_0_rgb(255_255_255_/_0.8)]">
-                      <span className="block text-[1.75rem] font-extrabold leading-none tracking-[-0.04em]">{formatOfferAmount(dailyAmount, offer.currency)}</span>
+                    <span className="justify-self-center text-center">
+                      {showDiscount && <span className="mb-2 block rounded-lg bg-[#fff0eb] px-2 py-1 text-sm font-extrabold text-[#ff5f2a]">{discountPercent}% OFF</span>}
+                      <span className="block text-base font-bold text-muted-brand line-through">{formatOfferAmount(standardDailyAmount, offer.currency)}</span>
+                    </span>
+                    <span className="min-w-[5.2rem] rounded-[1.15rem] bg-[#f3f4f3] px-2.5 py-3 text-center text-[#111418] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.8)] sm:min-w-[6rem] sm:px-3">
+                      <span className="block text-[1.95rem] font-extrabold leading-none tracking-[-0.05em] sm:text-[2.45rem]">{formatOfferAmount(dailyAmount, offer.currency)}</span>
                       <span className="mt-1 block text-xs font-extrabold text-muted-brand">{copy.paywall.perDay}</span>
                     </span>
                   </span>
