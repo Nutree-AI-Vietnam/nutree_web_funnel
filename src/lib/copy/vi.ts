@@ -416,6 +416,7 @@ export const vi = {
     revealButton: 'Mở giá 50%',
     ticketLabel: 'WELCOME50',
     discount: '50%',
+    ticketValue: 'GIẢM 50%',
     priceLine: (amount: string, plan: string) => `${amount} cho gói ${plan}.`,
     cta: 'Xem các gói giảm 50%',
     lockedCta: 'Mở giá trước',

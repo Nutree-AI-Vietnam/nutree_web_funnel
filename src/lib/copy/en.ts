@@ -419,6 +419,7 @@ export const en: Copy = {
     revealButton: 'Reveal 50% price',
     ticketLabel: 'WELCOME50',
     discount: '50%',
+    ticketValue: '50% OFF',
     priceLine: (amount: string, plan: string) => `${amount} for ${plan}.`,
     cta: 'View plans at 50% off',
     lockedCta: 'Reveal price first',

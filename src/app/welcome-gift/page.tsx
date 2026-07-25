@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ConversionShell } from '@/components/conversion-shell';
@@ -83,18 +85,25 @@ export default function WelcomeGiftPage() {
   const welcomeAmount = formatOfferAmount(recommended.amount_due_today, recommended.currency);
 
   return (
-    <ConversionShell className="justify-center">
-      <section className="rounded-[2rem] border border-border-brand bg-white p-5 text-center shadow-[0_18px_52px_rgb(23_69_58_/_0.10)] sm:p-8">
-        <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-teal-brand">{copy.welcomeGift.eyebrow}</p>
-        <h1 className="mt-3 text-[2.2rem] font-extrabold leading-[1.08] tracking-[-0.055em] text-forest sm:text-[2.85rem]">
+    <ConversionShell hideLogo className="min-h-[calc(100dvh-3rem)] justify-between gap-8">
+      <div className="flex justify-center pt-1">
+        <Link href="/" aria-label="Nutree" className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/70 bg-white/75 shadow-[inset_0_0_0_1px_rgb(255_255_255_/_0.55),0_8px_24px_rgb(16_39_32_/_0.08)] backdrop-blur">
+          <Image src="/nutree-logo-simple.png" alt="" width={72} height={64} priority className="h-8 w-8 object-contain" />
+        </Link>
+      </div>
+
+      <section className="flex flex-1 flex-col justify-center text-center">
+        <p className="text-[0.78rem] font-extrabold uppercase tracking-[0.28em] text-teal-brand">{copy.welcomeGift.eyebrow}</p>
+        <h1 className="mx-auto mt-3 max-w-[22rem] text-[1.78rem] font-extrabold leading-[1.08] tracking-[-0.035em] text-forest sm:text-[2.08rem]">
           {copy.welcomeGift.headline}
         </h1>
-        <p className="mt-4 text-base font-semibold leading-relaxed text-slate-brand sm:text-lg">
+        <p className="mx-auto mt-3 max-w-[21rem] text-[1rem] font-semibold leading-relaxed text-slate-brand">
           {revealed ? copy.welcomeGift.revealedHeadline : copy.welcomeGift.subhead}
         </p>
+
         <div
           ref={ticketRef}
-          className="relative mx-auto mt-7 aspect-[2.16/1] w-full overflow-hidden rounded-[1.75rem] bg-[linear-gradient(135deg,#17453a_0%,#1fa892_54%,#55d9c4_100%)] px-6 py-8 text-center text-white shadow-[0_30px_72px_rgb(31_168_146_/_0.22)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99] sm:rounded-[2rem] sm:px-8 sm:py-10"
+          className="relative mx-auto mt-8 aspect-[2.28/1] w-full max-w-[24rem] overflow-hidden rounded-[1.55rem] bg-[linear-gradient(135deg,#17453a_0%,#21a891_58%,#68ddca_100%)] px-6 py-7 text-center text-white shadow-[0_24px_64px_rgb(31_168_146_/_0.22)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99] sm:rounded-[1.8rem]"
           aria-label={revealed ? copy.welcomeGift.ticketAria : copy.welcomeGift.scratchAria}
           role="img"
           onPointerDown={(event) => {
@@ -107,20 +116,20 @@ export default function WelcomeGiftPage() {
             updateScratchProgress(event.clientX);
           }}
         >
-          <span className="absolute left-0 top-1/2 h-12 w-6 -translate-x-1/2 -translate-y-1/2 rounded-r-full bg-white/85 sm:h-14 sm:w-7" />
-          <span className="absolute right-0 top-1/2 h-12 w-6 -translate-y-1/2 translate-x-1/2 rounded-l-full bg-white/85 sm:h-14 sm:w-7" />
-          <span className="absolute inset-0 bg-[radial-gradient(circle_at_32%_28%,rgb(255_255_255_/_0.16),transparent_28%),radial-gradient(circle_at_78%_78%,rgb(255_255_255_/_0.12),transparent_30%)]" />
-          <span className="relative mt-3 block text-[0.72rem] font-extrabold uppercase tracking-[0.36em] text-white/85 sm:mt-5 sm:text-[0.9rem]">
+          <span className="absolute left-0 top-1/2 h-11 w-5 -translate-x-1/2 -translate-y-1/2 rounded-r-full bg-mint/95" />
+          <span className="absolute right-0 top-1/2 h-11 w-5 -translate-y-1/2 translate-x-1/2 rounded-l-full bg-mint/95" />
+          <span className="absolute inset-0 bg-[radial-gradient(circle_at_28%_24%,rgb(255_255_255_/_0.16),transparent_27%),radial-gradient(circle_at_82%_80%,rgb(255_255_255_/_0.14),transparent_30%)]" />
+          <span className="relative mt-1 block text-[0.68rem] font-extrabold uppercase tracking-[0.42em] text-white/88">
             {copy.welcomeGift.ticketLabel}
           </span>
-          <span className="relative mt-4 block text-[4rem] font-extrabold leading-[0.9] tracking-[-0.06em] text-white/90 sm:text-[5.75rem]">
-            -{copy.welcomeGift.discount}
+          <span className="relative mt-4 block text-[3.35rem] font-extrabold leading-[0.9] tracking-[-0.055em] text-white/92 sm:text-[4.15rem]">
+            {copy.welcomeGift.ticketValue}
           </span>
-          <span className="relative mt-4 block text-base font-extrabold tracking-[-0.02em] text-white/90 sm:text-xl">
+          <span className="relative mt-3 block text-[0.9rem] font-extrabold tracking-[-0.01em] text-white/90">
             {copy.welcomeGift.priceLine(welcomeAmount, recommended.label)}
           </span>
           <div
-            className="absolute inset-0 touch-none rounded-[2rem] bg-[linear-gradient(112deg,#d6dbe5_0%,#ffffff_26%,#c8d0dc_50%,#f7f9fc_74%,#b9c4d2_100%)] transition-[clip-path,opacity] duration-300 motion-reduce:transition-none sm:rounded-[2.4rem]"
+            className="absolute inset-0 touch-none rounded-[1.55rem] bg-[linear-gradient(112deg,#d6dbe5_0%,#ffffff_26%,#c8d0dc_50%,#f7f9fc_74%,#b9c4d2_100%)] transition-[clip-path,opacity] duration-300 motion-reduce:transition-none sm:rounded-[1.8rem]"
             style={{
               clipPath: `inset(0 0 0 ${revealed ? 100 : scratchProgress}%)`,
               opacity: revealed ? 0 : 1,
@@ -128,7 +137,7 @@ export default function WelcomeGiftPage() {
           >
             <span className="absolute inset-0 bg-[repeating-linear-gradient(135deg,rgb(255_255_255_/_0.55)_0_3px,transparent_3px_15px),radial-gradient(circle_at_20%_30%,rgb(255_255_255_/_0.42),transparent_24%),radial-gradient(circle_at_78%_72%,rgb(23_37_32_/_0.08),transparent_28%)]" />
             <span className="absolute inset-0 opacity-45 [background-image:radial-gradient(circle,rgb(23_37_32_/_0.18)_0_1px,transparent_1px)] [background-size:18px_18px]" />
-            <span className="absolute left-1/2 top-1/2 w-full -translate-x-1/2 -translate-y-1/2 px-8 text-center text-lg font-black text-[#53625d]/70">
+            <span className="absolute left-1/2 top-1/2 w-full -translate-x-1/2 -translate-y-1/2 px-8 text-center text-base font-black text-[#53625d]/70">
               {copy.welcomeGift.scratchHint}
             </span>
           </div>
@@ -140,14 +149,15 @@ export default function WelcomeGiftPage() {
             />
           )}
         </div>
-        <button
-          type="button"
-          onClick={claimGift}
-          className="mt-7 min-h-16 w-full rounded-2xl bg-forest px-6 text-lg font-extrabold tracking-[-0.02em] text-white shadow-[0_18px_38px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99]"
-        >
-          {revealed ? copy.welcomeGift.cta : copy.welcomeGift.lockedCta}
-        </button>
       </section>
+
+      <button
+        type="button"
+        onClick={claimGift}
+        className="min-h-14 w-full rounded-2xl bg-forest px-6 text-base font-extrabold tracking-[-0.01em] text-white shadow-[0_16px_34px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99]"
+      >
+        {revealed ? copy.welcomeGift.cta : copy.welcomeGift.lockedCta}
+      </button>
     </ConversionShell>
   );
 }
