@@ -1,8 +1,8 @@
 'use client';
 
-import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ConversionShell } from '@/components/conversion-shell';
 import { createCheckout, getFunnelContext } from '@/lib/api/client';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
@@ -122,21 +122,13 @@ export default function PaywallPage() {
   ];
 
   return (
-    <main className="min-h-dvh bg-[#f6faf8] px-4 pb-[max(2rem,env(safe-area-inset-bottom))] text-charcoal sm:px-6">
-      <div className="mx-auto w-full max-w-lg">
-        <header className="sticky top-0 z-30 -mx-4 border-b border-[#dce7e2] bg-[#f6faf8]/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
-          <div className="mx-auto flex max-w-lg items-center gap-2.5">
-            <Image src="/nutree-logo.png" alt="Nutree" width={40} height={40} className="h-9 w-9 object-contain" priority />
-            <span className="text-[1.55rem] font-extrabold leading-none tracking-[-0.055em] text-forest">Nut<span className="text-teal-brand">ree</span></span>
-            <div className="ml-auto text-right leading-none">
-              <p className="text-xs font-bold text-muted-brand"><span className="text-teal-brand">50%</span> {copy.paywall.offerReserved}</p>
-              <strong className="mt-1 block text-xl font-extrabold tabular-nums text-forest">{countdown}</strong>
-            </div>
-          </div>
-        </header>
-
-        <div className="pt-6 sm:pt-8">
+    <ConversionShell className="gap-5 pt-[8vh] sm:pt-[10vh]">
+        <div>
           <section className="rounded-[2rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-8">
+            <div className="mb-5 rounded-[1.35rem] bg-[#e8f4ef] px-4 py-4 text-left">
+              <p className="text-base font-extrabold text-muted-brand"><span className="text-teal-brand">50%</span> {copy.paywall.offerReserved}</p>
+              <strong className="mt-1 block text-[2.25rem] font-extrabold leading-none tracking-[-0.04em] text-forest tabular-nums">{countdown}</strong>
+            </div>
             <p className="text-center text-lg font-semibold text-slate-brand">{copy.paywall.goalIntro}</p>
             <h1 className="mx-auto mt-1 max-w-2xl text-center text-[2rem] font-extrabold leading-tight tracking-[-0.045em] text-forest sm:text-[2.65rem]">{copy.paywall.goalHeadline(targetWeight, targetDate)}</h1>
             <svg viewBox="0 0 640 245" className="mt-8 h-auto w-full" role="img" aria-label={copy.paywall.goalChartAria}>
@@ -209,7 +201,6 @@ export default function PaywallPage() {
           {error && <p role="alert" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-error-brand">{error}</p>}
           <p className="mx-auto mt-6 max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{copy.paywall.termsIntro} {copy.paywall.secure}</p>
         </div>
-      </div>
-    </main>
+    </ConversionShell>
   );
 }
