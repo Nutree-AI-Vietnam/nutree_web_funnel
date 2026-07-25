@@ -440,6 +440,7 @@ export const en: Copy = {
     todayPrice: 'Due today',
     renewal: 'Renewal',
     recommendedTag: 'Most popular',
+    discountTag: (percent: number) => `${percent}% OFF`,
     perDay: 'per day',
     planRecommendation: 'The 3-month plan gives you enough time to build a consistent tracking rhythm.',
     planResearchNote: 'Your WELCOME50 offer is already applied.',

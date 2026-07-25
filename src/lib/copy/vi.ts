@@ -437,6 +437,7 @@ export const vi = {
     todayPrice: 'Thanh toán hôm nay',
     renewal: 'Gia hạn',
     recommendedTag: 'Phổ biến nhất',
+    discountTag: (percent: number) => `Giảm ${percent}%`,
     perDay: 'mỗi ngày',
     planRecommendation: 'Gói 3 tháng tạo đủ thời gian để xây dựng nhịp theo dõi đều đặn.',
     planResearchNote: 'Ưu đãi WELCOME50 đã được áp dụng.',

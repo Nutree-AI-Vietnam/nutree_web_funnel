@@ -122,15 +122,27 @@ export default function PaywallPage() {
   ];
 
   return (
-    <ConversionShell className="gap-5 pt-[8vh] sm:pt-[10vh]">
-        <div>
+    <ConversionShell className="gap-5">
+      <div className="sticky top-0 z-30 -mx-5 -mt-1 border-b border-[#dfe9e4] bg-white/96 px-5 py-3 shadow-[0_10px_26px_rgb(16_39_32_/_0.08)] backdrop-blur">
+        <div className="grid grid-cols-[1fr_auto] items-center gap-3">
+          <div className="min-w-0">
+            <p className="text-[0.98rem] font-bold leading-tight text-muted-brand"><span className="text-[1.3rem] font-extrabold text-[#ef4d59]">50%</span> {copy.paywall.offerReserved}</p>
+            <strong className="mt-1 block text-[1.8rem] font-extrabold leading-none tracking-[-0.04em] text-[#111418] tabular-nums">{countdown}</strong>
+          </div>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={beginCheckout}
+            className="min-h-12 rounded-[1.15rem] bg-[#ef4d59] px-5 text-base font-extrabold text-white shadow-[0_10px_24px_rgb(239_77_89_/_0.18)] transition hover:bg-[#e34250] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#ef4d59]/20 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {busy ? copy.paywall.loading : copy.paywall.topCta}
+          </button>
+        </div>
+      </div>
+      <div>
           <section className="rounded-[2rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-8">
-            <div className="mb-5 rounded-[1.35rem] bg-[#e8f4ef] px-4 py-4 text-left">
-              <p className="text-base font-extrabold text-muted-brand"><span className="text-teal-brand">50%</span> {copy.paywall.offerReserved}</p>
-              <strong className="mt-1 block text-[2.25rem] font-extrabold leading-none tracking-[-0.04em] text-forest tabular-nums">{countdown}</strong>
-            </div>
             <p className="text-center text-lg font-semibold text-slate-brand">{copy.paywall.goalIntro}</p>
-            <h1 className="mx-auto mt-1 max-w-2xl text-center text-[2rem] font-extrabold leading-tight tracking-[-0.045em] text-forest sm:text-[2.65rem]">{copy.paywall.goalHeadline(targetWeight, targetDate)}</h1>
+            <h1 className="mx-auto mt-1 max-w-2xl text-center text-[1.75rem] font-extrabold leading-tight tracking-[-0.04em] text-forest sm:text-[2.25rem]">{copy.paywall.goalHeadline(targetWeight, targetDate)}</h1>
             <svg viewBox="0 0 640 245" className="mt-8 h-auto w-full" role="img" aria-label={copy.paywall.goalChartAria}>
               {[48, 181, 314, 447, 580].map((x) => <line key={x} x1={x} y1="20" x2={x} y2="190" stroke="#dce7e2" strokeWidth="2" />)}
               <path d="M48 62 C132 65 156 86 213 130 S304 165 360 168" fill="none" stroke="#a3bd68" strokeWidth="6" strokeLinecap="round" />
@@ -143,10 +155,10 @@ export default function PaywallPage() {
             <p className="mx-auto mt-4 max-w-[35rem] text-center text-base leading-relaxed text-muted-brand">{copy.paywall.goalNote}</p>
           </section>
 
-          <section id="plans" className="mt-5 rounded-[2rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8">
-            <h2 className="text-center text-[1.8rem] font-extrabold tracking-[-0.04em] text-forest">{copy.paywall.planTitle}</h2>
+          <section id="plans" className="mt-5 rounded-[2rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-6">
+            <h2 className="text-center text-[1.55rem] font-extrabold tracking-[-0.035em] text-forest">{copy.paywall.planTitle}</h2>
             <p className="mt-5 rounded-[1.35rem] bg-[#e8f4ef] px-4 py-4 text-center text-[1.05rem] font-extrabold text-forest tabular-nums">{copy.paywall.offerEnds(countdown)}</p>
-            <div role="radiogroup" aria-label={copy.paywall.selectPlanAria} className="mt-5 grid gap-3">
+            <div role="radiogroup" aria-label={copy.paywall.selectPlanAria} className="mt-5 grid gap-4">
               {context.offers.map((offer) => {
                 const active = offer.id === selected.id;
                 const daily = offer.amount_due_today / (offer.period_unit === 'YEAR' ? 365 : offer.period_count * 30);
@@ -155,23 +167,23 @@ export default function PaywallPage() {
                 const standardDailyAmount = offer.currency === 'VND' ? Math.round(standardDaily) : standardDaily;
                 const discountPercent = Math.round(100 - (offer.amount_due_today / offer.standard_amount) * 100);
                 const showDiscount = offer.reward_applied && (offer.recommended || offer.period_count > 1 || offer.period_unit === 'YEAR');
-                return <button key={offer.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(offer.id); trackEvent('offer_selected', { offer_id: offer.id, market: offer.market }); }} className={cn('overflow-hidden rounded-[1.55rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-[#ff6a1f] shadow-[0_14px_30px_rgb(255_106_31_/_0.13)]' : 'border-[#dfe7e3] hover:border-teal-brand/60')}>
-                  {offer.recommended && <span className="block bg-gradient-to-r from-[#ef4d59] to-[#ff7a1a] px-4 py-2 text-center text-xs font-extrabold uppercase tracking-[0.18em] text-white">{copy.paywall.recommendedTag}</span>}
-                  <span className={cn('grid min-h-28 grid-cols-[auto_minmax(4.5rem,1fr)_minmax(3.8rem,auto)_auto] items-center gap-2.5 px-3 py-4 sm:grid-cols-[auto_1fr_auto_auto] sm:gap-4 sm:px-4', active && 'bg-[#fffaf9]')}>
+                return <button key={offer.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(offer.id); trackEvent('offer_selected', { offer_id: offer.id, market: offer.market }); }} className={cn('overflow-hidden rounded-[1.65rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-[#ff6a1f] shadow-[0_16px_34px_rgb(255_106_31_/_0.12)]' : 'border-[#dfe7e3] hover:border-teal-brand/60')}>
+                  {offer.recommended && <span className="block bg-gradient-to-r from-[#ef4d59] to-[#ff7a1a] px-4 py-2.5 text-center text-xs font-extrabold uppercase tracking-[0.24em] text-white">{copy.paywall.recommendedTag}</span>}
+                  <span className={cn('grid min-h-32 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-5 sm:gap-4 sm:px-5', active && 'bg-[#fffafa]')}>
                     <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-full border-2', active ? 'border-[#111418]' : 'border-[#c8cfcc]')}>
                       {active && <span className="h-4 w-4 rounded-full bg-forest" />}
                     </span>
-                    <span className="min-w-0">
-                      <span className={cn('block text-[1.25rem] font-extrabold leading-tight tracking-[-0.035em] sm:text-[1.45rem]', active ? 'text-[#111418]' : 'text-[#666b6a]')}>{offer.label}</span>
-                      <span className="mt-1 block text-base font-bold text-muted-brand line-through">{formatOfferAmount(offer.standard_amount, offer.currency)}</span>
-                      <span className={cn('block text-[1.15rem] font-extrabold leading-tight tracking-[-0.02em] sm:text-[1.25rem]', active ? 'text-[#111418]' : 'text-[#666b6a]')}>{formatOfferAmount(offer.amount_due_today, offer.currency)}</span>
+                    <span className="min-w-0 self-center">
+                      <span className={cn('block text-[1.45rem] font-extrabold leading-[1.05] tracking-[-0.035em]', active ? 'text-[#111418]' : 'text-[#5f6764]')}>{offer.label}</span>
+                      <span className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="text-base font-bold text-muted-brand line-through">{formatOfferAmount(offer.standard_amount, offer.currency)}</span>
+                        {showDiscount && <span className="rounded-lg bg-[#fff0eb] px-2 py-1 text-sm font-extrabold text-[#ff5f2a]">{copy.paywall.discountTag(discountPercent)}</span>}
+                      </span>
+                      <span className={cn('mt-1 block text-[1.35rem] font-extrabold leading-tight tracking-[-0.02em]', active ? 'text-[#111418]' : 'text-[#5f6764]')}>{formatOfferAmount(offer.amount_due_today, offer.currency)}</span>
+                      <span className="mt-2 block text-base font-bold text-muted-brand line-through">{formatOfferAmount(standardDailyAmount, offer.currency)}</span>
                     </span>
-                    <span className="justify-self-center text-center">
-                      {showDiscount && <span className="mb-2 block rounded-lg bg-[#fff0eb] px-2 py-1 text-sm font-extrabold text-[#ff5f2a]">{discountPercent}% OFF</span>}
-                      <span className="block text-base font-bold text-muted-brand line-through">{formatOfferAmount(standardDailyAmount, offer.currency)}</span>
-                    </span>
-                    <span className="min-w-[5.2rem] rounded-[1.15rem] bg-[#f3f4f3] px-2.5 py-3 text-center text-[#111418] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.8)] sm:min-w-[6rem] sm:px-3">
-                      <span className="block text-[1.95rem] font-extrabold leading-none tracking-[-0.05em] sm:text-[2.45rem]">{formatOfferAmount(dailyAmount, offer.currency)}</span>
+                    <span className="min-w-[7rem] rounded-[1.35rem] bg-[#f4f5f4] px-3 py-4 text-center text-[#111418] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.85)]">
+                      <span className="block text-[2.05rem] font-extrabold leading-none tracking-[-0.05em]">{formatOfferAmount(dailyAmount, offer.currency)}</span>
                       <span className="mt-1 block text-xs font-extrabold text-muted-brand">{copy.paywall.perDay}</span>
                     </span>
                   </span>
