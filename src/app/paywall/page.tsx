@@ -12,7 +12,7 @@ import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { createFallbackFunnelContext, formatOfferAmount, getRecommendedOffer } from '@/lib/funnel/catalog';
 import { previewAmountDueToday } from '@/lib/funnel/local-last-offer';
-import { isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee, useLocalPreviewHost } from '@/lib/local-preview';
+import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee, useLocalPreviewHost } from '@/lib/local-preview';
 import type { FunnelContext, FunnelOffer } from '@/lib/quiz/types';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
@@ -46,10 +46,11 @@ export default function PaywallPage() {
   const tdee = useQuizStore((s) => s.tdee);
   const setData = useQuizStore((s) => s.setData);
   const setLead = useQuizStore((s) => s.setLead);
+  const setLocale = useQuizStore((s) => s.setLocale);
   const setTdee = useQuizStore((s) => s.setTdee);
   const setMomoOrderId = useQuizStore((s) => s.setMomoOrderId);
   const setPayPalCheckout = useQuizStore((s) => s.setPayPalCheckout);
-  const [context, setContext] = useState<FunnelContext>(() => createFallbackFunnelContext());
+  const [context, setContext] = useState<FunnelContext>(() => createFallbackFunnelContext(typeof window !== 'undefined' && isLocalPreviewHost() ? getLocalPreviewCountry() : undefined));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(OFFER_SECONDS);
   const [error, setError] = useState<string | null>(null);
@@ -95,8 +96,11 @@ export default function PaywallPage() {
     if (!hydrated) return;
     if (!lead) {
       if (isLocalPreviewHost()) {
+        const localCountry = getLocalPreviewCountry();
+        const localContext = createFallbackFunnelContext(localCountry);
         setData(localPreviewData);
         setLead(localPreviewLead);
+        setLocale(localContext.locale);
         setTdee(localPreviewTdee, 'fallback');
       } else {
         router.replace('/email');
@@ -107,11 +111,12 @@ export default function PaywallPage() {
       setContext(next);
       setSelectedId(getRecommendedOffer(next.offers).id);
     }).catch(() => {
-      const fallback = createFallbackFunnelContext();
+      const fallback = createFallbackFunnelContext(isLocalPreviewHost() ? getLocalPreviewCountry() : undefined);
+      if (isLocalPreviewHost()) setLocale(fallback.locale);
       setContext(fallback);
       setSelectedId(getRecommendedOffer(fallback.offers).id);
     });
-  }, [hydrated, lead, router, setData, setLead, setTdee]);
+  }, [hydrated, lead, router, setData, setLead, setLocale, setTdee]);
 
   const selected = useMemo<FunnelOffer>(() => context.offers.find((offer) => offer.id === selectedId) ?? getRecommendedOffer(context.offers), [context.offers, selectedId]);
   if (!hydrated || (!lead && !localPreview)) return null;

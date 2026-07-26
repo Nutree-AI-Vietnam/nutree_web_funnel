@@ -49,6 +49,20 @@ describe('fallback catalog', () => {
     expect(offer.amount_due_today).toBe(9.99);
     expect(offer.provider).toBe('PAYPAL');
   });
+
+  it('uses the completed international WELCOME50 plan table', () => {
+    const context = createFallbackFunnelContext('US');
+    expect(context.offers.map((offer) => ({
+      label: offer.label,
+      standard: offer.standard_amount,
+      welcome: offer.amount_due_today,
+      renewal: offer.renewal_amount,
+    }))).toEqual([
+      { label: '4-week', standard: 7.99, welcome: 3.99, renewal: 7.99 },
+      { label: '12-week', standard: 19.99, welcome: 9.99, renewal: 19.99 },
+      { label: '52-week', standard: 47.99, welcome: 23.99, renewal: 47.99 },
+    ]);
+  });
 });
 
 describe('formatOfferAmount', () => {

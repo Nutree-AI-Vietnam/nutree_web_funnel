@@ -10,6 +10,7 @@ import { getFunnelContext, revealWelcomeReward } from '@/lib/api/client';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { createFallbackFunnelContext } from '@/lib/funnel/catalog';
+import { getLocalPreviewCountry, isLocalPreviewHost } from '@/lib/local-preview';
 import type { FunnelContext } from '@/lib/quiz/types';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 
@@ -18,9 +19,10 @@ export default function WelcomeGiftPage() {
   const copy = useCopy();
   const hydrated = useHydrated();
   const lead = useQuizStore((s) => s.lead);
+  const setLocale = useQuizStore((s) => s.setLocale);
   const revealTriggered = useRef(false);
   const [revealed, setRevealed] = useState(false);
-  const [context, setContext] = useState<FunnelContext>(() => createFallbackFunnelContext());
+  const [context, setContext] = useState<FunnelContext>(() => createFallbackFunnelContext(typeof window !== 'undefined' && isLocalPreviewHost() ? getLocalPreviewCountry() : undefined));
 
   useEffect(() => trackStepViewed('welcome_gift'), []);
 
@@ -38,8 +40,12 @@ export default function WelcomeGiftPage() {
           setRevealed(true);
         }
       })
-      .catch(() => setContext(createFallbackFunnelContext()));
-  }, [hydrated, lead, router]);
+      .catch(() => {
+        const fallback = createFallbackFunnelContext(isLocalPreviewHost() ? getLocalPreviewCountry() : undefined);
+        if (isLocalPreviewHost()) setLocale(fallback.locale);
+        setContext(fallback);
+      });
+  }, [hydrated, lead, router, setLocale]);
 
   if (!hydrated) return null;
   if (!lead) return null;

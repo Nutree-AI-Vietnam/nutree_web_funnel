@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import type { Lead, OnboardingPayload, TdeeResult } from '@/lib/quiz/types';
 
+export const LOCAL_PREVIEW_COUNTRY_KEY = 'nutree_local_preview_country';
+
 export function isLocalPreviewHost() {
   if (typeof window === 'undefined') return false;
   const host = window.location.hostname;
@@ -20,6 +22,16 @@ export function useLocalPreviewHost() {
   }, []);
 
   return enabled;
+}
+
+export function getLocalPreviewCountry() {
+  if (!isLocalPreviewHost()) return 'VN';
+  return window.localStorage.getItem(LOCAL_PREVIEW_COUNTRY_KEY) === 'US' ? 'US' : 'VN';
+}
+
+export function setLocalPreviewCountry(country: 'VN' | 'US') {
+  if (!isLocalPreviewHost()) return;
+  window.localStorage.setItem(LOCAL_PREVIEW_COUNTRY_KEY, country);
 }
 
 export const localPreviewLead: Lead = {

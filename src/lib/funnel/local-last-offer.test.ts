@@ -16,6 +16,20 @@ describe('previewAmountDueToday', () => {
     ]);
   });
 
+  it('applies the completed international 75% exit-intent deal table', () => {
+    const context = createFallbackFunnelContext('US');
+
+    expect(context.offers.map((offer) => ({
+      label: offer.label,
+      exitDeal: previewAmountDueToday(offer, 75),
+    }))).toEqual([
+      { label: '4-week', exitDeal: 1.99 },
+      { label: '12-week', exitDeal: 4.99 },
+      { label: '52-week', exitDeal: 11.99 },
+    ]);
+  });
+
+
   it('keeps WELCOME50 prices before the 75% local offer is claimed', () => {
     const context = createFallbackFunnelContext('VN');
     const recommended = getRecommendedOffer(context.offers);
