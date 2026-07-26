@@ -446,7 +446,7 @@ export const vi = {
     repeatPlanTitle: 'Chọn kế hoạch cá nhân của bạn',
     guaranteeTitle: 'Đảm bảo hoàn tiền trong 30 ngày',
     guaranteeBody: 'Nếu bạn làm theo kế hoạch trong 4 tuần và vẫn không thấy tiến triển rõ ràng, chúng tôi sẽ hoàn tiền cho bạn.',
-    planRecommendation: 'Gói 3 tháng tạo đủ thời gian để xây dựng nhịp theo dõi đều đặn.',
+    planRecommendation: 'Gói 12 tuần tạo đủ thời gian để xây dựng nhịp theo dõi đều đặn.',
     planResearchNote: 'Ưu đãi WELCOME50 đã được áp dụng.',
     includesTitle: 'Kế hoạch bao gồm gì?',
     personalTitle: 'Kế hoạch được thiết kế riêng cho bạn',

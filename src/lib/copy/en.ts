@@ -449,7 +449,7 @@ export const en: Copy = {
     repeatPlanTitle: 'Grab your Personal Plan',
     guaranteeTitle: '30-day money-back guarantee',
     guaranteeBody: "Follow your plan for 4 weeks. If you still do not see clear progress, we'll refund your purchase.",
-    planRecommendation: 'The 3-month plan gives you enough time to build a consistent tracking rhythm.',
+    planRecommendation: 'The 12-week plan gives you enough time to build a consistent tracking rhythm.',
     planResearchNote: 'Your WELCOME50 offer is already applied.',
     includesTitle: 'What’s included?',
     personalTitle: 'A plan designed just for you',
