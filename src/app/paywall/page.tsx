@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { ConversionShell } from '@/components/conversion-shell';
 import { createCheckout, getFunnelContext } from '@/lib/api/client';
@@ -349,6 +350,7 @@ export default function PaywallPage() {
           {error && <p role="alert" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-error-brand">{error}</p>}
           <p className="mx-auto mt-6 max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{copy.paywall.termsIntro} {copy.paywall.secure}</p>
         </div>
+        {typeof document !== 'undefined' && createPortal(<>
         {showLastOffer && (
           <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-white px-4 py-8" role="dialog" aria-modal="true" aria-label={localCheckoutCopy.lastOfferTitle}>
             <div className="w-full max-w-[30rem] text-center">
@@ -383,8 +385,8 @@ export default function PaywallPage() {
           </div>
         )}
         {showLocalCheckout && (
-          <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-[#111816]/52 px-4 py-5 backdrop-blur-[3px]" role="dialog" aria-modal="true" aria-label={copy.checkout.title}>
-            <div className="w-full max-w-[28.5rem] max-h-[calc(100dvh-2.5rem)] overflow-y-auto rounded-[1.7rem] bg-[#f8f9fa] px-5 pb-5 pt-4 text-[#292e46] shadow-[0_28px_80px_rgb(10_18_16_/_0.34)] sm:px-6 sm:pb-6">
+          <div className="fixed inset-0 z-[999] grid place-items-center overflow-y-auto bg-[#111816]/52 px-4 py-5 backdrop-blur-[3px]" role="dialog" aria-modal="true" aria-label={copy.checkout.title}>
+            <div className="relative z-[1000] w-full max-w-[28.5rem] max-h-[calc(100dvh-2.5rem)] overflow-y-auto rounded-[1.7rem] bg-[#f8f9fa] px-5 pb-5 pt-4 text-[#292e46] shadow-[0_28px_80px_rgb(10_18_16_/_0.34)] sm:px-6 sm:pb-6">
               <div className="grid grid-cols-[2.75rem_1fr_2.75rem] items-center">
                 <button
                   type="button"
@@ -473,6 +475,7 @@ export default function PaywallPage() {
             </div>
           </div>
         )}
+        </>, document.body)}
     </ConversionShell>
   );
 }
