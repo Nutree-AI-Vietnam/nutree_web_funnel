@@ -57,6 +57,7 @@ export default function PaywallPage() {
   const [localCheckoutOpen, setLocalCheckoutOpen] = useState(false);
   const [localCheckoutDismissed, setLocalCheckoutDismissed] = useState(false);
   const [showLastOffer, setShowLastOffer] = useState(false);
+  const [localLastOfferShown, setLocalLastOfferShown] = useState(false);
   const [lastOfferRevealed, setLastOfferRevealed] = useState(false);
   const [localRewardPercent, setLocalRewardPercent] = useState(50);
   const localPreview = useLocalPreviewHost();
@@ -187,8 +188,13 @@ export default function PaywallPage() {
   const closeLocalCheckout = () => {
     setLocalCheckoutOpen(false);
     setLocalCheckoutDismissed(true);
-    setShowLastOffer(true);
-    setLastOfferRevealed(false);
+    if (!localLastOfferShown && localRewardPercent < 75 && secondsLeft > 0) {
+      setShowLastOffer(true);
+      setLocalLastOfferShown(true);
+      setLastOfferRevealed(false);
+    } else {
+      setShowLastOffer(false);
+    }
     trackEvent('local_checkout_sheet_closed', { offer_id: selected.id, market: selected.market });
     if (typeof window !== 'undefined' && window.location.search.includes('localCheckout=1')) {
       window.history.replaceState(null, '', '/paywall');
