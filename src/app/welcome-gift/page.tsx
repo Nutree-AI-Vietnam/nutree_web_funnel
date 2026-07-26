@@ -89,7 +89,7 @@ export default function WelcomeGiftPage() {
         </p>
 
         <div
-          className="relative mx-auto mt-8 aspect-[2.18/1] w-[calc(100%+1rem)] max-w-[27rem] -translate-x-0 overflow-hidden rounded-[1.55rem] bg-[linear-gradient(135deg,#696ff4_0%,#9c63ee_50%,#5fbbe4_100%)] px-6 py-8 text-center text-white shadow-[0_30px_82px_rgb(111_113_244_/_0.25),0_0_0_24px_rgb(236_241_255_/_0.72)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99] sm:rounded-[1.75rem]"
+          className="relative mx-auto mt-8 aspect-[2.18/1] w-[calc(100%+1rem)] max-w-[27rem] -translate-x-0 overflow-hidden rounded-[1.55rem] bg-[linear-gradient(135deg,#12473d_0%,#23a890_52%,#63dbc9_100%)] px-6 py-8 text-center text-white shadow-[0_30px_82px_rgb(23_69_58_/_0.20),0_0_0_24px_rgb(229_247_241_/_0.76)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99] sm:rounded-[1.75rem]"
           aria-label={revealed ? copy.welcomeGift.ticketAria : copy.welcomeGift.scratchAria}
           role="img"
         >

@@ -19,7 +19,7 @@ type ScratchTicketCoverProps = {
 
 const REVEAL_RATIO = 0.46;
 
-function paintFoil(canvas: HTMLCanvasElement) {
+function paintNutreeCoating(canvas: HTMLCanvasElement) {
   const context = canvas.getContext('2d');
   if (!context) return;
 
@@ -31,17 +31,17 @@ function paintFoil(canvas: HTMLCanvasElement) {
   context.globalCompositeOperation = 'source-over';
 
   const gradient = context.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, '#cfd6e1');
-  gradient.addColorStop(0.22, '#fbfdff');
-  gradient.addColorStop(0.46, '#aeb9c8');
-  gradient.addColorStop(0.66, '#eef3f8');
-  gradient.addColorStop(1, '#bac5d2');
+  gradient.addColorStop(0, '#dff5ed');
+  gradient.addColorStop(0.26, '#fbfffd');
+  gradient.addColorStop(0.52, '#bde7dc');
+  gradient.addColorStop(0.78, '#f0fbf7');
+  gradient.addColorStop(1, '#a8d8cb');
   context.fillStyle = gradient;
   context.fillRect(0, 0, width, height);
 
-  context.globalAlpha = 0.34;
+  context.globalAlpha = 0.28;
   context.strokeStyle = '#ffffff';
-  context.lineWidth = 2;
+  context.lineWidth = 2.5;
   for (let x = -height; x < width; x += 18) {
     context.beginPath();
     context.moveTo(x, height);
@@ -49,23 +49,40 @@ function paintFoil(canvas: HTMLCanvasElement) {
     context.stroke();
   }
 
-  context.globalAlpha = 0.24;
-  context.fillStyle = '#25443c';
-  for (let i = 0; i < 180; i += 1) {
+  context.globalAlpha = 0.16;
+  context.strokeStyle = '#1a584a';
+  context.lineWidth = 1.4;
+  for (let x = 18; x < width; x += 58) {
+    const baseY = height * (0.26 + Math.random() * 0.52);
+    context.beginPath();
+    context.moveTo(x, baseY + 14);
+    context.quadraticCurveTo(x + 10, baseY - 16, x + 34, baseY - 18);
+    context.stroke();
+    context.beginPath();
+    context.ellipse(x + 15, baseY - 5, 7, 13, -0.65, 0, Math.PI * 2);
+    context.stroke();
+    context.beginPath();
+    context.ellipse(x + 29, baseY - 16, 6, 11, 0.78, 0, Math.PI * 2);
+    context.stroke();
+  }
+
+  context.globalAlpha = 0.17;
+  context.fillStyle = '#17453a';
+  for (let i = 0; i < 120; i += 1) {
     const x = Math.random() * width;
     const y = Math.random() * height;
-    const radius = Math.random() * 1.25 + 0.35;
+    const radius = Math.random() * 1.05 + 0.3;
     context.beginPath();
     context.arc(x, y, radius, 0, Math.PI * 2);
     context.fill();
   }
 
-  context.globalAlpha = 0.28;
+  context.globalAlpha = 0.38;
   context.fillStyle = '#ffffff';
-  for (let i = 0; i < 52; i += 1) {
+  for (let i = 0; i < 40; i += 1) {
     const x = Math.random() * width;
     const y = Math.random() * height;
-    const radius = Math.random() * 3 + 1;
+    const radius = Math.random() * 2.5 + 0.8;
     context.beginPath();
     context.arc(x, y, radius, 0, Math.PI * 2);
     context.fill();
@@ -106,7 +123,7 @@ export function ScratchTicketCover({ revealed, hint, onScratchStart, onReveal, c
     canvas.height = Math.max(1, Math.round(rect.height * dpr));
     canvas.style.width = `${rect.width}px`;
     canvas.style.height = `${rect.height}px`;
-    paintFoil(canvas);
+    paintNutreeCoating(canvas);
     strokeCountRef.current = 0;
     revealCalledRef.current = false;
     setHasScratched(false);
@@ -195,9 +212,9 @@ export function ScratchTicketCover({ revealed, hint, onScratchStart, onReveal, c
       }}
     >
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_28%,rgb(255_255_255_/_0.42),transparent_22%),radial-gradient(circle_at_80%_76%,rgb(23_37_32_/_0.08),transparent_28%)] mix-blend-soft-light" aria-hidden="true" />
-      <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:radial-gradient(circle,rgb(23_37_32_/_0.16)_0_1px,transparent_1px)] [background-size:15px_15px]" aria-hidden="true" />
-      <span className={cn('pointer-events-none absolute left-1/2 top-1/2 w-full -translate-x-1/2 -translate-y-1/2 px-8 text-center text-sm font-black text-[#53625d]/70 transition-opacity duration-200', hasScratched && 'opacity-0', hintClassName)}>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_28%,rgb(255_255_255_/_0.48),transparent_22%),radial-gradient(circle_at_80%_76%,rgb(23_69_58_/_0.10),transparent_28%)] mix-blend-soft-light" aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-0 opacity-25 [background-image:radial-gradient(circle,rgb(23_69_58_/_0.20)_0_1px,transparent_1px)] [background-size:16px_16px]" aria-hidden="true" />
+      <span className={cn('pointer-events-none absolute left-1/2 top-1/2 w-full -translate-x-1/2 -translate-y-1/2 px-8 text-center text-sm font-black text-forest/72 transition-opacity duration-200', hasScratched && 'opacity-0', hintClassName)}>
         {hint}
       </span>
     </div>
