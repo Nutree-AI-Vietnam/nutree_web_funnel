@@ -144,7 +144,7 @@ export default function PaywallPage() {
       lastOfferEyebrow: 'Ưu đãi độc quyền',
       lastOfferUnlocked: 'Ưu đãi độc quyền đã mở cho bạn',
       lastOfferScratchHint: 'Cào để mở ưu đãi 75%',
-      lastOfferCta: 'Xem lại gói của tôi',
+      lastOfferCta: 'Claim reward',
     }
     : {
       paymentReuse: 'Nutree will use your payment details for seamless future payments.',
@@ -164,7 +164,7 @@ export default function PaywallPage() {
       lastOfferEyebrow: 'Exclusive offer',
       lastOfferUnlocked: 'Exclusive offer unlocked for you',
       lastOfferScratchHint: 'Scratch to unlock 75% off',
-      lastOfferCta: 'Review my plan',
+      lastOfferCta: 'Claim reward',
     };
 
   const finishLastOfferReveal = () => {

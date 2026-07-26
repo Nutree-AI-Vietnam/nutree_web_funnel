@@ -418,7 +418,7 @@ export const vi = {
     discount: '50%',
     ticketValue: 'GIẢM 50%',
     priceLine: (amount: string, plan: string) => `${amount} cho gói ${plan}.`,
-    cta: 'Xem các gói giảm 50%',
+    cta: 'Claim reward',
     lockedCta: 'Mở giá trước',
   },
   paywall: {

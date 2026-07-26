@@ -421,7 +421,7 @@ export const en: Copy = {
     discount: '50%',
     ticketValue: '50% OFF',
     priceLine: (amount: string, plan: string) => `${amount} for ${plan}.`,
-    cta: 'View plans at 50% off',
+    cta: 'Claim reward',
     lockedCta: 'Reveal price first',
   },
   paywall: {
