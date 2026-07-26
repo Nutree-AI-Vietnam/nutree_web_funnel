@@ -47,15 +47,38 @@ export default function PaywallPage() {
   const [busy, setBusy] = useState(false);
   const [localCheckoutOpen, setLocalCheckoutOpen] = useState(false);
   const [localCheckoutDismissed, setLocalCheckoutDismissed] = useState(false);
+  const [showLastOffer, setShowLastOffer] = useState(false);
   const localPreview = useLocalPreviewHost();
   const localCheckoutRequested = localPreview && !localCheckoutDismissed && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('localCheckout') === '1';
   const showLocalCheckout = localCheckoutOpen || localCheckoutRequested;
+  const lockPageScroll = showLocalCheckout || showLastOffer;
 
   useEffect(() => trackStepViewed('paywall'), []);
   useEffect(() => {
     const timer = window.setInterval(() => setSecondsLeft((seconds) => Math.max(0, seconds - 1)), 1000);
     return () => window.clearInterval(timer);
   }, []);
+  useEffect(() => {
+    if (!lockPageScroll) return undefined;
+    const scrollY = window.scrollY;
+    const previousOverflow = document.body.style.overflow;
+    const previousPosition = document.body.style.position;
+    const previousTop = document.body.style.top;
+    const previousWidth = document.body.style.width;
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.position = previousPosition;
+      document.body.style.top = previousTop;
+      document.body.style.width = previousWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [lockPageScroll]);
   useEffect(() => {
     if (!hydrated) return;
     if (!lead) {
@@ -106,6 +129,11 @@ export default function PaywallPage() {
       planSubscription: `Gói ${selected.label}`,
       providerButton: `Thanh toán với ${checkoutProvider}`,
       discountLabel: 'Ưu đãi chào mừng 50%',
+      lastOfferTitle: 'Ưu đãi cuối dành cho bạn',
+      lastOfferSubtitle: 'Vé ưu đãi tiếp theo đã mở',
+      lastOfferEyebrow: 'Ưu đãi độc quyền',
+      lastOfferUnlocked: 'Ưu đãi độc quyền đã mở cho bạn',
+      lastOfferCta: 'Xem lại gói của tôi',
     }
     : {
       paymentReuse: 'Nutree will use your payment details for seamless future payments.',
@@ -120,10 +148,26 @@ export default function PaywallPage() {
       planSubscription: `${selected.label} plan subscription`,
       providerButton: checkoutProvider,
       discountLabel: '50% introductory price discount',
+      lastOfferTitle: 'One last offer for you',
+      lastOfferSubtitle: 'Scratch the ticket to reveal your offer',
+      lastOfferEyebrow: 'Exclusive offer',
+      lastOfferUnlocked: 'Exclusive offer unlocked for you',
+      lastOfferCta: 'Review my plan',
     };
+
+  const closeLocalCheckout = () => {
+    setLocalCheckoutOpen(false);
+    setLocalCheckoutDismissed(true);
+    setShowLastOffer(true);
+    trackEvent('local_checkout_sheet_closed', { offer_id: selected.id, market: selected.market });
+    if (typeof window !== 'undefined' && window.location.search.includes('localCheckout=1')) {
+      window.history.replaceState(null, '', '/paywall');
+    }
+  };
 
   const beginCheckout = async () => {
     if (isLocalPreviewHost()) {
+      setShowLastOffer(false);
       setLocalCheckoutOpen(true);
       trackEvent('local_checkout_sheet_opened', { offer_id: selected.id, market: selected.market });
       return;
@@ -299,19 +343,46 @@ export default function PaywallPage() {
           {error && <p role="alert" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-error-brand">{error}</p>}
           <p className="mx-auto mt-6 max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{copy.paywall.termsIntro} {copy.paywall.secure}</p>
         </div>
+        {showLastOffer && (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-white px-4 py-8" role="dialog" aria-modal="true" aria-label={localCheckoutCopy.lastOfferTitle}>
+            <div className="w-full max-w-[30rem] text-center">
+              <h2 className="text-[1.8rem] font-extrabold leading-tight tracking-[-0.04em] text-[#111418] sm:text-[2.1rem]">{localCheckoutCopy.lastOfferTitle} <span aria-hidden="true">🎁</span></h2>
+              <p className="mt-3 text-[1.08rem] font-semibold leading-snug text-[#8d8f96]">{localCheckoutCopy.lastOfferSubtitle}</p>
+              <div className="relative mx-auto mt-8 max-w-[27rem]">
+                <div className="absolute -inset-x-8 -inset-y-7 rounded-[2rem] bg-[#dfe8ff] opacity-70 blur-3xl" aria-hidden="true" />
+                <div className="relative aspect-[2.18/1] overflow-hidden rounded-[1.7rem] bg-gradient-to-br from-[#ef3f6b] via-[#ef4d59] to-[#ff8b3d] px-7 py-7 text-white shadow-[0_30px_65px_rgb(111_80_174_/_0.22)]">
+                  <span className="absolute -left-5 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full bg-white" aria-hidden="true" />
+                  <span className="absolute -right-5 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full bg-white" aria-hidden="true" />
+                  <div className="grid h-full place-items-center">
+                    <div>
+                      <p className="text-[0.78rem] font-extrabold uppercase tracking-[0.28em] text-white/95">✨ {localCheckoutCopy.lastOfferEyebrow} ✨</p>
+                      <p className="mt-3 text-[3.4rem] font-extrabold leading-none tracking-[-0.055em] text-white/95 sm:text-[4.2rem]">75% OFF</p>
+                      <p className="mt-3 text-[0.98rem] font-extrabold leading-tight text-white/95">{localCheckoutCopy.lastOfferUnlocked}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLastOffer(false);
+                  setLocalCheckoutDismissed(false);
+                  beginCheckout();
+                }}
+                className="mt-10 min-h-14 w-full max-w-[27rem] rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985]"
+              >
+                {localCheckoutCopy.lastOfferCta}
+              </button>
+            </div>
+          </div>
+        )}
         {showLocalCheckout && (
           <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-[#111816]/52 px-4 py-5 backdrop-blur-[3px]" role="dialog" aria-modal="true" aria-label={copy.checkout.title}>
             <div className="w-full max-w-[28.5rem] max-h-[calc(100dvh-2.5rem)] overflow-y-auto rounded-[1.7rem] bg-[#f8f9fa] px-5 pb-5 pt-4 text-[#292e46] shadow-[0_28px_80px_rgb(10_18_16_/_0.34)] sm:px-6 sm:pb-6">
               <div className="grid grid-cols-[2.75rem_1fr_2.75rem] items-center">
                 <button
                   type="button"
-                  onClick={() => {
-                    setLocalCheckoutOpen(false);
-                    setLocalCheckoutDismissed(true);
-                    if (typeof window !== 'undefined' && window.location.search.includes('localCheckout=1')) {
-                      window.history.replaceState(null, '', '/paywall');
-                    }
-                  }}
+                  onClick={closeLocalCheckout}
                   aria-label={copy.checkout.close}
                   className="grid h-11 w-11 place-items-center rounded-full text-[2rem] font-light leading-none text-[#292e46] transition hover:bg-[#edf1ef]"
                 >
