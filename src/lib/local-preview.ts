@@ -1,19 +1,25 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useEffect, useState } from 'react';
 import type { Lead, OnboardingPayload, TdeeResult } from '@/lib/quiz/types';
 
 export function isLocalPreviewHost() {
   if (typeof window === 'undefined') return false;
-  return ['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname);
+  const host = window.location.hostname;
+  return process.env.NODE_ENV === 'development'
+    || ['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(host)
+    || host.endsWith('.localhost');
 }
 
 export function useLocalPreviewHost() {
-  return useSyncExternalStore(
-    () => () => {},
-    isLocalPreviewHost,
-    () => false,
-  );
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setEnabled(isLocalPreviewHost()), 0);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  return enabled;
 }
 
 export const localPreviewLead: Lead = {
