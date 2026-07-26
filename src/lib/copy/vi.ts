@@ -473,7 +473,7 @@ export const vi = {
       { title: 'Nutree AI Coach', body: 'Hướng dẫn rõ ràng khi bạn cần.' },
     ],
     secure: 'Thanh toán an toàn. Entitlement chỉ mở sau khi nhà cung cấp xác nhận.',
-    cta: (weight: number) => `Nhận kế hoạch để đạt ${weight} kg`,
+    cta: () => 'Chọn gói của tôi',
     paypalSummary: (amount: string, renewal: string) => `${amount} hôm nay và ${renewal} khi gói còn hoạt động`,
     paypalPlaceholder: 'Nút PayPal sẽ hiển thị tại đây sau khi backend trả cấu hình nhà cung cấp.',
     exactPriceSummary: (standard: string, today: string, renewal: string) =>

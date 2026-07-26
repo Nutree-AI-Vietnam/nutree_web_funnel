@@ -9,6 +9,7 @@ import { createCheckout, getFunnelContext } from '@/lib/api/client';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { createFallbackFunnelContext, formatOfferAmount, getRecommendedOffer } from '@/lib/funnel/catalog';
+import { isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee, useLocalPreviewHost } from '@/lib/local-preview';
 import type { FunnelContext, FunnelOffer } from '@/lib/quiz/types';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
@@ -34,6 +35,9 @@ export default function PaywallPage() {
   const data = useQuizStore((s) => s.data);
   const activeLocale = useQuizStore((s) => s.locale);
   const tdee = useQuizStore((s) => s.tdee);
+  const setData = useQuizStore((s) => s.setData);
+  const setLead = useQuizStore((s) => s.setLead);
+  const setTdee = useQuizStore((s) => s.setTdee);
   const setMomoOrderId = useQuizStore((s) => s.setMomoOrderId);
   const setPayPalCheckout = useQuizStore((s) => s.setPayPalCheckout);
   const [context, setContext] = useState<FunnelContext>(() => createFallbackFunnelContext());
@@ -41,6 +45,11 @@ export default function PaywallPage() {
   const [secondsLeft, setSecondsLeft] = useState(OFFER_SECONDS);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [localCheckoutOpen, setLocalCheckoutOpen] = useState(false);
+  const [localCheckoutDismissed, setLocalCheckoutDismissed] = useState(false);
+  const localPreview = useLocalPreviewHost();
+  const localCheckoutRequested = localPreview && !localCheckoutDismissed && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('localCheckout') === '1';
+  const showLocalCheckout = localCheckoutOpen || localCheckoutRequested;
 
   useEffect(() => trackStepViewed('paywall'), []);
   useEffect(() => {
@@ -49,7 +58,16 @@ export default function PaywallPage() {
   }, []);
   useEffect(() => {
     if (!hydrated) return;
-    if (!lead) return router.replace('/email');
+    if (!lead) {
+      if (isLocalPreviewHost()) {
+        setData(localPreviewData);
+        setLead(localPreviewLead);
+        setTdee(localPreviewTdee, 'fallback');
+      } else {
+        router.replace('/email');
+      }
+      return;
+    }
     getFunnelContext().then((next) => {
       setContext(next);
       setSelectedId(getRecommendedOffer(next.offers).id);
@@ -58,10 +76,10 @@ export default function PaywallPage() {
       setContext(fallback);
       setSelectedId(getRecommendedOffer(fallback.offers).id);
     });
-  }, [hydrated, lead, router]);
+  }, [hydrated, lead, router, setData, setLead, setTdee]);
 
   const selected = useMemo<FunnelOffer>(() => context.offers.find((offer) => offer.id === selectedId) ?? getRecommendedOffer(context.offers), [context.offers, selectedId]);
-  if (!hydrated || !lead) return null;
+  if (!hydrated || (!lead && !localPreview)) return null;
 
   const targetWeight = Math.round(data.target_weight_kg ?? data.weight_kg ?? 60);
   const currentWeight = Math.round(data.weight_kg ?? targetWeight + 6);
@@ -74,6 +92,15 @@ export default function PaywallPage() {
   const gender = data.gender === 'male' ? copy.paywall.genderMale : data.gender === 'female' ? copy.paywall.genderFemale : copy.paywall.genderFallback;
 
   const beginCheckout = async () => {
+    if (isLocalPreviewHost()) {
+      setLocalCheckoutOpen(true);
+      trackEvent('local_checkout_sheet_opened', { offer_id: selected.id, market: selected.market });
+      return;
+    }
+    if (!lead) {
+      router.replace('/email');
+      return;
+    }
     setBusy(true);
     setError(null);
     trackEvent('checkout_started', { provider: context.provider.toLowerCase(), offer_id: selected.id, market: context.market });
@@ -154,7 +181,7 @@ export default function PaywallPage() {
       </div>
       <p className="mt-5 text-[0.94rem] leading-relaxed text-slate-brand">{copy.paywall.planRecommendation}</p>
       <p className="mt-1.5 text-sm font-medium text-muted-brand">{copy.paywall.planResearchNote}</p>
-      <button type="button" disabled={busy} onClick={beginCheckout} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta(targetWeight)}</button>
+      <button type="button" disabled={busy} onClick={beginCheckout} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta()}</button>
       <p className="mt-4 text-center text-sm leading-relaxed text-muted-brand">{copy.paywall.exactPriceSummary(standardAmount, todayAmount, renewalAmount)}</p>
     </section>
   );
@@ -241,6 +268,49 @@ export default function PaywallPage() {
           {error && <p role="alert" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-error-brand">{error}</p>}
           <p className="mx-auto mt-6 max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{copy.paywall.termsIntro} {copy.paywall.secure}</p>
         </div>
+        {showLocalCheckout && (
+          <div className="fixed inset-0 z-[90] flex items-end justify-center bg-[#10251f]/38 px-3 pb-3 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Local checkout preview">
+            <div className="w-full max-w-lg rounded-[2rem] bg-white p-5 shadow-[0_28px_70px_rgb(16_39_32_/_0.24)]">
+              <div className="flex items-center justify-between gap-4 border-b border-border-brand pb-4">
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-teal-brand">Local checkout</p>
+                  <h2 className="mt-1 text-[1.35rem] font-extrabold tracking-[-0.03em] text-forest">Preview sheet</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLocalCheckoutOpen(false);
+                    setLocalCheckoutDismissed(true);
+                    if (typeof window !== 'undefined' && window.location.search.includes('localCheckout=1')) {
+                      window.history.replaceState(null, '', '/paywall');
+                    }
+                  }}
+                  className="grid h-11 w-11 place-items-center rounded-full border border-border-brand text-xl font-bold text-forest"
+                >
+                  ×
+                </button>
+              </div>
+              <dl className="mt-5 grid gap-3 text-sm">
+                <div className="flex justify-between gap-4"><dt className="text-slate-brand">{selected.label}</dt><dd className="font-bold text-forest">{standardAmount}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="text-emerald-deep">WELCOME50</dt><dd className="font-extrabold text-emerald-deep">-{formatOfferAmount(selected.standard_amount - selected.amount_due_today, selected.currency)}</dd></div>
+                <div className="flex justify-between gap-4 border-t border-border-brand pt-3 text-lg"><dt className="font-extrabold text-forest">Total today</dt><dd className="font-extrabold text-forest">{todayAmount}</dd></div>
+                <div className="flex justify-between gap-4 text-xs"><dt className="text-muted-brand">Renewal</dt><dd className="font-semibold text-slate-brand">{renewalAmount}</dd></div>
+              </dl>
+              <button
+                type="button"
+                onClick={() => {
+                  useQuizStore.getState().setPurchased(true);
+                  trackEvent('local_checkout_completed', { offer_id: selected.id });
+                  router.push('/success');
+                }}
+                className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)]"
+              >
+                Complete local checkout
+              </button>
+              <p className="mt-3 text-center text-xs font-semibold leading-relaxed text-muted-brand">Local only. No PayPal, email, password, or provider login.</p>
+            </div>
+          </div>
+        )}
     </ConversionShell>
   );
 }

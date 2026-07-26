@@ -426,7 +426,7 @@ export const en: Copy = {
   },
   paywall: {
     offerReserved: 'welcome offer reserved for:',
-    topCta: 'Choose my plan',
+    topCta: 'Grab my plan',
     goalIntro: 'With this plan, you can reach',
     headline: 'Your Nutree Premium plan is ready.',
     subhead: 'Unlock calorie targets, macros, and meal guidance calculated from the information you just shared.',
@@ -476,7 +476,7 @@ export const en: Copy = {
       { title: 'Nutree AI Coach', body: 'Clear guidance whenever you need it.' },
     ],
     secure: 'Secure checkout. Entitlement opens only after provider confirmation.',
-    cta: (weight: number) => `Get my plan to reach ${weight} kg`,
+    cta: () => 'Grab my plan',
     paypalSummary: (amount: string, renewal: string) => `${amount} today and ${renewal} while active`,
     paypalPlaceholder: 'PayPal buttons render here after the backend returns provider configuration.',
     exactPriceSummary: (standard: string, today: string, renewal: string) =>
