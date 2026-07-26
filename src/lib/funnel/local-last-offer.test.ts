@@ -3,18 +3,23 @@ import { createFallbackFunnelContext, getRecommendedOffer } from '@/lib/funnel/c
 import { previewAmountDueToday } from '@/lib/funnel/local-last-offer';
 
 describe('previewAmountDueToday', () => {
-  it('turns the recommended VN 12-week welcome price into 99.000d for the 75% local offer', () => {
+  it('applies the completed VN 75% exit-intent deal table', () => {
+    const context = createFallbackFunnelContext('VN');
+
+    expect(context.offers.map((offer) => ({
+      label: offer.label,
+      exitDeal: previewAmountDueToday(offer, 75),
+    }))).toEqual([
+      { label: '4 tuần', exitDeal: 49_000 },
+      { label: '12 tuần', exitDeal: 124_000 },
+      { label: '52 tuần', exitDeal: 299_000 },
+    ]);
+  });
+
+  it('keeps WELCOME50 prices before the 75% local offer is claimed', () => {
     const context = createFallbackFunnelContext('VN');
     const recommended = getRecommendedOffer(context.offers);
 
-    expect(previewAmountDueToday(recommended, 75)).toBe(99_000);
-  });
-
-  it('keeps non-recommended VN plans at their welcome price after the 75% local offer', () => {
-    const context = createFallbackFunnelContext('VN');
-    const fourWeek = context.offers.find((offer) => offer.label === '4 tuần');
-
-    expect(fourWeek).toBeDefined();
-    expect(previewAmountDueToday(fourWeek!, 75)).toBe(99_000);
+    expect(previewAmountDueToday(recommended, 50)).toBe(249_000);
   });
 });
