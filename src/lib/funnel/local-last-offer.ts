@@ -1,6 +1,7 @@
 import type { FunnelOffer } from '@/lib/quiz/types';
 
 export function previewAmountDueToday(offer: FunnelOffer, rewardPercent: number) {
+  if (rewardPercent <= 0) return offer.standard_amount;
   if (rewardPercent !== 75) return offer.amount_due_today;
 
   const amount = offer.standard_amount * 0.25;

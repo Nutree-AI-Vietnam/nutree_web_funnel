@@ -22,4 +22,11 @@ describe('previewAmountDueToday', () => {
 
     expect(previewAmountDueToday(recommended, 50)).toBe(249_000);
   });
+
+  it('returns the anchor price after the local offer timer expires', () => {
+    const context = createFallbackFunnelContext('VN');
+    const recommended = getRecommendedOffer(context.offers);
+
+    expect(previewAmountDueToday(recommended, 0)).toBe(498_000);
+  });
 });

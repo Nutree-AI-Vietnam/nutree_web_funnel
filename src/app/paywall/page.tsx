@@ -118,13 +118,18 @@ export default function PaywallPage() {
   const targetWeight = Math.round(data.target_weight_kg ?? data.weight_kg ?? 60);
   const currentWeight = Math.round(data.weight_kg ?? targetWeight + 6);
   const targetDate = goalDate(activeLocale);
-  const effectiveRewardPercent = localPreview && secondsLeft > 0 ? localRewardPercent : 50;
+  const effectiveRewardPercent = localPreview ? (secondsLeft > 0 ? localRewardPercent : 0) : 50;
   const selectedAmountDueToday = localPreview ? previewAmountDueToday(selected, effectiveRewardPercent) : selected.amount_due_today;
+  const selectedHasDiscount = selectedAmountDueToday < selected.standard_amount;
   const todayAmount = formatOfferAmount(selectedAmountDueToday, selected.currency);
   const standardAmount = formatOfferAmount(selected.standard_amount, selected.currency);
   const renewalAmount = formatOfferAmount(selected.standard_amount, selected.currency);
   const discountAmount = formatOfferAmount(selected.standard_amount - selectedAmountDueToday, selected.currency);
   const countdown = formatCountdown(secondsLeft);
+  const timerLabel = secondsLeft > 0 ? copy.paywall.offerEnds(countdown) : activeLocale === 'vi' ? 'Ưu đãi đã kết thúc' : 'Offer ended';
+  const stickyOfferLabel = effectiveRewardPercent > 0
+    ? <><span className="text-[0.92rem] font-extrabold text-teal-brand">{effectiveRewardPercent}%</span> {copy.paywall.offerReserved}</>
+    : activeLocale === 'vi' ? 'Ưu đãi đã kết thúc' : 'Offer ended';
   const goal = data.fitness_goal === 'bulk' ? copy.paywall.goalBulk : data.fitness_goal === 'maintain' ? copy.paywall.goalMaintain : data.fitness_goal === 'recomp' ? copy.paywall.goalRecomp : copy.paywall.goalCut;
   const gender = data.gender === 'male' ? copy.paywall.genderMale : data.gender === 'female' ? copy.paywall.genderFemale : copy.paywall.genderFallback;
   const checkoutProvider = selected.provider === 'MOMO' ? 'MoMo' : 'PayPal';
@@ -235,7 +240,7 @@ export default function PaywallPage() {
   const renderPlanSection = (id: string, title: string) => (
     <section id={id} className="mt-5 rounded-[2rem] bg-white p-3.5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-5">
       <h2 className="text-center text-[1.08rem] font-extrabold tracking-[-0.02em] text-forest sm:text-[1.18rem]">{title}</h2>
-      <p className="mt-4 rounded-[1.15rem] bg-[#e8f4ef] px-3 py-2.5 text-center text-[0.84rem] font-extrabold text-forest tabular-nums">{copy.paywall.offerEnds(countdown)}</p>
+      <p className="mt-4 rounded-[1.15rem] bg-[#e8f4ef] px-3 py-2.5 text-center text-[0.84rem] font-extrabold text-forest tabular-nums">{timerLabel}</p>
       <div role="radiogroup" aria-label={copy.paywall.selectPlanAria} className="mt-5 grid gap-3">
         {context.offers.map((offer) => {
           const active = offer.id === selected.id;
@@ -244,7 +249,8 @@ export default function PaywallPage() {
           const dailyAmount = offer.currency === 'VND' ? Math.round(amountDueToday / periodDays) : amountDueToday / periodDays;
           const standardDailyAmount = offer.currency === 'VND' ? Math.round(offer.standard_amount / periodDays) : offer.standard_amount / periodDays;
           const discountPercent = Math.round(100 - (amountDueToday / offer.standard_amount) * 100);
-          const showDiscount = offer.reward_applied && (effectiveRewardPercent === 75 || offer.recommended || offer.period_count > 1 || offer.period_unit === 'YEAR');
+          const hasDiscount = amountDueToday < offer.standard_amount;
+          const showDiscount = offer.reward_applied && hasDiscount;
           return (
             <button
               key={`${id}-${offer.id}`}
@@ -264,12 +270,12 @@ export default function PaywallPage() {
                 </span>
                 <span className="min-w-0 self-center">
                   <span className={cn('block text-[0.9rem] font-extrabold leading-[1.05] tracking-[-0.02em] sm:text-[0.98rem]', active ? 'text-[#111418]' : 'text-[#5f6764]')}>{offer.label}</span>
-                  <span className="mt-1.5 block text-[0.74rem] font-bold leading-tight text-muted-brand line-through">{formatOfferAmount(offer.standard_amount, offer.currency)}</span>
+                  {hasDiscount && <span className="mt-1.5 block text-[0.74rem] font-bold leading-tight text-muted-brand line-through">{formatOfferAmount(offer.standard_amount, offer.currency)}</span>}
                   <span className={cn('mt-1 block text-[0.84rem] font-extrabold leading-tight tracking-[-0.01em]', active ? 'text-[#111418]' : 'text-[#5f6764]')}>{formatOfferAmount(amountDueToday, offer.currency)}</span>
                 </span>
                 <span className="grid justify-items-center gap-1">
                   {showDiscount && <span className="rounded-lg bg-[#fff0eb] px-2 py-1 text-[0.64rem] font-extrabold leading-none text-[#ff5f2a]">{copy.paywall.discountTag(discountPercent)}</span>}
-                  <span className="text-[0.74rem] font-bold leading-tight text-muted-brand line-through">{formatOfferAmount(standardDailyAmount, offer.currency)}</span>
+                  {hasDiscount && <span className="text-[0.74rem] font-bold leading-tight text-muted-brand line-through">{formatOfferAmount(standardDailyAmount, offer.currency)}</span>}
                 </span>
                 <span className="min-w-[4.15rem] rounded-[0.9rem] bg-[#f2f2f1] px-2 py-2 text-center text-[#111418] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.85)] sm:min-w-[4.6rem]">
                   <span className="block text-[1.14rem] font-extrabold leading-none tracking-[-0.04em] sm:text-[1.38rem]">{formatOfferAmount(dailyAmount, offer.currency)}</span>
@@ -297,7 +303,7 @@ export default function PaywallPage() {
               <Image src="/nutree-logo-simple.png" alt="" width={72} height={64} priority className="h-7 w-7 object-contain" />
             </Link>
             <div className="min-w-0">
-              <p className="text-[0.74rem] font-bold leading-tight text-muted-brand"><span className="text-[0.92rem] font-extrabold text-teal-brand">{effectiveRewardPercent}%</span> {copy.paywall.offerReserved}</p>
+              <p className="text-[0.74rem] font-bold leading-tight text-muted-brand">{stickyOfferLabel}</p>
               <strong className="mt-0.5 block text-[1.2rem] font-extrabold leading-none tracking-[-0.035em] text-[#111418] tabular-nums">{countdown}</strong>
             </div>
             <button
@@ -452,10 +458,12 @@ export default function PaywallPage() {
                   <span>{localCheckoutCopy.planSubscription}</span>
                   <span className="shrink-0">{standardAmount}</span>
                 </div>
-                <div className="flex items-start justify-between gap-4">
-                  <span>{localCheckoutCopy.discountLabel}</span>
-                  <span className="shrink-0 font-extrabold text-[#ef4d59]">-{discountAmount}</span>
-                </div>
+                {selectedHasDiscount && (
+                  <div className="flex items-start justify-between gap-4">
+                    <span>{localCheckoutCopy.discountLabel}</span>
+                    <span className="shrink-0 font-extrabold text-[#ef4d59]">-{discountAmount}</span>
+                  </div>
+                )}
               </div>
 
               <div className="mt-5 border-y border-[#dde1e6] py-4">
