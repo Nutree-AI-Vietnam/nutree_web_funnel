@@ -479,8 +479,10 @@ export const en: Copy = {
     cta: () => 'Grab my plan',
     paypalSummary: (amount: string, renewal: string) => `${amount} today and ${renewal} while active`,
     paypalPlaceholder: 'PayPal buttons render here after the backend returns provider configuration.',
-    exactPriceSummary: (standard: string, today: string, renewal: string) =>
-      `${standard} standard. ${today} today. ${renewal} renewal.`,
+    exactPriceSummary: (_standard: string, today: string, renewal: string, planLabel: string) => {
+      const cadence = planLabel.replace('-week', ' weeks');
+      return `We've applied the discount to your first ${planLabel} plan. You pay ${today} today, then it auto-renews at the full price of ${renewal} every ${cadence} until you cancel. Cancel at least 1 day before renewal in the app's Subscription Page or live chat.`;
+    },
     loading: 'Starting checkout...',
     error: 'Couldn’t start checkout. Please try again.',
     paymentError: 'Payment is being checked. You do not need to pay again.',

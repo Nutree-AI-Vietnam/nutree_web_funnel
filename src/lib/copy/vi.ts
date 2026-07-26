@@ -476,8 +476,8 @@ export const vi = {
     cta: () => 'Chọn gói của tôi',
     paypalSummary: (amount: string, renewal: string) => `${amount} hôm nay và ${renewal} khi gói còn hoạt động`,
     paypalPlaceholder: 'Nút PayPal sẽ hiển thị tại đây sau khi backend trả cấu hình nhà cung cấp.',
-    exactPriceSummary: (standard: string, today: string, renewal: string) =>
-      `Giá chuẩn ${standard}. Thanh toán hôm nay ${today}. Gia hạn ${renewal}.`,
+    exactPriceSummary: (_standard: string, today: string, renewal: string, planLabel: string) =>
+      `Ưu đãi đã được áp dụng cho gói ${planLabel} đầu tiên. Bạn thanh toán ${today} hôm nay, sau đó gói tự gia hạn theo giá đầy đủ ${renewal} mỗi ${planLabel} cho đến khi bạn hủy. Hủy trước ngày gia hạn ít nhất 1 ngày trong trang Subscription của app hoặc qua live chat.`,
     loading: 'Đang tạo thanh toán...',
     error: 'Không tạo được thanh toán. Vui lòng thử lại.',
     paymentError: 'Thanh toán đang được kiểm tra. Không cần thanh toán lại.',

@@ -25,7 +25,7 @@ describe('fallback catalog', () => {
     expect(offer.id).toBe('vn_quarterly_welcome50');
     expect(offer.standard_amount).toBe(498_000);
     expect(offer.amount_due_today).toBe(249_000);
-    expect(offer.renewal_amount).toBe(249_000);
+    expect(offer.renewal_amount).toBe(498_000);
   });
 
   it('uses the completed Vietnam WELCOME50 plan table', () => {
@@ -34,10 +34,11 @@ describe('fallback catalog', () => {
       label: offer.label,
       standard: offer.standard_amount,
       welcome: offer.amount_due_today,
+      renewal: offer.renewal_amount,
     }))).toEqual([
-      { label: '4 tuần', standard: 198_000, welcome: 99_000 },
-      { label: '12 tuần', standard: 498_000, welcome: 249_000 },
-      { label: '52 tuần', standard: 1_198_000, welcome: 599_000 },
+      { label: '4 tuần', standard: 198_000, welcome: 99_000, renewal: 198_000 },
+      { label: '12 tuần', standard: 498_000, welcome: 249_000, renewal: 498_000 },
+      { label: '52 tuần', standard: 1_198_000, welcome: 599_000, renewal: 1_198_000 },
     ]);
   });
 

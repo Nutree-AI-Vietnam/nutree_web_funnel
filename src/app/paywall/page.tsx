@@ -118,11 +118,11 @@ export default function PaywallPage() {
   const targetWeight = Math.round(data.target_weight_kg ?? data.weight_kg ?? 60);
   const currentWeight = Math.round(data.weight_kg ?? targetWeight + 6);
   const targetDate = goalDate(activeLocale);
-  const effectiveRewardPercent = localPreview ? localRewardPercent : 50;
+  const effectiveRewardPercent = localPreview && secondsLeft > 0 ? localRewardPercent : 50;
   const selectedAmountDueToday = localPreview ? previewAmountDueToday(selected, effectiveRewardPercent) : selected.amount_due_today;
   const todayAmount = formatOfferAmount(selectedAmountDueToday, selected.currency);
   const standardAmount = formatOfferAmount(selected.standard_amount, selected.currency);
-  const renewalAmount = formatOfferAmount(localPreview ? selectedAmountDueToday : selected.renewal_amount, selected.currency);
+  const renewalAmount = formatOfferAmount(selected.standard_amount, selected.currency);
   const discountAmount = formatOfferAmount(selected.standard_amount - selectedAmountDueToday, selected.currency);
   const countdown = formatCountdown(secondsLeft);
   const goal = data.fitness_goal === 'bulk' ? copy.paywall.goalBulk : data.fitness_goal === 'maintain' ? copy.paywall.goalMaintain : data.fitness_goal === 'recomp' ? copy.paywall.goalRecomp : copy.paywall.goalCut;
@@ -244,7 +244,7 @@ export default function PaywallPage() {
           const dailyAmount = offer.currency === 'VND' ? Math.round(amountDueToday / periodDays) : amountDueToday / periodDays;
           const standardDailyAmount = offer.currency === 'VND' ? Math.round(offer.standard_amount / periodDays) : offer.standard_amount / periodDays;
           const discountPercent = Math.round(100 - (amountDueToday / offer.standard_amount) * 100);
-          const showDiscount = offer.reward_applied && (offer.recommended || offer.period_count > 1 || offer.period_unit === 'YEAR');
+          const showDiscount = offer.reward_applied && (effectiveRewardPercent === 75 || offer.recommended || offer.period_count > 1 || offer.period_unit === 'YEAR');
           return (
             <button
               key={`${id}-${offer.id}`}
@@ -283,7 +283,7 @@ export default function PaywallPage() {
       <p className="mt-5 text-[0.94rem] leading-relaxed text-slate-brand">{copy.paywall.planRecommendation}</p>
       <p className="mt-1.5 text-sm font-medium text-muted-brand">{copy.paywall.planResearchNote}</p>
       <button type="button" disabled={busy} onClick={beginCheckout} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta()}</button>
-      <p className="mt-4 text-center text-sm leading-relaxed text-muted-brand">{copy.paywall.exactPriceSummary(standardAmount, todayAmount, renewalAmount)}</p>
+      <p className="mt-4 text-center text-sm leading-relaxed text-muted-brand">{copy.paywall.exactPriceSummary(standardAmount, todayAmount, renewalAmount, selected.label)}</p>
     </section>
   );
 
