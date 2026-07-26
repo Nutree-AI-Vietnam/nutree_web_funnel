@@ -366,36 +366,46 @@ export default function PaywallPage() {
         </div>
         {typeof document !== 'undefined' && createPortal(<>
         {showLastOffer && (
-          <div className="fixed inset-0 z-[998] flex items-center justify-center overflow-y-auto bg-white px-4 py-8" role="dialog" aria-modal="true" aria-label={localCheckoutCopy.lastOfferTitle}>
-            <div className="w-full max-w-[30rem] text-center">
-              <h2 className="mx-auto max-w-[25rem] text-[1.48rem] font-extrabold leading-tight tracking-[-0.04em] text-[#111418] sm:text-[1.72rem]">{localCheckoutCopy.lastOfferTitle} <span aria-hidden="true">🎁</span></h2>
-              <p className="mt-3 text-[0.92rem] font-semibold leading-snug text-[#8d8f96]">{lastOfferRevealed ? localCheckoutCopy.lastOfferUnlocked : localCheckoutCopy.lastOfferSubtitle}</p>
-              <div className="relative mx-auto mt-8 max-w-[27rem]">
-                <div className="absolute -inset-x-8 -inset-y-7 rounded-[2rem] bg-[#dfe8ff] opacity-75 blur-3xl" aria-hidden="true" />
+          <div className="fixed inset-0 z-[998] overflow-y-auto bg-mist/95" role="dialog" aria-modal="true" aria-label={localCheckoutCopy.lastOfferTitle}>
+            <ConversionShell hideLogo className="min-h-[calc(100dvh-3rem)] justify-between gap-8">
+              <div className="flex justify-center pt-1">
+                <Link href="/" aria-label="Nutree" className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/70 bg-white/75 shadow-[inset_0_0_0_1px_rgb(255_255_255_/_0.55),0_8px_24px_rgb(16_39_32_/_0.08)] backdrop-blur">
+                  <Image src="/nutree-logo-simple.png" alt="" width={72} height={64} priority className="h-8 w-8 object-contain" />
+                </Link>
+              </div>
+
+              <section className="flex flex-1 flex-col justify-center text-center">
+                <p className="text-[0.78rem] font-extrabold uppercase tracking-[0.28em] text-teal-brand">{localCheckoutCopy.lastOfferEyebrow}</p>
+                <h2 className="mx-auto mt-3 max-w-[22rem] text-[1.78rem] font-extrabold leading-[1.08] tracking-[-0.035em] text-forest sm:text-[2.08rem]">{localCheckoutCopy.lastOfferTitle}</h2>
+                <p className="mx-auto mt-3 max-w-[21rem] text-[1rem] font-semibold leading-relaxed text-slate-brand">{lastOfferRevealed ? localCheckoutCopy.lastOfferUnlocked : localCheckoutCopy.lastOfferSubtitle}</p>
+
                 <div
-                  className="relative aspect-[2.18/1] overflow-hidden rounded-[1.6rem] bg-[linear-gradient(135deg,#12473d_0%,#23a890_52%,#63dbc9_100%)] px-6 py-7 text-white shadow-[0_30px_82px_rgb(23_69_58_/_0.20),0_0_0_24px_rgb(229_247_241_/_0.76)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99] sm:rounded-[1.8rem]"
+                  className="relative mx-auto mt-8 aspect-[2.18/1] w-[calc(100%+1rem)] max-w-[27rem] overflow-hidden rounded-[1.55rem] bg-[linear-gradient(135deg,#12473d_0%,#23a890_52%,#63dbc9_100%)] px-6 py-8 text-center text-white shadow-[0_30px_82px_rgb(23_69_58_/_0.20),0_0_0_24px_rgb(229_247_241_/_0.76)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99] sm:rounded-[1.75rem]"
                   role="img"
                   aria-label={lastOfferRevealed ? localCheckoutCopy.lastOfferUnlocked : localCheckoutCopy.lastOfferScratchHint}
                 >
-                  <span className="absolute left-0 top-1/2 h-14 w-7 -translate-x-1/2 -translate-y-1/2 rounded-r-full bg-white" aria-hidden="true" />
-                  <span className="absolute right-0 top-1/2 h-14 w-7 -translate-y-1/2 translate-x-1/2 rounded-l-full bg-white" aria-hidden="true" />
+                  <span className="absolute left-0 top-1/2 h-14 w-7 -translate-x-1/2 -translate-y-1/2 rounded-r-full bg-mist/95" aria-hidden="true" />
+                  <span className="absolute right-0 top-1/2 h-14 w-7 -translate-y-1/2 translate-x-1/2 rounded-l-full bg-mist/95" aria-hidden="true" />
                   <span className="absolute inset-0 bg-[radial-gradient(circle_at_35%_35%,rgb(255_255_255_/_0.14),transparent_28%),radial-gradient(circle_at_82%_76%,rgb(255_255_255_/_0.12),transparent_32%)]" aria-hidden="true" />
-                  <div className="relative grid h-full place-items-center">
-                    <div>
-                      <p className="text-[0.64rem] font-extrabold uppercase tracking-[0.34em] text-white/90">✨ {localCheckoutCopy.lastOfferEyebrow} ✨</p>
-                      <p className="mt-3 text-[3.1rem] font-extrabold leading-[0.9] tracking-[-0.055em] text-white/95 sm:text-[3.8rem]">75% OFF</p>
-                      <p className="mt-3 text-[0.86rem] font-extrabold leading-tight text-white/92">{localCheckoutCopy.lastOfferUnlocked}</p>
-                    </div>
-                  </div>
+                  <span className="relative mt-2 block text-[0.72rem] font-extrabold uppercase tracking-[0.36em] text-white/88">
+                    ✨ {localCheckoutCopy.lastOfferEyebrow} ✨
+                  </span>
+                  <span className="relative mt-3 block text-[4.05rem] font-extrabold leading-[0.88] tracking-[-0.055em] text-white/92 sm:text-[4.9rem]">
+                    75% OFF
+                  </span>
+                  <span className="relative mt-3 block text-[1.02rem] font-extrabold tracking-[-0.01em] text-white/90">
+                    {lastOfferRevealed ? localCheckoutCopy.lastOfferUnlocked : localCheckoutCopy.lastOfferSubtitle}
+                  </span>
                   <ScratchTicketCover
                     revealed={lastOfferRevealed}
                     hint={localCheckoutCopy.lastOfferScratchHint}
                     onScratchStart={() => trackEvent('local_last_offer_scratch_started', { offer_id: selected.id })}
                     onReveal={finishLastOfferReveal}
-                    hintClassName="text-[0.92rem]"
+                    hintClassName="text-base"
                   />
                 </div>
-              </div>
+              </section>
+
               <button
                 type="button"
                 onClick={() => {
@@ -407,11 +417,11 @@ export default function PaywallPage() {
                   setLocalCheckoutDismissed(false);
                   beginCheckout();
                 }}
-                className="mt-9 min-h-[3.25rem] w-full max-w-[27rem] rounded-2xl bg-forest px-5 py-3.5 text-[0.92rem] font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985]"
+                className="min-h-14 w-full rounded-2xl bg-forest px-6 text-base font-extrabold tracking-[-0.01em] text-white shadow-[0_16px_34px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99]"
               >
                 {lastOfferRevealed ? localCheckoutCopy.lastOfferCta : localCheckoutCopy.lastOfferScratchHint}
               </button>
-            </div>
+            </ConversionShell>
           </div>
         )}
         {showLocalCheckout && (
