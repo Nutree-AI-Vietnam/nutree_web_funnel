@@ -2,10 +2,11 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { ConversionShell } from '@/components/conversion-shell';
+import { ScratchTicketCover } from '@/components/scratch-ticket-cover';
 import { createCheckout, getFunnelContext } from '@/lib/api/client';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
@@ -56,8 +57,6 @@ export default function PaywallPage() {
   const [localCheckoutDismissed, setLocalCheckoutDismissed] = useState(false);
   const [showLastOffer, setShowLastOffer] = useState(false);
   const [lastOfferRevealed, setLastOfferRevealed] = useState(false);
-  const [lastOfferScratchProgress, setLastOfferScratchProgress] = useState(0);
-  const lastOfferTicketRef = useRef<HTMLDivElement>(null);
   const localPreview = useLocalPreviewHost();
   const localCheckoutRequested = localPreview && !localCheckoutDismissed && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('localCheckout') === '1';
   const showLocalCheckout = localCheckoutOpen || localCheckoutRequested;
@@ -170,22 +169,10 @@ export default function PaywallPage() {
   const finishLastOfferReveal = () => {
     if (lastOfferRevealed) return;
     setLastOfferRevealed(true);
-    setLastOfferScratchProgress(100);
     if (typeof window !== 'undefined') {
       window.navigator.vibrate?.(18);
     }
     trackEvent('local_last_offer_revealed', { offer_id: selected.id, market: selected.market });
-  };
-
-  const updateLastOfferScratch = (clientX: number) => {
-    const rect = lastOfferTicketRef.current?.getBoundingClientRect();
-    if (!rect || lastOfferRevealed) return;
-    const nextProgress = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
-    setLastOfferScratchProgress((current) => {
-      const progress = Math.max(current, nextProgress);
-      if (progress >= 74) window.setTimeout(finishLastOfferReveal, 100);
-      return progress;
-    });
   };
 
   const closeLocalCheckout = () => {
@@ -193,7 +180,6 @@ export default function PaywallPage() {
     setLocalCheckoutDismissed(true);
     setShowLastOffer(true);
     setLastOfferRevealed(false);
-    setLastOfferScratchProgress(0);
     trackEvent('local_checkout_sheet_closed', { offer_id: selected.id, market: selected.market });
     if (typeof window !== 'undefined' && window.location.search.includes('localCheckout=1')) {
       window.history.replaceState(null, '', '/paywall');
@@ -387,22 +373,9 @@ export default function PaywallPage() {
               <div className="relative mx-auto mt-8 max-w-[27rem]">
                 <div className="absolute -inset-x-8 -inset-y-7 rounded-[2rem] bg-[#dfe8ff] opacity-75 blur-3xl" aria-hidden="true" />
                 <div
-                  ref={lastOfferTicketRef}
                   className="relative aspect-[2.18/1] overflow-hidden rounded-[1.6rem] bg-[linear-gradient(135deg,#696ff4_0%,#9c63ee_48%,#5fbbe4_100%)] px-6 py-7 text-white shadow-[0_30px_82px_rgb(111_113_244_/_0.25),0_0_0_24px_rgb(236_241_255_/_0.72)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99] sm:rounded-[1.8rem]"
                   role="img"
                   aria-label={lastOfferRevealed ? localCheckoutCopy.lastOfferUnlocked : localCheckoutCopy.lastOfferScratchHint}
-                  onPointerDown={(event) => {
-                    event.currentTarget.setPointerCapture(event.pointerId);
-                    trackEvent('local_last_offer_scratch_started', { offer_id: selected.id });
-                    updateLastOfferScratch(event.clientX);
-                  }}
-                  onPointerMove={(event) => {
-                    if (event.buttons !== 1 && event.pointerType !== 'touch') return;
-                    updateLastOfferScratch(event.clientX);
-                  }}
-                  onClick={() => {
-                    if (!lastOfferRevealed) finishLastOfferReveal();
-                  }}
                 >
                   <span className="absolute left-0 top-1/2 h-14 w-7 -translate-x-1/2 -translate-y-1/2 rounded-r-full bg-white" aria-hidden="true" />
                   <span className="absolute right-0 top-1/2 h-14 w-7 -translate-y-1/2 translate-x-1/2 rounded-l-full bg-white" aria-hidden="true" />
@@ -414,26 +387,13 @@ export default function PaywallPage() {
                       <p className="mt-3 text-[0.86rem] font-extrabold leading-tight text-white/92">{localCheckoutCopy.lastOfferUnlocked}</p>
                     </div>
                   </div>
-                  <div
-                    className="absolute inset-0 touch-none rounded-[1.6rem] bg-[linear-gradient(112deg,#d6dbe5_0%,#ffffff_26%,#c8d0dc_50%,#f7f9fc_74%,#b9c4d2_100%)] transition-[clip-path,opacity] duration-300 motion-reduce:transition-none sm:rounded-[1.8rem]"
-                    style={{
-                      clipPath: `inset(0 0 0 ${lastOfferRevealed ? 100 : lastOfferScratchProgress}%)`,
-                      opacity: lastOfferRevealed ? 0 : 1,
-                    }}
-                  >
-                    <span className="absolute inset-0 bg-[repeating-linear-gradient(135deg,rgb(255_255_255_/_0.55)_0_3px,transparent_3px_15px),radial-gradient(circle_at_20%_30%,rgb(255_255_255_/_0.42),transparent_24%),radial-gradient(circle_at_78%_72%,rgb(23_37_32_/_0.08),transparent_28%)]" />
-                    <span className="absolute inset-0 opacity-45 [background-image:radial-gradient(circle,rgb(23_37_32_/_0.18)_0_1px,transparent_1px)] [background-size:18px_18px]" />
-                    <span className="absolute left-1/2 top-1/2 w-full -translate-x-1/2 -translate-y-1/2 px-8 text-center text-[0.92rem] font-black text-[#53625d]/70">
-                      {localCheckoutCopy.lastOfferScratchHint}
-                    </span>
-                  </div>
-                  {!lastOfferRevealed && lastOfferScratchProgress > 0 && (
-                    <span
-                      aria-hidden="true"
-                      className="absolute bottom-0 top-0 w-8 -translate-x-1/2 bg-[linear-gradient(90deg,transparent,rgb(255_255_255_/_0.8),transparent)] blur-[1px]"
-                      style={{ left: `${lastOfferScratchProgress}%` }}
-                    />
-                  )}
+                  <ScratchTicketCover
+                    revealed={lastOfferRevealed}
+                    hint={localCheckoutCopy.lastOfferScratchHint}
+                    onScratchStart={() => trackEvent('local_last_offer_scratch_started', { offer_id: selected.id })}
+                    onReveal={finishLastOfferReveal}
+                    hintClassName="text-[0.92rem]"
+                  />
                 </div>
               </div>
               <button
