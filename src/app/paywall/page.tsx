@@ -35,6 +35,11 @@ function offerPeriodDays(offer: FunnelOffer) {
   return 28;
 }
 
+function previewDiscountAmount(offer: FunnelOffer, discountPercent: number) {
+  const amount = offer.standard_amount * ((100 - discountPercent) / 100);
+  return offer.currency === 'VND' ? Math.round(amount) : Number(amount.toFixed(2));
+}
+
 export default function PaywallPage() {
   const router = useRouter();
   const copy = useCopy();
@@ -57,6 +62,7 @@ export default function PaywallPage() {
   const [localCheckoutDismissed, setLocalCheckoutDismissed] = useState(false);
   const [showLastOffer, setShowLastOffer] = useState(false);
   const [lastOfferRevealed, setLastOfferRevealed] = useState(false);
+  const [localRewardPercent, setLocalRewardPercent] = useState(50);
   const localPreview = useLocalPreviewHost();
   const localCheckoutRequested = localPreview && !localCheckoutDismissed && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('localCheckout') === '1';
   const showLocalCheckout = localCheckoutOpen || localCheckoutRequested;
@@ -116,10 +122,12 @@ export default function PaywallPage() {
   const targetWeight = Math.round(data.target_weight_kg ?? data.weight_kg ?? 60);
   const currentWeight = Math.round(data.weight_kg ?? targetWeight + 6);
   const targetDate = goalDate(activeLocale);
-  const todayAmount = formatOfferAmount(selected.amount_due_today, selected.currency);
+  const effectiveRewardPercent = localPreview ? localRewardPercent : 50;
+  const selectedAmountDueToday = localPreview ? previewDiscountAmount(selected, effectiveRewardPercent) : selected.amount_due_today;
+  const todayAmount = formatOfferAmount(selectedAmountDueToday, selected.currency);
   const standardAmount = formatOfferAmount(selected.standard_amount, selected.currency);
-  const renewalAmount = formatOfferAmount(selected.renewal_amount, selected.currency);
-  const discountAmount = formatOfferAmount(selected.standard_amount - selected.amount_due_today, selected.currency);
+  const renewalAmount = formatOfferAmount(localPreview ? selectedAmountDueToday : selected.renewal_amount, selected.currency);
+  const discountAmount = formatOfferAmount(selected.standard_amount - selectedAmountDueToday, selected.currency);
   const countdown = formatCountdown(secondsLeft);
   const goal = data.fitness_goal === 'bulk' ? copy.paywall.goalBulk : data.fitness_goal === 'maintain' ? copy.paywall.goalMaintain : data.fitness_goal === 'recomp' ? copy.paywall.goalRecomp : copy.paywall.goalCut;
   const gender = data.gender === 'male' ? copy.paywall.genderMale : data.gender === 'female' ? copy.paywall.genderFemale : copy.paywall.genderFallback;
@@ -137,7 +145,7 @@ export default function PaywallPage() {
       period: `cho kỳ đầu tiên: ${selected.label}`,
       planSubscription: `Gói ${selected.label}`,
       providerButton: `Thanh toán với ${checkoutProvider}`,
-      discountLabel: 'Ưu đãi chào mừng 50%',
+      discountLabel: `Ưu đãi chào mừng ${effectiveRewardPercent}%`,
       lastOfferTitle: 'Ưu đãi cuối dành cho bạn',
       lastOfferSubtitle: 'Vé ưu đãi tiếp theo đã mở',
       lastOfferEyebrow: 'Ưu đãi độc quyền',
@@ -157,7 +165,7 @@ export default function PaywallPage() {
       period: `for the first ${selected.label}`,
       planSubscription: `${selected.label} plan subscription`,
       providerButton: checkoutProvider,
-      discountLabel: '50% introductory price discount',
+      discountLabel: `${effectiveRewardPercent}% introductory price discount`,
       lastOfferTitle: 'One last offer for you',
       lastOfferSubtitle: 'Scratch the ticket to reveal your offer',
       lastOfferEyebrow: 'Exclusive offer',
@@ -236,9 +244,10 @@ export default function PaywallPage() {
         {context.offers.map((offer) => {
           const active = offer.id === selected.id;
           const periodDays = offerPeriodDays(offer);
-          const dailyAmount = offer.currency === 'VND' ? Math.round(offer.amount_due_today / periodDays) : offer.amount_due_today / periodDays;
+          const amountDueToday = localPreview ? previewDiscountAmount(offer, effectiveRewardPercent) : offer.amount_due_today;
+          const dailyAmount = offer.currency === 'VND' ? Math.round(amountDueToday / periodDays) : amountDueToday / periodDays;
           const standardDailyAmount = offer.currency === 'VND' ? Math.round(offer.standard_amount / periodDays) : offer.standard_amount / periodDays;
-          const discountPercent = Math.round(100 - (offer.amount_due_today / offer.standard_amount) * 100);
+          const discountPercent = Math.round(100 - (amountDueToday / offer.standard_amount) * 100);
           const showDiscount = offer.reward_applied && (offer.recommended || offer.period_count > 1 || offer.period_unit === 'YEAR');
           return (
             <button
@@ -260,7 +269,7 @@ export default function PaywallPage() {
                 <span className="min-w-0 self-center">
                   <span className={cn('block text-[0.9rem] font-extrabold leading-[1.05] tracking-[-0.02em] sm:text-[0.98rem]', active ? 'text-[#111418]' : 'text-[#5f6764]')}>{offer.label}</span>
                   <span className="mt-1.5 block text-[0.74rem] font-bold leading-tight text-muted-brand line-through">{formatOfferAmount(offer.standard_amount, offer.currency)}</span>
-                  <span className={cn('mt-1 block text-[0.84rem] font-extrabold leading-tight tracking-[-0.01em]', active ? 'text-[#111418]' : 'text-[#5f6764]')}>{formatOfferAmount(offer.amount_due_today, offer.currency)}</span>
+                  <span className={cn('mt-1 block text-[0.84rem] font-extrabold leading-tight tracking-[-0.01em]', active ? 'text-[#111418]' : 'text-[#5f6764]')}>{formatOfferAmount(amountDueToday, offer.currency)}</span>
                 </span>
                 <span className="grid justify-items-center gap-1">
                   {showDiscount && <span className="rounded-lg bg-[#fff0eb] px-2 py-1 text-[0.64rem] font-extrabold leading-none text-[#ff5f2a]">{copy.paywall.discountTag(discountPercent)}</span>}
@@ -292,7 +301,7 @@ export default function PaywallPage() {
               <Image src="/nutree-logo-simple.png" alt="" width={72} height={64} priority className="h-7 w-7 object-contain" />
             </Link>
             <div className="min-w-0">
-              <p className="text-[0.74rem] font-bold leading-tight text-muted-brand"><span className="text-[0.92rem] font-extrabold text-teal-brand">50%</span> {copy.paywall.offerReserved}</p>
+              <p className="text-[0.74rem] font-bold leading-tight text-muted-brand"><span className="text-[0.92rem] font-extrabold text-teal-brand">{effectiveRewardPercent}%</span> {copy.paywall.offerReserved}</p>
               <strong className="mt-0.5 block text-[1.2rem] font-extrabold leading-none tracking-[-0.035em] text-[#111418] tabular-nums">{countdown}</strong>
             </div>
             <button
@@ -414,8 +423,9 @@ export default function PaywallPage() {
                     return;
                   }
                   setShowLastOffer(false);
-                  setLocalCheckoutDismissed(false);
-                  beginCheckout();
+                  setLocalRewardPercent(75);
+                  setLocalCheckoutDismissed(true);
+                  trackEvent('local_last_offer_claimed', { offer_id: selected.id, market: selected.market, discount_percent: 75 });
                 }}
                 className="min-h-14 w-full rounded-2xl bg-forest px-6 text-base font-extrabold tracking-[-0.01em] text-white shadow-[0_16px_34px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99]"
               >
