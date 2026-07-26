@@ -11,6 +11,7 @@ import { createCheckout, getFunnelContext } from '@/lib/api/client';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { createFallbackFunnelContext, formatOfferAmount, getRecommendedOffer } from '@/lib/funnel/catalog';
+import { previewAmountDueToday } from '@/lib/funnel/local-last-offer';
 import { isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee, useLocalPreviewHost } from '@/lib/local-preview';
 import type { FunnelContext, FunnelOffer } from '@/lib/quiz/types';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
@@ -33,11 +34,6 @@ function offerPeriodDays(offer: FunnelOffer) {
   if (offer.period_unit === 'YEAR' || offer.label.includes('52')) return 364;
   if (offer.label.includes('12')) return 84;
   return 28;
-}
-
-function previewDiscountAmount(offer: FunnelOffer, discountPercent: number) {
-  const amount = offer.standard_amount * ((100 - discountPercent) / 100);
-  return offer.currency === 'VND' ? Math.round(amount) : Number(amount.toFixed(2));
 }
 
 export default function PaywallPage() {
@@ -123,7 +119,7 @@ export default function PaywallPage() {
   const currentWeight = Math.round(data.weight_kg ?? targetWeight + 6);
   const targetDate = goalDate(activeLocale);
   const effectiveRewardPercent = localPreview ? localRewardPercent : 50;
-  const selectedAmountDueToday = localPreview ? previewDiscountAmount(selected, effectiveRewardPercent) : selected.amount_due_today;
+  const selectedAmountDueToday = localPreview ? previewAmountDueToday(selected, effectiveRewardPercent) : selected.amount_due_today;
   const todayAmount = formatOfferAmount(selectedAmountDueToday, selected.currency);
   const standardAmount = formatOfferAmount(selected.standard_amount, selected.currency);
   const renewalAmount = formatOfferAmount(localPreview ? selectedAmountDueToday : selected.renewal_amount, selected.currency);
@@ -244,7 +240,7 @@ export default function PaywallPage() {
         {context.offers.map((offer) => {
           const active = offer.id === selected.id;
           const periodDays = offerPeriodDays(offer);
-          const amountDueToday = localPreview ? previewDiscountAmount(offer, effectiveRewardPercent) : offer.amount_due_today;
+          const amountDueToday = localPreview ? previewAmountDueToday(offer, effectiveRewardPercent) : offer.amount_due_today;
           const dailyAmount = offer.currency === 'VND' ? Math.round(amountDueToday / periodDays) : amountDueToday / periodDays;
           const standardDailyAmount = offer.currency === 'VND' ? Math.round(offer.standard_amount / periodDays) : offer.standard_amount / periodDays;
           const discountPercent = Math.round(100 - (amountDueToday / offer.standard_amount) * 100);
@@ -424,6 +420,7 @@ export default function PaywallPage() {
                   }
                   setShowLastOffer(false);
                   setLocalRewardPercent(75);
+                  setSelectedId(getRecommendedOffer(context.offers).id);
                   setLocalCheckoutDismissed(true);
                   trackEvent('local_last_offer_claimed', { offer_id: selected.id, market: selected.market, discount_percent: 75 });
                 }}
