@@ -87,9 +87,40 @@ export default function PaywallPage() {
   const todayAmount = formatOfferAmount(selected.amount_due_today, selected.currency);
   const standardAmount = formatOfferAmount(selected.standard_amount, selected.currency);
   const renewalAmount = formatOfferAmount(selected.renewal_amount, selected.currency);
+  const discountAmount = formatOfferAmount(selected.standard_amount - selected.amount_due_today, selected.currency);
   const countdown = formatCountdown(secondsLeft);
   const goal = data.fitness_goal === 'bulk' ? copy.paywall.goalBulk : data.fitness_goal === 'maintain' ? copy.paywall.goalMaintain : data.fitness_goal === 'recomp' ? copy.paywall.goalRecomp : copy.paywall.goalCut;
   const gender = data.gender === 'male' ? copy.paywall.genderMale : data.gender === 'female' ? copy.paywall.genderFemale : copy.paywall.genderFallback;
+  const checkoutProvider = selected.provider === 'MOMO' ? 'MoMo' : 'PayPal';
+  const localCheckoutCopy = activeLocale === 'vi'
+    ? {
+      paymentReuse: 'Nutree sẽ dùng thông tin thanh toán này cho các kỳ gia hạn sau.',
+      methodTitle: 'Chọn phương thức thanh toán',
+      oneClick: 'Thanh toán một chạm',
+      safer: 'Cách an toàn, dễ dàng hơn để thanh toán',
+      quickPay: `Thanh toán an toàn với ${checkoutProvider}`,
+      card: 'Thẻ tín dụng',
+      encryption: 'Thông tin thanh toán được bảo vệ bằng mã hóa SSL/TLS',
+      guarantee: 'Đảm bảo hoàn tiền trong 30 ngày',
+      period: `cho kỳ đầu tiên: ${selected.label}`,
+      planSubscription: `Gói ${selected.label}`,
+      providerButton: `Thanh toán với ${checkoutProvider}`,
+      discountLabel: 'Ưu đãi chào mừng 50%',
+    }
+    : {
+      paymentReuse: 'Nutree will use your payment details for seamless future payments.',
+      methodTitle: 'Select a payment method',
+      oneClick: 'One-click payment',
+      safer: 'The safer, easier way to pay',
+      quickPay: `Pay securely with ${checkoutProvider}`,
+      card: 'Credit Card',
+      encryption: 'Your payment information is protected by SSL/TLS encryption',
+      guarantee: '30-day money-back guarantee',
+      period: `for the first ${selected.label}`,
+      planSubscription: `${selected.label} plan subscription`,
+      providerButton: checkoutProvider,
+      discountLabel: '50% introductory price discount',
+    };
 
   const beginCheckout = async () => {
     if (isLocalPreviewHost()) {
@@ -269,13 +300,9 @@ export default function PaywallPage() {
           <p className="mx-auto mt-6 max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{copy.paywall.termsIntro} {copy.paywall.secure}</p>
         </div>
         {showLocalCheckout && (
-          <div className="fixed inset-0 z-[90] flex items-end justify-center bg-[#10251f]/38 px-3 pb-3 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Local checkout preview">
-            <div className="w-full max-w-lg rounded-[2rem] bg-white p-5 shadow-[0_28px_70px_rgb(16_39_32_/_0.24)]">
-              <div className="flex items-center justify-between gap-4 border-b border-border-brand pb-4">
-                <div>
-                  <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-teal-brand">Local checkout</p>
-                  <h2 className="mt-1 text-[1.35rem] font-extrabold tracking-[-0.03em] text-forest">Preview sheet</h2>
-                </div>
+          <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-[#111816]/52 px-4 py-5 backdrop-blur-[3px]" role="dialog" aria-modal="true" aria-label={copy.checkout.title}>
+            <div className="w-full max-w-[28.5rem] max-h-[calc(100dvh-2.5rem)] overflow-y-auto rounded-[1.7rem] bg-[#f8f9fa] px-5 pb-5 pt-4 text-[#292e46] shadow-[0_28px_80px_rgb(10_18_16_/_0.34)] sm:px-6 sm:pb-6">
+              <div className="grid grid-cols-[2.75rem_1fr_2.75rem] items-center">
                 <button
                   type="button"
                   onClick={() => {
@@ -285,29 +312,87 @@ export default function PaywallPage() {
                       window.history.replaceState(null, '', '/paywall');
                     }
                   }}
-                  className="grid h-11 w-11 place-items-center rounded-full border border-border-brand text-xl font-bold text-forest"
+                  aria-label={copy.checkout.close}
+                  className="grid h-11 w-11 place-items-center rounded-full text-[2rem] font-light leading-none text-[#292e46] transition hover:bg-[#edf1ef]"
                 >
                   ×
                 </button>
+                <h2 className="text-center text-[1.42rem] font-extrabold tracking-[-0.025em] text-[#292e46]">{copy.checkout.title}</h2>
+                <span aria-hidden="true" />
               </div>
-              <dl className="mt-5 grid gap-3 text-sm">
-                <div className="flex justify-between gap-4"><dt className="text-slate-brand">{selected.label}</dt><dd className="font-bold text-forest">{standardAmount}</dd></div>
-                <div className="flex justify-between gap-4"><dt className="text-emerald-deep">WELCOME50</dt><dd className="font-extrabold text-emerald-deep">-{formatOfferAmount(selected.standard_amount - selected.amount_due_today, selected.currency)}</dd></div>
-                <div className="flex justify-between gap-4 border-t border-border-brand pt-3 text-lg"><dt className="font-extrabold text-forest">Total today</dt><dd className="font-extrabold text-forest">{todayAmount}</dd></div>
-                <div className="flex justify-between gap-4 text-xs"><dt className="text-muted-brand">Renewal</dt><dd className="font-semibold text-slate-brand">{renewalAmount}</dd></div>
-              </dl>
-              <button
-                type="button"
-                onClick={() => {
-                  useQuizStore.getState().setPurchased(true);
-                  trackEvent('local_checkout_completed', { offer_id: selected.id });
-                  router.push('/success');
-                }}
-                className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)]"
-              >
-                Complete local checkout
-              </button>
-              <p className="mt-3 text-center text-xs font-semibold leading-relaxed text-muted-brand">Local only. No PayPal, email, password, or provider login.</p>
+
+              <div className="mt-6 grid gap-2.5 text-[1.02rem] leading-tight">
+                <div className="flex items-start justify-between gap-4">
+                  <span>{localCheckoutCopy.planSubscription}</span>
+                  <span className="shrink-0">{standardAmount}</span>
+                </div>
+                <div className="flex items-start justify-between gap-4">
+                  <span>{localCheckoutCopy.discountLabel}</span>
+                  <span className="shrink-0 font-extrabold text-[#ef4d59]">-{discountAmount}</span>
+                </div>
+              </div>
+
+              <div className="mt-5 border-y border-[#dde1e6] py-4">
+                <div className="flex items-baseline justify-between gap-4 text-[1.02rem]">
+                  <strong className="font-extrabold">{copy.checkout.total}:</strong>
+                  <span><strong className="font-extrabold">{todayAmount}</strong> <span>{localCheckoutCopy.period}</span></span>
+                </div>
+              </div>
+
+              <p className="mt-3 text-[0.9rem] font-medium leading-snug text-[#8c93a4]">{localCheckoutCopy.paymentReuse}</p>
+              <h3 className="mt-6 text-center text-[1.08rem] font-extrabold tracking-[-0.015em] text-[#292e46]">{localCheckoutCopy.methodTitle}</h3>
+
+              <div className="mt-5 overflow-hidden rounded-[1.25rem] border border-[#d9dde6] bg-white">
+                <div className="p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="grid h-6 w-6 place-items-center rounded-full border-2 border-[#ef4d59]" aria-hidden="true"><span className="h-3.5 w-3.5 rounded-full bg-[#ef4d59]" /></span>
+                      <strong className="text-[1rem] font-extrabold text-[#292e46]">{localCheckoutCopy.oneClick}</strong>
+                    </div>
+                    <strong className="text-[1rem] font-extrabold text-[#292e46]">{checkoutProvider}</strong>
+                  </div>
+                  <p className="mt-7 text-center text-[0.92rem] font-extrabold text-[#292e46]">{localCheckoutCopy.safer}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      useQuizStore.getState().setPurchased(true);
+                      trackEvent('local_checkout_completed', { offer_id: selected.id, method: 'express' });
+                      router.push('/success');
+                    }}
+                    className="mt-5 min-h-12 w-full rounded-xl bg-[#08d46d] px-4 text-[1.05rem] font-semibold text-[#061510] transition hover:brightness-95 active:scale-[0.99]"
+                  >
+                    {localCheckoutCopy.quickPay}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      useQuizStore.getState().setPurchased(true);
+                      trackEvent('local_checkout_completed', { offer_id: selected.id, method: selected.provider.toLowerCase() });
+                      router.push('/success');
+                    }}
+                    className={cn('mt-3 min-h-12 w-full rounded-xl px-4 text-[1.08rem] font-extrabold transition hover:brightness-95 active:scale-[0.99]', selected.provider === 'PAYPAL' ? 'bg-[#ffc439] italic text-[#06459b]' : 'bg-[#a50064] text-white')}
+                  >
+                    {selected.provider === 'PAYPAL' ? <><span className="not-italic">P</span> PayPal</> : localCheckoutCopy.providerButton}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between gap-3 border-t border-[#d9dde6] px-4 py-4">
+                  <div className="flex items-center gap-3">
+                    <span className="h-6 w-6 rounded-full border-2 border-[#c8ced8]" aria-hidden="true" />
+                    <strong className="text-[1rem] font-extrabold text-[#292e46]">{localCheckoutCopy.card}</strong>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[0.64rem] font-extrabold">
+                    <span className="text-[1.05rem] italic text-[#1a5dbb]">VISA</span>
+                    <span className="rounded border border-[#dde1e6] px-1.5 py-1 text-[#e55121]">●●</span>
+                    <span className="rounded bg-[#2f75bb] px-1.5 py-1 text-white">AMEX</span>
+                  </div>
+                </div>
+              </div>
+
+              <p className="mt-4 text-center text-[0.86rem] font-medium leading-snug text-[#8c93a4]">{localCheckoutCopy.encryption}</p>
+              <div className="mt-5 flex items-center justify-center gap-3">
+                <strong className="text-[1rem] font-extrabold text-[#292e46]">{localCheckoutCopy.guarantee}</strong>
+                <Image src="/guarantee-30day.webp" alt="" width={40} height={40} className="h-8 w-8 object-contain" />
+              </div>
             </div>
           </div>
         )}
