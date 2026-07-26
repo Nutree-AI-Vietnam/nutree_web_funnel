@@ -306,14 +306,14 @@ export default function PaywallPage() {
               <Image src="/nutree-logo-simple.png" alt="" width={72} height={64} priority className="h-7 w-7 object-contain" />
             </Link>
             <div className="min-w-0">
-              <p className="text-[0.8rem] font-bold leading-tight text-muted-brand"><span className="text-[1rem] font-extrabold text-teal-brand">50%</span> {copy.paywall.offerReserved}</p>
-              <strong className="mt-0.5 block text-[1.38rem] font-extrabold leading-none tracking-[-0.035em] text-[#111418] tabular-nums">{countdown}</strong>
+              <p className="text-[0.74rem] font-bold leading-tight text-muted-brand"><span className="text-[0.92rem] font-extrabold text-teal-brand">50%</span> {copy.paywall.offerReserved}</p>
+              <strong className="mt-0.5 block text-[1.2rem] font-extrabold leading-none tracking-[-0.035em] text-[#111418] tabular-nums">{countdown}</strong>
             </div>
             <button
               type="button"
               disabled={busy}
               onClick={beginCheckout}
-              className="min-h-11 rounded-[1.05rem] bg-forest px-4 text-[0.82rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 sm:px-5 sm:text-[0.92rem]"
+              className="min-h-10 rounded-[1rem] bg-forest px-3.5 text-[0.78rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-[0.86rem]"
             >
               {busy ? copy.paywall.loading : copy.paywall.topCta}
             </button>
@@ -324,8 +324,8 @@ export default function PaywallPage() {
     >
       <div className="pt-[5.75rem]">
           <section className="rounded-[2rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-8">
-            <p className="text-center text-base font-semibold text-slate-brand">{copy.paywall.goalIntro}</p>
-            <h1 className="mx-auto mt-1 max-w-2xl text-center text-[1.5rem] font-extrabold leading-tight tracking-[-0.03em] text-forest sm:text-[1.9rem]">{copy.paywall.goalHeadline(targetWeight, targetDate)}</h1>
+            <p className="text-center text-[0.92rem] font-semibold text-slate-brand">{copy.paywall.goalIntro}</p>
+            <h1 className="mx-auto mt-1 max-w-2xl text-center text-[1.28rem] font-extrabold leading-tight tracking-[-0.03em] text-forest sm:text-[1.55rem]">{copy.paywall.goalHeadline(targetWeight, targetDate)}</h1>
             <svg viewBox="0 0 640 245" className="mt-8 h-auto w-full" role="img" aria-label={copy.paywall.goalChartAria}>
               {[48, 181, 314, 447, 580].map((x) => <line key={x} x1={x} y1="20" x2={x} y2="190" stroke="#dce7e2" strokeWidth="2" />)}
               <path d="M48 62 C132 65 156 86 213 130 S304 165 360 168" fill="none" stroke="#a3bd68" strokeWidth="6" strokeLinecap="round" />
@@ -335,43 +335,43 @@ export default function PaywallPage() {
               <text x="360" y="103" textAnchor="middle" fill="white" fontSize="16" fontWeight="700">{copy.paywall.goalMarker}</text><text x="360" y="127" textAnchor="middle" fill="white" fontSize="22" fontWeight="800">{targetWeight} kg</text>
               <text x="62" y="52" fill="#6b7b75" fontSize="20" fontWeight="600">{currentWeight} kg</text><text x="48" y="228" fill="#6b7b75" fontSize="17" fontWeight="700">{copy.paywall.now}</text><text x="580" y="228" textAnchor="end" fill="#6b7b75" fontSize="17" fontWeight="700">{targetDate}</text>
             </svg>
-            <p className="mx-auto mt-4 max-w-[35rem] text-center text-base leading-relaxed text-muted-brand">{copy.paywall.goalNote}</p>
+            <p className="mx-auto mt-4 max-w-[35rem] text-center text-[0.9rem] leading-relaxed text-muted-brand">{copy.paywall.goalNote}</p>
           </section>
 
           {renderPlanSection('plans', copy.paywall.planTitle)}
 
           <section className="mt-5 rounded-[2rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8">
-            <h2 className="text-[1.45rem] font-extrabold tracking-[-0.03em] text-forest">{copy.paywall.includesTitle}</h2>
-            <div className="mt-6 grid gap-5">
-              {benefits.map((benefit) => <div key={benefit.title} className="grid grid-cols-[3rem_1fr] gap-4"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-mist text-[1.38rem]" aria-hidden="true">{benefit.icon}</span><div><h3 className="text-base font-extrabold text-forest">{benefit.title}</h3><p className="mt-0.5 text-[0.95rem] leading-relaxed text-muted-brand">{benefit.body}</p></div></div>)}
+            <h2 className="text-[1.2rem] font-extrabold tracking-[-0.03em] text-forest">{copy.paywall.includesTitle}</h2>
+            <div className="mt-5 grid gap-4">
+              {benefits.map((benefit) => <div key={benefit.title} className="grid grid-cols-[2.55rem_1fr] gap-3"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-mist text-[1.1rem]" aria-hidden="true">{benefit.icon}</span><div><h3 className="text-[0.92rem] font-extrabold text-forest">{benefit.title}</h3><p className="mt-0.5 text-[0.84rem] leading-relaxed text-muted-brand">{benefit.body}</p></div></div>)}
             </div>
           </section>
 
           <section className="mt-5 rounded-[2rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8">
-            <h2 className="text-[1.45rem] font-extrabold tracking-[-0.03em] text-forest">{copy.paywall.personalTitle}</h2>
-            <div className="mt-6 grid gap-5">
-              {personalRows.map((row) => <div key={row.label} className="grid grid-cols-[3rem_1fr] items-center gap-4"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#edf7f3] text-[1.38rem]" aria-hidden="true">{row.icon}</span><p className="text-[0.95rem] leading-relaxed text-muted-brand">{row.label} <strong className="font-extrabold text-forest">{row.value}</strong></p></div>)}
+            <h2 className="text-[1.2rem] font-extrabold tracking-[-0.03em] text-forest">{copy.paywall.personalTitle}</h2>
+            <div className="mt-5 grid gap-4">
+              {personalRows.map((row) => <div key={row.label} className="grid grid-cols-[2.55rem_1fr] items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#edf7f3] text-[1.1rem]" aria-hidden="true">{row.icon}</span><p className="text-[0.86rem] leading-relaxed text-muted-brand">{row.label} <strong className="font-extrabold text-forest">{row.value}</strong></p></div>)}
             </div>
           </section>
 
           <section className="mt-5 rounded-[2rem] bg-white p-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8">
-            <h2 className="text-[1.35rem] font-extrabold leading-tight tracking-[-0.025em] text-[#ef4d59]">{copy.paywall.appStoreTitle}</h2>
-            <div className="mt-5 rounded-[1.65rem] bg-[#f6f6f6] px-4 py-5">
+            <h2 className="text-[1.16rem] font-extrabold leading-tight tracking-[-0.025em] text-[#ef4d59]">{copy.paywall.appStoreTitle}</h2>
+            <div className="mt-4 rounded-[1.65rem] bg-[#f6f6f6] px-4 py-4">
               <div className="flex items-center justify-center gap-3">
-                <span className="text-[2.1rem]" aria-hidden="true"></span>
-                <span className="text-[1.35rem] tracking-[0.08em] text-[#f5a11a]" aria-label="5 stars">★★★★★</span>
+                <span className="text-[1.7rem]" aria-hidden="true"></span>
+                <span className="text-[1.1rem] tracking-[0.08em] text-[#f5a11a]" aria-label="5 stars">★★★★★</span>
               </div>
-              <p className="mt-2 text-[1.55rem] font-extrabold leading-none tracking-[-0.03em] text-[#111418]">{copy.paywall.appStoreRating}</p>
-              <p className="mt-2 text-base font-semibold leading-relaxed text-muted-brand">{copy.paywall.appStoreReviews}</p>
+              <p className="mt-2 text-[1.25rem] font-extrabold leading-none tracking-[-0.03em] text-[#111418]">{copy.paywall.appStoreRating}</p>
+              <p className="mt-2 text-[0.88rem] font-semibold leading-relaxed text-muted-brand">{copy.paywall.appStoreReviews}</p>
             </div>
           </section>
 
           {renderPlanSection('plans-repeat', copy.paywall.repeatPlanTitle)}
 
           <section className="mt-5 rounded-[2rem] bg-white p-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8">
-            <Image src="/guarantee-30day.webp" alt="" width={180} height={180} className="mx-auto h-36 w-36 object-contain" />
-            <h2 className="mt-3 text-[1.35rem] font-extrabold leading-tight tracking-[-0.025em] text-[#111418]">{copy.paywall.guaranteeTitle}</h2>
-            <p className="mt-3 text-[0.95rem] font-medium leading-relaxed text-muted-brand">{copy.paywall.guaranteeBody}</p>
+            <Image src="/guarantee-30day.webp" alt="" width={160} height={160} className="mx-auto h-28 w-28 object-contain" />
+            <h2 className="mt-3 text-[1.16rem] font-extrabold leading-tight tracking-[-0.025em] text-[#111418]">{copy.paywall.guaranteeTitle}</h2>
+            <p className="mt-3 text-[0.84rem] font-medium leading-relaxed text-muted-brand">{copy.paywall.guaranteeBody}</p>
           </section>
 
           {context.provider === 'PAYPAL' && <p className="mt-5 rounded-2xl bg-white px-4 py-3 text-center text-sm font-semibold leading-relaxed text-muted-brand">{copy.paywall.paypalSummary(todayAmount, selected.renewal_description)}</p>}
@@ -382,8 +382,8 @@ export default function PaywallPage() {
         {showLastOffer && (
           <div className="fixed inset-0 z-[998] flex items-center justify-center overflow-y-auto bg-white px-4 py-8" role="dialog" aria-modal="true" aria-label={localCheckoutCopy.lastOfferTitle}>
             <div className="w-full max-w-[30rem] text-center">
-              <h2 className="mx-auto max-w-[25rem] text-[1.75rem] font-extrabold leading-tight tracking-[-0.04em] text-[#111418] sm:text-[2.05rem]">{localCheckoutCopy.lastOfferTitle} <span aria-hidden="true">🎁</span></h2>
-              <p className="mt-3 text-[1.05rem] font-semibold leading-snug text-[#8d8f96]">{lastOfferRevealed ? localCheckoutCopy.lastOfferUnlocked : localCheckoutCopy.lastOfferSubtitle}</p>
+              <h2 className="mx-auto max-w-[25rem] text-[1.48rem] font-extrabold leading-tight tracking-[-0.04em] text-[#111418] sm:text-[1.72rem]">{localCheckoutCopy.lastOfferTitle} <span aria-hidden="true">🎁</span></h2>
+              <p className="mt-3 text-[0.92rem] font-semibold leading-snug text-[#8d8f96]">{lastOfferRevealed ? localCheckoutCopy.lastOfferUnlocked : localCheckoutCopy.lastOfferSubtitle}</p>
               <div className="relative mx-auto mt-8 max-w-[27rem]">
                 <div className="absolute -inset-x-8 -inset-y-7 rounded-[2rem] bg-[#dfe8ff] opacity-75 blur-3xl" aria-hidden="true" />
                 <div
@@ -409,9 +409,9 @@ export default function PaywallPage() {
                   <span className="absolute inset-0 bg-[radial-gradient(circle_at_35%_35%,rgb(255_255_255_/_0.14),transparent_28%),radial-gradient(circle_at_82%_76%,rgb(255_255_255_/_0.12),transparent_32%)]" aria-hidden="true" />
                   <div className="relative grid h-full place-items-center">
                     <div>
-                      <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.34em] text-white/90">✨ {localCheckoutCopy.lastOfferEyebrow} ✨</p>
-                      <p className="mt-3 text-[3.7rem] font-extrabold leading-[0.9] tracking-[-0.055em] text-white/95 sm:text-[4.7rem]">75% OFF</p>
-                      <p className="mt-3 text-[0.98rem] font-extrabold leading-tight text-white/92">{localCheckoutCopy.lastOfferUnlocked}</p>
+                      <p className="text-[0.64rem] font-extrabold uppercase tracking-[0.34em] text-white/90">✨ {localCheckoutCopy.lastOfferEyebrow} ✨</p>
+                      <p className="mt-3 text-[3.1rem] font-extrabold leading-[0.9] tracking-[-0.055em] text-white/95 sm:text-[3.8rem]">75% OFF</p>
+                      <p className="mt-3 text-[0.86rem] font-extrabold leading-tight text-white/92">{localCheckoutCopy.lastOfferUnlocked}</p>
                     </div>
                   </div>
                   <div
@@ -423,7 +423,7 @@ export default function PaywallPage() {
                   >
                     <span className="absolute inset-0 bg-[repeating-linear-gradient(135deg,rgb(255_255_255_/_0.55)_0_3px,transparent_3px_15px),radial-gradient(circle_at_20%_30%,rgb(255_255_255_/_0.42),transparent_24%),radial-gradient(circle_at_78%_72%,rgb(23_37_32_/_0.08),transparent_28%)]" />
                     <span className="absolute inset-0 opacity-45 [background-image:radial-gradient(circle,rgb(23_37_32_/_0.18)_0_1px,transparent_1px)] [background-size:18px_18px]" />
-                    <span className="absolute left-1/2 top-1/2 w-full -translate-x-1/2 -translate-y-1/2 px-8 text-center text-base font-black text-[#53625d]/70">
+                    <span className="absolute left-1/2 top-1/2 w-full -translate-x-1/2 -translate-y-1/2 px-8 text-center text-[0.92rem] font-black text-[#53625d]/70">
                       {localCheckoutCopy.lastOfferScratchHint}
                     </span>
                   </div>
@@ -447,7 +447,7 @@ export default function PaywallPage() {
                   setLocalCheckoutDismissed(false);
                   beginCheckout();
                 }}
-                className="mt-10 min-h-14 w-full max-w-[27rem] rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985]"
+                className="mt-9 min-h-[3.25rem] w-full max-w-[27rem] rounded-2xl bg-forest px-5 py-3.5 text-[0.92rem] font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985]"
               >
                 {lastOfferRevealed ? localCheckoutCopy.lastOfferCta : localCheckoutCopy.lastOfferScratchHint}
               </button>
@@ -466,11 +466,11 @@ export default function PaywallPage() {
                 >
                   ×
                 </button>
-                <h2 className="text-center text-[1.42rem] font-extrabold tracking-[-0.025em] text-[#292e46]">{copy.checkout.title}</h2>
+                <h2 className="text-center text-[1.22rem] font-extrabold tracking-[-0.025em] text-[#292e46]">{copy.checkout.title}</h2>
                 <span aria-hidden="true" />
               </div>
 
-              <div className="mt-6 grid gap-2.5 text-[1.02rem] leading-tight">
+              <div className="mt-5 grid gap-2.5 text-[0.92rem] leading-tight">
                 <div className="flex items-start justify-between gap-4">
                   <span>{localCheckoutCopy.planSubscription}</span>
                   <span className="shrink-0">{standardAmount}</span>
@@ -482,25 +482,25 @@ export default function PaywallPage() {
               </div>
 
               <div className="mt-5 border-y border-[#dde1e6] py-4">
-                <div className="flex items-baseline justify-between gap-4 text-[1.02rem]">
+                <div className="flex items-baseline justify-between gap-4 text-[0.92rem]">
                   <strong className="font-extrabold">{copy.checkout.total}:</strong>
                   <span><strong className="font-extrabold">{todayAmount}</strong> <span>{localCheckoutCopy.period}</span></span>
                 </div>
               </div>
 
-              <p className="mt-3 text-[0.9rem] font-medium leading-snug text-[#8c93a4]">{localCheckoutCopy.paymentReuse}</p>
-              <h3 className="mt-6 text-center text-[1.08rem] font-extrabold tracking-[-0.015em] text-[#292e46]">{localCheckoutCopy.methodTitle}</h3>
+              <p className="mt-3 text-[0.82rem] font-medium leading-snug text-[#8c93a4]">{localCheckoutCopy.paymentReuse}</p>
+              <h3 className="mt-5 text-center text-[0.98rem] font-extrabold tracking-[-0.015em] text-[#292e46]">{localCheckoutCopy.methodTitle}</h3>
 
               <div className="mt-5 overflow-hidden rounded-[1.25rem] border border-[#d9dde6] bg-white">
                 <div className="p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <span className="grid h-6 w-6 place-items-center rounded-full border-2 border-[#ef4d59]" aria-hidden="true"><span className="h-3.5 w-3.5 rounded-full bg-[#ef4d59]" /></span>
-                      <strong className="text-[1rem] font-extrabold text-[#292e46]">{localCheckoutCopy.oneClick}</strong>
+                      <strong className="text-[0.92rem] font-extrabold text-[#292e46]">{localCheckoutCopy.oneClick}</strong>
                     </div>
-                    <strong className="text-[1rem] font-extrabold text-[#292e46]">{checkoutProvider}</strong>
+                    <strong className="text-[0.92rem] font-extrabold text-[#292e46]">{checkoutProvider}</strong>
                   </div>
-                  <p className="mt-7 text-center text-[0.92rem] font-extrabold text-[#292e46]">{localCheckoutCopy.safer}</p>
+                  <p className="mt-6 text-center text-[0.84rem] font-extrabold text-[#292e46]">{localCheckoutCopy.safer}</p>
                   <button
                     type="button"
                     onClick={() => {

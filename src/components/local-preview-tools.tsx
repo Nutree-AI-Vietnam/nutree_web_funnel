@@ -5,11 +5,11 @@ import { localPreviewData, localPreviewLead, localPreviewTdee, useLocalPreviewHo
 import { useQuizStore } from '@/lib/quiz/store';
 
 const routes = [
-  ['Home', '/'],
-  ['Email', '/email'],
-  ['Gift', '/welcome-gift'],
-  ['Paywall', '/paywall'],
-  ['Checkout', '/paywall?localCheckout=1'],
+  ['H', 'Home', '/'],
+  ['E', 'Email', '/email'],
+  ['G', 'Gift', '/welcome-gift'],
+  ['P', 'Paywall', '/paywall'],
+  ['C', 'Checkout', '/paywall?localCheckout=1'],
 ] as const;
 
 export function LocalPreviewTools() {
@@ -27,14 +27,14 @@ export function LocalPreviewTools() {
   };
 
   return (
-    <div className="fixed bottom-3 left-1/2 z-[80] w-[calc(100%-1.5rem)] max-w-lg -translate-x-1/2 rounded-2xl border border-white/65 bg-white/80 p-2 shadow-[0_18px_44px_rgb(16_39_32_/_0.16)] backdrop-blur-xl">
-      <div className="flex items-center gap-1 overflow-x-auto">
-        <button type="button" onClick={seedPreview} className="min-h-9 shrink-0 rounded-xl bg-forest px-3 text-xs font-extrabold text-white">
+    <div className="fixed bottom-4 left-3 z-[70] rounded-2xl border border-white/65 bg-white/82 p-1.5 shadow-[0_18px_44px_rgb(16_39_32_/_0.14)] backdrop-blur-xl">
+      <div className="grid gap-1">
+        <button type="button" onClick={seedPreview} aria-label="Seed local preview" className="grid h-9 w-9 place-items-center rounded-xl bg-forest text-[0.64rem] font-extrabold text-white">
           Seed
         </button>
-        {routes.map(([label, href]) => (
-          <Link key={href} href={href} className="grid min-h-9 shrink-0 place-items-center rounded-xl border border-border-brand bg-white/75 px-3 text-xs font-extrabold text-forest">
-            {label}
+        {routes.map(([shortLabel, label, href]) => (
+          <Link key={href} href={href} aria-label={label} title={label} className="grid h-9 w-9 place-items-center rounded-xl border border-border-brand bg-white/78 text-xs font-extrabold text-forest">
+            {shortLabel}
           </Link>
         ))}
       </div>
