@@ -1,7 +1,7 @@
 # Nutree Web Funnel
 
 Web onboarding funnel (start.nutree.ai): quiz -> TDEE results -> email capture ->
-MoMo hard paywall checkout -> app download handoff via Airbridge claim token.
+Paddle subscription checkout -> app download handoff.
 
 Design spec: `docs/superpowers/specs/2026-07-07-web-to-app-funnel-design.md`
 
@@ -13,8 +13,8 @@ Vitest. Localized copy lives in `src/lib/copy/vi.ts` and
 
 ## Localization and Pricing
 
-- Vietnam (`VN`) uses Vietnamese copy and VND pricing.
-- Every non-Vietnam market uses English copy and USD pricing.
+- Vietnam (`VN`) uses Vietnamese copy and Paddle's VND price override.
+- Every non-Vietnam market uses English copy and Paddle's USD price.
 - Keep text and currency aligned on every screen: do not show Vietnamese copy
   with USD, and do not show English copy with VND.
 - Market detection should stay automatic from browser/backend country context;
@@ -36,7 +36,8 @@ npm run build                # production build check
 | Variable | Purpose |
 |---|---|
 | `NEXT_PUBLIC_API_BASE_URL` | Nutree backend base URL (no trailing slash) |
-| `NEXT_PUBLIC_PAYPAL_CLIENT_ID` | PayPal browser SDK client ID for international checkout |
+| `NEXT_PUBLIC_PADDLE_ENVIRONMENT` | Required Paddle target: `sandbox` or `live` |
+| `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` | Paddle browser token matching the target environment |
 | `NEXT_PUBLIC_GA4_ID` | GA4 measurement id (optional; script omitted if unset) |
 | `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel id (optional) |
 | `NEXT_PUBLIC_TIKTOK_PIXEL_ID` | TikTok Pixel id (optional) |
@@ -52,11 +53,9 @@ Import the repo in Vercel, set the env vars above for Production/Preview, and po
 
 ## External Dependencies
 
-- **Backend** (separate team): `POST /v1/tdee/preview` (exists),
-  `POST /v1/web-funnel/leads`, `POST /v1/web-funnel/momo/subscription-checkouts`,
-  `GET /v1/web-funnel/payment-orders/:order_id/status`, `POST /v1/web-funnel/claim`,
-  and `POST /v1/webhooks/momo/subscriptions`.
-- **Mobile** (`nutree_ai`): deferred deep link handler + claim service, separate plan in that repo.
-- **MoMo**: subscription checkout configured on MealTrack backend; no web secrets live in Next.js.
+- **Backend** (separate team): `POST /v1/tdee/preview`, `POST /v1/web-funnel/leads`,
+  and the verified Paddle webhook at `POST /v1/webhooks/paddle`.
+- **Paddle**: configure the default payment link under Checkout > Checkout settings.
+  For live checkout, use an approved production domain. Sandbox supports localhost.
 - **Airbridge**: tracking link created in dashboard (goes in
   `NEXT_PUBLIC_AIRBRIDGE_TRACKING_LINK`).
