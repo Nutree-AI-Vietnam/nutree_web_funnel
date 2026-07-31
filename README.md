@@ -36,6 +36,10 @@ npm run build                # production build check
 | Variable | Purpose |
 |---|---|
 | `NEXT_PUBLIC_API_BASE_URL` | Nutree backend base URL (no trailing slash) |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Web app API key for Google sign-in |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Web app auth domain |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project matching the backend and mobile flavor |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase Web app ID |
 | `NEXT_PUBLIC_PADDLE_ENVIRONMENT` | Required Paddle target: `sandbox` or `live` |
 | `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` | Paddle browser token matching the target environment |
 | `NEXT_PUBLIC_GA4_ID` | GA4 measurement id (optional; script omitted if unset) |

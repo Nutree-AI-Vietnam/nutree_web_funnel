@@ -1,48 +1,39 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ConversionShell } from '@/components/conversion-shell';
 import { PrimaryButton } from '@/components/primary-button';
-import { createLead } from '@/lib/api/client';
+import { createLeadFromFirebase } from '@/lib/api/client';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
-import { isValidEmail } from '@/lib/quiz/email';
+import { signInWithGoogle } from '@/lib/firebase/client';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 
 export default function EmailPage() {
   const router = useRouter();
   const vi = useCopy();
   const hydrated = useHydrated();
-  const data = useQuizStore((s) => s.data);
-  const lead = useQuizStore((s) => s.lead);
   const setLead = useQuizStore((s) => s.setLead);
-  const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const canBypassEmail = process.env.NODE_ENV !== 'production';
 
   useEffect(() => trackStepViewed('email_capture'), []);
-  const currentEmail = email || lead?.email || '';
 
   if (!hydrated) return null;
 
-  const submit = async () => {
-    if (!isValidEmail(currentEmail)) {
-      setError(vi.email.invalid);
-      inputRef.current?.focus();
-      return;
-    }
+  const signIn = async () => {
     setSubmitting(true);
     setError(null);
     try {
-      const result = await createLead(currentEmail.trim(), data);
+      const identity = await signInWithGoogle();
+      const result = await createLeadFromFirebase(identity);
       setLead(result);
-      trackEvent('lead_created', {});
+      trackEvent('lead_created', { auth_provider: 'google' });
       router.push('/welcome-gift');
-    } catch {
-      setError(vi.email.error);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : vi.email.error);
       setSubmitting(false);
     }
   };
@@ -64,37 +55,13 @@ export default function EmailPage() {
         <div className="flex flex-col gap-4">
           <h1 className="text-3xl font-extrabold leading-tight text-forest">{vi.email.headline}</h1>
           <p className="text-base font-semibold leading-relaxed text-slate-brand">{vi.email.body}</p>
-          <div className="grid gap-2">
-            <label htmlFor="email" className="text-sm font-extrabold text-forest">
-              Email
-            </label>
-            <input
-              ref={inputRef}
-              id="email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              value={currentEmail}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (error) setError(null);
-              }}
-              onKeyDown={(e) => e.key === 'Enter' && void submit()}
-              placeholder={vi.email.placeholder}
-              aria-invalid={error ? true : undefined}
-              aria-describedby="email-helper email-error"
-              className="min-h-14 rounded-2xl border border-border-brand bg-bg-brand px-5 py-4 text-lg font-semibold text-forest outline-none transition placeholder:text-muted-brand focus:border-teal-brand focus:ring-4 focus:ring-teal-brand/15 aria-[invalid=true]:border-error-brand aria-[invalid=true]:focus:ring-error-brand/15"
-            />
-            <p id="email-helper" className="text-sm font-medium text-muted-brand">
-              {vi.email.helper}
+          <p className="text-sm font-medium text-muted-brand">{vi.email.helper}</p>
+          {error && (
+            <p role="alert" className="text-sm font-bold text-error-brand">
+              {error}
             </p>
-            {error && (
-              <p id="email-error" role="alert" className="text-sm font-bold text-error-brand">
-                {error}
-              </p>
-            )}
-          </div>
-          <PrimaryButton disabled={submitting || !currentEmail} onClick={submit}>
+          )}
+          <PrimaryButton disabled={submitting} onClick={signIn}>
             {submitting ? '...' : vi.email.cta}
           </PrimaryButton>
           {canBypassEmail && (

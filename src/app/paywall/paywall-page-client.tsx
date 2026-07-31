@@ -217,7 +217,7 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
         customData: {
           source: 'nutree_web_paywall',
           plan: selected.id,
-          web_user_id: lead.web_user_id,
+          firebase_uid: lead.web_user_id,
         },
         settings: {
           displayMode: 'overlay',
