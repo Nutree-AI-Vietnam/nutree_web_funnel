@@ -92,6 +92,13 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
     trackEvent('paddle_exit_offer_shown', { plan: selected.id, discount_percent: 75, source });
   }, [secondsLeft, selected.id]);
 
+  const revealExitOffer = useCallback(() => {
+    if (exitOfferRevealed) return;
+    setExitOfferRevealed(true);
+    setDiscountId(paddleExitDiscountId);
+    trackEvent('paddle_exit_offer_revealed', { plan: selected.id, discount_percent: 75 });
+  }, [exitOfferRevealed, selected.id]);
+
   useEffect(() => {
     discountIdRef.current = discountId;
     onCheckoutClosedRef.current = () => {
@@ -330,9 +337,9 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
               <span className="relative block text-xs font-extrabold uppercase tracking-[0.34em] text-white/85">{exitOfferCopy.eyebrow}</span>
               <span className="relative mt-4 block text-6xl font-extrabold leading-none tracking-[-0.07em]">75%</span>
               <span className="relative mt-2 block text-base font-extrabold">OFF</span>
-              <ScratchTicketCover revealed={exitOfferRevealed} hint={exitOfferCopy.hint} onScratchStart={() => trackEvent('paddle_exit_offer_scratch_started', { plan: selected.id })} onReveal={() => { setExitOfferRevealed(true); trackEvent('paddle_exit_offer_revealed', { plan: selected.id, discount_percent: 75 }); }} hintClassName="text-base" />
+              <ScratchTicketCover revealed={exitOfferRevealed} hint={exitOfferCopy.hint} onScratchStart={() => trackEvent('paddle_exit_offer_scratch_started', { plan: selected.id })} onReveal={revealExitOffer} hintClassName="text-base" />
             </div>
-            <button type="button" onClick={() => { if (!exitOfferRevealed) { setExitOfferRevealed(true); trackEvent('paddle_exit_offer_revealed', { plan: selected.id, discount_percent: 75 }); return; } setShowExitOffer(false); trackEvent('paddle_exit_offer_claimed', { plan: selected.id, discount_percent: 75 }); openCheckout(paddleExitDiscountId); }} className="min-h-14 w-full max-w-[27rem] rounded-2xl bg-forest px-5 font-extrabold text-white transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">{exitOfferRevealed ? exitOfferCopy.claim : exitOfferCopy.reveal}</button>
+            <button type="button" onClick={() => { if (!exitOfferRevealed) { revealExitOffer(); return; } setShowExitOffer(false); trackEvent('paddle_exit_offer_claimed', { plan: selected.id, discount_percent: 75 }); openCheckout(paddleExitDiscountId); }} className="min-h-14 w-full max-w-[27rem] rounded-2xl bg-forest px-5 font-extrabold text-white transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">{exitOfferRevealed ? exitOfferCopy.claim : exitOfferCopy.reveal}</button>
             <button type="button" onClick={() => setShowExitOffer(false)} className="mt-3 min-h-11 w-full text-sm font-bold text-muted-brand underline underline-offset-4">{exitOfferCopy.dismiss}</button>
           </ConversionShell>
         </div>
