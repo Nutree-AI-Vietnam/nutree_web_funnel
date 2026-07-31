@@ -10,6 +10,18 @@ export interface PaywallPlan {
 export const paddlePaywallDiscountId = 'dsc_01kyvmbjc01p8dghmdsfbtp9b9';
 export const paddleExitDiscountId = 'dsc_01kyvn4sy5brqty9nr2zm63meg';
 
+export function shouldShowPaddleExitOffer({
+  secondsLeft,
+  activeDiscountId,
+  hasBeenShown,
+}: {
+  secondsLeft: number;
+  activeDiscountId: string;
+  hasBeenShown: boolean;
+}) {
+  return secondsLeft > 0 && activeDiscountId !== paddleExitDiscountId && !hasBeenShown;
+}
+
 export const paddlePaywallPlans: PaywallPlan[] = [
   {
     id: '4-week',

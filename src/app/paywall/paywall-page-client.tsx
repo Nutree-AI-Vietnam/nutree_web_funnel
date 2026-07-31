@@ -4,7 +4,7 @@ import { initializePaddle, type Paddle, type PricePreviewResponse } from '@paddl
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ConversionShell } from '@/components/conversion-shell';
 import { ScratchTicketCover } from '@/components/scratch-ticket-cover';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
@@ -12,7 +12,7 @@ import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
 import { normalizePaddleCountryCode } from '@/lib/paddle/country';
 import { readPaddleClientConfig } from '@/lib/paddle/env';
-import { paddleExitDiscountId, paddlePaywallDiscountId, paddlePaywallPlans, type PaywallPlan } from '@/lib/paddle/paywall-plans';
+import { paddleExitDiscountId, paddlePaywallDiscountId, paddlePaywallPlans, shouldShowPaddleExitOffer, type PaywallPlan } from '@/lib/paddle/paywall-plans';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 
@@ -79,17 +79,25 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
   const discountPercent = discountId === paddleExitDiscountId ? 75 : 50;
   const isExitDiscount = discountId === paddleExitDiscountId;
 
+  const triggerExitOffer = useCallback((source: 'checkout_closed' | 'confirmation_back') => {
+    if (!shouldShowPaddleExitOffer({
+      secondsLeft,
+      activeDiscountId: discountIdRef.current,
+      hasBeenShown: exitOfferShownRef.current,
+    })) return;
+    exitOfferShownRef.current = true;
+    setExitOfferRevealed(false);
+    setShowExitOffer(true);
+    trackEvent('paddle_exit_offer_shown', { plan: selected.id, discount_percent: 75, source });
+  }, [secondsLeft, selected.id]);
+
   useEffect(() => {
     discountIdRef.current = discountId;
     onCheckoutClosedRef.current = () => {
       setBusy(false);
-    if (secondsLeft <= 0 || exitOfferShownRef.current || discountIdRef.current === paddleExitDiscountId) return;
-    exitOfferShownRef.current = true;
-    setExitOfferRevealed(false);
-    setShowExitOffer(true);
-      trackEvent('paddle_exit_offer_shown', { plan: selected.id, discount_percent: 75 });
+      triggerExitOffer('checkout_closed');
     };
-  }, [discountId, secondsLeft, selected.id]);
+  }, [discountId, triggerExitOffer]);
 
   useEffect(() => trackStepViewed('paywall'), []);
 
@@ -296,7 +304,7 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
             <p className="mt-3 text-sm font-medium leading-relaxed text-muted-brand">{confirmCopy.body}</p>
             <div className="mt-5 rounded-2xl bg-mist px-4 py-3 text-left"><p className="font-extrabold text-forest">{selected.label[activeLocale]}</p><p className="mt-1 text-sm font-bold text-slate-brand">{introTotal} {activeLocale === 'vi' ? 'hôm nay' : 'today'}</p><p className="mt-1 text-xs font-semibold text-muted-brand">{renewalTotal} {selected.billingLabel[activeLocale]}</p></div>
             <button type="button" onClick={() => { setShowCheckoutConfirm(false); openCheckout(); }} className="mt-6 min-h-13 w-full rounded-2xl bg-forest px-5 font-extrabold text-white transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">{confirmCopy.continue}</button>
-            <button type="button" onClick={() => setShowCheckoutConfirm(false)} className="mt-3 min-h-11 w-full text-sm font-bold text-muted-brand underline underline-offset-4">{confirmCopy.dismiss}</button>
+            <button type="button" onClick={() => { setShowCheckoutConfirm(false); triggerExitOffer('confirmation_back'); }} className="mt-3 min-h-11 w-full text-sm font-bold text-muted-brand underline underline-offset-4">{confirmCopy.dismiss}</button>
           </section>
         </div>
       )}
