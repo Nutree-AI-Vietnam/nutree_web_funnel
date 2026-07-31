@@ -10,14 +10,19 @@ export function ConversionShell({
   className,
   hideLogo = false,
   stickyHeader,
+  scrollable = true,
 }: {
   children: React.ReactNode;
   className?: string;
   hideLogo?: boolean;
   stickyHeader?: React.ReactNode;
+  scrollable?: boolean;
 }) {
   return (
-    <main className="relative mx-auto flex min-h-dvh w-full max-w-lg flex-col overflow-x-hidden overflow-y-auto px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))]">
+    <main className={cn(
+      'relative mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))]',
+      scrollable ? 'overflow-x-hidden overflow-y-auto' : 'overflow-hidden',
+    )}>
       <BackgroundBeams />
       {!hideLogo && (
         <div className="relative z-10 mb-6 flex items-center">

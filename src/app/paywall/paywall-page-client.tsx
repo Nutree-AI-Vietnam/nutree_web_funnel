@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ConversionShell } from '@/components/conversion-shell';
 import { ScratchTicketCover } from '@/components/scratch-ticket-cover';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
@@ -105,6 +106,13 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
     const timer = window.setInterval(() => setSecondsLeft((seconds) => Math.max(0, seconds - 1)), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!showExitOffer) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [showExitOffer]);
 
   useEffect(() => {
     if (!hydrated || lead) return;
@@ -297,6 +305,8 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
         {error && <p role="alert" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-error-brand">{error}</p>}
         <p className="mx-auto mt-6 max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{copy.paywall.termsIntro} {copy.paywall.secure}</p>
       </div>
+      {typeof document !== 'undefined' && createPortal(
+        <>
       {showCheckoutConfirm && (
         <div className="fixed inset-0 z-[60] grid place-items-center bg-[#111816]/52 px-5 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="checkout-confirm-title">
           <section className="w-full max-w-sm rounded-[2rem] bg-white p-7 text-center shadow-[0_28px_80px_rgb(10_18_16_/_0.34)]">
@@ -309,8 +319,8 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
         </div>
       )}
       {showExitOffer && (
-        <div className="fixed inset-0 z-[70] overflow-y-auto bg-mist" role="dialog" aria-modal="true" aria-labelledby="exit-offer-title">
-          <ConversionShell hideLogo className="min-h-dvh justify-center gap-8 py-10 text-center">
+        <div className="fixed inset-0 z-[70] overflow-hidden bg-mist" role="dialog" aria-modal="true" aria-labelledby="exit-offer-title">
+          <ConversionShell hideLogo scrollable={false} className="h-dvh min-h-0 justify-center gap-5 py-6 text-center sm:gap-8 sm:py-10">
             <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-teal-brand">{exitOfferCopy.eyebrow}</p>
             <h2 id="exit-offer-title" className="text-[clamp(2.4rem,12vw,4.25rem)] font-extrabold leading-none tracking-[-0.07em] text-forest">75% OFF</h2>
             <p className="mx-auto max-w-sm text-lg font-extrabold text-[#111418]">{exitOfferCopy.title}</p>
@@ -326,6 +336,9 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
             <button type="button" onClick={() => setShowExitOffer(false)} className="mt-3 min-h-11 w-full text-sm font-bold text-muted-brand underline underline-offset-4">{exitOfferCopy.dismiss}</button>
           </ConversionShell>
         </div>
+      )}
+        </>,
+        document.body,
       )}
     </ConversionShell>
   );
