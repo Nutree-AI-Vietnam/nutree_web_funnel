@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { paddlePaywallDiscountId, paddlePaywallPlans } from './paywall-plans';
+import { paddleExitDiscountId, paddlePaywallDiscountId, paddlePaywallPlans } from './paywall-plans';
 
 describe('paddle paywall catalog', () => {
   it('maps the three paywall durations to permanent Paddle prices', () => {
@@ -9,5 +9,10 @@ describe('paddle paywall catalog', () => {
 
   it('uses the introductory discount created for the paywall catalog', () => {
     expect(paddlePaywallDiscountId).toMatch(/^dsc_/);
+  });
+
+  it('maps the exit-intent offer to a separate first-billing Paddle discount', () => {
+    expect(paddleExitDiscountId).toMatch(/^dsc_/);
+    expect(paddleExitDiscountId).not.toBe(paddlePaywallDiscountId);
   });
 });

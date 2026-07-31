@@ -4,14 +4,14 @@ import { initializePaddle, type Paddle, type PricePreviewResponse } from '@paddl
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ConversionShell } from '@/components/conversion-shell';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
 import { normalizePaddleCountryCode } from '@/lib/paddle/country';
 import { readPaddleClientConfig } from '@/lib/paddle/env';
-import { paddlePaywallDiscountId, paddlePaywallPlans, type PaywallPlan } from '@/lib/paddle/paywall-plans';
+import { paddleExitDiscountId, paddlePaywallDiscountId, paddlePaywallPlans, type PaywallPlan } from '@/lib/paddle/paywall-plans';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 
@@ -61,12 +61,31 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
   const [loadState, setLoadState] = useState<LoadState>('idle');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [discountId, setDiscountId] = useState(paddlePaywallDiscountId);
+  const [showExitOffer, setShowExitOffer] = useState(false);
+  const checkoutIsOpenRef = useRef(false);
+  const exitOfferShownRef = useRef(false);
+  const discountIdRef = useRef(discountId);
+  const onCheckoutClosedRef = useRef<() => void>(() => undefined);
 
   const countryCode = initialCountryCode ?? (isLocalPreviewHost() ? normalizePaddleCountryCode(getLocalPreviewCountry()) : undefined);
   const selected = useMemo(
     () => paddlePaywallPlans.find((plan) => plan.id === selectedId) ?? paddlePaywallPlans[1],
     [selectedId],
   );
+  const discountPercent = discountId === paddleExitDiscountId ? 75 : 50;
+  const isExitDiscount = discountId === paddleExitDiscountId;
+
+  useEffect(() => {
+    discountIdRef.current = discountId;
+    onCheckoutClosedRef.current = () => {
+      setBusy(false);
+      if (secondsLeft <= 0 || exitOfferShownRef.current || discountIdRef.current === paddleExitDiscountId) return;
+      exitOfferShownRef.current = true;
+      setShowExitOffer(true);
+      trackEvent('paddle_exit_offer_shown', { plan: selected.id, discount_percent: 75 });
+    };
+  }, [discountId, secondsLeft, selected.id]);
 
   useEffect(() => trackStepViewed('paywall'), []);
 
@@ -96,6 +115,13 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
         const instance = await initializePaddle({
           token: config.token,
           ...(config.environment === 'sandbox' ? { environment: 'sandbox' as const } : {}),
+          eventCallback: (event) => {
+            if (event.name === 'checkout.completed') checkoutIsOpenRef.current = false;
+            if (event.name === 'checkout.closed' && checkoutIsOpenRef.current) {
+              checkoutIsOpenRef.current = false;
+              onCheckoutClosedRef.current();
+            }
+          },
         });
         if (!instance) throw new Error('Paddle.js did not return an initialized instance.');
         if (!cancelled) setPaddle(instance);
@@ -124,7 +150,7 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
 
       try {
         const [introPreview, renewalPreview] = await Promise.all([
-          paddleInstance.PricePreview({ items, discountId: paddlePaywallDiscountId, ...address }),
+          paddleInstance.PricePreview({ items, discountId, ...address }),
           paddleInstance.PricePreview({ items, ...address }),
         ]);
         if (!cancelled) {
@@ -142,21 +168,23 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
 
     loadPrices();
     return () => { cancelled = true; };
-  }, [countryCode, paddle]);
+  }, [countryCode, discountId, paddle]);
 
-  const openCheckout = () => {
+  const openCheckout = (nextDiscountId = discountId) => {
     if (!paddle || !lead) {
       setError('Paddle is still loading. Please try again in a moment.');
       return;
     }
     setBusy(true);
     setError(null);
-    trackEvent('paddle_checkout_started', { plan: selected.id, price_id: selected.priceId, country_code: countryCode ?? 'auto' });
+    setDiscountId(nextDiscountId);
+    checkoutIsOpenRef.current = true;
+    trackEvent('paddle_checkout_started', { plan: selected.id, price_id: selected.priceId, country_code: countryCode ?? 'auto', discount_percent: nextDiscountId === paddleExitDiscountId ? 75 : 50 });
 
     try {
       paddle.Checkout.open({
         items: [{ priceId: selected.priceId, quantity: 1 }],
-        discountId: paddlePaywallDiscountId,
+        discountId: nextDiscountId,
         customer: { email: lead.email },
         customData: {
           source: 'nutree_web_paywall',
@@ -170,6 +198,7 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
         },
       });
     } catch {
+      checkoutIsOpenRef.current = false;
       setError('Paddle could not open checkout. Check the checkout domain and default payment link.');
     } finally {
       window.setTimeout(() => setBusy(false), 1500);
@@ -192,6 +221,9 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
   const introTotal = introPrices[selected.priceId] ?? '…';
   const renewalTotal = renewalPrices[selected.priceId] ?? '…';
   const pricesReady = loadState === 'ready';
+  const exitOfferCopy = activeLocale === 'vi'
+    ? { eyebrow: 'Ưu đãi độc quyền', title: 'Mở ưu đãi giảm 75%', body: 'Bạn có thể nhận mức giá 75% cho kỳ thanh toán đầu tiên.', claim: 'Nhận ưu đãi 75%', dismiss: 'Không, cảm ơn' }
+    : { eyebrow: 'Exclusive offer', title: 'Unlock 75% off', body: 'You can claim 75% off your first billing period.', claim: 'Claim 75% off', dismiss: 'No thanks' };
 
   return (
     <ConversionShell
@@ -200,8 +232,8 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
         <div className="fixed left-1/2 top-0 z-50 w-full max-w-lg -translate-x-1/2 border-b border-white/55 bg-white/70 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-[0_12px_34px_rgb(16_39_32_/_0.12)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/60">
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
             <Link href="/" aria-label="Nutree" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/70 bg-white/75 shadow-[inset_0_0_0_1px_rgb(255_255_255_/_0.5),0_2px_8px_rgb(16_39_32_/_0.06)] backdrop-blur"><Image src="/nutree-logo-simple.png" alt="" width={72} height={64} priority className="h-7 w-7 object-contain" /></Link>
-            <div><p className="text-[0.74rem] font-bold leading-tight text-muted-brand"><span className="text-[0.92rem] font-extrabold text-teal-brand">50%</span> {copy.paywall.offerReserved}</p><strong className="mt-0.5 block text-[1.2rem] font-extrabold leading-none tracking-[-0.035em] text-[#111418] tabular-nums">{countdown}</strong></div>
-            <button type="button" disabled={!pricesReady || busy} onClick={openCheckout} className="min-h-10 rounded-[1rem] bg-forest px-3.5 text-[0.78rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-[0.86rem]">{busy ? copy.paywall.loading : copy.paywall.topCta}</button>
+            <div><p className="text-[0.74rem] font-bold leading-tight text-muted-brand"><span className="text-[0.92rem] font-extrabold text-teal-brand">{discountPercent}%</span> {copy.paywall.offerReserved}</p><strong className="mt-0.5 block text-[1.2rem] font-extrabold leading-none tracking-[-0.035em] text-[#111418] tabular-nums">{countdown}</strong></div>
+            <button type="button" disabled={!pricesReady || busy} onClick={() => openCheckout()} className="min-h-10 rounded-[1rem] bg-forest px-3.5 text-[0.78rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-[0.86rem]">{busy ? copy.paywall.loading : copy.paywall.topCta}</button>
           </div>
         </div>
       )}
@@ -230,8 +262,8 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
             })}
           </div>
           <p className="mt-5 text-[0.94rem] leading-relaxed text-slate-brand">{copy.paywall.planRecommendation}</p>
-          <p className="mt-1.5 text-sm font-medium text-muted-brand">{copy.paywall.planResearchNote}</p>
-          <button type="button" disabled={!pricesReady || busy} onClick={openCheckout} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta()}</button>
+          <p className="mt-1.5 text-sm font-medium text-muted-brand">{isExitDiscount ? (activeLocale === 'vi' ? 'Ưu đãi EXIT75 đã được áp dụng cho kỳ thanh toán đầu tiên.' : 'Your EXIT75 offer is applied to the first billing period.') : copy.paywall.planResearchNote}</p>
+          <button type="button" disabled={!pricesReady || busy} onClick={() => openCheckout()} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta()}</button>
           <p className="mt-4 text-center text-sm leading-relaxed text-muted-brand">{copy.paywall.exactPriceSummary(renewalTotal, introTotal, renewalTotal, selected.label[activeLocale])}</p>
         </section>
 
@@ -241,6 +273,18 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
         {error && <p role="alert" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-error-brand">{error}</p>}
         <p className="mx-auto mt-6 max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{copy.paywall.termsIntro} {copy.paywall.secure}</p>
       </div>
+      {showExitOffer && (
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-[#111816]/52 px-5 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="exit-offer-title">
+          <section className="w-full max-w-sm rounded-[2rem] bg-white p-7 text-center shadow-[0_28px_80px_rgb(10_18_16_/_0.34)]">
+            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-teal-brand">{exitOfferCopy.eyebrow}</p>
+            <h2 id="exit-offer-title" className="mt-3 text-4xl font-extrabold tracking-[-0.06em] text-forest">75% OFF</h2>
+            <p className="mt-3 text-lg font-extrabold text-[#111418]">{exitOfferCopy.title}</p>
+            <p className="mt-2 text-sm font-medium leading-relaxed text-muted-brand">{exitOfferCopy.body}</p>
+            <button type="button" onClick={() => { setShowExitOffer(false); trackEvent('paddle_exit_offer_claimed', { plan: selected.id, discount_percent: 75 }); openCheckout(paddleExitDiscountId); }} className="mt-6 min-h-13 w-full rounded-2xl bg-forest px-5 font-extrabold text-white transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">{exitOfferCopy.claim}</button>
+            <button type="button" onClick={() => setShowExitOffer(false)} className="mt-3 min-h-11 w-full text-sm font-bold text-muted-brand underline underline-offset-4">{exitOfferCopy.dismiss}</button>
+          </section>
+        </div>
+      )}
     </ConversionShell>
   );
 }

@@ -8,6 +8,7 @@ export interface PaywallPlan {
 }
 
 export const paddlePaywallDiscountId = 'dsc_01kyvmbjc01p8dghmdsfbtp9b9';
+export const paddleExitDiscountId = 'dsc_01kyvn4sy5brqty9nr2zm63meg';
 
 export const paddlePaywallPlans: PaywallPlan[] = [
   {
