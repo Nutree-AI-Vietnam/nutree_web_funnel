@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { previewTdee } from '@/lib/api/client';
 import { useCopy } from '@/lib/copy/use-copy';
+import { isLocalPreviewHost } from '@/lib/local-preview';
 import { nextRoute } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 import { computeTdeeResult } from '@/lib/tdee/calculator';
@@ -53,12 +54,15 @@ export function CalculatingStep() {
     });
 
     const minDelay = new Promise((resolve) => setTimeout(resolve, TOTAL_MS));
-    const fetchTdee = previewTdee(data)
-      .then((result) => ({ result, source: 'api' as const }))
-      .catch(() => {
-        const fallback = computeTdeeResult(data);
-        return fallback ? { result: fallback, source: 'fallback' as const } : null;
-      });
+    const fallback = () => {
+      const result = computeTdeeResult(data);
+      return result ? { result, source: 'fallback' as const } : null;
+    };
+    const fetchTdee = isLocalPreviewHost()
+      ? Promise.resolve(fallback())
+      : previewTdee(data)
+        .then((result) => ({ result, source: 'api' as const }))
+        .catch(fallback);
 
     Promise.all([fetchTdee, minDelay]).then(([outcome]) => {
       if (cancelled) return;
