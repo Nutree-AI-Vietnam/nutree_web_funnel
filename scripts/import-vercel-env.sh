@@ -25,7 +25,7 @@ while IFS='=' read -r key value || [[ -n "$key" ]]; do
     continue
   fi
 
-  printf '%s' "$value" | npx vercel env add "$key" "$target" --force
+  printf '%s' "$value" | npx vercel env add "$key" "$target" --force --yes --non-interactive
 done < "$env_file"
 
 echo "Imported non-empty variables from $env_file into Vercel $target. Redeploy to apply them."
