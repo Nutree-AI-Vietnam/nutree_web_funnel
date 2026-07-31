@@ -55,6 +55,21 @@ npm run build                # production build check
 Import the repo in Vercel, set the env vars above for Production/Preview, and point
 `start.nutree.ai` at the project. No special build settings (defaults work).
 
+### Vercel import templates
+
+Copy `config/vercel-preview.env.example` to `.env.preview.local` and
+`config/vercel-production.env.example` to `.env.production.local`. Fill the local
+files, which stay ignored by Git, then import non-empty values with:
+
+```bash
+./scripts/import-vercel-env.sh preview .env.preview.local
+./scripts/import-vercel-env.sh production .env.production.local
+```
+
+Preview must use the staging Firebase project plus Paddle sandbox; Production uses
+the production Firebase project plus Paddle live. Redeploy after an import because
+`NEXT_PUBLIC_*` values are embedded during the build.
+
 ## External Dependencies
 
 - **Backend** (separate team): `POST /v1/tdee/preview`, `POST /v1/web-funnel/leads`,
