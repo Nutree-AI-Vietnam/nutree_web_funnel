@@ -5,6 +5,15 @@ import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 type EnvironmentSource = Record<string, string | undefined>;
 
+function readPublicEnvironment(): EnvironmentSource {
+  return {
+    NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  };
+}
+
 export interface FirebaseIdentity {
   uid: string;
   email: string;
@@ -13,7 +22,7 @@ export interface FirebaseIdentity {
   idToken: string;
 }
 
-export function readFirebaseClientConfig(source: EnvironmentSource = process.env) {
+export function readFirebaseClientConfig(source: EnvironmentSource = readPublicEnvironment()) {
   const apiKey = source.NEXT_PUBLIC_FIREBASE_API_KEY;
   const authDomain = source.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
   const projectId = source.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
