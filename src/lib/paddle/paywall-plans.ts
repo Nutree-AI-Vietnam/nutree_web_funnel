@@ -16,7 +16,7 @@ export function shouldShowPaddleExitOffer({
   hasBeenShown,
 }: {
   secondsLeft: number;
-  activeDiscountId: string;
+  activeDiscountId?: string;
   hasBeenShown: boolean;
 }) {
   return secondsLeft > 0 && activeDiscountId !== paddleExitDiscountId && !hasBeenShown;

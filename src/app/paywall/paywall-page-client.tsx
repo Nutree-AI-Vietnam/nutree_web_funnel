@@ -63,7 +63,7 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
   const [loadState, setLoadState] = useState<LoadState>('idle');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [discountId, setDiscountId] = useState(paddlePaywallDiscountId);
+  const [discountId, setDiscountId] = useState<string | undefined>(paddlePaywallDiscountId);
   const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
   const [showExitOffer, setShowExitOffer] = useState(false);
   const [exitOfferRevealed, setExitOfferRevealed] = useState(false);
@@ -77,8 +77,9 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
     () => paddlePaywallPlans.find((plan) => plan.id === selectedId) ?? paddlePaywallPlans[1],
     [selectedId],
   );
-  const discountPercent = discountId === paddleExitDiscountId ? 75 : 50;
-  const isExitDiscount = discountId === paddleExitDiscountId;
+  const activeDiscountId = secondsLeft === 0 && discountId === paddlePaywallDiscountId ? undefined : discountId;
+  const discountPercent = activeDiscountId === paddleExitDiscountId ? 75 : activeDiscountId === paddlePaywallDiscountId ? 50 : 0;
+  const isExitDiscount = activeDiscountId === paddleExitDiscountId;
 
   const triggerExitOffer = useCallback((source: 'checkout_closed' | 'confirmation_back') => {
     if (!shouldShowPaddleExitOffer({
@@ -100,12 +101,12 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
   }, [exitOfferRevealed, selected.id]);
 
   useEffect(() => {
-    discountIdRef.current = discountId;
+    discountIdRef.current = activeDiscountId;
     onCheckoutClosedRef.current = () => {
       setBusy(false);
       triggerExitOffer('checkout_closed');
     };
-  }, [discountId, triggerExitOffer]);
+  }, [activeDiscountId, triggerExitOffer]);
 
   useEffect(() => trackStepViewed('paywall'), []);
 
@@ -177,7 +178,7 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
 
       try {
         const [introPreview, renewalPreview] = await Promise.all([
-          paddleInstance.PricePreview({ items, discountId, ...address }),
+          paddleInstance.PricePreview({ items, ...(activeDiscountId ? { discountId: activeDiscountId } : {}), ...address }),
           paddleInstance.PricePreview({ items, ...address }),
         ]);
         if (!cancelled) {
@@ -195,9 +196,9 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
 
     loadPrices();
     return () => { cancelled = true; };
-  }, [countryCode, discountId, paddle]);
+  }, [activeDiscountId, countryCode, paddle]);
 
-  const openCheckout = (nextDiscountId = discountId) => {
+  const openCheckout = (nextDiscountId = activeDiscountId) => {
     if (!paddle || !lead) {
       setError('Paddle is still loading. Please try again in a moment.');
       return;
@@ -211,7 +212,7 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
     try {
       paddle.Checkout.open({
         items: [{ priceId: selected.priceId, quantity: 1 }],
-        discountId: nextDiscountId,
+        ...(nextDiscountId ? { discountId: nextDiscountId } : {}),
         customer: { email: lead.email },
         customData: {
           source: 'nutree_web_paywall',
@@ -270,9 +271,9 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
       stickyHeader={(
         <div className="fixed left-1/2 top-0 z-50 w-full max-w-lg -translate-x-1/2 border-b border-white/55 bg-white/70 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-[0_12px_34px_rgb(16_39_32_/_0.12)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/60">
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
-            <Link href="/" aria-label="Nutree" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/70 bg-white/75 shadow-[inset_0_0_0_1px_rgb(255_255_255_/_0.5),0_2px_8px_rgb(16_39_32_/_0.06)] backdrop-blur"><Image src="/nutree-logo-simple.png" alt="" width={72} height={64} priority className="h-7 w-7 object-contain" /></Link>
-            <div><p className="text-[0.74rem] font-bold leading-tight text-muted-brand"><span className="text-[0.92rem] font-extrabold text-teal-brand">{discountPercent}%</span> {copy.paywall.offerReserved}</p><strong className="mt-0.5 block text-[1.2rem] font-extrabold leading-none tracking-[-0.035em] text-[#111418] tabular-nums">{countdown}</strong></div>
-            <button type="button" disabled={!pricesReady || busy} onClick={requestCheckout} className="min-h-10 rounded-[1rem] bg-forest px-3.5 text-[0.78rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-[0.86rem]">{busy ? copy.paywall.loading : copy.paywall.topCta}</button>
+            <Link href="/" aria-label="Nutree" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/70 bg-white/75 shadow-[inset_0_0_0_1px_rgb(255_255_255_/_0.5),0_2px_8px_rgb(16_39_32_/_0.06)] backdrop-blur"><Image src="/nutree-logo-simple.png" alt="" width={72} height={64} priority className="h-7 w-7 object-contain" /></Link>
+            <div><p className="text-[0.74rem] font-bold leading-tight text-muted-brand">{discountPercent > 0 ? <><span className="text-[0.92rem] font-extrabold text-teal-brand">{discountPercent}%</span> {copy.paywall.offerReserved}</> : (activeLocale === 'vi' ? 'Ưu đãi đã kết thúc' : 'Offer ended')}</p><strong className="mt-0.5 block text-[1.2rem] font-extrabold leading-none tracking-[-0.035em] text-[#111418] tabular-nums">{countdown}</strong></div>
+            <button type="button" disabled={!pricesReady || busy} onClick={requestCheckout} className="min-h-11 rounded-[1rem] bg-forest px-3.5 text-[0.78rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-[0.86rem]">{busy ? copy.paywall.loading : copy.paywall.topCta}</button>
           </div>
         </div>
       )}
@@ -320,7 +321,7 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
             <h2 id="checkout-confirm-title" className="text-2xl font-extrabold tracking-[-0.04em] text-forest">{confirmCopy.title}</h2>
             <p className="mt-3 text-sm font-medium leading-relaxed text-muted-brand">{confirmCopy.body}</p>
             <div className="mt-5 rounded-2xl bg-mist px-4 py-3 text-left"><p className="font-extrabold text-forest">{selected.label[activeLocale]}</p><p className="mt-1 text-sm font-bold text-slate-brand">{introTotal} {activeLocale === 'vi' ? 'hôm nay' : 'today'}</p><p className="mt-1 text-xs font-semibold text-muted-brand">{renewalTotal} {selected.billingLabel[activeLocale]}</p></div>
-            <button type="button" onClick={() => { setShowCheckoutConfirm(false); openCheckout(); }} className="mt-6 min-h-13 w-full rounded-2xl bg-forest px-5 font-extrabold text-white transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">{confirmCopy.continue}</button>
+            <button autoFocus type="button" onClick={() => { setShowCheckoutConfirm(false); openCheckout(); }} className="mt-6 min-h-13 w-full rounded-2xl bg-forest px-5 font-extrabold text-white transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">{confirmCopy.continue}</button>
             <button type="button" onClick={() => { setShowCheckoutConfirm(false); triggerExitOffer('confirmation_back'); }} className="mt-3 min-h-11 w-full text-sm font-bold text-muted-brand underline underline-offset-4">{confirmCopy.dismiss}</button>
           </section>
         </div>
@@ -339,7 +340,7 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
               <span className="relative mt-2 block text-base font-extrabold">OFF</span>
               <ScratchTicketCover revealed={exitOfferRevealed} hint={exitOfferCopy.hint} onScratchStart={() => trackEvent('paddle_exit_offer_scratch_started', { plan: selected.id })} onReveal={revealExitOffer} hintClassName="text-base" />
             </div>
-            <button type="button" onClick={() => { if (!exitOfferRevealed) { revealExitOffer(); return; } setShowExitOffer(false); trackEvent('paddle_exit_offer_claimed', { plan: selected.id, discount_percent: 75 }); openCheckout(paddleExitDiscountId); }} className="min-h-14 w-full max-w-[27rem] rounded-2xl bg-forest px-5 font-extrabold text-white transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">{exitOfferRevealed ? exitOfferCopy.claim : exitOfferCopy.reveal}</button>
+            <button autoFocus type="button" onClick={() => { if (!exitOfferRevealed) { revealExitOffer(); return; } setShowExitOffer(false); trackEvent('paddle_exit_offer_claimed', { plan: selected.id, discount_percent: 75 }); openCheckout(paddleExitDiscountId); }} className="min-h-14 w-full max-w-[27rem] rounded-2xl bg-forest px-5 font-extrabold text-white transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">{exitOfferRevealed ? exitOfferCopy.claim : exitOfferCopy.reveal}</button>
             <button type="button" onClick={() => setShowExitOffer(false)} className="mt-3 min-h-11 w-full text-sm font-bold text-muted-brand underline underline-offset-4">{exitOfferCopy.dismiss}</button>
           </ConversionShell>
         </div>
