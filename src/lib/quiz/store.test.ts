@@ -49,7 +49,7 @@ describe('quiz store', () => {
   });
 
   it('stores lead and purchase flag', () => {
-    useQuizStore.getState().setLead({ email: 'a@b.c', web_user_id: 'w1', claim_token: 't1' });
+    useQuizStore.getState().setLead({ email: 'a@b.c', lead_id: 'lead-1', claim_token: 't1' });
     useQuizStore.getState().setPurchased(true);
     expect(useQuizStore.getState().lead?.claim_token).toBe('t1');
     expect(useQuizStore.getState().purchased).toBe(true);

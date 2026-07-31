@@ -36,10 +36,6 @@ npm run build                # production build check
 | Variable | Purpose |
 |---|---|
 | `NEXT_PUBLIC_API_BASE_URL` | Nutree backend base URL (no trailing slash) |
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Web app API key for Google sign-in |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Web app auth domain |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project matching the backend and mobile flavor |
-| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase Web app ID |
 | `NEXT_PUBLIC_PADDLE_ENVIRONMENT` | Required Paddle target: `sandbox` or `live` |
 | `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` | Paddle browser token matching the target environment |
 | `NEXT_PUBLIC_GA4_ID` | GA4 measurement id (optional; script omitted if unset) |
@@ -66,14 +62,15 @@ files, which stay ignored by Git, then import non-empty values with:
 ./scripts/import-vercel-env.sh production .env.production.local
 ```
 
-Preview must use the staging Firebase project plus Paddle sandbox; Production uses
-the production Firebase project plus Paddle live. Redeploy after an import because
+Preview must use Paddle sandbox; Production uses Paddle live. Redeploy after an import because
 `NEXT_PUBLIC_*` values are embedded during the build.
 
 ## External Dependencies
 
 - **Backend** (separate team): `POST /v1/tdee/preview`, `POST /v1/web-funnel/leads`,
-  and the verified Paddle webhook at `POST /v1/webhooks/paddle`.
+  lead fulfillment from the verified Paddle webhook at `POST /v1/webhooks/paddle`,
+  and a later Firebase-authenticated mobile claim endpoint. See
+  `docs/email-first-funnel-backend-handoff.md`.
 - **Paddle**: configure the default payment link under Checkout > Checkout settings.
   For live checkout, use an approved production domain. Sandbox supports localhost.
 - **Airbridge**: tracking link created in dashboard (goes in

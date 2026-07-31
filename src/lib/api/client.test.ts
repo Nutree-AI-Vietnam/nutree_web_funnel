@@ -1,12 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
-  createLeadFromFirebase,
+  createLead,
   createMomoSubscriptionCheckout,
   getPaymentStatus,
   previewTdee,
 } from './client';
 import type { OnboardingPayload } from '../quiz/types';
-import type { FirebaseIdentity } from '../firebase/client';
 
 const payload: OnboardingPayload = {
   age: 30,
@@ -104,42 +103,29 @@ describe('previewTdee', () => {
   });
 });
 
-describe('createLeadFromFirebase', () => {
-  const identity: FirebaseIdentity = {
-    uid: 'firebase-user-1',
-    email: 'person@example.com',
-    displayName: 'Test Person',
-    photoUrl: 'https://example.com/avatar.png',
-    idToken: 'firebase-id-token',
-  };
-
-  it('syncs the verified Google identity before Paddle checkout', async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(new Response('{}', { status: 200 }));
-
-    const lead = await createLeadFromFirebase(identity);
-
-    expect(fetch).toHaveBeenCalledWith(
-      'https://api.test/v1/users/sync',
-      expect.objectContaining({
-        method: 'POST',
-        headers: {
-          Authorization: 'Bearer firebase-id-token',
-          'Content-Type': 'application/json',
-        },
+describe('createLead', () => {
+  it('creates a pre-authentication lead with the quiz payload', async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Response(JSON.stringify({ lead_id: 'lead-1', masked_email: 'pe***@example.com' }), {
+        status: 200,
       }),
+    );
+
+    const lead = await createLead('person@example.com', payload);
+    expect(fetch).toHaveBeenCalledWith(
+      'https://api.test/v1/web-funnel/leads',
+      expect.objectContaining({ method: 'POST' }),
     );
     const body = JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
     expect(body).toEqual({
-      firebase_uid: 'firebase-user-1',
       email: 'person@example.com',
-      display_name: 'Test Person',
-      photo_url: 'https://example.com/avatar.png',
-      provider: 'google',
+      onboarding_payload: payload,
+      source: 'nutree_web_funnel',
     });
-    expect(lead).toMatchObject({
+    expect(lead).toEqual({
       email: 'person@example.com',
-      lead_id: 'firebase-user-1',
-      web_user_id: 'firebase-user-1',
+      lead_id: 'lead-1',
+      masked_email: 'pe***@example.com',
     });
   });
 });

@@ -34,8 +34,7 @@ export interface TdeeResult {
 
 export interface Lead {
   email: string;
-  web_user_id: string;
-  lead_id?: string;
+  lead_id: string;
   masked_email?: string;
   claim_token?: string;
 }

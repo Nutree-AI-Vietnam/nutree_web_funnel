@@ -37,7 +37,6 @@ export function setLocalPreviewCountry(country: 'VN' | 'US') {
 export const localPreviewLead: Lead = {
   email: 'local-preview@nutree.dev',
   lead_id: 'lead_local_preview',
-  web_user_id: 'web_local_preview',
   masked_email: 'local-preview@nutree.dev',
   claim_token: 'claim_local_preview',
 };

@@ -68,8 +68,7 @@ export default function WelcomeGiftPage() {
       if (!reduceMotion) navigator.vibrate?.(18);
       trackEvent('welcome_gift_revealed', { discount_percent: 50 });
     };
-    const leadId = lead.lead_id ?? lead.web_user_id;
-    revealWelcomeReward(context.session_id, leadId)
+    revealWelcomeReward(context.session_id, lead.lead_id)
       .then((next) => {
         setContext(next);
         showRevealed();

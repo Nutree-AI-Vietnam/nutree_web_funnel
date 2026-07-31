@@ -8,7 +8,6 @@ import type {
   PaymentStatus,
   TdeeResult,
 } from '../quiz/types';
-import type { FirebaseIdentity } from '../firebase/client';
 
 function baseUrl(): string {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -73,29 +72,20 @@ export async function previewTdee(data: OnboardingPayload): Promise<TdeeResult> 
   };
 }
 
-/** Sync a Firebase-authenticated Google identity before starting Paddle checkout. */
-export async function createLeadFromFirebase(identity: FirebaseIdentity): Promise<Lead> {
-  const res = await fetch(`${baseUrl()}/v1/users/sync`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${identity.idToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      firebase_uid: identity.uid,
-      email: identity.email,
-      display_name: identity.displayName,
-      photo_url: identity.photoUrl,
-      provider: 'google',
-    }),
+/** Creates a pre-authentication funnel lead and persists its quiz answers. */
+export async function createLead(email: string, onboardingPayload: OnboardingPayload): Promise<Lead> {
+  const response = await post<{
+    lead_id: string;
+    masked_email?: string;
+  }>('/v1/web-funnel/leads', {
+    email,
+    onboarding_payload: onboardingPayload,
+    source: 'nutree_web_funnel',
   });
-  if (!res.ok) throw new Error(`POST /v1/users/sync failed: ${res.status}`);
-
   return {
-    email: identity.email,
-    lead_id: identity.uid,
-    web_user_id: identity.uid,
-    masked_email: identity.email.replace(/^(.{2}).*(@.*)$/, '$1***$2'),
+    email,
+    lead_id: response.lead_id,
+    masked_email: response.masked_email,
   };
 }
 
