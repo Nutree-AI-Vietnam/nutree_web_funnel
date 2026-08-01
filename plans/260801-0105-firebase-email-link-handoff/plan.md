@@ -1,15 +1,22 @@
 ---
-title: "Firebase Email Link Web-to-App Identity Handoff"
-description: "Plan a passwordless Firebase Email Link handoff from Paddle web checkout into NutreeAI mobile."
-status: pending
+title: Firebase Email Link Web-to-App Identity Handoff
+description: >-
+  Plan a passwordless Firebase Email Link handoff from Paddle web checkout into
+  NutreeAI mobile.
+status: in-progress
 priority: P1
-effort: "4d"
-branch: "delivery"
-tags: [feature, frontend, auth, api, critical]
+effort: 4d
+branch: delivery
+tags:
+  - feature
+  - frontend
+  - auth
+  - api
+  - critical
 blockedBy: []
 blocks: []
-created: "2026-08-01T03:48:47.231Z"
-createdBy: "ck:plan"
+created: '2026-08-01T03:48:47.231Z'
+createdBy: 'ck:plan'
 source: skill
 ---
 
@@ -43,8 +50,8 @@ this plan does not authorize changes in their repositories.
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 1 | [Freeze cross-team identity contract](./phase-01-freeze-cross-team-identity-contract.md) | Pending |
-| 2 | [Prepare web email-link handoff](./phase-02-prepare-web-email-link-handoff.md) | Pending |
+| 1 | [Freeze cross-team identity contract](./phase-01-freeze-cross-team-identity-contract.md) | Completed |
+| 2 | [Prepare web email-link handoff](./phase-02-prepare-web-email-link-handoff.md) | Completed |
 | 3 | [Document backend fulfillment and claim](./phase-03-document-backend-fulfillment-and-claim.md) | Pending |
 | 4 | [Document mobile sign-in and validation](./phase-04-document-mobile-sign-in-and-validation.md) | Pending |
 

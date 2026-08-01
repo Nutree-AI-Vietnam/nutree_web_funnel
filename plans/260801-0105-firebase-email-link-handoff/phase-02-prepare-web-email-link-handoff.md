@@ -1,10 +1,11 @@
 ---
 phase: 2
-title: "Prepare web email-link handoff"
-status: pending
+title: Prepare web email-link handoff
+status: completed
 priority: P1
-effort: "2h"
-dependencies: [1]
+effort: 2h
+dependencies:
+  - 1
 ---
 
 # Phase 2: Prepare web email-link handoff

@@ -1,9 +1,9 @@
 ---
 phase: 1
-title: "Freeze cross-team identity contract"
-status: pending
+title: Freeze cross-team identity contract
+status: completed
 priority: P1
-effort: "4h"
+effort: 4h
 dependencies: []
 ---
 
