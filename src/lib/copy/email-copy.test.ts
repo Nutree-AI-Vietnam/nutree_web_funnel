@@ -12,8 +12,10 @@ describe('email capture copy', () => {
     }
   });
 
-  it('explains that the saved plan opens through the emailed secure link', () => {
-    expect(en.success.body).toMatch(/secure link/i);
-    expect(vi.success.body).toMatch(/link bảo mật/i);
+  it('says the secure sign-in email is sent only after verified payment', () => {
+    expect(en.success.body).toMatch(/payment is verified/i);
+    expect(en.success.body).toMatch(/secure sign-in email/i);
+    expect(vi.success.body).toMatch(/thanh toán được xác minh/i);
+    expect(vi.success.body).toMatch(/email đăng nhập bảo mật/i);
   });
 });

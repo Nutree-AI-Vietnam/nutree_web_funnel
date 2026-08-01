@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   createLead,
-  createMomoSubscriptionCheckout,
+  createCheckout,
+  getFunnelContext,
   getPaymentStatus,
   previewTdee,
+  revealWelcomeReward,
 } from './client';
-import type { OnboardingPayload } from '../quiz/types';
+import { createFallbackFunnelContext, getRecommendedOffer } from '../funnel/catalog';
+import type { FunnelOffer, OnboardingPayload } from '../quiz/types';
 
 const payload: OnboardingPayload = {
   age: 30,
@@ -112,12 +115,12 @@ describe('createLead', () => {
     );
 
     const lead = await createLead('person@example.com', payload);
+
     expect(fetch).toHaveBeenCalledWith(
       'https://api.test/v1/web-funnel/leads',
       expect.objectContaining({ method: 'POST' }),
     );
-    const body = JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
-    expect(body).toEqual({
+    expect(JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body)).toEqual({
       email: 'person@example.com',
       onboarding_payload: payload,
       source: 'nutree_web_funnel',
@@ -130,29 +133,122 @@ describe('createLead', () => {
   });
 });
 
-describe('createMomoSubscriptionCheckout', () => {
-  it('creates a monthly MoMo subscription checkout', async () => {
+describe('funnel context helpers', () => {
+  it('return deterministic fallback context without missing context/reward routes', async () => {
+    const context = await getFunnelContext();
+    const revealed = await revealWelcomeReward('session-1', 'lead-1');
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(context.provider).toBe('PAYPAL');
+    expect(revealed.welcome_reward.code).toBe('WELCOME50');
+  });
+});
+
+describe('createCheckout', () => {
+  const offer: FunnelOffer = {
+    id: 'intl_quarterly_welcome50',
+    market: 'INTL',
+    provider: 'PAYPAL',
+    currency: 'USD',
+    label: '12-week',
+    description: 'Recommended',
+    period_unit: 'MONTH',
+    period_count: 3,
+    standard_amount: 19.99,
+    welcome_amount: 9.99,
+    amount_due_today: 9.99,
+    renewal_amount: 19.99,
+    renewal_description: '$19.99 every 12 weeks',
+    next_billing_date: '2026-10-01T00:00:00.000Z',
+    reward_id: 'WELCOME50',
+    reward_applied: true,
+    price_locked_while_active: true,
+    recommended: true,
+    provider_plan_id: 'P-PLAN',
+  };
+
+  it('creates a backend-owned PayPal checkout with server commercial fields', async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
       new Response(
         JSON.stringify({
-          order_id: 'NUTREE1',
-          pay_url: 'https://payment.test/pay',
-          deeplink: null,
-          qr_code_url: null,
-          status: 'pending',
+          checkoutId: 'checkout-1',
+          status: 'PENDING_APPROVAL',
+          provider: 'paypal',
+          planId: 'P-PLAN',
+          customId: 'custom-1',
+          offerId: 'intl_quarterly_welcome50',
+          rewardId: 'WELCOME50',
+          currency: 'USD',
+          amountMinor: 999,
+          standardAmountMinor: 1999,
+          renewalAmountMinor: 1999,
+          renewalDescription: '$19.99 every 12 weeks',
+          renewalInterval: 'quarterly',
+          welcomeDiscountPercent: 50,
         }),
         { status: 200 },
       ),
     );
 
-    const checkout = await createMomoSubscriptionCheckout('web_1');
+    const checkout = await createCheckout({
+      leadId: 'lead-1',
+      offer,
+      billingCountry: 'US',
+    });
+
     expect(fetch).toHaveBeenCalledWith(
-      'https://api.test/v1/web-funnel/momo/subscription-checkouts',
+      'https://api.test/v1/web-funnel/checkouts',
       expect.objectContaining({ method: 'POST' }),
     );
     const body = JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
-    expect(body).toEqual({ web_user_id: 'web_1', plan_id: 'monthly' });
-    expect(checkout.pay_url).toBe('https://payment.test/pay');
+    expect(body).toMatchObject({
+      lead_id: 'lead-1',
+      offer_id: 'intl_quarterly_welcome50',
+      reward_id: 'WELCOME50',
+      billing_country: 'US',
+    });
+    expect(body.idempotency_key).toEqual(expect.any(String));
+    expect(checkout.provider).toBe('PAYPAL');
+    expect(checkout.amountDueToday).toBe(9.99);
+    expect(checkout.standardAmount).toBe(19.99);
+    expect(checkout.renewalDescription).toBe('$19.99 every 12 weeks');
+    expect(checkout.paypal?.planId).toBe('P-PLAN');
+    expect('claimToken' in checkout).toBe(false);
+  });
+
+  it('sends the backend reward code when using the real fallback catalog offer', async () => {
+    const context = createFallbackFunnelContext('US');
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          checkoutId: 'checkout-1',
+          status: 'PENDING_APPROVAL',
+          provider: 'paypal',
+          planId: 'P-PLAN',
+          customId: 'custom-1',
+          offerId: 'intl_quarterly_welcome50',
+          rewardId: 'WELCOME50',
+          currency: 'USD',
+          amountMinor: 999,
+          standardAmountMinor: 1999,
+          renewalAmountMinor: 1999,
+          renewalDescription: '$19.99 every 12 weeks',
+          renewalInterval: 'quarterly',
+          welcomeDiscountPercent: 50,
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await createCheckout({
+      leadId: 'lead-1',
+      offer: getRecommendedOffer(context.offers),
+      billingCountry: 'US',
+    });
+
+    const body = JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
+    expect(getRecommendedOffer(context.offers).reward_id).toBe('rw_welcome50_preview');
+    expect(body.reward_id).toBe('WELCOME50');
   });
 });
 
