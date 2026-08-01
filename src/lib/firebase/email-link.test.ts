@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  disabledPaddleEmailLinkState,
-  maySendFirebaseEmailLink,
   readFirebaseEmailLinkConfig,
-  sendVerifiedPaymentEmailLink,
+  sendFirebaseEmailLinkAfterPurchase,
 } from './email-link';
 
 const config = {
@@ -14,27 +12,17 @@ const config = {
   NEXT_PUBLIC_FIREBASE_EMAIL_LINK_CONTINUE_URL: 'https://start.nutree.ai/open-nutree',
 };
 
-describe('Firebase verified-payment email link gate', () => {
-  it('keeps the Paddle flow disabled until it has a server payment projection', () => {
-    expect(disabledPaddleEmailLinkState).toEqual({
-      kind: 'source_unavailable',
-      reason: 'paddle_server_projection_not_available',
-    });
-    expect(maySendFirebaseEmailLink(disabledPaddleEmailLinkState)).toBe(false);
-    expect(maySendFirebaseEmailLink({ kind: 'payment_pending' })).toBe(false);
-    expect(maySendFirebaseEmailLink({ kind: 'payment_verified' })).toBe(true);
-  });
-
-  it('rejects link sending before payment verification without loading Firebase', async () => {
-    await expect(sendVerifiedPaymentEmailLink('person@example.com', { kind: 'payment_pending' }))
-      .rejects.toThrow('server-verified payment status');
-  });
-
+describe('Firebase email-link configuration', () => {
   it('requires a token-free HTTPS open-nutree continuation', () => {
     expect(readFirebaseEmailLinkConfig(config).continueUrl).toBe('https://start.nutree.ai/open-nutree');
     expect(() => readFirebaseEmailLinkConfig({
       ...config,
       NEXT_PUBLIC_FIREBASE_EMAIL_LINK_CONTINUE_URL: 'https://start.nutree.ai/open-nutree?claim_token=not-allowed',
     })).toThrow('no query or fragment');
+  });
+
+  it('requires a browser before attempting to send', async () => {
+    await expect(sendFirebaseEmailLinkAfterPurchase('person@example.com'))
+      .rejects.toThrow('only be sent in a browser');
   });
 });

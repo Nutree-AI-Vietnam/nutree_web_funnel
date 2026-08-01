@@ -7,7 +7,7 @@ import type { CheckoutResponse, Lead, OnboardingPayload, TdeeResult } from './ty
 export type PayPalCheckout = CheckoutResponse & { offerLabel: string };
 
 export const STORAGE_KEY = 'nutree_funnel_v1';
-const STORE_VERSION = 2;
+const STORE_VERSION = 3;
 
 interface QuizState {
   data: OnboardingPayload;
@@ -47,13 +47,7 @@ function toPersistedQuizState(state: QuizState): PersistedQuizState {
     locale: state.locale,
     tdee: state.tdee,
     tdeeSource: state.tdeeSource,
-    lead: state.lead
-      ? {
-        email: state.lead.email,
-        lead_id: state.lead.lead_id,
-        ...(state.lead.masked_email ? { masked_email: state.lead.masked_email } : {}),
-      }
-      : null,
+    lead: state.lead ? { email: state.lead.email } : null,
   };
 }
 
@@ -68,13 +62,7 @@ export function migratePersistedQuizState(persistedState: unknown): PersistedQui
     locale: state.locale ?? initial.locale,
     tdee: state.tdee ?? initial.tdee,
     tdeeSource: state.tdeeSource ?? initial.tdeeSource,
-    lead: state.lead
-      ? {
-        email: state.lead.email,
-        lead_id: state.lead.lead_id,
-        ...(state.lead.masked_email ? { masked_email: state.lead.masked_email } : {}),
-      }
-      : null,
+    lead: state.lead?.email ? { email: state.lead.email } : null,
   };
 }
 

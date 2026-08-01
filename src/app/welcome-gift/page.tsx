@@ -6,12 +6,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ConversionShell } from '@/components/conversion-shell';
 import { ScratchTicketCover } from '@/components/scratch-ticket-cover';
-import { getFunnelContext, revealWelcomeReward } from '@/lib/api/client';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
-import { createFallbackFunnelContext } from '@/lib/funnel/catalog';
 import { getLocalPreviewCountry, isLocalPreviewHost } from '@/lib/local-preview';
-import type { FunnelContext } from '@/lib/quiz/types';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 
 export default function WelcomeGiftPage() {
@@ -22,7 +19,6 @@ export default function WelcomeGiftPage() {
   const setLocale = useQuizStore((s) => s.setLocale);
   const revealTriggered = useRef(false);
   const [revealed, setRevealed] = useState(false);
-  const [context, setContext] = useState<FunnelContext>(() => createFallbackFunnelContext(typeof window !== 'undefined' && isLocalPreviewHost() ? getLocalPreviewCountry() : undefined));
 
   useEffect(() => trackStepViewed('welcome_gift'), []);
 
@@ -32,19 +28,7 @@ export default function WelcomeGiftPage() {
       router.replace('/email');
       return;
     }
-    getFunnelContext()
-      .then((next) => {
-        setContext(next);
-        if (next.welcome_reward.status === 'REVEALED') {
-          revealTriggered.current = true;
-          setRevealed(true);
-        }
-      })
-      .catch(() => {
-        const fallback = createFallbackFunnelContext(isLocalPreviewHost() ? getLocalPreviewCountry() : undefined);
-        if (isLocalPreviewHost()) setLocale(fallback.locale);
-        setContext(fallback);
-      });
+    if (isLocalPreviewHost()) setLocale(getLocalPreviewCountry() === 'VN' ? 'vi' : 'en');
   }, [hydrated, lead, router, setLocale]);
 
   if (!hydrated) return null;
@@ -68,12 +52,7 @@ export default function WelcomeGiftPage() {
       if (!reduceMotion) navigator.vibrate?.(18);
       trackEvent('welcome_gift_revealed', { discount_percent: 50 });
     };
-    revealWelcomeReward(context.session_id, lead.lead_id)
-      .then((next) => {
-        setContext(next);
-        showRevealed();
-      })
-      .catch(showRevealed);
+    showRevealed();
   };
 
   return (

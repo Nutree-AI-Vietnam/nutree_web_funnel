@@ -6,8 +6,8 @@ import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 
 /**
  * Legacy browser checkout URLs must not infer entitlement from a client-side
- * provider callback. Paddle owns checkout from the paywall and fulfillment is
- * finalized by trusted server-side systems.
+ * provider callback. RevenueCat owns checkout and the mobile app confirms the
+ * Redemption Link before it grants access.
  */
 export default function CheckoutPage() {
   const router = useRouter();

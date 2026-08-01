@@ -1,7 +1,7 @@
 # Nutree Web Funnel
 
 Web onboarding funnel (start.nutree.ai): quiz -> TDEE results -> email capture ->
-Paddle subscription checkout -> app download handoff.
+RevenueCat Web checkout -> Firebase sign-in + RevenueCat app redemption.
 
 Design spec: `docs/superpowers/specs/2026-07-07-web-to-app-funnel-design.md`
 
@@ -13,8 +13,8 @@ Vitest. Localized copy lives in `src/lib/copy/vi.ts` and
 
 ## Localization and Pricing
 
-- Vietnam (`VN`) uses Vietnamese copy and Paddle's VND price override.
-- Every non-Vietnam market uses English copy and Paddle's USD price.
+- Vietnam (`VN`) uses Vietnamese copy and the VND offering configured in RevenueCat.
+- Every non-Vietnam market uses English copy and the USD offering configured in RevenueCat.
 - Keep text and currency aligned on every screen: do not show Vietnamese copy
   with USD, and do not show English copy with VND.
 - Market detection should stay automatic from browser/backend country context;
@@ -36,8 +36,9 @@ npm run build                # production build check
 | Variable | Purpose |
 |---|---|
 | `NEXT_PUBLIC_API_BASE_URL` | Nutree backend base URL (no trailing slash) |
-| `NEXT_PUBLIC_PADDLE_ENVIRONMENT` | Required Paddle target: `sandbox` or `live` |
-| `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` | Paddle browser token matching the target environment |
+| `NEXT_PUBLIC_REVENUECAT_WEB_API_KEY` | RevenueCat Web public API key for the Paddle-backed web config |
+| `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID` | Offering identifier containing the three web packages |
+| `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_4_WEEK` / `12_WEEK` / `52_WEEK` | Exact package identifiers from that offering |
 | `NEXT_PUBLIC_GA4_ID` | GA4 measurement id (optional; script omitted if unset) |
 | `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel id (optional) |
 | `NEXT_PUBLIC_TIKTOK_PIXEL_ID` | TikTok Pixel id (optional) |
@@ -62,16 +63,15 @@ files, which stay ignored by Git, then import non-empty values with:
 ./scripts/import-vercel-env.sh production .env.production.local
 ```
 
-Preview must use Paddle sandbox; Production uses Paddle live. Redeploy after an import because
+Preview must use RevenueCat's sandbox web key/config; Production uses the live web key/config. Redeploy after an import because
 `NEXT_PUBLIC_*` values are embedded during the build.
 
 ## External Dependencies
 
-- **Backend** (separate team): `POST /v1/tdee/preview`, `POST /v1/web-funnel/leads`,
-  lead fulfillment from the verified Paddle webhook at `POST /v1/webhooks/paddle`,
-  and a later Firebase-authenticated mobile claim endpoint. See
-  `docs/email-first-funnel-backend-handoff.md`.
-- **Paddle**: configure the default payment link under Checkout > Checkout settings.
+- **RevenueCat Web**: connect Paddle Billing, import products, map them to the Nutree Premium entitlement, and configure the web offering/package IDs above.
+- **Redemption Links**: enable them for the web config. The web app keeps the one-time redemption URL in memory only and presents it as a phone CTA/QR code after a confirmed purchase.
+- **Firebase Auth**: enable Email Link sign-in and authorize `NEXT_PUBLIC_FIREBASE_EMAIL_LINK_CONTINUE_URL`; Firebase sends the sign-in email directly, so no third-party email provider is required.
+- **Backend**: retains its RevenueCat webhook/cache for enforcing Premium APIs. The anonymous web checkout does not create a Nutree lead or call a custom claim endpoint.
   For live checkout, use an approved production domain. Sandbox supports localhost.
 - **Airbridge**: tracking link created in dashboard (goes in
   `NEXT_PUBLIC_AIRBRIDGE_TRACKING_LINK`).

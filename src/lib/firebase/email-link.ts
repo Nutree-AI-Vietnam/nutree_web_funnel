@@ -1,17 +1,6 @@
 import type { FirebaseOptions } from 'firebase/app';
 
-export type SafePaymentEmailLinkState =
-  | { kind: 'payment_pending' }
-  | { kind: 'payment_verified' }
-  | { kind: 'email_link_sent' }
-  | { kind: 'source_unavailable'; reason: 'paddle_server_projection_not_available' };
-
 type PublicEnvironment = Record<string, string | undefined>;
-
-export const disabledPaddleEmailLinkState: SafePaymentEmailLinkState = {
-  kind: 'source_unavailable',
-  reason: 'paddle_server_projection_not_available',
-};
 
 function publicEnvironment(): PublicEnvironment {
   return {
@@ -51,21 +40,11 @@ export function readFirebaseEmailLinkConfig(source: PublicEnvironment = publicEn
   };
 }
 
-export function maySendFirebaseEmailLink(state: SafePaymentEmailLinkState): boolean {
-  return state.kind === 'payment_verified';
-}
-
 /**
- * Sends a Firebase Email Link only after an authoritative server projection says
- * payment is verified. The email remains in caller memory and is never stored here.
+ * Sends Firebase's own sign-in email after RevenueCat's Web SDK resolves a
+ * successful purchase. The email remains in caller memory and is never stored here.
  */
-export async function sendVerifiedPaymentEmailLink(
-  email: string,
-  paymentState: SafePaymentEmailLinkState,
-): Promise<void> {
-  if (!maySendFirebaseEmailLink(paymentState)) {
-    throw new Error('Firebase email links require a server-verified payment status.');
-  }
+export async function sendFirebaseEmailLinkAfterPurchase(email: string): Promise<void> {
   if (typeof window === 'undefined') throw new Error('Firebase email links can only be sent in a browser.');
 
   const { firebase, continueUrl } = readFirebaseEmailLinkConfig();
