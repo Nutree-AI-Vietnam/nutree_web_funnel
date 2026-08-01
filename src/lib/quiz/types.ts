@@ -36,7 +36,6 @@ export interface Lead {
   email: string;
   lead_id: string;
   masked_email?: string;
-  claim_token?: string;
 }
 
 export interface MomoCheckout {
@@ -127,4 +126,13 @@ export interface CheckoutResponse {
     planId: string;
     customId: string;
   };
+}
+
+export interface CheckoutStatusResponse {
+  checkoutId: string;
+  status: 'PENDING_APPROVAL' | 'PENDING_PAYMENT' | 'PAID_ACTIVE' | 'CLAIMED' | 'REVOKED';
+  provider: PaymentProvider | 'paypal';
+  claimable: boolean;
+  claimed: boolean;
+  paidAt?: string | null;
 }

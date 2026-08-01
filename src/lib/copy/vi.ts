@@ -505,11 +505,7 @@ export const vi = {
   },
   success: {
     headline: 'Kế hoạch của bạn đã được mở khóa',
-    body: 'Kiểm tra email để nhận link bảo mật mở Nutree và khôi phục kế hoạch. Bạn không cần làm lại quiz.',
-    qrHint: 'Quét mã QR bằng điện thoại',
-    emailHint: 'Dùng link trong email nếu bạn mở Nutree trên thiết bị khác.',
-    appStore: 'Tải trên App Store',
-    playStore: 'Tải trên Google Play',
+    body: 'Sau khi thanh toán được xác minh, chúng tôi sẽ gửi email đăng nhập bảo mật để mở Nutree và khôi phục kế hoạch. Bạn không cần làm lại quiz.',
   },
 } as const;
 

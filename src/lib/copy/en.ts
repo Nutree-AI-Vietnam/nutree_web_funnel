@@ -510,10 +510,6 @@ export const en: Copy = {
   },
   success: {
     headline: 'Your plan is unlocked',
-    body: 'Check your email for a secure link to open Nutree and restore your plan. No need to retake the quiz.',
-    qrHint: 'Scan the QR code with your phone',
-    emailHint: 'Use the email link if you’re opening Nutree on another device.',
-    appStore: 'Download on the App Store',
-    playStore: 'Get it on Google Play',
+    body: 'After your payment is verified, we’ll send a secure sign-in email to open Nutree and restore your plan. No need to retake the quiz.',
   },
 };

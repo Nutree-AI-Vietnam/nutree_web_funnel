@@ -1,5 +1,7 @@
 import type {
   CheckoutResponse,
+  CheckoutStatusResponse,
+  Currency,
   FunnelContext,
   FunnelOffer,
   Lead,
@@ -8,6 +10,9 @@ import type {
   PaymentStatus,
   TdeeResult,
 } from '../quiz/types';
+import { createFallbackFunnelContext } from '../funnel/catalog';
+
+const WELCOME_REWARD_CODE = 'WELCOME50';
 
 function baseUrl(): string {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -72,6 +77,12 @@ export async function previewTdee(data: OnboardingPayload): Promise<TdeeResult> 
   };
 }
 
+function getBrowserCountry(): string {
+  if (typeof window === 'undefined') return 'US';
+  const language = window.navigator.language || '';
+  return language.toLowerCase().endsWith('-vn') ? 'VN' : 'US';
+}
+
 /** Creates a pre-authentication funnel lead and persists its quiz answers. */
 export async function createLead(email: string, onboardingPayload: OnboardingPayload): Promise<Lead> {
   const response = await post<{
@@ -90,13 +101,13 @@ export async function createLead(email: string, onboardingPayload: OnboardingPay
 }
 
 export async function getFunnelContext(): Promise<FunnelContext> {
-  return get<FunnelContext>('/api/funnel/context');
+  return createFallbackFunnelContext(getBrowserCountry());
 }
 
 export async function revealWelcomeReward(sessionId: string, leadId: string): Promise<FunnelContext> {
-  return post<FunnelContext>(`/v1/web-funnel/sessions/${sessionId}/welcome-reward/reveal`, {
-    lead_id: leadId,
-  });
+  void sessionId;
+  void leadId;
+  return createFallbackFunnelContext(getBrowserCountry());
 }
 
 export async function createCheckout({
@@ -108,13 +119,68 @@ export async function createCheckout({
   offer: FunnelOffer;
   billingCountry: string;
 }): Promise<CheckoutResponse> {
-  return post<CheckoutResponse>('/v1/web-funnel/checkouts', {
+  const response = await post<{
+    checkoutId: string;
+    status: CheckoutResponse['status'];
+    provider: 'paypal';
+    planId: string;
+    customId: string;
+    offerId: string;
+    rewardId: string;
+    currency: Currency;
+    amountMinor: number;
+    standardAmountMinor: number;
+    renewalAmountMinor: number;
+    renewalDescription: string;
+    renewalInterval: string;
+    welcomeDiscountPercent: number;
+  }>('/v1/web-funnel/checkouts', {
     lead_id: leadId,
     offer_id: offer.id,
-    reward_id: offer.reward_id,
+    reward_id: WELCOME_REWARD_CODE,
     billing_country: billingCountry,
     idempotency_key: crypto.randomUUID(),
   });
+  const amountDueToday =
+    response.currency === 'USD' ? response.amountMinor / 100 : response.amountMinor;
+  const standardAmount =
+    response.currency === 'USD' ? response.standardAmountMinor / 100 : response.standardAmountMinor;
+  const renewalAmount =
+    response.currency === 'USD' ? response.renewalAmountMinor / 100 : response.renewalAmountMinor;
+  return {
+    checkoutId: response.checkoutId,
+    provider: 'PAYPAL',
+    countryCode: billingCountry,
+    currency: response.currency,
+    offerId: response.offerId,
+    rewardId: response.rewardId,
+    rewardApplied: true,
+    discountPercent: response.welcomeDiscountPercent as 50,
+    standardAmount,
+    amountDueToday,
+    renewalAmount,
+    renewalDescription: response.renewalDescription,
+    nextBillingDate: offer.next_billing_date,
+    priceLockedWhileActive: true,
+    status: response.status,
+    paypal: {
+      planId: response.planId,
+      customId: response.customId,
+    },
+  };
+}
+
+export async function confirmPayPalSubscription(
+  checkoutId: string,
+  subscriptionId: string,
+): Promise<CheckoutStatusResponse> {
+  return post<CheckoutStatusResponse>(`/v1/web-funnel/checkouts/${checkoutId}/paypal-confirmation`, {
+    subscriptionId,
+  });
+}
+
+export async function getCheckoutStatus(checkoutId: string): Promise<CheckoutStatusResponse> {
+  return get<CheckoutStatusResponse>(`/v1/web-funnel/checkouts/${checkoutId}`);
 }
 
 export async function createMomoSubscriptionCheckout(
