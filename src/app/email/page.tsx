@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ConversionShell } from '@/components/conversion-shell';
 import { PrimaryButton } from '@/components/primary-button';
-import { createLead } from '@/lib/api/client';
+import { captureEmail } from '@/lib/api/client';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { isValidEmail } from '@/lib/quiz/email';
@@ -14,7 +14,6 @@ export default function EmailPage() {
   const router = useRouter();
   const vi = useCopy();
   const hydrated = useHydrated();
-  const data = useQuizStore((s) => s.data);
   const lead = useQuizStore((s) => s.lead);
   const setLead = useQuizStore((s) => s.setLead);
   const [email, setEmail] = useState('');
@@ -37,21 +36,15 @@ export default function EmailPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const result = await createLead(currentEmail.trim(), data);
-      setLead(result);
-      trackEvent('lead_created', {});
+      setLead(captureEmail(currentEmail.trim()));
+      trackEvent('email_captured', {});
       router.push('/welcome-gift');
-    } catch {
-      setError(vi.email.error);
-      setSubmitting(false);
-    }
+    } finally { setSubmitting(false); }
   };
 
   const bypassEmailForLocal = () => {
     setLead({
       email: 'local-preview@nutree.dev',
-      lead_id: 'lead_local_preview',
-      masked_email: 'local-preview@nutree.dev',
     });
     trackEvent('email_bypassed_local', {});
     router.push('/welcome-gift');

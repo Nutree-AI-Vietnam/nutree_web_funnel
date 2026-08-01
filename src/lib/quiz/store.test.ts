@@ -51,9 +51,9 @@ describe('quiz store', () => {
   });
 
   it('stores lead and purchase flag', () => {
-    useQuizStore.getState().setLead({ email: 'a@b.c', lead_id: 'lead-1' });
+    useQuizStore.getState().setLead({ email: 'a@b.c' });
     useQuizStore.getState().setPurchased(true);
-    expect(useQuizStore.getState().lead?.lead_id).toBe('lead-1');
+    expect(useQuizStore.getState().lead?.email).toBe('a@b.c');
     expect(useQuizStore.getState().purchased).toBe(true);
   });
 
@@ -82,7 +82,7 @@ describe('quiz store', () => {
       locale: 'en',
       tdee: null,
       tdeeSource: null,
-      lead: { email: 'a@b.c', lead_id: 'lead-1' },
+      lead: { email: 'a@b.c' },
     });
     expect(migrated).not.toHaveProperty('purchased');
     expect(migrated).not.toHaveProperty('paypalCheckout');
@@ -104,7 +104,7 @@ describe('quiz store', () => {
 
     await useQuizStore.persist.rehydrate();
 
-    expect(useQuizStore.getState().lead).toEqual({ email: 'a@b.c', lead_id: 'lead-1' });
+    expect(useQuizStore.getState().lead).toEqual({ email: 'a@b.c' });
     expect(useQuizStore.getState().purchased).toBe(false);
     expect(useQuizStore.getState().paypalCheckout).toBeNull();
   });

@@ -1,17 +1,8 @@
 import type { FirebaseOptions } from 'firebase/app';
 
-export type SafePaymentEmailLinkState =
-  | { kind: 'payment_pending' }
-  | { kind: 'payment_verified' }
-  | { kind: 'email_link_sent' }
-  | { kind: 'source_unavailable'; reason: 'paddle_server_projection_not_available' };
-
 type PublicEnvironment = Record<string, string | undefined>;
 
-export const disabledPaddleEmailLinkState: SafePaymentEmailLinkState = {
-  kind: 'source_unavailable',
-  reason: 'paddle_server_projection_not_available',
-};
+const emailStorageKey = 'nutree.firebase.email-for-email-link';
 
 function publicEnvironment(): PublicEnvironment {
   return {
@@ -20,6 +11,8 @@ function publicEnvironment(): PublicEnvironment {
     NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
     NEXT_PUBLIC_FIREBASE_EMAIL_LINK_CONTINUE_URL: process.env.NEXT_PUBLIC_FIREBASE_EMAIL_LINK_CONTINUE_URL,
+    NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID: process.env.NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID,
+    NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME: process.env.NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME,
   };
 }
 
@@ -33,6 +26,8 @@ function required(source: PublicEnvironment, key: keyof PublicEnvironment): stri
 export function readFirebaseEmailLinkConfig(source: PublicEnvironment = publicEnvironment()): {
   firebase: FirebaseOptions;
   continueUrl: string;
+  iosBundleId?: string;
+  androidPackageName?: string;
 } {
   const continueUrl = required(source, 'NEXT_PUBLIC_FIREBASE_EMAIL_LINK_CONTINUE_URL');
   const parsed = new URL(continueUrl);
@@ -48,27 +43,19 @@ export function readFirebaseEmailLinkConfig(source: PublicEnvironment = publicEn
       appId: required(source, 'NEXT_PUBLIC_FIREBASE_APP_ID'),
     },
     continueUrl: parsed.toString(),
+    iosBundleId: source.NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID?.trim() || undefined,
+    androidPackageName: source.NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME?.trim() || undefined,
   };
 }
 
-export function maySendFirebaseEmailLink(state: SafePaymentEmailLinkState): boolean {
-  return state.kind === 'payment_verified';
-}
-
 /**
- * Sends a Firebase Email Link only after an authoritative server projection says
- * payment is verified. The email remains in caller memory and is never stored here.
+ * Sends Firebase's own sign-in email after RevenueCat's Web SDK resolves a
+ * successful purchase. The email remains in caller memory and is never stored here.
  */
-export async function sendVerifiedPaymentEmailLink(
-  email: string,
-  paymentState: SafePaymentEmailLinkState,
-): Promise<void> {
-  if (!maySendFirebaseEmailLink(paymentState)) {
-    throw new Error('Firebase email links require a server-verified payment status.');
-  }
+export async function sendFirebaseEmailLinkAfterPurchase(email: string): Promise<void> {
   if (typeof window === 'undefined') throw new Error('Firebase email links can only be sent in a browser.');
 
-  const { firebase, continueUrl } = readFirebaseEmailLinkConfig();
+  const { firebase, continueUrl, iosBundleId, androidPackageName } = readFirebaseEmailLinkConfig();
   const [{ getApps, initializeApp }, { getAuth, sendSignInLinkToEmail }] = await Promise.all([
     import('firebase/app'),
     import('firebase/auth'),
@@ -77,5 +64,49 @@ export async function sendVerifiedPaymentEmailLink(
   await sendSignInLinkToEmail(getAuth(app), email, {
     url: continueUrl,
     handleCodeInApp: true,
+    ...(iosBundleId ? { iOS: { bundleId: iosBundleId } } : {}),
+    ...(androidPackageName ? { android: { packageName: androidPackageName, installApp: true } } : {}),
   });
+  // Firebase recommends retaining only the email locally for same-device completion.
+  // The action URL remains the sole location for Firebase's one-time sign-in code.
+  window.localStorage.setItem(emailStorageKey, email);
+}
+
+/** Returns the same-device email remembered solely for Firebase email-link completion. */
+export function readEmailForEmailLinkCompletion(): string | null {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem(emailStorageKey);
+}
+
+/** Clears the locally remembered email after a successful completion or cancellation. */
+export function clearEmailForEmailLinkCompletion(): void {
+  if (typeof window !== 'undefined') window.localStorage.removeItem(emailStorageKey);
+}
+
+async function firebaseAuth() {
+  const { firebase } = readFirebaseEmailLinkConfig();
+  const [{ getApps, initializeApp }, authModule] = await Promise.all([
+    import('firebase/app'),
+    import('firebase/auth'),
+  ]);
+  const app = getApps()[0] ?? initializeApp(firebase);
+  return { auth: authModule.getAuth(app), authModule };
+}
+
+/** Checks whether the current URL is a Firebase email sign-in action without logging it. */
+export async function isFirebaseEmailLink(url: string): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  const { auth, authModule } = await firebaseAuth();
+  return authModule.isSignInWithEmailLink(auth, url);
+}
+
+/** Completes Firebase's email-link sign-in. The caller owns all user-facing error handling. */
+export async function completeFirebaseEmailLinkSignIn(email: string, url: string): Promise<void> {
+  if (typeof window === 'undefined') throw new Error('Firebase email links can only be completed in a browser.');
+  const normalizedEmail = email.trim();
+  if (!normalizedEmail) throw new Error('Enter the email address used to receive this sign-in link.');
+
+  const { auth, authModule } = await firebaseAuth();
+  await authModule.signInWithEmailLink(auth, normalizedEmail, url);
+  clearEmailForEmailLinkCompletion();
 }

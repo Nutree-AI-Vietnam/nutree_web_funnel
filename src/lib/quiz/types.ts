@@ -34,8 +34,6 @@ export interface TdeeResult {
 
 export interface Lead {
   email: string;
-  lead_id: string;
-  masked_email?: string;
 }
 
 export interface MomoCheckout {

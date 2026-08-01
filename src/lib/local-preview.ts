@@ -36,8 +36,6 @@ export function setLocalPreviewCountry(country: 'VN' | 'US') {
 
 export const localPreviewLead: Lead = {
   email: 'local-preview@nutree.dev',
-  lead_id: 'lead_local_preview',
-  masked_email: 'local-preview@nutree.dev',
 };
 
 export const localPreviewData: OnboardingPayload = {
