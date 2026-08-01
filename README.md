@@ -39,6 +39,7 @@ npm run build                # production build check
 | `NEXT_PUBLIC_REVENUECAT_WEB_API_KEY` | RevenueCat Web public API key for the Paddle-backed web config |
 | `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID` | Offering identifier containing the three web packages |
 | `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_4_WEEK` / `12_WEEK` / `52_WEEK` | Exact package identifiers from that offering |
+| `NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID` / `NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME` | Matching Nutree app bundle/package IDs for in-app Firebase Email Link completion |
 | `NEXT_PUBLIC_GA4_ID` | GA4 measurement id (optional; script omitted if unset) |
 | `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel id (optional) |
 | `NEXT_PUBLIC_TIKTOK_PIXEL_ID` | TikTok Pixel id (optional) |
@@ -70,7 +71,7 @@ Preview must use RevenueCat's sandbox web key/config; Production uses the live w
 
 - **RevenueCat Web**: connect Paddle Billing, import products, map them to the Nutree Premium entitlement, and configure the web offering/package IDs above.
 - **Redemption Links**: enable them for the web config. The web app keeps the one-time redemption URL in memory only and presents it as a phone CTA/QR code after a confirmed purchase.
-- **Firebase Auth**: enable Email Link sign-in and authorize `NEXT_PUBLIC_FIREBASE_EMAIL_LINK_CONTINUE_URL`; Firebase sends the sign-in email directly, so no third-party email provider is required.
+- **Firebase Auth**: enable Email Link sign-in, authorize `NEXT_PUBLIC_FIREBASE_EMAIL_LINK_CONTINUE_URL`, and configure matching iOS bundle/Android package IDs. Firebase sends the sign-in email directly, so no third-party email provider is required. The `/open-nutree` route completes web fallback sign-in; it only stores the email locally for same-device completion and asks for the email on another device.
 - **Backend**: retains its RevenueCat webhook/cache for enforcing Premium APIs. The anonymous web checkout does not create a Nutree lead or call a custom claim endpoint.
   For live checkout, use an approved production domain. Sandbox supports localhost.
 - **Airbridge**: tracking link created in dashboard (goes in

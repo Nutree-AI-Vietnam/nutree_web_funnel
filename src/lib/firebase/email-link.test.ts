@@ -21,6 +21,18 @@ describe('Firebase email-link configuration', () => {
     })).toThrow('no query or fragment');
   });
 
+  it('reads optional mobile application identifiers without placing them in the continuation URL', () => {
+    expect(readFirebaseEmailLinkConfig({
+      ...config,
+      NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID: 'com.nutreeai.mobile',
+      NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME: 'com.nutreeai.mobile',
+    })).toMatchObject({
+      continueUrl: 'https://start.nutree.ai/open-nutree',
+      iosBundleId: 'com.nutreeai.mobile',
+      androidPackageName: 'com.nutreeai.mobile',
+    });
+  });
+
   it('requires a browser before attempting to send', async () => {
     await expect(sendFirebaseEmailLinkAfterPurchase('person@example.com'))
       .rejects.toThrow('only be sent in a browser');
