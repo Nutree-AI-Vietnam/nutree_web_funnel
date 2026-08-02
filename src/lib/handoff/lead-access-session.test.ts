@@ -12,7 +12,7 @@ describe('lead access session', () => {
   });
 
   it('only accepts same-origin browser mutations', () => {
-    expect(isSameOriginMutation(new Headers({ origin: 'https://start.nutree.ai' }), 'https://start.nutree.ai')).toBe(true);
-    expect(isSameOriginMutation(new Headers({ origin: 'https://evil.example' }), 'https://start.nutree.ai')).toBe(false);
+    expect(isSameOriginMutation(new Headers({ origin: 'https://quiz.nutreeai.com' }), 'https://quiz.nutreeai.com')).toBe(true);
+    expect(isSameOriginMutation(new Headers({ origin: 'https://evil.example' }), 'https://quiz.nutreeai.com')).toBe(false);
   });
 });

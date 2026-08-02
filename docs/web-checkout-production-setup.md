@@ -150,11 +150,11 @@ production BFF shared secret; do not reuse the staging secret.
 
 1. Deploy the same reviewed MealTrack revision and let pre-deploy migrations pass.
 2. Configure production backend values using the live RevenueCat secret API key,
-   live webhook secret, production claim host, and `https://start.nutree.ai` as
+   live webhook secret, production claim host, and `https://quiz.nutreeai.com` as
    BFF origin. Production must use
    `WEB_FUNNEL_REVENUECAT_ENVIRONMENT=PRODUCTION` and a new server-only
    `WEB_FUNNEL_BFF_SHARED_SECRET`; do not add product IDs, project ID, or app ID.
-3. Configure the same production Vercel values and redeploy `start.nutree.ai`.
+3. Configure the same production Vercel values and redeploy `quiz.nutreeai.com`.
 4. Recheck the claim host's Apple App Site Association and Android App Links
    configuration against the released mobile bundle/package.
 5. Run one controlled live buyer journey before directing traffic to the funnel.
