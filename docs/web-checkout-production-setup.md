@@ -42,6 +42,30 @@ Set the following in the staging backend service. Generate one random value for
 `WEB_FUNNEL_BFF_SHARED_SECRET` and set the identical value in Vercel Preview;
 never put it in `NEXT_PUBLIC_*`, source control, logs, or this document.
 
+Copy this into the MealTrack staging environment editor, then replace every
+`<...>` placeholder with the staging value. Keep the shared secret server-only.
+
+```dotenv
+WEB_FUNNEL_LEADS_ENABLED=true
+WEB_FUNNEL_EMAIL_ENABLED=true
+WEB_FUNNEL_EXCHANGE_ENABLED=true
+WEB_FUNNEL_COMPLETE_ENABLED=true
+WEB_FUNNEL_BFF_ORIGIN=https://<vercel-preview-origin>
+WEB_FUNNEL_BFF_SHARED_SECRET=<generate-a-new-staging-secret>
+WEB_FUNNEL_REVENUECAT_PRODUCT_IDS=<sandbox-web-product-id-1>,<sandbox-web-product-id-2>
+WEB_FUNNEL_REVENUECAT_ENVIRONMENT=<exact-revenuecat-sandbox-environment>
+WEB_FUNNEL_REVENUECAT_PROJECT_ID=<sandbox-revenuecat-project-id>
+WEB_FUNNEL_REVENUECAT_APP_ID=<sandbox-revenuecat-web-app-id>
+WEB_FUNNEL_CLAIM_LINK_BASE_URL=https://<staging-claim-host>/open-nutree
+REVENUECAT_SECRET_API_KEY=<sandbox-revenuecat-secret-api-key>
+REVENUECAT_WEBHOOK_SECRET=<staging-revenuecat-webhook-secret>
+ALLOWED_ORIGINS=https://<vercel-preview-origin>
+```
+
+`ALLOWED_ORIGINS` is only needed for any browser-to-MealTrack calls outside the
+server-side BFF. Do not include it if your existing staging CORS policy is
+intentionally broader and already covers the Preview origin.
+
 | Setting | Required value |
 |---|---|
 | `WEB_FUNNEL_LEADS_ENABLED` | `true` |
