@@ -35,10 +35,10 @@ describe('quiz store', () => {
 
   it('merges partial payload patches', () => {
     useQuizStore.getState().setData({ fitness_goal: 'cut' });
-    useQuizStore.getState().setData({ age: 30 });
+    useQuizStore.getState().setData({ birth_year: 1996, birth_month: 3, birth_day: 14 });
     expect(useQuizStore.getState().data).toMatchObject({
       fitness_goal: 'cut',
-      age: 30,
+      birth_year: 1996,
       measurement_unit: 'metric',
     });
   });
@@ -50,10 +50,10 @@ describe('quiz store', () => {
     expect(useQuizStore.getState().tdeeSource).toBe('fallback');
   });
 
-  it('stores lead and purchase flag', () => {
-    useQuizStore.getState().setLead({ email: 'a@b.c' });
+  it('stores the safe lead projection and purchase flag', () => {
+    useQuizStore.getState().setLead({ lead_id: 'lead-1', masked_email: 'a***@b.c', status: 'payment_pending' });
     useQuizStore.getState().setPurchased(true);
-    expect(useQuizStore.getState().lead?.email).toBe('a@b.c');
+    expect(useQuizStore.getState().lead).toEqual({ lead_id: 'lead-1', masked_email: 'a***@b.c', status: 'payment_pending' });
     expect(useQuizStore.getState().purchased).toBe(true);
   });
 
@@ -72,7 +72,7 @@ describe('quiz store', () => {
       locale: 'en',
       tdee: null,
       tdeeSource: null,
-      lead: { email: 'a@b.c', lead_id: 'lead-1', claim_token: 'legacy-secret', claimToken: 'legacy-secret' },
+    lead: { email: 'a@b.c', lead_id: 'lead-1', masked_email: 'a***@b.c', status: 'payment_pending', claim_token: 'legacy-secret', claimToken: 'legacy-secret' },
       purchased: true,
       paypalCheckout: { claimToken: 'legacy-secret' },
     });
@@ -82,7 +82,7 @@ describe('quiz store', () => {
       locale: 'en',
       tdee: null,
       tdeeSource: null,
-      lead: { email: 'a@b.c' },
+      lead: { lead_id: 'lead-1', masked_email: 'a***@b.c', status: 'payment_pending' },
     });
     expect(migrated).not.toHaveProperty('purchased');
     expect(migrated).not.toHaveProperty('paypalCheckout');
@@ -95,7 +95,7 @@ describe('quiz store', () => {
       state: {
         data: { measurement_unit: 'metric' },
         locale: 'en',
-        lead: { email: 'a@b.c', lead_id: 'lead-1', claim_token: 'legacy-secret' },
+    lead: { email: 'a@b.c', lead_id: 'lead-1', masked_email: 'a***@b.c', status: 'payment_pending', claim_token: 'legacy-secret' },
         purchased: true,
         paypalCheckout: { checkoutId: 'checkout-1', claimToken: 'legacy-secret' },
       },
@@ -104,7 +104,7 @@ describe('quiz store', () => {
 
     await useQuizStore.persist.rehydrate();
 
-    expect(useQuizStore.getState().lead).toEqual({ email: 'a@b.c' });
+    expect(useQuizStore.getState().lead).toEqual({ lead_id: 'lead-1', masked_email: 'a***@b.c', status: 'payment_pending' });
     expect(useQuizStore.getState().purchased).toBe(false);
     expect(useQuizStore.getState().paypalCheckout).toBeNull();
   });

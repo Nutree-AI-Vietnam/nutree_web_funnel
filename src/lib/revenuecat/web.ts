@@ -42,11 +42,12 @@ export function readRevenueCatWebConfig(source: PublicEnvironment = publicEnviro
   };
 }
 
-/** Configure one anonymous RevenueCat customer for the lifetime of this page. */
-export function configureAnonymousRevenueCat(config: RevenueCatWebConfig) {
+/** Configure one stable RevenueCat customer for the lifetime of this page. */
+export function configureRevenueCatForLead(config: RevenueCatWebConfig, leadId: string) {
+  if (!leadId.trim()) throw new Error('A verified lead ID is required before opening RevenueCat checkout.');
   return Purchases.configure({
     apiKey: config.apiKey,
-    appUserId: Purchases.generateRevenueCatAnonymousAppUserId(),
+    appUserId: leadId,
   });
 }
 

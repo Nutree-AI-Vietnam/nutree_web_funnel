@@ -1,177 +1,242 @@
-# Firebase Email Link identity handoff
+# Mobile-first paid web magic-link identity handoff
 
-## Decision
+Status: planning contract, revised 2026-08-02. The filename is retained so existing
+cross-repo references remain valid; the paid flow no longer uses Firebase Email Link.
 
-Nutree web remains an email-first acquisition funnel. Email typed on web is a
-lead contact only. After a verified Paddle payment, MealTrack sends a Firebase
-Email Link to that address. NutreeAI completes passwordless Firebase sign-in,
-then calls MealTrack to claim the paid lead and its saved onboarding plan.
+## Product outcome
 
-This replaces the requirement to use the same Google account as checkout. Google
-and Apple remain optional existing mobile sign-in methods. Native IAP remains in
-RevenueCat; a Paddle web entitlement remains backend-owned.
+The customer completes Nutree onboarding on web, enters email once, pays, opens one
+secure email link, and arrives in the app already signed in with the same profile,
+plan, and paid access. The app must not ask for email again, replay onboarding, flash
+a paywall, or silently merge an account.
 
-## Customer journey
+## Locked decisions
+
+- Mobile is the canonical onboarding contract. Web captures `birth_year`,
+  `birth_month`, and `birth_day` on the existing age step. Age is derived for
+  display/TDEE preview; backend validates DOB and derives persisted current age.
+- Web creates a lead/onboarding snapshot before checkout. It does not create a
+  Firebase/local user, profile, completed onboarding, or entitlement.
+- RevenueCat fetched entitlement `standard` is access authority. Browser redirect,
+  checkout callback, lead ID, email, and provider metadata never grant access.
+- Backend sends a direct Nutree App/Universal Link after verified fulfillment.
+- Mobile exchanges the magic token for a Firebase custom token, signs in, then
+  completes the claim with a fresh Firebase ID token.
+- Database claim effects are atomic. Firebase Admin, email, and RevenueCat calls
+  run outside transactions using reservations/outboxes and idempotent recovery.
+- Google/Apple, native purchase/restore, RevenueCat providers/gates, backend calorie
+  ownership, and current market localization/currency behavior remain unchanged.
+- Generic “Continue with email” is a separate follow-up, not part of this paid claim.
+
+## Canonical flow
 
 ```text
-Web: quiz -> email -> lead -> Paddle Checkout
-Paddle: verified transaction.completed webhook
-Backend: mark paid -> create outbox -> send Email Link
-Mobile: open link -> Firebase Email Link sign-in -> claim -> entitlement -> plan
+web DOB onboarding + email
+  -> possession-bound lead + immutable onboarding snapshot
+  -> RevenueCat Web SDK configured once with lead UUID as identified App User ID
+  -> durable RevenueCat webhook + fetched active standard
+  -> email outbox sends short-lived Nutree magic link
+  -> mobile validates direct link in redacted memory
+  -> POST /v1/web-funnel/claims/exchange
+  -> Firebase custom token + exchange token
+  -> signInWithCustomToken + force-refresh Firebase ID token
+  -> POST /v1/web-funnel/claims/complete
+  -> atomic user/profile/DOB/plan/onboarding/claim/outbox commit
+  -> existing RevenueCat UID association + fresh CustomerInfo
+  -> active home OR pending activation recovery
 ```
 
-The browser success redirect is not proof of payment and cannot grant access.
+## Mobile-aligned onboarding snapshot
 
-## Ownership
+`lead_onboarding_snapshot_v1` contains the complete fields required to materialize
+the same profile/plan as native onboarding. DOB fields are required and canonical.
+The backend may record a derived `age_at_capture` for audit/preview, but neither web
+nor mobile sends an authoritative age into claim completion.
 
-| Owner | Deliverable |
+Validation rules:
+
+- calendar-valid, non-future DOB within the same supported range as mobile/backend;
+- mobile-equivalent gender, measurements, activity, goal, pace, diet, and preferences;
+- versioned/immutable snapshot selected at checkout start;
+- legacy age-only state asks for DOB on the same step and never invents a birthday;
+- all calories/macros/plan outputs are derived and persisted by backend services.
+
+## Endpoints and safe contracts
+
+### Lead
+
+- `POST /v1/web-funnel/leads`
+- `GET /v1/web-funnel/leads/{lead_id}/status`
+- `POST /v1/web-funnel/leads/{lead_id}/resend`
+
+The same-origin Next BFF owns a host-only HttpOnly Secure SameSite browser access
+cookie and forwards it as `X-Lead-Access-Key`. Backend stores only its hash. Email
+alone cannot recover/update a draft or disclose its lead ID. Browser-safe responses
+contain lead ID, masked email, state enum, and retry timing only.
+
+Before RevenueCat Web SDK configuration, the browser must already possess the lead.
+Configure `@revenuecat/purchases-js` once with that lead UUID as `appUserId`; do not
+use its anonymous ID generator for this funnel. The SDK package/purchase path remains
+unchanged. Backend accepts only the exact known lead App User ID from webhook plus
+fetched customer state; email, random anonymous IDs, and unknown aliases never fulfill.
+
+### Direct emailed link
+
+```text
+https://<claim-host>/open-nutree#v=2&lead_id=<uuid>&magic_token=<opaque>
+```
+
+The request path/query is token-free. The fragment is never sent to the web server.
+The installed app validates exact scheme, flavor host, path, version, UUID, fields,
+length, and encoding before exposing a redacted in-memory intent. The browser fallback
+clears the fragment before rendering/vendors and says install, then reopen the email.
+
+### Exchange
+
+`POST /v1/web-funnel/claims/exchange`
+
+Request concept:
+
+```json
+{
+  "lead_id": "uuid",
+  "magic_token": "opaque",
+  "client_retry_secret": "mobile-generated-opaque"
+}
+```
+
+Response concept (`claim_exchange_v1`):
+
+```json
+{
+  "schema_version": 1,
+  "firebase_custom_token": "opaque",
+  "exchange_token": "opaque",
+  "expires_in_seconds": 300
+}
+```
+
+Exchange validates paid/unexpired/unrevoked state, reserves one generation, stores
+only the hash of the mobile-generated retry secret, and mints for the server-selected
+Firebase UID. Only the same in-memory retry proof may repeat an active reservation;
+a copied link without it fails. It creates no local profile, completes no onboarding,
+grants no access, and consumes no claim.
+
+The custom token carries only reservation ID/generation as a minimal Firebase custom
+claim. This lets authenticated startup recover after Firebase sign-in without storing
+magic/exchange credentials. If the process dies before sign-in, the user reopens after
+reservation expiry or requests resend; the client stores no retry bearer on disk.
+
+Firebase identity decision table:
+
+| Firebase state | Result |
 | --- | --- |
-| Web funnel | Capture email, create lead, prefill Paddle, send `funnel_lead_id`, accurate copy |
-| MealTrack backend | Lead/claim persistence, webhook fulfillment, email dispatch, token verification, entitlement |
-| NutreeAI mobile | Email Link UX, App/Universal Link handling, Firebase sign-in, authenticated claim, entitlement refresh |
-| Firebase/project owner | Enable providers, configure link domains and app identifiers per environment |
+| No user for normalized email | Create backend-owned email UID with verified email |
+| Existing email-only UID | Reuse exact UID |
+| Same UID already signed in | Reuse fresh bearer; no custom-token account switch |
+| Google/Apple-linked, disabled, ambiguous, or inconsistent record | Generic conflict/support; never automatic merge |
+| Backend-created provisional UID expires unclaimed | Revoke/delete only after proving no local claim/other provider |
 
-## Shared identifiers and states
+### Authenticated completion
 
-| Value | Created by | Rule |
-| --- | --- | --- |
-| `lead_id` | MealTrack | Opaque high-entropy ID. Web/Paddle correlation only. |
-| Paddle customer/subscription/transaction IDs | Paddle | Stored from verified webhook only. |
-| `claim_token` | MealTrack | Opaque, single-use, short-lived. Store hash only. |
-| Firebase UID | Firebase | Read from verified ID token only. Never accept from request JSON. |
+`POST /v1/web-funnel/claims/complete` requires a fresh Firebase bearer.
 
-Lead state: `draft -> checkout_started -> paid -> claim_email_sent -> claimed`.
-Terminal/support states: `claim_expired`, `claim_revoked`, `claim_conflict`.
-
-## API contract
-
-### Create web lead
-
-`POST /v1/web-funnel/leads` — unauthenticated and rate-limited.
+Request concept:
 
 ```json
-{
-  "email": "person@example.com",
-  "onboarding_payload": { "fitness_goal": "cut" },
-  "source": "nutree_web_funnel"
-}
+{ "exchange_token": "opaque" }
 ```
 
-```json
-{
-  "lead_id": "lead_...",
-  "masked_email": "pe***@example.com"
-}
-```
+The transaction verifies reservation/generation/payment/refund plus exact Firebase
+UID/email, then creates/syncs the local user, restores DOB/profile/backend plan, marks
+onboarding complete, binds the paid lead, consumes the claim, stores an immutable
+result, and inserts the RevenueCat association outbox. It calls no external service.
 
-Normalize email server-side. Repeated safe submissions may update the same draft
-lead or return it, but must not create duplicate purchases. This endpoint does
-not create a Firebase user or entitlement.
+`claim_result_v1` returns `claim_status=claimed|already_claimed`, `plan_snapshot_v1`,
+and `access_sync_status=active|pending|refunded` plus safe retry timing.
 
-### Paddle Checkout metadata
+Normal completion supplies `exchange_token`. After process death, a fresh Firebase
+ID token containing the server-minted reservation claim may authorize the same
+provisional completion without a device-persisted token; all UID/generation/payment
+checks still apply and the same-UID result remains idempotent.
 
-```json
-{
-  "source": "nutree_web_paywall",
-  "plan": "...",
-  "funnel_lead_id": "lead_..."
-}
-```
+### Recovery
 
-Paddle custom data is correlation data, never price or access authority.
+`GET /v1/web-funnel/claims/recovery` is authenticated and returns only the committed
+result or `completion_required` for the current UID's valid reservation custom claim.
+It repairs response-loss/process-death without device credential persistence.
 
-### Complete mobile claim
+## State and retry ownership
 
-`POST /v1/web-funnel/claims/complete` — requires `Authorization: Bearer <Firebase ID token>`.
+Browser states include draft, checkout started, payment pending, payment verified,
+email queued/sent/delayed, expired, revoked, conflict, refunded, and claimed.
 
-```json
-{ "claim_token": "opaque-single-use-token" }
-```
+Mobile states include link received, exchanging, authenticating, completing,
+restoring, access pending, completed, recoverable failure, and account conflict.
 
-```json
-{
-  "claim_status": "claimed",
-  "onboarding_payload": {},
-  "entitlement": {
-    "active": true,
-    "provider": "paddle",
-    "product_id": "pro_...",
-    "expires_at": "2026-..."
-  }
-}
-```
+- Browser success starts `payment_pending`; only fetched provider state verifies paid.
+- Active reaches restored home.
+- Pending preserves any existing access and stays on activation retry; never paywall.
+- Same-UID replay returns committed result.
+- Different UID/email/provider conflict never silently merges; use switch/support.
+- Resend revokes the prior unconsumed magic generation.
+- Refund/expiry revokes only when no other active `standard` source remains.
 
-The server verifies the Firebase token, derives UID/email/verified-email state,
-checks exact normalized email match with the paid lead, atomically consumes the
-claim token, and upserts the existing app user before linking Paddle state. A
-valid token with a different email returns `409 claim_email_mismatch`; it never
-merges accounts automatically.
+## Transaction and external-side-effect boundary
 
-### Refresh entitlement
+One database unit of work owns user, profile, DOB/derived age, plan/read models,
+onboarding completion, lead binding, claim consumption/result, and RevenueCat outbox.
+Any injected failure rolls all of them back and leaves the claim retryable.
 
-`GET /v1/me/entitlement` — Firebase-authenticated. Return active status,
-provider (`paddle` or `revenuecat`), product/plan, expiry, and source revision.
-The mobile client must call this after claim and must not infer a Paddle purchase
-from RevenueCat customer info.
+Firebase account lookup/custom-token mint, email delivery, RevenueCat transfer, and
+CustomerInfo fetch occur outside that transaction. Reservation/outbox state fences
+duplicates and independent workers repair crashes before/after each external call.
 
-## Backend implementation checklist
+RevenueCat transfer contract: the backend uses a permission-scoped v2 secret API key
+to transfer subscriptions/purchases from source customer ID `lead_id` to a target
+customer (created if absent) whose ID equals Firebase UID, filtered to the configured
+web app ID. A unique
+source-target outbox fence makes retries idempotent. Active is returned only after
+fetching the target UID and observing `standard`; target already-active, source already
+transferred, two-target race, refund during transfer, and alias propagation are tests.
 
-1. Use the existing Firebase verifier in `src/api/dependencies/auth.py`.
-2. Reuse the Resend adapter for a branded email; use Firebase Admin
-   `generate_sign_in_with_email_link` to create the Firebase action URL.
-3. Set action settings to use the selected Firebase Hosting/custom link domain,
-   a production HTTPS continue URL, mobile platform identifiers, and in-app
-   completion. Do not use Firebase Dynamic Links.
-4. Execute verified webhook updates, payment state, and a deduplicated email
-   outbox in one transaction. Dispatch mail after commit with retry metadata.
-5. Make claim consumption transactional; lock or conditionally update the claim
-   so concurrent opens cannot attach the lead twice.
-6. Log event IDs/statuses only. Never log bearer tokens, action links, claims, or
-   raw email in analytics/crash events.
+## Security and privacy invariants
 
-## Mobile implementation checklist
+- Magic, browser, exchange, custom, and Firebase ID tokens are bearer credentials:
+  hash where stored; short TTL; generation/fencing; no plaintext persistence.
+- No raw email, token, full link, provider body/ID, or Firebase exception appears in
+  URLs outside the fragment, browser/mobile storage, DOM, route state, logs, traces,
+  analytics, crash reports, screenshots, clipboard, support payloads, or CI artifacts.
+- Status/resend/login-style responses are anti-enumeration safe and rate limited.
+- Never accept client UID/email/provider/DOB/age as identity after exchange; use the
+  reservation snapshot and verified Firebase claims.
+- Firebase email collision never triggers automatic merge or provider overwrite.
+- RevenueCat App User ID `lead_id` and provider metadata are correlation only.
 
-1. Enable Firebase Email/Password and Email Link sign-in for each Firebase project.
-2. Reuse `firebase_auth` and `app_links`; add Email Link methods to the auth
-   repository and notifier, with resend and email re-entry UI.
-3. Complete sign-in only after `isSignInWithEmailLink` succeeds. Firebase requires
-   the original email to complete the link; do not place it in URL parameters.
-4. Extend `DeepLinkService` before ordinary route mapping. Preserve only the
-   transient opaque claim token while sign-in finishes.
-5. Configure the chosen Firebase Hosting/custom domain as a browsable Android
-   App Link and iOS Universal Link. The current Android manifest lacks a `VIEW`
-   intent filter; iOS currently lists only `app.nutree.app`, so both need review.
-6. Obtain a fresh Firebase ID token, claim server-side, hydrate onboarding, then
-   refresh backend entitlement before routing through a hard paywall.
-7. Keep Google/Apple provider conflicts explicit: sign into the existing account
-   and link credentials, or use support recovery. Never create silent duplicates.
+## Release order and rollback
 
-## Environment checklist
+1. Freeze shared fixtures and deploy additive backend dark.
+2. Ship native App/Universal Link and custom-token consumer to stores.
+3. Verify compatible app availability/minimum version.
+4. Ship web DOB/lead/status/fallback pre-activation work.
+5. Execute real-device staging matrix and provider replay/recovery drills.
+6. Enable a small web email/claim canary, then expand on measured gates.
 
-| Item | Preview/SIT | Production |
-| --- | --- | --- |
-| Firebase project | staging project | production project |
-| Backend target | SIT backend | production backend |
-| Paddle target | sandbox | live |
-| Link domain | staging Firebase Hosting/custom domain | approved production Firebase Hosting/custom domain |
-| iOS/Android identifiers | staging flavor IDs | production flavor IDs |
-| Resend sender | test/approved staging sender | verified production sender |
+Rollback disables new lead/email/exchange independently. It preserves issued/claimed
+users, completed profiles, native RevenueCat access, and Google/Apple behavior.
 
-Every link must stay within its environment. A production email link may not
-open a staging app or call a staging backend.
+## Acceptance matrix
 
-## Required tests
+- installed, absent/install/reopen, reinstalled, killed, backgrounded;
+- same/cross-device, duplicate, expired, revoked, wrong-flavor link;
+- signed out, matching user, different user, UID/account switch race;
+- fresh, same-user replay, response loss, refund before/after completion;
+- active, pending, refunded, provider delay/outage, worker crash;
+- exact DOB/profile/plan parity and backend calorie display;
+- all locales/accessibility; no onboarding/paywall/payment-success flash;
+- current Google/Apple and native RevenueCat purchase/restore/gates unchanged.
 
-- Verified Paddle payment produces exactly one claim email despite webhook replay.
-- Failed, pending, refunded, or unsigned events produce no claim email/access.
-- Same-device and cross-device Email Link completion both succeed.
-- Expired, consumed, mismatched, and concurrent claims fail safely.
-- Existing Google/Apple account with same/different email follows explicit conflict handling.
-- A claimed Paddle purchase unlocks server entitlement even when RevenueCat has no web purchase.
-- Android and iOS staging builds open the configured link domain.
+## Unresolved questions
 
-## References
-
-- [Firebase Email Link authentication for Flutter](https://firebase.google.com/docs/auth/flutter/email-link-auth)
-- [Firebase action links with Admin SDK](https://firebase.google.com/docs/auth/admin/email-action-links)
-- [Firebase Dynamic Links deprecation FAQ](https://firebase.google.com/support/dynamic-links-faq)
+None. Environment hosts, minimum compatible version, and canary percentage are
+release-time configuration inputs, not contract choices.

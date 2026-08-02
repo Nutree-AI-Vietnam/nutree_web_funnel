@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ConversionShell } from '@/components/conversion-shell';
 import { PrimaryButton } from '@/components/primary-button';
-import { captureEmail } from '@/lib/api/client';
+import { createLead } from '@/lib/api/client';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { isValidEmail } from '@/lib/quiz/email';
@@ -14,8 +14,8 @@ export default function EmailPage() {
   const router = useRouter();
   const vi = useCopy();
   const hydrated = useHydrated();
-  const lead = useQuizStore((s) => s.lead);
   const setLead = useQuizStore((s) => s.setLead);
+  const data = useQuizStore((s) => s.data);
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +23,7 @@ export default function EmailPage() {
   const canBypassEmail = process.env.NODE_ENV !== 'production';
 
   useEffect(() => trackStepViewed('email_capture'), []);
-  const currentEmail = email || lead?.email || '';
+  const currentEmail = email;
 
   if (!hydrated) return null;
 
@@ -36,15 +36,17 @@ export default function EmailPage() {
     setSubmitting(true);
     setError(null);
     try {
-      setLead(captureEmail(currentEmail.trim()));
+      setLead(await createLead(currentEmail.trim(), data));
       trackEvent('email_captured', {});
       router.push('/welcome-gift');
+    } catch {
+      setError('We could not save your checkout draft. Please try again.');
     } finally { setSubmitting(false); }
   };
 
   const bypassEmailForLocal = () => {
     setLead({
-      email: 'local-preview@nutree.dev',
+      lead_id: 'local-preview-lead', masked_email: 'l***@nutree.dev', status: 'payment_pending',
     });
     trackEvent('email_bypassed_local', {});
     router.push('/welcome-gift');

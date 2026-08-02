@@ -1,12 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
-  captureEmail,
+  createLead,
   previewTdee,
+  toWebFunnelSnapshot,
 } from './client';
 import type { OnboardingPayload } from '../quiz/types';
 
 const payload: OnboardingPayload = {
-  age: 30,
+  birth_year: 1996,
+  birth_month: 3,
+  birth_day: 14,
   gender: 'male',
   height_cm: 175,
   weight_kg: 75,
@@ -101,9 +104,27 @@ describe('previewTdee', () => {
   });
 });
 
-describe('captureEmail', () => {
-  it('keeps the pre-checkout email local without calling the backend', () => {
-    expect(captureEmail('person@example.com')).toEqual({ email: 'person@example.com' });
-    expect(fetch).not.toHaveBeenCalled();
+describe('createLead', () => {
+  it('uses the same-origin BFF and returns only the safe lead projection', async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(new Response(JSON.stringify({
+      lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_pending',
+    }), { status: 201 }));
+
+    await expect(createLead('person@example.com', payload)).resolves.toEqual({
+      lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_pending',
+    });
+    expect(fetch).toHaveBeenCalledWith('/api/web-funnel/leads', expect.objectContaining({ method: 'POST' }));
+    const leadRequest = (fetch as ReturnType<typeof vi.fn>).mock.calls.find(([url]) => url === '/api/web-funnel/leads');
+    expect(leadRequest?.[1].headers).not.toHaveProperty('X-Lead-Access-Key');
+  });
+});
+
+describe('toWebFunnelSnapshot', () => {
+  it("maps the web quiz shape to the backend's strict mobile-compatible snapshot", () => {
+    expect(toWebFunnelSnapshot(payload)).toEqual({
+      birth_year: 1996, birth_month: 3, birth_day: 14, gender: 'male', height: 175, weight: 75,
+      job_type: 'desk', training_days_per_week: 4, training_minutes_per_session: 60, goal: 'cut',
+      pain_points: [], dietary_preferences: [], target_weight_kg: undefined,
+    });
   });
 });

@@ -7,12 +7,11 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ConversionShell } from '@/components/conversion-shell';
-import { RevenueCatRedemptionHandoff } from '@/components/revenuecat-redemption-handoff';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
 import { revenueCatPaywallPlans, type RevenueCatPaywallPlan } from '@/lib/revenuecat/paywall-plans';
-import { configureAnonymousRevenueCat, packagesByPlan, readRevenueCatWebConfig } from '@/lib/revenuecat/web';
+import { configureRevenueCatForLead, packagesByPlan, readRevenueCatWebConfig } from '@/lib/revenuecat/web';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 
@@ -55,7 +54,6 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
-  const [redemptionUrl, setRedemptionUrl] = useState<string | null>(null);
   const purchasesRef = useRef<PurchasesInstance | null>(null);
 
   const countryCode = initialCountryCode ?? (isLocalPreviewHost() ? getLocalPreviewCountry() : undefined);
@@ -89,7 +87,8 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
     async function loadRevenueCatOffering() {
       try {
         const config = readRevenueCatWebConfig();
-        const purchases = configureAnonymousRevenueCat(config);
+        if (!lead) throw new Error('Your checkout draft is unavailable. Return to email capture to continue.');
+        const purchases = configureRevenueCatForLead(config, lead.lead_id);
         purchasesRef.current = purchases;
         const offerings = await purchases.getOfferings({
           offeringIdentifier: config.offeringIdentifier,
@@ -115,7 +114,7 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
 
     void loadRevenueCatOffering();
     return () => { cancelled = true; };
-  }, [countryCode]);
+  }, [countryCode, lead]);
 
   const openCheckout = async () => {
     const rcPackage = planPackages[selected.id];
@@ -128,17 +127,14 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
     trackEvent('revenuecat_checkout_started', { plan: selected.id, package_id: rcPackage.identifier, country_code: countryCode ?? 'auto' });
 
     try {
-      const result = await purchasesRef.current.purchase({
+      await purchasesRef.current.purchase({
         rcPackage,
-        customerEmail: lead.email,
         selectedLocale: activeLocale,
         defaultLocale: 'en',
         skipSuccessPage: true,
       });
-      const redeemUrl = result.redemptionInfo?.redeemUrl;
-      if (!redeemUrl) throw new Error('RevenueCat did not return the secure app activation link. Please try again or contact support.');
       trackEvent('revenuecat_checkout_completed', { plan: selected.id });
-      setRedemptionUrl(redeemUrl);
+      router.push('/welcome');
     } catch (purchaseError) {
       setError(purchaseError instanceof Error ? purchaseError.message : 'RevenueCat could not complete checkout. Please try again.');
     } finally {
@@ -238,7 +234,6 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
           </section>
         </div>
       )}
-      {redemptionUrl && lead && <RevenueCatRedemptionHandoff email={lead.email} redeemUrl={redemptionUrl} onClose={() => setRedemptionUrl(null)} />}
         </>,
         document.body,
       )}

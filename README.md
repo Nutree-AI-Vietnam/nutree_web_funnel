@@ -1,7 +1,7 @@
 # Nutree Web Funnel
 
 Web onboarding funnel (start.nutree.ai): quiz -> TDEE results -> email capture ->
-RevenueCat Web checkout -> Firebase sign-in + RevenueCat app redemption.
+RevenueCat Web checkout -> direct Nutree magic-link/custom-token handoff.
 
 Design spec: `docs/superpowers/specs/2026-07-07-web-to-app-funnel-design.md`
 
@@ -36,10 +36,11 @@ npm run build                # production build check
 | Variable | Purpose |
 |---|---|
 | `NEXT_PUBLIC_API_BASE_URL` | Nutree backend base URL (no trailing slash) |
-| `NEXT_PUBLIC_REVENUECAT_WEB_API_KEY` | RevenueCat Web public API key for the Paddle-backed web config |
+| `WEB_FUNNEL_BFF_SHARED_SECRET` | Server-only shared credential required by MealTrack for lead creation |
+| `NEXT_PUBLIC_REVENUECAT_WEB_API_KEY` | RevenueCat Web public API key for the web checkout config |
 | `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID` | Offering identifier containing the three web packages |
 | `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_4_WEEK` / `12_WEEK` / `52_WEEK` | Exact package identifiers from that offering |
-| `NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID` / `NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME` | Matching Nutree app bundle/package IDs for in-app Firebase Email Link completion |
+| `NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID` / `NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME` | Matching Nutree app bundle/package IDs for the phone handoff flow |
 | `NEXT_PUBLIC_GA4_ID` | GA4 measurement id (optional; script omitted if unset) |
 | `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel id (optional) |
 | `NEXT_PUBLIC_TIKTOK_PIXEL_ID` | TikTok Pixel id (optional) |
@@ -70,9 +71,9 @@ Preview must use RevenueCat's sandbox web key/config; Production uses the live w
 ## External Dependencies
 
 - **RevenueCat Web**: connect Paddle Billing, import products, map them to the Nutree Premium entitlement, and configure the web offering/package IDs above.
-- **Redemption Links**: enable them for the web config. The web app keeps the one-time redemption URL in memory only and presents it as a phone CTA/QR code after a confirmed purchase.
-- **Firebase Auth**: enable Email Link sign-in, authorize `NEXT_PUBLIC_FIREBASE_EMAIL_LINK_CONTINUE_URL`, and configure matching iOS bundle/Android package IDs. Firebase sends the sign-in email directly, so no third-party email provider is required. The `/open-nutree` route completes web fallback sign-in; it only stores the email locally for same-device completion and asks for the email on another device.
-- **Backend**: retains its RevenueCat webhook/cache for enforcing Premium APIs. The anonymous web checkout does not create a Nutree lead or call a custom claim endpoint.
+- **Lead handoff BFF**: the web app creates a possession-bound checkout draft through `/api/web-funnel/session` and `/api/web-funnel/leads`, then polls `/status` and can request `/resend` or `/session/reset` with the same-origin lead-access cookie.
+- **Firebase Auth**: configure the mobile app’s custom-token claim path. The web funnel never completes Firebase auth in-browser; `/open-nutree` is a token-free install/reopen fallback.
+- **Backend**: retains its RevenueCat webhook/cache for enforcing Premium APIs and lead-status projection.
   For live checkout, use an approved production domain. Sandbox supports localhost.
 - **Airbridge**: tracking link created in dashboard (goes in
   `NEXT_PUBLIC_AIRBRIDGE_TRACKING_LINK`).
