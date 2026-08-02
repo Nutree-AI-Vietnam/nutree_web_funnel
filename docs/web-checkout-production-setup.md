@@ -52,12 +52,14 @@ WEB_FUNNEL_BFF_SHARED_SECRET=<generate-a-new-staging-secret>
 WEB_FUNNEL_CLAIM_LINK_BASE_URL=https://<staging-claim-host>/open-nutree
 REVENUECAT_SECRET_API_KEY=<server-only-revenuecat-secret>
 REVENUECAT_WEBHOOK_SECRET=<staging-revenuecat-webhook-secret>
+WEB_FUNNEL_REVENUECAT_ENVIRONMENT=SANDBOX
 ALLOWED_ORIGINS=https://<vercel-preview-origin>
 ```
 
 The web owns its offerings, packages, prices, and A/B experiments. MealTrack
 checks the authoritative `standard` entitlement for the lead, not a configured
-list of web product IDs.
+list of web product IDs. It does require one static environment value so a
+webhook from a different RevenueCat environment cannot issue a claim.
 
 | Setting | Required value |
 |---|---|
@@ -70,6 +72,7 @@ list of web product IDs.
 | `WEB_FUNNEL_CLAIM_LINK_BASE_URL` | `https://<staging-claim-host>/open-nutree` |
 | `REVENUECAT_SECRET_API_KEY` | Server-only sandbox/appropriate RevenueCat secret key |
 | `REVENUECAT_WEBHOOK_SECRET` | Exact secret for the staging webhook endpoint |
+| `WEB_FUNNEL_REVENUECAT_ENVIRONMENT` | `SANDBOX` for staging; `PRODUCTION` in production |
 | `ALLOWED_ORIGINS` | Exact Vercel Preview origin, if browser-to-backend calls exist outside the BFF |
 
 ### 3. Configure Vercel Preview
