@@ -72,7 +72,7 @@ Preview must use RevenueCat's sandbox web key/config; Production uses the live w
 
 - **RevenueCat Web**: connect Paddle Billing, import products, map them to the Nutree Premium entitlement, and configure the web offering/package IDs above.
 - **Lead handoff BFF**: the web app creates a possession-bound checkout draft through `/api/web-funnel/session` and `/api/web-funnel/leads`, then polls `/status` and can request `/resend` or `/session/reset` with the same-origin lead-access cookie.
-- **Firebase Auth**: configure the mobile app’s custom-token claim path. The web funnel never completes Firebase auth in-browser; `/open-nutree` is a token-free install/reopen fallback.
+- **Firebase Auth**: configure the mobile app’s custom-token claim path. The web funnel never completes Firebase auth in-browser; `/open-nutree` is the phone continuation page.
 - **Backend**: retains its RevenueCat webhook/cache for enforcing Premium APIs and lead-status projection.
   For live checkout, use an approved production domain. Sandbox supports localhost.
 - **Airbridge**: tracking link created in dashboard (goes in

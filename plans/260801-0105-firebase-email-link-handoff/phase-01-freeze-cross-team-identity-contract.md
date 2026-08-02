@@ -1,64 +1,90 @@
 ---
 phase: 1
-title: Freeze cross-team identity contract
-status: completed
+title: "Refreeze mobile-first identity and DOB contract"
+status: pending
 priority: P1
-effort: 4h
+effort: "1-2d"
 dependencies: []
 ---
 
-# Phase 1: Freeze cross-team identity contract
+# Phase 1: Refreeze Mobile-First Identity and DOB Contract
+
+## Context Links
+
+- [Mobile research](./research/researcher-mobile-first-dob-auth-contract.md)
+- [Backend/web research](./research/researcher-backend-web-magic-claim.md)
+- Backend plan: `/Users/alexnguyen/Desktop/Nut/mealtrack_backend/plans/260802-0135-paid-web-magic-link-claim-entitlement-backend/`
+- Mobile plan: `/Users/alexnguyen/Desktop/Nut/nutree/nutree_ai/plans/260801-1137-firebase-email-link-claim-handoff-mobile/`
 
 ## Overview
 
-Freeze the identity boundary: email capture is a lead, Firebase Email Link is
-authentication, and the verified Paddle webhook is the only payment authority.
+Replace the previous Firebase Email Link/manual-email contract with a direct
+Nutree magic-link/custom-token exchange and make mobile DOB fields canonical.
 
 ## Requirements
 
-- No web password or mandatory login before checkout.
-- Email link must prove ownership of the checkout email before a lead is claimed.
-- The backend must derive Firebase UID and email from a verified ID token.
-- Native RevenueCat IAP remains independent; a Paddle web purchase must come from
-  a backend entitlement, not from a fabricated RevenueCat receipt.
+- Freeze endpoints: lead create/status/resend, `/claims/exchange`, `/claims/complete`,
+  and authenticated `/claims/recovery`.
+- Freeze tokens: `magic_token` only in direct-link fragment; `exchange_token` only
+  in authenticated completion; Firebase custom/ID tokens remain standard bearers.
+- Freeze link: `https://<claim-host>/open-nutree#v=2&lead_id=<uuid>&magic_token=<opaque>`.
+- Freeze onboarding snapshot with `birth_year`, `birth_month`, `birth_day`; backend
+  validates/derives age and calories. No fabricated DOB or independent age authority.
+- Magic link authorizes exchange; custom token creates Firebase session; fresh ID
+  token plus exchange token authorizes atomic completion.
+- Database claim is atomic; Firebase, email, and RevenueCat calls use reservation/outbox.
+- Exchange binds a hashed mobile retry secret; normal completion uses exchange token,
+  while post-sign-in process death recovers through the server-minted reservation claim.
+- RevenueCat Web uses lead UUID as identified App User ID; backend v2 transfer moves
+  the verified web customer to Firebase UID and refetches target `standard`.
+- Email is never silent merge authority. `standard` remains access authority.
 
 ## Architecture
 
 ```text
-web email -> lead_id -> Paddle customData -> verified Paddle webhook
-  -> one claim email -> Firebase Email Link -> mobile Firebase session
-  -> verified backend claim -> provider-neutral entitlement -> saved plan
+web DOB/email -> lead -> RevenueCat verified paid -> Nutree magic email
+  -> mobile exchange -> Firebase custom auth -> authenticated atomic complete
+  -> profile/plan/onboarding restored -> existing RevenueCat refresh -> home
 ```
 
 ## Related Code Files
 
-- Create: `docs/firebase-email-link-identity-handoff.md`
-- Reference: `docs/email-first-funnel-backend-handoff.md`
-- Reference: `src/app/paywall/paywall-page-client.tsx`
+- Modify this plan, all coordinated phase files, and canonical handoff design doc.
+- Create/update shared synthetic contract fixtures in each implementation repo.
 
 ## Implementation Steps
 
-1. Agree on one environment-specific Firebase link domain and matching mobile app identifiers.
-2. Adopt the request, response, state, security, and ownership contract in the handoff.
-3. Record that the single-use claim token is opaque, short-lived, stored hashed,
-   and absent from analytics, browser persistence, and logs.
-4. Define support recovery for expired links, cross-device completion, and an
-   already-linked Firebase account.
+1. Copy the same synthetic field/state/error fixtures into all three plans.
+2. Remove action-link, nested continue URL, email re-entry, and `claim_token` assumptions.
+3. Lock exact DOB validation/derived-age ownership and payment/access authority.
+4. Lock retry proof, provisional Firebase identity, process-death recovery, RevenueCat
+   v2 transfer, conflict, pending, refund, rollback, and recovery semantics.
+5. Approve mobile-release-before-web-activation dependency and no-Playwright web boundary.
 
-## Implementation Steps
+## Todo List
 
-<!-- Detailed steps -->
+- [ ] Freeze direct-link/token/endpoint names.
+- [ ] Freeze DOB and derived-age ownership.
+- [ ] Freeze atomic/external-side-effect boundaries.
+- [ ] Remove stale Email Link/manual-email assumptions.
 
 ## Success Criteria
 
-- [ ] Teams agree that the browser success redirect never grants access.
-- [ ] Teams agree on staging and production Firebase projects/link domains.
-- [ ] Each lead has at most one claimed Firebase UID without explicit recovery.
-- [ ] Contract has no raw Paddle API key, Firebase UID, or claim token from an untrusted client.
+- [ ] Web/backend/mobile plans describe the same direct magic-link flow.
+- [ ] One paid click requires no email entry and never creates a profile before completion.
+- [ ] Every conflict/replay/provider-delay state has one safe owner and result.
+- [ ] Mobile availability explicitly blocks web activation.
 
 ## Risk Assessment
 
-- Firebase action links and claim links are separate capabilities. Mitigate by
-  completing Firebase Email Link first, then calling the backend with the short-lived claim token.
-- Email delivery is retried. Mitigate with an outbox/idempotency key rather than
-  emitting mail directly inside a webhook retry path.
+Custom-token flow is more bespoke than Firebase Email Link; narrow versioned
+contracts, reservation fencing, and staged flags contain the complexity.
+
+## Security Considerations
+
+Raw keys/tokens/links/email/provider bodies never enter browser persistence,
+analytics, logs, screenshots, plans, or support payloads.
+
+## Next Steps
+
+Phases 2-4 execute only after this refreeze is accepted. Unresolved questions: none.

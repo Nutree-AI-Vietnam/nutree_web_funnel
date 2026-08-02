@@ -1,62 +1,75 @@
 ---
 phase: 4
-title: "Document mobile sign-in and validation"
+title: "Ship compatible mobile custom-token claim before activation"
 status: pending
 priority: P1
-effort: "2d"
+effort: "1d coordination; implementation in mobile plan"
 dependencies: [1, 3]
 ---
 
-# Phase 4: Document mobile sign-in and validation
+# Phase 4: Ship Compatible Mobile Custom-Token Claim Before Activation
+
+## Context Links
+
+- [Shared contract](./phase-01-freeze-cross-team-identity-contract.md)
+- Mobile plan: `/Users/alexnguyen/Desktop/Nut/nutree/nutree_ai/plans/260801-1137-firebase-email-link-claim-handoff-mobile/`
 
 ## Overview
 
-Give NutreeAI mobile an implementation-ready Email Link sign-in and post-claim
-flow that reuses its Firebase Auth, `app_links`, user-sync, and router patterns.
+Keep mobile acceptance identical to the direct magic-link contract and require a
+compatible native release before production web claim email can be activated.
+
+## Requirements
+
+- Parse the exact direct App/Universal Link into redacted memory before normal routing.
+- Exchange -> `signInWithCustomToken` -> fresh ID token -> complete; no email prompt,
+  `signInWithEmailLink`, or pre-completion `/users/sync` in the paid path.
+- Claim route outranks auth/onboarding/subscription redirects until terminal.
+- One claim-owned barrier suppresses the existing auth listener, UID-unsafe onboarding
+  cache fallback, normal `/users/sync`, and router/subscription side effects until hydration.
+- Restore exact DOB/profile/plan snapshot; mobile never recalculates calories.
+- Reuse RevenueCat UID login/fresh CustomerInfo and current `standard` providers/gates;
+  never call native restore for the web path.
+- Active reaches home; pending holds progress/retry; conflict/refund is explicit.
+- Generic returning email login is deferred outside this paid-claim rollout.
 
 ## Related Code Files
 
-- Handoff reference: `docs/firebase-email-link-identity-handoff.md`
-- Existing mobile reference: `lib/core/services/deep_link_service.dart`
-- Existing mobile reference: `lib/features/auth/data/repositories/auth_repository.dart`
-- Existing mobile reference: `lib/features/auth/application/providers/auth_flow_notifier.dart`
-- Existing mobile reference: `android/app/src/main/AndroidManifest.xml`
-- Existing mobile reference: `ios/Runner/Runner.entitlements`
+- No mobile implementation files in web repo. Mobile owns its linked six-phase plan.
+- Web owns app-absent fallback and minimum-compatible-version activation gate.
 
 ## Implementation Steps
 
-1. Enable Email/Password and Email Link providers in each matching Firebase project.
-2. Configure the Firebase Hosting/custom link domain as an Android App Link and
-   iOS Universal Link. The current Android manifest has no browsable `VIEW`
-   filter, so add one; iOS associated domains must include the selected link domain.
-3. Extend the auth repository/notifier and sign-in UI with Email Link send,
-   resend, completion, failure, and cross-device email re-entry behavior.
-4. Extend `DeepLinkService` to recognize email-auth links before normal route
-   mapping and preserve the opaque claim token until Firebase sign-in completes.
-5. After `signInWithEmailLink`, call the backend claim endpoint with a freshly
-   obtained Firebase ID token, then refresh the provider-neutral entitlement and
-   hydrate the stored onboarding plan.
-6. Retain Google and Apple as optional existing providers. Handle an existing
-   account/provider conflict with explicit sign-in-and-link or support recovery;
-   never silently merge Firebase users.
-7. Test same-device, cross-device, app-installed, app-not-installed, resend,
-   expired/used link, mismatched email, offline, and Paddle entitlement refresh.
+1. Verify fixture, provider enum, exchange/result mapping, and DOB parity tests.
+2. Verify direct-link native association for every flavor and safe older-build behavior.
+3. Verify auth/router races, account switch, process death, retry/recovery, and secret absence.
+4. Verify native Google/Apple and RevenueCat purchase/restore/gate regression suite.
+5. Ship compatible store build; only then authorize web staging/canary activation.
 
-## Implementation Steps
+## Todo List
 
-<!-- Detailed steps -->
+- [ ] Match mobile fixture/state/error names.
+- [ ] Prove zero email entry and redirect flash.
+- [ ] Prove DOB/profile/plan restoration and backend calories.
+- [ ] Ship/verify compatible native build before web activation.
 
 ## Success Criteria
 
-- [ ] Opening a paid customer’s email link signs in with Firebase and restores the plan without repeating the web quiz.
-- [ ] A RevenueCat-only result cannot overwrite a verified Paddle entitlement.
-- [ ] Android and iOS link behavior is tested on real staging builds.
-- [ ] No raw email link or claim token is sent to analytics/crash reporting.
+- [ ] One click signs in and restores home with no email/onboarding/paywall.
+- [ ] App absent recovery is install then reopen same email.
+- [ ] Pending never double-charges or erases existing access.
+- [ ] Older/native flows show zero regression.
 
 ## Risk Assessment
 
-- Email Link completion requires the email entered by the customer; never put that
-  email in a URL. Store it locally only for same-device completion and ask again
-  when it is unavailable.
-- The Firebase link domain must be tested separately for dev/staging/production;
-  a production link must never target staging Firebase or backend.
+Native link config cannot ship through OTA alone. Store review/cache timing must be
+absorbed before enabling web email issuance.
+
+## Security Considerations
+
+Magic/custom/exchange/Firebase tokens remain memory-only and absent from routes,
+logs, analytics, crashes, screenshots, support, clipboard, and device storage.
+
+## Next Steps
+
+Execute staging matrix, then activate a small web canary. Unresolved questions: none.
