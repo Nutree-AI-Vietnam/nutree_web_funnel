@@ -11,7 +11,7 @@ import type { OnboardingPayload } from '@/lib/quiz/types';
 import { isMetricValueValid, MetricInput, parseMetricDraft } from './metric-input';
 import { QuizStepFrame } from './quiz-step-frame';
 
-type NumberField = 'target_weight_kg' | 'height_cm' | 'weight_kg' | 'age' | 'body_fat_percentage';
+type NumberField = 'target_weight_kg' | 'height_cm' | 'weight_kg' | 'body_fat_percentage';
 
 type FieldConfig = {
   label: string;
@@ -40,12 +40,6 @@ function fieldConfigFor(copy: Copy): Record<NumberField, FieldConfig> {
       hint: copy.weight.weightHint,
       step: 1,
       defaultValue: 50,
-    },
-    age: {
-      label: copy.age.label,
-      hint: copy.age.hint,
-      step: 1,
-      defaultValue: 30,
     },
     body_fat_percentage: {
       label: copy.body_fat.label,

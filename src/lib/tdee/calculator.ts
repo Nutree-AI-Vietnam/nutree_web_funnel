@@ -3,6 +3,7 @@
  * + macro_calculation_constants.dart. Used only when POST /v1/tdee/preview fails.
  */
 import type { OnboardingPayload, TdeeResult } from '../quiz/types';
+import { deriveAge } from '../quiz/dob';
 
 type Sex = 'male' | 'female';
 type Goal = 'cut' | 'bulk' | 'recomp' | 'maintain';
@@ -91,7 +92,8 @@ export function calculateMacros(p: {
 
 /** Full fallback from the quiz payload. Null if required fields are missing. */
 export function computeTdeeResult(data: OnboardingPayload): TdeeResult | null {
-  const { age, gender, weight_kg, height_cm, job_type, fitness_goal } = data;
+  const { gender, weight_kg, height_cm, job_type, fitness_goal } = data;
+  const age = deriveAge(data);
   if (!age || !gender || !weight_kg || !height_cm || !job_type || !fitness_goal) return null;
 
   const bmr = calculateBmr({

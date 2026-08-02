@@ -4,6 +4,7 @@ import type { ComponentType } from 'react';
 import { useCopy } from '@/lib/copy/use-copy';
 import type { QuizStep } from '@/lib/quiz/steps';
 import { CalculatingStep } from './calculating';
+import { BirthDateStep } from './birth-date-step';
 import {
   BodyReviewStep,
   TargetWeightStep,
@@ -73,19 +74,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
     const c = useCopy();
     return <SingleChoiceStep step="sex" field="gender" question={c.sex.question} options={c.sex.options} />;
   },
-  age: () => {
-    const c = useCopy();
-    return (
-      <NumberInputStep
-        step="age"
-        field="age"
-        question={c.age.question}
-        unit={c.age.unit}
-        min={18}
-        max={100}
-      />
-    );
-  },
+  age: () => <BirthDateStep />,
   height: () => {
     const c = useCopy();
     return (

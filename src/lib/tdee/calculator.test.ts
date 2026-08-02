@@ -70,7 +70,9 @@ describe('macros', () => {
 describe('computeTdeeResult (end-to-end from payload)', () => {
   it('returns full normalized result', () => {
     const r = computeTdeeResult({
-      age: 30,
+      birth_year: 1996,
+      birth_month: 3,
+      birth_day: 14,
       gender: 'male',
       weight_kg: 75,
       height_cm: 175,
@@ -84,6 +86,6 @@ describe('computeTdeeResult (end-to-end from payload)', () => {
   });
 
   it('returns null when required fields missing', () => {
-    expect(computeTdeeResult({ age: 30 })).toBeNull();
+    expect(computeTdeeResult({ birth_year: 1996, birth_month: 3, birth_day: 14 })).toBeNull();
   });
 });

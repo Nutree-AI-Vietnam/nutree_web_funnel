@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { getLocalPreviewCountry, localPreviewData, localPreviewLead, localPreviewTdee, setLocalPreviewCountry, useLocalPreviewHost } from '@/lib/local-preview';
 import { useQuizStore } from '@/lib/quiz/store';
 
@@ -13,13 +14,14 @@ const routes = [
 ] as const;
 
 export function LocalPreviewTools() {
+  const pathname = usePathname();
   const setData = useQuizStore((s) => s.setData);
   const setLead = useQuizStore((s) => s.setLead);
   const setLocale = useQuizStore((s) => s.setLocale);
   const setTdee = useQuizStore((s) => s.setTdee);
   const enabled = useLocalPreviewHost();
 
-  if (!enabled) return null;
+  if (!enabled || pathname === '/open-nutree') return null;
 
   const previewCountry = getLocalPreviewCountry();
 

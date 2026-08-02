@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { WelcomeStatus } from './welcome-status';
 
 export const metadata: Metadata = {
   title: 'Welcome',
@@ -18,13 +19,13 @@ export default function WelcomePage() {
         <h1 className="mt-4 text-[clamp(2.4rem,8vw,4.4rem)] font-extrabold leading-[0.98] tracking-[-0.06em] text-forest">
           Return to your Nutree checkout.
         </h1>
-        <p className="mt-5 text-base font-semibold leading-relaxed text-slate-brand">Your payment and app activation are completed securely in the checkout flow.</p>
+        <WelcomeStatus />
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link href="/paywall" className="rounded-full bg-forest px-6 py-3 text-sm font-extrabold text-white transition hover:bg-emerald-deep">
-            Return to paywall
-          </Link>
-          <Link href="/" className="rounded-full border border-border-brand px-6 py-3 text-sm font-extrabold text-emerald-deep transition hover:border-teal-brand/60">
+          <Link href="/" className="rounded-full bg-forest px-6 py-3 text-sm font-extrabold text-white transition hover:bg-emerald-deep">
             Back home
+          </Link>
+          <Link href="/email" className="rounded-full border border-border-brand px-6 py-3 text-sm font-extrabold text-emerald-deep transition hover:border-teal-brand/60">
+            Need help?
           </Link>
         </div>
       </section>

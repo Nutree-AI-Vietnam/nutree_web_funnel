@@ -1,6 +1,7 @@
 'use client';
 
 import Script from 'next/script';
+import { usePathname } from 'next/navigation';
 
 const GA4 = process.env.NEXT_PUBLIC_GA4_ID;
 const META = process.env.NEXT_PUBLIC_META_PIXEL_ID;
@@ -9,6 +10,8 @@ const AB_APP = process.env.NEXT_PUBLIC_AIRBRIDGE_APP_NAME;
 const AB_TOKEN = process.env.NEXT_PUBLIC_AIRBRIDGE_WEB_TOKEN;
 
 export function AnalyticsScripts() {
+  const pathname = usePathname();
+  if (pathname === '/open-nutree') return null;
   return (
     <>
       {GA4 && (

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { packagesByPlan, readRevenueCatWebConfig } from './web';
+import { configureRevenueCatForLead, packagesByPlan, readRevenueCatWebConfig } from './web';
+import { Purchases } from '@revenuecat/purchases-js';
+import { vi } from 'vitest';
+
+vi.mock('@revenuecat/purchases-js', () => ({
+  Purchases: { configure: vi.fn() },
+}));
 
 const environment = {
   NEXT_PUBLIC_REVENUECAT_WEB_API_KEY: 'rcb_test_key',
@@ -24,5 +30,12 @@ describe('RevenueCat Web configuration', () => {
     const packages = packagesByPlan([{ identifier: '$rc_monthly' }] as never, config.plans);
     expect(packages['4-week']).toEqual({ identifier: '$rc_monthly' });
     expect(packages['12-week']).toBeUndefined();
+  });
+
+  it('configures RevenueCat with the verified lead ID rather than an anonymous customer', () => {
+    const config = readRevenueCatWebConfig(environment);
+    configureRevenueCatForLead(config, 'lead-1');
+    expect(Purchases.configure).toHaveBeenCalledWith({ apiKey: 'rcb_test_key', appUserId: 'lead-1' });
+    expect(() => configureRevenueCatForLead(config, '')).toThrow(/lead ID/i);
   });
 });

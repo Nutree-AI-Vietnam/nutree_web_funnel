@@ -1,3 +1,4 @@
+import { deriveAge } from '../quiz/dob';
 import type { Lead, OnboardingPayload, TdeeResult } from '../quiz/types';
 
 function baseUrl(): string {
@@ -33,8 +34,10 @@ interface TdeeApiResponse {
 
 /** Calls the existing unauthenticated TDEE preview endpoint. */
 export async function previewTdee(data: OnboardingPayload): Promise<TdeeResult> {
+  const age = deriveAge(data);
+  if (age == null) throw new Error('A valid birth date is required before previewing TDEE.');
   const body = {
-    age: data.age,
+    age,
     sex: data.gender,
     height: data.height_cm,
     weight: data.weight_kg,
@@ -56,7 +59,72 @@ export async function previewTdee(data: OnboardingPayload): Promise<TdeeResult> 
   };
 }
 
-/** Holds the email only in funnel state until RevenueCat checkout asks for it. */
-export function captureEmail(email: string): Lead {
-  return { email };
+/** Creates a possession-bound lead through the same-origin BFF. */
+export async function createLead(email: string, payload: OnboardingPayload): Promise<Lead> {
+  if (!leadCreation) {
+    const requestId = crypto.randomUUID();
+    leadCreation = createLeadOnce(email, payload, requestId).finally(() => { leadCreation = null; });
+  }
+  return leadCreation;
+}
+
+let leadCreation: Promise<Lead> | null = null;
+
+async function createLeadOnce(email: string, payload: OnboardingPayload, requestId: string): Promise<Lead> {
+  await initializeLeadSession();
+  const res = await fetch('/api/web-funnel/leads', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Request-ID': requestId },
+    body: JSON.stringify({ email, payload: toWebFunnelSnapshot(payload) }),
+  });
+  if (!res.ok) throw new Error(`Could not save your checkout draft: ${res.status}`);
+  return res.json() as Promise<Lead>;
+}
+
+/** Maps quiz field names to the backend's strict mobile onboarding contract. */
+export function toWebFunnelSnapshot(data: OnboardingPayload) {
+  return {
+    birth_year: data.birth_year,
+    birth_month: data.birth_month,
+    birth_day: data.birth_day,
+    gender: data.gender,
+    height: data.height_cm,
+    weight: data.weight_kg,
+    ...(data.body_fat_percentage != null && { body_fat_percentage: data.body_fat_percentage }),
+    job_type: data.job_type,
+    training_days_per_week: data.training_days_per_week,
+    training_minutes_per_session: data.training_minutes_per_session,
+    goal: data.fitness_goal,
+    pain_points: data.pain_points ?? [],
+    dietary_preferences: data.dietary_preferences ?? [],
+    target_weight_kg: data.target_weight_kg,
+    ...(data.challenge_duration && { challenge_duration: data.challenge_duration }),
+  };
+}
+
+export async function getLeadStatus(leadId: string): Promise<Lead> {
+  const res = await fetch(`/api/web-funnel/leads/${encodeURIComponent(leadId)}/status`, { cache: 'no-store', credentials: 'same-origin' });
+  if (!res.ok) throw new Error(`Could not load checkout status: ${res.status}`);
+  return res.json() as Promise<Lead>;
+}
+
+export async function requestLeadResend(leadId: string): Promise<void> {
+  const res = await fetch(`/api/web-funnel/leads/${encodeURIComponent(leadId)}/resend`, { method: 'POST', credentials: 'same-origin' });
+  if (!res.ok) throw new Error(`Could not request a new link: ${res.status}`);
+}
+
+export async function resetLeadSession(leadId: string): Promise<void> {
+  const res = await fetch('/api/web-funnel/session/reset', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lead_id: leadId }) });
+  if (!res.ok) throw new Error(`Could not reset checkout draft: ${res.status}`);
+}
+
+let sessionRequest: Promise<void> | null = null;
+
+function initializeLeadSession(): Promise<void> {
+  if (!sessionRequest) {
+    sessionRequest = fetch('/api/web-funnel/session', { method: 'POST', credentials: 'same-origin' })
+      .then((res) => { if (!res.ok) throw new Error('Could not establish checkout session.'); })
+      .finally(() => { sessionRequest = null; });
+  }
+  return sessionRequest;
 }
