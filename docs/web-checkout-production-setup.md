@@ -42,6 +42,23 @@ Set the following in the staging backend service. Generate one random value for
 `WEB_FUNNEL_BFF_SHARED_SECRET` and set the identical value in Vercel Preview;
 never put it in `NEXT_PUBLIC_*`, source control, logs, or this document.
 
+```dotenv
+WEB_FUNNEL_LEADS_ENABLED=true
+WEB_FUNNEL_EMAIL_ENABLED=true
+WEB_FUNNEL_EXCHANGE_ENABLED=true
+WEB_FUNNEL_COMPLETE_ENABLED=true
+WEB_FUNNEL_BFF_ORIGIN=https://<vercel-preview-origin>
+WEB_FUNNEL_BFF_SHARED_SECRET=<generate-a-new-staging-secret>
+WEB_FUNNEL_CLAIM_LINK_BASE_URL=https://<staging-claim-host>/open-nutree
+REVENUECAT_SECRET_API_KEY=<server-only-revenuecat-secret>
+REVENUECAT_WEBHOOK_SECRET=<staging-revenuecat-webhook-secret>
+ALLOWED_ORIGINS=https://<vercel-preview-origin>
+```
+
+The web owns its offerings, packages, prices, and A/B experiments. MealTrack
+checks the authoritative `standard` entitlement for the lead, not a configured
+list of web product IDs.
+
 | Setting | Required value |
 |---|---|
 | `WEB_FUNNEL_LEADS_ENABLED` | `true` |
@@ -50,10 +67,6 @@ never put it in `NEXT_PUBLIC_*`, source control, logs, or this document.
 | `WEB_FUNNEL_COMPLETE_ENABLED` | `true` |
 | `WEB_FUNNEL_BFF_ORIGIN` | Exact Vercel Preview origin |
 | `WEB_FUNNEL_BFF_SHARED_SECRET` | New server-only shared secret |
-| `WEB_FUNNEL_REVENUECAT_PRODUCT_IDS` | Comma-separated sandbox web product IDs |
-| `WEB_FUNNEL_REVENUECAT_ENVIRONMENT` | RevenueCat sandbox environment name |
-| `WEB_FUNNEL_REVENUECAT_PROJECT_ID` | Sandbox RevenueCat project ID |
-| `WEB_FUNNEL_REVENUECAT_APP_ID` | Sandbox web app ID |
 | `WEB_FUNNEL_CLAIM_LINK_BASE_URL` | `https://<staging-claim-host>/open-nutree` |
 | `REVENUECAT_SECRET_API_KEY` | Server-only sandbox/appropriate RevenueCat secret key |
 | `REVENUECAT_WEBHOOK_SECRET` | Exact secret for the staging webhook endpoint |
@@ -101,7 +114,7 @@ Repeat the staging configuration with production-specific values. Use a new
 production BFF shared secret; do not reuse the staging secret.
 
 1. Deploy the same reviewed MealTrack revision and let pre-deploy migrations pass.
-2. Configure production backend values using live RevenueCat IDs, live webhook
+2. Configure production backend values using its live RevenueCat secret/webhook
    secret, production claim host, and `https://start.nutree.ai` as BFF origin.
 3. Configure the same production Vercel values and redeploy `start.nutree.ai`.
 4. Recheck the claim host's Apple App Site Association and Android App Links
@@ -122,7 +135,7 @@ production BFF shared secret; do not reuse the staging secret.
 
 | Symptom | Check |
 |---|---|
-| Lead create returns 404 | Backend revision, four web-funnel settings, BFF origin, and matching server-only shared secret. |
+| Lead create returns 404 | Backend revision, web-funnel enablement settings, BFF origin, and matching server-only shared secret. |
 | Lead create returns 401/403 | HttpOnly cookie presence and same-origin BFF request checks. |
 | Checkout remains pending | RevenueCat webhook delivery, product/environment match, and backend fetched `standard` entitlement. |
 | No email | Backend email setting, claim-link base URL, outbox worker, and sender configuration. |
