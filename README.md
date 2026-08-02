@@ -1,6 +1,6 @@
 # Nutree Web Funnel
 
-Web onboarding funnel (start.nutree.ai): quiz -> TDEE results -> email capture ->
+Web onboarding funnel (quiz.nutreeai.com production, quiz.preview.nutreeai.com preview): quiz -> TDEE results -> email capture ->
 RevenueCat Web checkout -> direct Nutree magic-link/custom-token handoff.
 
 Design spec: `docs/superpowers/specs/2026-07-07-web-to-app-funnel-design.md`
@@ -52,7 +52,8 @@ npm run build                # production build check
 ## Deploy (Vercel)
 
 Import the repo in Vercel, set the env vars above for Production/Preview, and point
-`start.nutree.ai` at the project. No special build settings (defaults work).
+`quiz.nutreeai.com` at the production project and `quiz.preview.nutreeai.com`
+at the preview deployment. No special build settings (defaults work).
 
 ### Vercel import templates
 
