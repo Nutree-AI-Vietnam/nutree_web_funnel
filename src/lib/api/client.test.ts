@@ -121,17 +121,16 @@ describe('createLead', () => {
 });
 
 describe('correlateRevenueCatCustomer', () => {
-  it('uses the same-origin BFF and returns the preflight capability separately from the lead', async () => {
-    const token = 'a'.repeat(43);
+  it('uses the same-origin BFF and only returns the safe lead projection', async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(new Response(JSON.stringify({
-      lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_verified', preflight_token: token, redemption_info: { redeem_url: 'secret' },
+      lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_verified', redemption_info: { redeem_url: 'secret' },
     }), { status: 200 }));
 
-    await expect(correlateRevenueCatCustomer('lead-1', '$RCAnonymousID:customer-1')).resolves.toEqual({
-      lead: { lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_verified' }, preflightToken: token,
+    await expect(correlateRevenueCatCustomer('lead-1', '$RCAnonymousID:customer-1', 'a'.repeat(64))).resolves.toEqual({
+      lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_verified',
     });
     expect(fetch).toHaveBeenCalledWith('/api/web-funnel/leads/lead-1/revenuecat-correlation', expect.objectContaining({
-      method: 'POST', credentials: 'same-origin', body: JSON.stringify({ app_user_id: '$RCAnonymousID:customer-1' }),
+      method: 'POST', credentials: 'same-origin', body: JSON.stringify({ app_user_id: '$RCAnonymousID:customer-1', redemption_link_hash: 'a'.repeat(64) }),
     }));
   });
 });

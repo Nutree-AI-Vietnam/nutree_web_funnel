@@ -1,28 +1,38 @@
 import { describe, expect, it } from 'vitest';
-import { redemptionHandoff } from './redemption-handoff';
+import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, savePendingRedemptionCorrelation } from './redemption-handoff';
+
+function memoryStorage() {
+  const values = new Map<string, string>();
+  return {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => values.set(key, value),
+    removeItem: (key: string) => values.delete(key),
+    values,
+  };
+}
 
 describe('redemption handoff', () => {
-  it('exposes a redemption link only after correlation acknowledgement', () => {
-    expect(redemptionHandoff({ correlationAcknowledged: false, redeemUrl: 'https://redeem.test/token' })).toEqual({ kind: 'pending' });
-    expect(redemptionHandoff({ correlationAcknowledged: true, redeemUrl: 'https://redeem.test/token', preflightToken: 'a'.repeat(43), handoffSiteUrl: 'https://quiz.preview.nutreeai.com' })).toEqual({
-      kind: 'ready',
-      redeemUrl: 'https://quiz.preview.nutreeai.com/redeem#v=redemption_handoff_v1&redeem_url=https%3A%2F%2Fredeem.test%2Ftoken&preflight_token=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-    });
+  it('exposes only an email activation outcome after correlation acknowledgement', () => {
+    expect(redemptionHandoff({ correlationAcknowledged: false, redemptionLinkHash: 'a'.repeat(64) })).toEqual({ kind: 'pending' });
+    expect(redemptionHandoff({ correlationAcknowledged: true, redemptionLinkHash: 'a'.repeat(64) })).toEqual({ kind: 'email_sent' });
   });
 
-  it('fails closed for missing or malformed redemption URLs', () => {
-    expect(redemptionHandoff({ correlationAcknowledged: true, redeemUrl: null, preflightToken: 'a'.repeat(43), handoffSiteUrl: 'https://quiz.preview.nutreeai.com' })).toEqual({ kind: 'recovery' });
-    expect(redemptionHandoff({ correlationAcknowledged: true, redeemUrl: 'javascript:alert(1)', preflightToken: 'a'.repeat(43), handoffSiteUrl: 'https://quiz.preview.nutreeai.com' })).toEqual({ kind: 'recovery' });
-    expect(redemptionHandoff({ correlationAcknowledged: true, redeemUrl: 'https://redeem.test/token', preflightToken: null, handoffSiteUrl: 'https://quiz.preview.nutreeai.com' })).toEqual({ kind: 'recovery' });
-    expect(redemptionHandoff({ correlationAcknowledged: true, redeemUrl: 'https://redeem.test/token', preflightToken: 'a'.repeat(43), handoffSiteUrl: 'https://attacker.test' })).toEqual({ kind: 'recovery' });
+  it('hashes the raw link without returning it and fails closed when unavailable', async () => {
+    const rawLink = 'https://redeem.test/token';
+    await expect(redemptionLinkHash(rawLink)).resolves.toBe('e0b11b09be73ee47d9380b59eef9590fb4eb42fa10734fca6cfbcb8cecf9d25b');
+    expect(redemptionHandoff({ correlationAcknowledged: true, redemptionLinkHash: null })).toEqual({ kind: 'recovery' });
+    await expect(redemptionLinkHash(null)).resolves.toBeNull();
   });
 
-  it('uses a fragment-only wrapper so browser requests and referrers exclude both bearer capabilities', () => {
-    const handoff = redemptionHandoff({ correlationAcknowledged: true, redeemUrl: 'https://redeem.test/token?secret=value', preflightToken: 'a'.repeat(43), handoffSiteUrl: 'https://quiz.preview.nutreeai.com' });
-    expect(handoff).toMatchObject({ kind: 'ready' });
-    if (handoff.kind !== 'ready') throw new Error('Expected ready handoff.');
-    const wrapped = new URL(handoff.redeemUrl);
-    expect(wrapped.origin + wrapped.pathname + wrapped.search).toBe('https://quiz.preview.nutreeai.com/redeem');
-    expect(wrapped.hash).toContain('redeem_url=https%3A%2F%2Fredeem.test%2Ftoken%3Fsecret%3Dvalue');
+  it('persists only a valid hash to resume correlation after a reload', () => {
+    const storage = memoryStorage();
+    const correlation = { leadId: 'lead-1', appUserId: '$RCAnonymousID:customer-1', redemptionLinkHash: 'a'.repeat(64) };
+    savePendingRedemptionCorrelation(correlation, storage);
+
+    expect(readPendingRedemptionCorrelation(storage)).toEqual(correlation);
+    expect([...storage.values.values()].join('')).not.toContain('https://redeem.test/token');
+
+    clearPendingRedemptionCorrelation('lead-1', storage);
+    expect(readPendingRedemptionCorrelation(storage)).toBeNull();
   });
 });

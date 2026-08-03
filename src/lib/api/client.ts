@@ -1,5 +1,5 @@
 import { deriveAge } from '../quiz/dob';
-import { safeRevenueCatCorrelationProjection, type RevenueCatCorrelationProjection } from '../handoff/lead-projection';
+import { safeLeadProjection } from '../handoff/lead-projection';
 import type { Lead, OnboardingPayload, TdeeResult } from '../quiz/types';
 
 function baseUrl(): string {
@@ -109,13 +109,13 @@ export async function getLeadStatus(leadId: string): Promise<Lead> {
   return res.json() as Promise<Lead>;
 }
 
-/** Sends only the anonymous provider ID to the same-origin BFF after checkout. */
-export async function correlateRevenueCatCustomer(leadId: string, appUserId: string): Promise<RevenueCatCorrelationProjection> {
+/** Sends the anonymous provider ID and redemption-link digest to the same-origin BFF after checkout. */
+export async function correlateRevenueCatCustomer(leadId: string, appUserId: string, redemptionLinkHash: string): Promise<Lead> {
   const res = await fetch(`/api/web-funnel/leads/${encodeURIComponent(leadId)}/revenuecat-correlation`, {
-    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app_user_id: appUserId }),
+    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app_user_id: appUserId, redemption_link_hash: redemptionLinkHash }),
   });
   if (!res.ok) throw new Error(`Could not verify payment: ${res.status}`);
-  const safe = safeRevenueCatCorrelationProjection(await res.json());
+  const safe = safeLeadProjection(await res.json());
   if (!safe) throw new Error('Could not verify payment response.');
   return safe;
 }

@@ -1,21 +1,18 @@
 'use client';
 
-import type { Package, Purchases as PurchasesInstance } from '@revenuecat/purchases-js';
+import { Purchases, type Package, type Purchases as PurchasesInstance } from '@revenuecat/purchases-js';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { QRCodeSVG } from 'qrcode.react';
 import { ConversionShell } from '@/components/conversion-shell';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
 import { revenueCatPaywallPlans, type RevenueCatPaywallPlan } from '@/lib/revenuecat/paywall-plans';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
-import { redemptionHandoff, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
-import { siteUrlForBrowserOrigin } from '@/lib/site-url';
-import { SingleFlight } from '@/lib/handoff/single-flight';
+import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, savePendingRedemptionCorrelation, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
 import { configureRevenueCatForAnonymousCheckout, configureRevenueCatForLead, packagesByPlan, readRevenueCatWebConfig } from '@/lib/revenuecat/web';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
@@ -66,9 +63,7 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
   const checkoutRef = useRef<{ leadId: string; purchases: PurchasesInstance; appUserId: string | null } | null>(null);
   const checkoutInFlightRef = useRef(false);
   const purchaseLeadIdRef = useRef<string | null>(null);
-  const redeemUrlRef = useRef<string | null>(null);
-  const preflightTokenRef = useRef<string | null>(null);
-  const correlationFlightRef = useRef(new SingleFlight<void>());
+  const redemptionLinkHashRef = useRef<string | null>(null);
 
   const countryCode = initialCountryCode ?? (isLocalPreviewHost() ? getLocalPreviewCountry() : undefined);
   const selected = useMemo(
@@ -102,12 +97,16 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
       try {
         const config = readRevenueCatWebConfig();
         if (!lead) throw new Error('Your checkout draft is unavailable. Return to email capture to continue.');
+        const pendingCorrelation = redemptionEnabled ? readPendingRedemptionCorrelation() : null;
+        const pendingAppUserId = pendingCorrelation?.leadId === lead.lead_id ? pendingCorrelation.appUserId : null;
         const checkout = checkoutRef.current?.leadId === lead.lead_id
           ? checkoutRef.current
           : {
               leadId: lead.lead_id,
               ...(redemptionEnabled
-                ? configureRevenueCatForAnonymousCheckout(config)
+                ? pendingAppUserId
+                  ? { appUserId: pendingAppUserId, purchases: Purchases.configure({ apiKey: config.apiKey, appUserId: pendingAppUserId }) }
+                  : configureRevenueCatForAnonymousCheckout(config)
                 : { purchases: configureRevenueCatForLead(config, lead.lead_id), appUserId: null }),
             };
         checkoutRef.current = checkout;
@@ -141,30 +140,32 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
   }, [countryCode, lead]);
 
   const correlatePurchasedCustomer = useCallback(async () => {
-    if (!lead || !anonymousAppUserIdRef.current) return;
-    return correlationFlightRef.current.run(async () => {
-      try {
-        const correlation = await correlateRevenueCatCustomer(lead.lead_id, anonymousAppUserIdRef.current!);
-        preflightTokenRef.current = correlation.preflightToken;
-        setLead(correlation.lead);
-        setRedemption(redemptionHandoff({
-          correlationAcknowledged: true,
-          redeemUrl: redeemUrlRef.current,
-          preflightToken: preflightTokenRef.current,
-          handoffSiteUrl: siteUrlForBrowserOrigin(window.location.origin),
-        }));
-      } catch {
-        // A completed provider payment must never reopen checkout while verification retries.
-        setRedemption({ kind: 'pending' });
-      }
-    });
-  }, [lead, setLead]);
+    if (loadState !== 'ready' || !lead || !anonymousAppUserIdRef.current || !redemptionLinkHashRef.current) return;
+    try {
+      const acknowledgedLead = await correlateRevenueCatCustomer(lead.lead_id, anonymousAppUserIdRef.current, redemptionLinkHashRef.current);
+      setLead(acknowledgedLead);
+      clearPendingRedemptionCorrelation(lead.lead_id);
+      setRedemption(redemptionHandoff({ correlationAcknowledged: true, redemptionLinkHash: redemptionLinkHashRef.current }));
+    } catch {
+      // A completed provider payment must never reopen checkout while verification retries.
+      setRedemption({ kind: 'pending' });
+    }
+  }, [lead, loadState, setLead]);
 
   useEffect(() => {
-    if (redemption?.kind !== 'pending') return;
+    if (!hydrated || !lead || !redemptionEnabled || redemptionLinkHashRef.current) return;
+    const pendingCorrelation = readPendingRedemptionCorrelation();
+    if (pendingCorrelation?.leadId !== lead.lead_id) return;
+    purchaseLeadIdRef.current = lead.lead_id;
+    redemptionLinkHashRef.current = pendingCorrelation.redemptionLinkHash;
+  }, [hydrated, lead]);
+
+  useEffect(() => {
+    const hasPersistedCorrelation = redemptionEnabled && lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id;
+    if (redemption?.kind !== 'pending' && !hasPersistedCorrelation) return;
     const retry = window.setTimeout(() => { void correlatePurchasedCustomer(); }, 15_000);
     return () => window.clearTimeout(retry);
-  }, [correlatePurchasedCustomer, redemption]);
+  }, [correlatePurchasedCustomer, lead, redemption]);
 
   const openCheckout = async () => {
     const rcPackage = planPackages[selected.id];
@@ -191,7 +192,12 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
         return;
       }
       purchaseLeadIdRef.current = lead.lead_id;
-      redeemUrlRef.current = purchaseResult.redemptionInfo?.redeemUrl ?? null;
+      redemptionLinkHashRef.current = await redemptionLinkHash(purchaseResult.redemptionInfo?.redeemUrl);
+      if (!redemptionLinkHashRef.current) {
+        setRedemption({ kind: 'recovery' });
+        return;
+      }
+      savePendingRedemptionCorrelation({ leadId: lead.lead_id, appUserId: anonymousAppUserIdRef.current, redemptionLinkHash: redemptionLinkHashRef.current });
       setRedemption({ kind: 'pending' });
       await correlatePurchasedCustomer();
     } catch (purchaseError) {
@@ -203,6 +209,10 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
   };
 
   const requestCheckout = () => {
+    if (redemptionEnabled && lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id) {
+      setRedemption({ kind: 'pending' });
+      return;
+    }
     if (!purchasesRef.current || !lead || !pricesReady) {
       setError('RevenueCat checkout is still loading. Please try again in a moment.');
       return;
@@ -218,7 +228,8 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
   const goal = data.fitness_goal === 'bulk' ? copy.paywall.goalBulk : data.fitness_goal === 'maintain' ? copy.paywall.goalMaintain : data.fitness_goal === 'recomp' ? copy.paywall.goalRecomp : copy.paywall.goalCut;
   const gender = data.gender === 'male' ? copy.paywall.genderMale : data.gender === 'female' ? copy.paywall.genderFemale : copy.paywall.genderFallback;
   const benefits = copy.paywall.benefits.map((benefit, index) => ({ ...benefit, icon: benefitEmoji[index] ?? '✅' }));
-  const displayedRedemption = redemption ?? (redemptionEnabled && lead?.status === 'payment_verified' ? ({ kind: 'recovery' } satisfies RedemptionHandoff) : null);
+  const persistedCorrelation = redemptionEnabled && lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id;
+  const displayedRedemption = redemption ?? (persistedCorrelation ? ({ kind: 'pending' } satisfies RedemptionHandoff) : redemptionEnabled && lead?.status === 'payment_verified' ? ({ kind: 'email_sent' } satisfies RedemptionHandoff) : null);
   const checkoutUnavailable = Boolean(displayedRedemption);
   const personalRows = [
     { icon: '🔥', label: copy.paywall.goalLabel, value: goal },
@@ -282,8 +293,8 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
         <section className="mt-5 rounded-[2rem] bg-white p-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8"><Image src="/guarantee-30day.webp" alt="" width={160} height={160} className="mx-auto h-28 w-28 object-contain" /><h2 className="mt-3 text-[1.16rem] font-extrabold leading-tight tracking-[-0.025em] text-[#111418]">{copy.paywall.guaranteeTitle}</h2><p className="mt-3 text-[0.84rem] font-medium leading-relaxed text-muted-brand">{copy.paywall.guaranteeBody}</p></section>
         {error && <p role="alert" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-error-brand">{error}</p>}
         {displayedRedemption?.kind === 'pending' && <p role="status" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-brand">{activeLocale === 'vi' ? 'Đang xác minh thanh toán của bạn…' : 'Verifying your payment…'}</p>}
-        {displayedRedemption?.kind === 'recovery' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Thanh toán đã được ghi nhận' : 'Payment received'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'Hãy mở Nutree trên điện thoại và đăng nhập bằng Apple, Google hoặc email-link với đúng email đã dùng khi thanh toán.' : 'Open Nutree on your phone and sign in with Apple, Google, or an email link using the same email you used at checkout.'}</p><Link href="/open-nutree" className="mt-4 inline-flex rounded-full bg-forest px-5 py-3 text-sm font-extrabold text-white">{activeLocale === 'vi' ? 'Mở Nutree' : 'Open Nutree'}</Link></section>}
-        {displayedRedemption?.kind === 'ready' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Mở gói của bạn trong Nutree' : 'Open your plan in Nutree'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'Trên điện thoại, hãy tiếp tục bằng Apple, Google hoặc email-link với đúng email đã dùng khi thanh toán. Nutree không đăng nhập Firebase trên web.' : 'On your phone, continue with Apple, Google, or an email link using the same email you used at checkout. Nutree does not sign you in to Firebase on the web.'}</p><a href={displayedRedemption.redeemUrl} referrerPolicy="no-referrer" className="mt-4 inline-flex rounded-full bg-forest px-5 py-3 text-sm font-extrabold text-white sm:hidden">{activeLocale === 'vi' ? 'Tiếp tục trên điện thoại' : 'Continue on phone'}</a><div className="mx-auto mt-4 hidden w-fit rounded-xl border border-mist bg-white p-3 sm:block"><QRCodeSVG value={displayedRedemption.redeemUrl} size={176} level="M" includeMargin /></div><p className="mt-3 hidden text-xs font-semibold text-muted-brand sm:block">{activeLocale === 'vi' ? 'Quét mã bằng điện thoại để tiếp tục.' : 'Scan with your phone to continue.'}</p></section>}
+        {displayedRedemption?.kind === 'recovery' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Thanh toán đã được ghi nhận' : 'Payment received'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'Chúng tôi không thể xác minh liên kết kích hoạt. Vui lòng kiểm tra email thanh toán của bạn hoặc liên hệ hỗ trợ.' : 'We could not verify your activation link. Check your purchase email or contact support.'}</p></section>}
+        {displayedRedemption?.kind === 'email_sent' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Kiểm tra email của bạn' : 'Check your email'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'Chúng tôi đã gửi liên kết kích hoạt bảo mật đến email của bạn. Hãy mở liên kết đó trên điện thoại để kích hoạt gói Nutree.' : 'We sent a secure activation link to your email. Open that link on your phone to activate your Nutree plan.'}</p></section>}
         <p className="mx-auto mt-6 max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{copy.paywall.termsIntro} {copy.paywall.secure}</p>
       </div>
       {typeof document !== 'undefined' && createPortal(

@@ -1,31 +1,77 @@
-import { isNutreeClaimSiteUrl, siteUrl } from '@/lib/site-url';
-
 export type RedemptionHandoff =
   | { kind: 'pending' }
-  | { kind: 'ready'; redeemUrl: string }
+  | { kind: 'email_sent' }
   | { kind: 'recovery' };
 
-/** Keeps both bearer-like capabilities out of persistence and web request URLs. */
-export function redemptionHandoff({
-  correlationAcknowledged,
-  redeemUrl,
-  preflightToken,
-  handoffSiteUrl = siteUrl,
-}: {
-  correlationAcknowledged: boolean;
-  redeemUrl: string | null | undefined;
-  preflightToken?: string | null;
-  handoffSiteUrl?: string;
-}): RedemptionHandoff {
-  if (!correlationAcknowledged) return { kind: 'pending' };
-  if (!redeemUrl || !preflightToken || !/^[A-Za-z0-9_-]{32,512}$/.test(preflightToken)) return { kind: 'recovery' };
+export interface PendingRedemptionCorrelation {
+  leadId: string;
+  appUserId: string;
+  redemptionLinkHash: string;
+}
+
+type SessionStorage = Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>;
+
+const pendingCorrelationStorageKey = 'nutree_pending_redemption_correlation_v1';
+
+function validPendingCorrelation(value: unknown): value is PendingRedemptionCorrelation {
+  return Boolean(
+    value
+    && typeof value === 'object'
+    && typeof (value as PendingRedemptionCorrelation).leadId === 'string'
+    && typeof (value as PendingRedemptionCorrelation).appUserId === 'string'
+    && (value as PendingRedemptionCorrelation).appUserId.length > 0
+    && typeof (value as PendingRedemptionCorrelation).redemptionLinkHash === 'string'
+    && /^[a-f0-9]{64}$/.test((value as PendingRedemptionCorrelation).redemptionLinkHash),
+  );
+}
+
+function browserSessionStorage(): SessionStorage | null {
+  if (typeof window === 'undefined') return null;
   try {
-    const parsed = new URL(redeemUrl);
-    const handoffUrl = new URL('/redeem', handoffSiteUrl);
-    if (parsed.protocol !== 'https:' || handoffUrl.protocol !== 'https:' || !isNutreeClaimSiteUrl(handoffUrl.origin)) return { kind: 'recovery' };
-    handoffUrl.hash = `v=redemption_handoff_v1&redeem_url=${encodeURIComponent(redeemUrl)}&preflight_token=${preflightToken}`;
-    return { kind: 'ready', redeemUrl: handoffUrl.toString() };
+    return window.sessionStorage;
   } catch {
-    return { kind: 'recovery' };
+    return null;
   }
+}
+
+/** Persists the anonymous customer ID and non-secret digest so a reload can safely retry verification. */
+export function savePendingRedemptionCorrelation(correlation: PendingRedemptionCorrelation, storage = browserSessionStorage()): void {
+  if (!storage || !validPendingCorrelation(correlation)) return;
+  try {
+    storage.setItem(pendingCorrelationStorageKey, JSON.stringify(correlation));
+  } catch {
+    // Checkout remains locked for the current page even if browser storage is unavailable.
+  }
+}
+
+export function readPendingRedemptionCorrelation(storage = browserSessionStorage()): PendingRedemptionCorrelation | null {
+  if (!storage) return null;
+  try {
+    const parsed: unknown = JSON.parse(storage.getItem(pendingCorrelationStorageKey) ?? 'null');
+    return validPendingCorrelation(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPendingRedemptionCorrelation(leadId: string, storage = browserSessionStorage()): void {
+  if (readPendingRedemptionCorrelation(storage)?.leadId !== leadId) return;
+  try {
+    storage?.removeItem(pendingCorrelationStorageKey);
+  } catch {
+    // A failed cleanup cannot expose a completed checkout.
+  }
+}
+
+/** Returns the lowercase SHA-256 digest needed for server-side link correlation. */
+export async function redemptionLinkHash(redeemUrl: string | null | undefined): Promise<string | null> {
+  if (!redeemUrl || !URL.canParse(redeemUrl)) return null;
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(redeemUrl));
+  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+/** Keeps redemption capabilities out of persistence, routing state, and UI output. */
+export function redemptionHandoff({ correlationAcknowledged, redemptionLinkHash }: { correlationAcknowledged: boolean; redemptionLinkHash: string | null | undefined }): RedemptionHandoff {
+  if (!correlationAcknowledged) return { kind: 'pending' };
+  return redemptionLinkHash ? { kind: 'email_sent' } : { kind: 'recovery' };
 }
