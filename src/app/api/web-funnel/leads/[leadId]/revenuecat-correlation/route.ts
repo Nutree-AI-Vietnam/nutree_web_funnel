@@ -12,11 +12,13 @@ export async function POST(request: NextRequest, context: RouteContext<'/api/web
   const bffToken = process.env.WEB_FUNNEL_BFF_SHARED_SECRET;
   const body = await request.json().catch(() => null);
   const appUserId = body && typeof body.app_user_id === 'string' ? body.app_user_id.trim() : '';
+  const redemptionLinkHash = body && typeof body.redemption_link_hash === 'string' ? body.redemption_link_hash : '';
   if (!key) return NextResponse.json({ detail: 'Draft session unavailable.' }, { status: 401 });
   if (!base || !bffToken) return NextResponse.json({ detail: 'Service unavailable.' }, { status: 503 });
   if (!appUserId || appUserId.length > 255) return NextResponse.json({ detail: 'Invalid payment customer.' }, { status: 400 });
+  if (!/^[a-f0-9]{64}$/.test(redemptionLinkHash)) return NextResponse.json({ detail: 'Invalid redemption link verification.' }, { status: 400 });
   const upstream = await fetch(`${base}/v1/web-funnel/leads/${encodeURIComponent(leadId)}/revenuecat-correlation`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Lead-Access-Key': key, 'X-Web-Funnel-BFF-Token': bffToken, Origin: request.nextUrl.origin }, body: JSON.stringify({ app_user_id: appUserId }), cache: 'no-store',
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Lead-Access-Key': key, 'X-Web-Funnel-BFF-Token': bffToken, Origin: request.nextUrl.origin }, body: JSON.stringify({ app_user_id: appUserId, redemption_link_hash: redemptionLinkHash }), cache: 'no-store',
   });
   const payload = await upstream.json().catch(() => null);
   if (!upstream.ok) return NextResponse.json({ detail: 'Could not verify payment.' }, { status: upstream.status });

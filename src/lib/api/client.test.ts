@@ -126,11 +126,11 @@ describe('correlateRevenueCatCustomer', () => {
       lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_verified', redemption_info: { redeem_url: 'secret' },
     }), { status: 200 }));
 
-    await expect(correlateRevenueCatCustomer('lead-1', '$RCAnonymousID:customer-1')).resolves.toEqual({
+    await expect(correlateRevenueCatCustomer('lead-1', '$RCAnonymousID:customer-1', 'a'.repeat(64))).resolves.toEqual({
       lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_verified',
     });
     expect(fetch).toHaveBeenCalledWith('/api/web-funnel/leads/lead-1/revenuecat-correlation', expect.objectContaining({
-      method: 'POST', credentials: 'same-origin', body: JSON.stringify({ app_user_id: '$RCAnonymousID:customer-1' }),
+      method: 'POST', credentials: 'same-origin', body: JSON.stringify({ app_user_id: '$RCAnonymousID:customer-1', redemption_link_hash: 'a'.repeat(64) }),
     }));
   });
 });
