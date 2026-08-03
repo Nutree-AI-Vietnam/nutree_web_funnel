@@ -23,13 +23,14 @@ function request(body: unknown, origin = 'https://quiz.test') {
 
 describe('RevenueCat correlation BFF', () => {
   it('forwards the anonymous customer ID and link hash with server-held credentials and returns a safe projection', async () => {
+    const token = 'a'.repeat(43);
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(new Response(JSON.stringify({
-      lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_verified', access_key: 'secret', redemption_info: { redeem_url: 'secret' },
+      lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_verified', preflight_token: token, access_key: 'secret', redemption_info: { redeem_url: 'secret' },
     }), { status: 200 }));
 
     const response = await POST(request({ app_user_id: '$RCAnonymousID:customer-1', redemption_link_hash: 'a'.repeat(64) }), { params: Promise.resolve({ leadId: 'lead-1' }) });
 
-    expect(await response.json()).toEqual({ lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_verified' });
+    expect(await response.json()).toEqual({ lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_verified', preflight_token: token });
     expect(fetch).toHaveBeenCalledWith('https://api.test/v1/web-funnel/leads/lead-1/revenuecat-correlation', expect.objectContaining({
       method: 'POST', body: JSON.stringify({ app_user_id: '$RCAnonymousID:customer-1', redemption_link_hash: 'a'.repeat(64) }), headers: expect.objectContaining({ 'X-Lead-Access-Key': 'access-key', 'X-Web-Funnel-BFF-Token': 'bff-secret' }),
     }));

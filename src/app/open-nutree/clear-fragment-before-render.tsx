@@ -2,9 +2,9 @@
 
 import { useLayoutEffect } from 'react';
 
-export function ClearFragmentBeforeRender() {
+export function ClearFragmentBeforeRender({ path = '/open-nutree' }: { path?: string }) {
   useLayoutEffect(() => {
-    if (window.location.hash) window.history.replaceState({}, document.title, '/open-nutree');
-  }, []);
+    if (window.location.hash) window.history.replaceState({}, document.title, path);
+  }, [path]);
   return null;
 }
