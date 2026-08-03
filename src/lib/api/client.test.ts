@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   createLead,
+  correlateRevenueCatCustomer,
   previewTdee,
   toWebFunnelSnapshot,
 } from './client';
@@ -116,6 +117,21 @@ describe('createLead', () => {
     expect(fetch).toHaveBeenCalledWith('/api/web-funnel/leads', expect.objectContaining({ method: 'POST' }));
     const leadRequest = (fetch as ReturnType<typeof vi.fn>).mock.calls.find(([url]) => url === '/api/web-funnel/leads');
     expect(leadRequest?.[1].headers).not.toHaveProperty('X-Lead-Access-Key');
+  });
+});
+
+describe('correlateRevenueCatCustomer', () => {
+  it('uses the same-origin BFF and only returns the safe lead projection', async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(new Response(JSON.stringify({
+      lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_verified', redemption_info: { redeem_url: 'secret' },
+    }), { status: 200 }));
+
+    await expect(correlateRevenueCatCustomer('lead-1', '$RCAnonymousID:customer-1')).resolves.toEqual({
+      lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_verified',
+    });
+    expect(fetch).toHaveBeenCalledWith('/api/web-funnel/leads/lead-1/revenuecat-correlation', expect.objectContaining({
+      method: 'POST', credentials: 'same-origin', body: JSON.stringify({ app_user_id: '$RCAnonymousID:customer-1' }),
+    }));
   });
 });
 

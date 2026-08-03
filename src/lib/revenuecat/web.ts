@@ -42,13 +42,19 @@ export function readRevenueCatWebConfig(source: PublicEnvironment = publicEnviro
   };
 }
 
-/** Configure one stable RevenueCat customer for the lifetime of this page. */
+/** Legacy identified checkout remains available while redemption is default-off. */
 export function configureRevenueCatForLead(config: RevenueCatWebConfig, leadId: string) {
   if (!leadId.trim()) throw new Error('A verified lead ID is required before opening RevenueCat checkout.');
   return Purchases.configure({
     apiKey: config.apiKey,
     appUserId: leadId,
   });
+}
+
+/** Configure one generated anonymous customer; backend later verifies and binds it to the lead. */
+export function configureRevenueCatForAnonymousCheckout(config: RevenueCatWebConfig) {
+  const appUserId = Purchases.generateRevenueCatAnonymousAppUserId();
+  return { appUserId, purchases: Purchases.configure({ apiKey: config.apiKey, appUserId }) };
 }
 
 export function packagesByPlan(packages: Package[], plans: RevenueCatPlan[]): Record<RevenueCatPlan['id'], Package> {

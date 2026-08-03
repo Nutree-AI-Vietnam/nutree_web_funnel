@@ -1,4 +1,5 @@
 import { deriveAge } from '../quiz/dob';
+import { safeLeadProjection } from '../handoff/lead-projection';
 import type { Lead, OnboardingPayload, TdeeResult } from '../quiz/types';
 
 function baseUrl(): string {
@@ -106,6 +107,17 @@ export async function getLeadStatus(leadId: string): Promise<Lead> {
   const res = await fetch(`/api/web-funnel/leads/${encodeURIComponent(leadId)}/status`, { cache: 'no-store', credentials: 'same-origin' });
   if (!res.ok) throw new Error(`Could not load checkout status: ${res.status}`);
   return res.json() as Promise<Lead>;
+}
+
+/** Sends only the anonymous provider ID to the same-origin BFF after checkout. */
+export async function correlateRevenueCatCustomer(leadId: string, appUserId: string): Promise<Lead> {
+  const res = await fetch(`/api/web-funnel/leads/${encodeURIComponent(leadId)}/revenuecat-correlation`, {
+    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app_user_id: appUserId }),
+  });
+  if (!res.ok) throw new Error(`Could not verify payment: ${res.status}`);
+  const safe = safeLeadProjection(await res.json());
+  if (!safe) throw new Error('Could not verify payment response.');
+  return safe;
 }
 
 export async function requestLeadResend(leadId: string): Promise<void> {

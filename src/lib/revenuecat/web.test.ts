@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { configureRevenueCatForLead, packagesByPlan, readRevenueCatWebConfig } from './web';
+import { configureRevenueCatForAnonymousCheckout, packagesByPlan, readRevenueCatWebConfig } from './web';
 import { Purchases } from '@revenuecat/purchases-js';
 import { vi } from 'vitest';
 
 vi.mock('@revenuecat/purchases-js', () => ({
-  Purchases: { configure: vi.fn() },
+  Purchases: { configure: vi.fn(), generateRevenueCatAnonymousAppUserId: vi.fn() },
 }));
 
 const environment = {
@@ -32,10 +32,12 @@ describe('RevenueCat Web configuration', () => {
     expect(packages['12-week']).toBeUndefined();
   });
 
-  it('configures RevenueCat with the verified lead ID rather than an anonymous customer', () => {
+  it('configures RevenueCat with a generated anonymous customer rather than a lead ID', () => {
     const config = readRevenueCatWebConfig(environment);
-    configureRevenueCatForLead(config, 'lead-1');
-    expect(Purchases.configure).toHaveBeenCalledWith({ apiKey: 'rcb_test_key', appUserId: 'lead-1' });
-    expect(() => configureRevenueCatForLead(config, '')).toThrow(/lead ID/i);
+    (Purchases.generateRevenueCatAnonymousAppUserId as ReturnType<typeof vi.fn>).mockReturnValue('$RCAnonymousID:customer-1');
+
+    configureRevenueCatForAnonymousCheckout(config);
+
+    expect(Purchases.configure).toHaveBeenCalledWith({ apiKey: 'rcb_test_key', appUserId: '$RCAnonymousID:customer-1' });
   });
 });
