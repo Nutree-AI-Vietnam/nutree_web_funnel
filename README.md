@@ -38,6 +38,7 @@ npm run build                # production build check
 | `NEXT_PUBLIC_API_BASE_URL` | Nutree backend base URL (no trailing slash) |
 | `WEB_FUNNEL_BFF_SHARED_SECRET` | Server-only shared credential required by MealTrack for lead creation |
 | `NEXT_PUBLIC_REVENUECAT_WEB_API_KEY` | RevenueCat Web public API key for the web checkout config |
+| `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED` | Public default-off anonymous-customer redemption handoff; enable only for staging/SIT and redeploy after changing |
 | `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID` | Offering identifier containing the three web packages |
 | `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_4_WEEK` / `12_WEEK` / `52_WEEK` | Exact package identifiers from that offering |
 | `NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID` / `NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME` | Matching Nutree app bundle/package IDs for the phone handoff flow |
@@ -74,6 +75,7 @@ Preview must use RevenueCat's sandbox web key/config; Production uses the live w
 - **RevenueCat Web**: connect Paddle Billing, import products, map them to the Nutree Premium entitlement, and configure the web offering/package IDs above.
 - **Lead handoff BFF**: the web app creates a possession-bound checkout draft through `/api/web-funnel/session` and `/api/web-funnel/leads`, then polls `/status` and can request `/resend` or `/session/reset` with the same-origin lead-access cookie.
 - **Firebase Auth**: configure the mobile app’s custom-token claim path. The web funnel never completes Firebase auth in-browser; `/open-nutree` is a token-free install/reopen fallback.
+- **Redemption handoff**: when `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED=true`, the web app generates an anonymous RevenueCat customer, completes checkout with that customer, and then sends only the anonymous `app_user_id` to the same-origin BFF for lead correlation. The redemption URL stays in memory only; the browser does not sign in to Firebase.
 - **Backend**: retains its RevenueCat webhook/cache for enforcing Premium APIs and lead-status projection.
   For live checkout, use an approved production domain. Sandbox supports localhost.
 - **Airbridge**: tracking link created in dashboard (goes in

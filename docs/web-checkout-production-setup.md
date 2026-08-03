@@ -13,6 +13,10 @@ Web quiz -> possession-bound lead -> RevenueCat Web checkout
 The browser never grants access from a checkout callback. MealTrack verifies the
 provider state and the mobile app completes the authenticated claim.
 
+The authenticated RevenueCat redemption handoff is public and default-off in the
+web app. Keep it enabled only for staging/SIT verification until the full
+sandbox journey is proved end to end.
+
 ## Prerequisites
 
 - Mobile `delivery` still lacks the claim coordinator from #587/#588. Do not
@@ -22,6 +26,22 @@ provider state and the mobile app completes the authenticated claim.
 - RevenueCat has the matching web offering, packages, `standard` entitlement,
   webhook destination, API credentials, and environment-specific app identifiers.
 - MealTrack deploys migrations with its Render pre-deploy command.
+- `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED` is set to `true` in the staging
+  Preview build used for SIT and stays `false` in production until SIT sign-off.
+
+## Redemption handoff guardrails
+
+- The browser generates a new anonymous RevenueCat customer when redemption is
+  enabled. It does not reuse the lead ID as the RevenueCat `appUserId`.
+- After checkout, the browser posts only the anonymous `app_user_id` to the
+  same-origin BFF endpoint `/api/web-funnel/leads/[leadId]/revenuecat-correlation`.
+- The redemption URL returned by RevenueCat is kept in memory only. Do not
+  persist it to local storage, session storage, route state, analytics, or logs.
+- The web funnel never signs in to Firebase in the browser.
+- Mobile claim finalization still requires the user to sign in with the same
+  email used at checkout.
+- Production enablement stays blocked until sandbox SIT passes with a released
+  staging mobile build.
 
 RevenueCat owns web packages and offering experiments. MealTrack verifies the
 environment and active `standard` entitlement; it does not use a product
@@ -36,6 +56,9 @@ callback never grants access by itself.
   `/open-nutree` if the app is absent.
 - [ ] Staging and production backend values are configured with no secrets in
   source control or documentation.
+- [ ] Sandbox SIT has verified anonymous RevenueCat correlation, same-origin
+  BFF handoff, memory-only redemption URL handling, and same-email mobile
+  sign-in before production enablement.
 
 ## Staging release
 
@@ -101,6 +124,7 @@ NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID=<sandbox-offering-id>
 NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_4_WEEK=<sandbox-4-week-package-id>
 NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_12_WEEK=<sandbox-12-week-package-id>
 NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_52_WEEK=<sandbox-52-week-package-id>
+NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED=true
 NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID=<staging-ios-bundle-id>
 NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME=<staging-android-package-name>
 NEXT_PUBLIC_APPSTORE_URL=<staging-ios-install-url>
@@ -116,6 +140,7 @@ NEXT_PUBLIC_PLAYSTORE_URL=<staging-android-install-url>
 | `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_4_WEEK` | Sandbox package ID |
 | `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_12_WEEK` | Sandbox package ID |
 | `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_52_WEEK` | Sandbox package ID |
+| `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED` | `true` for staging/SIT Preview, `false` everywhere else until production sign-off |
 | `NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID` / `NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME` | Exact staging mobile bundle/package for phone handoff |
 | `NEXT_PUBLIC_APPSTORE_URL` / `NEXT_PUBLIC_PLAYSTORE_URL` | Staging-compatible install destinations |
 
@@ -155,6 +180,8 @@ production BFF shared secret; do not reuse the staging secret.
    `WEB_FUNNEL_REVENUECAT_ENVIRONMENT=PRODUCTION` and a new server-only
    `WEB_FUNNEL_BFF_SHARED_SECRET`; do not add product IDs, project ID, or app ID.
 3. Configure the same production Vercel values and redeploy `quiz.nutreeai.com`.
+   Keep `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED=false` until the sandbox SIT
+   checklist is complete and production enablement is approved.
 4. Recheck the claim host's Apple App Site Association and Android App Links
    configuration against the released mobile bundle/package.
 5. Run one controlled live buyer journey before directing traffic to the funnel.

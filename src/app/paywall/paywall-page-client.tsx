@@ -4,14 +4,17 @@ import type { Package, Purchases as PurchasesInstance } from '@revenuecat/purcha
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { ConversionShell } from '@/components/conversion-shell';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
 import { revenueCatPaywallPlans, type RevenueCatPaywallPlan } from '@/lib/revenuecat/paywall-plans';
-import { configureRevenueCatForLead, packagesByPlan, readRevenueCatWebConfig } from '@/lib/revenuecat/web';
+import { correlateRevenueCatCustomer } from '@/lib/api/client';
+import { redemptionHandoff, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
+import { configureRevenueCatForAnonymousCheckout, configureRevenueCatForLead, packagesByPlan, readRevenueCatWebConfig } from '@/lib/revenuecat/web';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +27,7 @@ type PlanPackages = Partial<Record<RevenueCatPaywallPlan['id'], Package>>;
 
 const OFFER_SECONDS = 600;
 const benefitEmoji = ['📋', '📸', '🍽️', '🔥', '💬'];
+const redemptionEnabled = process.env.NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED === 'true';
 
 function formatCountdown(seconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
@@ -54,7 +58,13 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
+  const [redemption, setRedemption] = useState<RedemptionHandoff | null>(null);
   const purchasesRef = useRef<PurchasesInstance | null>(null);
+  const anonymousAppUserIdRef = useRef<string | null>(null);
+  const checkoutRef = useRef<{ leadId: string; purchases: PurchasesInstance; appUserId: string | null } | null>(null);
+  const checkoutInFlightRef = useRef(false);
+  const purchaseLeadIdRef = useRef<string | null>(null);
+  const redeemUrlRef = useRef<string | null>(null);
 
   const countryCode = initialCountryCode ?? (isLocalPreviewHost() ? getLocalPreviewCountry() : undefined);
   const selected = useMemo(
@@ -88,7 +98,17 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
       try {
         const config = readRevenueCatWebConfig();
         if (!lead) throw new Error('Your checkout draft is unavailable. Return to email capture to continue.');
-        const purchases = configureRevenueCatForLead(config, lead.lead_id);
+        const checkout = checkoutRef.current?.leadId === lead.lead_id
+          ? checkoutRef.current
+          : {
+              leadId: lead.lead_id,
+              ...(redemptionEnabled
+                ? configureRevenueCatForAnonymousCheckout(config)
+                : { purchases: configureRevenueCatForLead(config, lead.lead_id), appUserId: null }),
+            };
+        checkoutRef.current = checkout;
+        const purchases = checkout.purchases;
+        anonymousAppUserIdRef.current = checkout.appUserId;
         purchasesRef.current = purchases;
         const offerings = await purchases.getOfferings({
           offeringIdentifier: config.offeringIdentifier,
@@ -116,28 +136,56 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
     return () => { cancelled = true; };
   }, [countryCode, lead]);
 
+  const correlatePurchasedCustomer = useCallback(async () => {
+    if (!lead || !anonymousAppUserIdRef.current) return;
+    try {
+      const acknowledgedLead = await correlateRevenueCatCustomer(lead.lead_id, anonymousAppUserIdRef.current);
+      setLead(acknowledgedLead);
+      setRedemption(redemptionHandoff({ correlationAcknowledged: true, redeemUrl: redeemUrlRef.current }));
+    } catch {
+      // A completed provider payment must never reopen checkout while verification retries.
+      setRedemption({ kind: 'pending' });
+    }
+  }, [lead, setLead]);
+
+  useEffect(() => {
+    if (redemption?.kind !== 'pending') return;
+    const retry = window.setTimeout(() => { void correlatePurchasedCustomer(); }, 15_000);
+    return () => window.clearTimeout(retry);
+  }, [correlatePurchasedCustomer, redemption]);
+
   const openCheckout = async () => {
     const rcPackage = planPackages[selected.id];
+    if (checkoutInFlightRef.current || purchaseLeadIdRef.current === lead?.lead_id) return;
     if (!purchasesRef.current || !lead || !rcPackage) {
       setError('RevenueCat checkout is still loading. Please try again in a moment.');
       return;
     }
+    checkoutInFlightRef.current = true;
     setBusy(true);
     setError(null);
     trackEvent('revenuecat_checkout_started', { plan: selected.id, package_id: rcPackage.identifier, country_code: countryCode ?? 'auto' });
 
     try {
-      await purchasesRef.current.purchase({
+      const purchaseResult = await purchasesRef.current.purchase({
         rcPackage,
         selectedLocale: activeLocale,
         defaultLocale: 'en',
         skipSuccessPage: true,
       });
       trackEvent('revenuecat_checkout_completed', { plan: selected.id });
-      router.push('/welcome');
+      if (!redemptionEnabled || !anonymousAppUserIdRef.current) {
+        router.push('/welcome');
+        return;
+      }
+      purchaseLeadIdRef.current = lead.lead_id;
+      redeemUrlRef.current = purchaseResult.redemptionInfo?.redeemUrl ?? null;
+      setRedemption({ kind: 'pending' });
+      await correlatePurchasedCustomer();
     } catch (purchaseError) {
       setError(purchaseError instanceof Error ? purchaseError.message : 'RevenueCat could not complete checkout. Please try again.');
     } finally {
+      checkoutInFlightRef.current = false;
       setBusy(false);
     }
   };
@@ -158,6 +206,8 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
   const goal = data.fitness_goal === 'bulk' ? copy.paywall.goalBulk : data.fitness_goal === 'maintain' ? copy.paywall.goalMaintain : data.fitness_goal === 'recomp' ? copy.paywall.goalRecomp : copy.paywall.goalCut;
   const gender = data.gender === 'male' ? copy.paywall.genderMale : data.gender === 'female' ? copy.paywall.genderFemale : copy.paywall.genderFallback;
   const benefits = copy.paywall.benefits.map((benefit, index) => ({ ...benefit, icon: benefitEmoji[index] ?? '✅' }));
+  const displayedRedemption = redemption ?? (redemptionEnabled && lead?.status === 'payment_verified' ? ({ kind: 'recovery' } satisfies RedemptionHandoff) : null);
+  const checkoutUnavailable = Boolean(displayedRedemption);
   const personalRows = [
     { icon: '🔥', label: copy.paywall.goalLabel, value: goal },
     { icon: '🎯', label: copy.paywall.personalizedFor, value: gender },
@@ -180,7 +230,7 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
             <Link href="/" aria-label="Nutree" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/70 bg-white/75 shadow-[inset_0_0_0_1px_rgb(255_255_255_/_0.5),0_2px_8px_rgb(16_39_32_/_0.06)] backdrop-blur"><Image src="/nutree-logo-simple.png" alt="" width={72} height={64} priority className="h-7 w-7 object-contain" /></Link>
             <div><p className="text-[0.74rem] font-bold leading-tight text-muted-brand">{activeLocale === 'vi' ? 'Ưu đãi Nutree Premium' : 'Nutree Premium offer'}</p><strong className="mt-0.5 block text-[1.2rem] font-extrabold leading-none tracking-[-0.035em] text-[#111418] tabular-nums">{countdown}</strong></div>
-            <button type="button" disabled={!pricesReady || busy} onClick={requestCheckout} className="min-h-11 rounded-[1rem] bg-forest px-3.5 text-[0.78rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-[0.86rem]">{busy ? copy.paywall.loading : copy.paywall.topCta}</button>
+            <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className="min-h-11 rounded-[1rem] bg-forest px-3.5 text-[0.78rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-[0.86rem]">{busy ? copy.paywall.loading : copy.paywall.topCta}</button>
           </div>
         </div>
       )}
@@ -211,7 +261,7 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
           </div>
           <p className="mt-5 text-[0.94rem] leading-relaxed text-slate-brand">{copy.paywall.planRecommendation}</p>
           <p className="mt-1.5 text-sm font-medium text-muted-brand">{copy.paywall.planResearchNote}</p>
-          <button type="button" disabled={!pricesReady || busy} onClick={requestCheckout} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta()}</button>
+          <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta()}</button>
           <p className="mt-4 text-center text-sm leading-relaxed text-muted-brand">{copy.paywall.exactPriceSummary(renewalTotal, introTotal, renewalTotal, selected.label[activeLocale])}</p>
         </section>
 
@@ -219,6 +269,9 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
         <section className="mt-5 rounded-[2rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8"><h2 className="text-[1.2rem] font-extrabold tracking-[-0.03em] text-forest">{copy.paywall.personalTitle}</h2><div className="mt-5 grid gap-4">{personalRows.map((row) => <div key={row.label} className="grid grid-cols-[2.55rem_1fr] items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#edf7f3] text-[1.1rem]" aria-hidden="true">{row.icon}</span><p className="text-[0.86rem] leading-relaxed text-muted-brand">{row.label} <strong className="font-extrabold text-forest">{row.value}</strong></p></div>)}</div></section>
         <section className="mt-5 rounded-[2rem] bg-white p-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8"><Image src="/guarantee-30day.webp" alt="" width={160} height={160} className="mx-auto h-28 w-28 object-contain" /><h2 className="mt-3 text-[1.16rem] font-extrabold leading-tight tracking-[-0.025em] text-[#111418]">{copy.paywall.guaranteeTitle}</h2><p className="mt-3 text-[0.84rem] font-medium leading-relaxed text-muted-brand">{copy.paywall.guaranteeBody}</p></section>
         {error && <p role="alert" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-error-brand">{error}</p>}
+        {displayedRedemption?.kind === 'pending' && <p role="status" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-brand">{activeLocale === 'vi' ? 'Đang xác minh thanh toán của bạn…' : 'Verifying your payment…'}</p>}
+        {displayedRedemption?.kind === 'recovery' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Thanh toán đã được ghi nhận' : 'Payment received'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'Hãy mở Nutree trên điện thoại và đăng nhập bằng Apple, Google hoặc email-link với đúng email đã dùng khi thanh toán.' : 'Open Nutree on your phone and sign in with Apple, Google, or an email link using the same email you used at checkout.'}</p><Link href="/open-nutree" className="mt-4 inline-flex rounded-full bg-forest px-5 py-3 text-sm font-extrabold text-white">{activeLocale === 'vi' ? 'Mở Nutree' : 'Open Nutree'}</Link></section>}
+        {displayedRedemption?.kind === 'ready' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Mở gói của bạn trong Nutree' : 'Open your plan in Nutree'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'Trên điện thoại, hãy tiếp tục bằng Apple, Google hoặc email-link với đúng email đã dùng khi thanh toán. Nutree không đăng nhập Firebase trên web.' : 'On your phone, continue with Apple, Google, or an email link using the same email you used at checkout. Nutree does not sign you in to Firebase on the web.'}</p><a href={displayedRedemption.redeemUrl} referrerPolicy="no-referrer" className="mt-4 inline-flex rounded-full bg-forest px-5 py-3 text-sm font-extrabold text-white sm:hidden">{activeLocale === 'vi' ? 'Tiếp tục trên điện thoại' : 'Continue on phone'}</a><div className="mx-auto mt-4 hidden w-fit rounded-xl border border-mist bg-white p-3 sm:block"><QRCodeSVG value={displayedRedemption.redeemUrl} size={176} level="M" includeMargin /></div><p className="mt-3 hidden text-xs font-semibold text-muted-brand sm:block">{activeLocale === 'vi' ? 'Quét mã bằng điện thoại để tiếp tục.' : 'Scan with your phone to continue.'}</p></section>}
         <p className="mx-auto mt-6 max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{copy.paywall.termsIntro} {copy.paywall.secure}</p>
       </div>
       {typeof document !== 'undefined' && createPortal(
