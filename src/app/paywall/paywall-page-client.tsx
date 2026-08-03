@@ -14,6 +14,8 @@ import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPrev
 import { revenueCatPaywallPlans, type RevenueCatPaywallPlan } from '@/lib/revenuecat/paywall-plans';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { redemptionHandoff, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
+import { siteUrlForBrowserOrigin } from '@/lib/site-url';
+import { SingleFlight } from '@/lib/handoff/single-flight';
 import { configureRevenueCatForAnonymousCheckout, configureRevenueCatForLead, packagesByPlan, readRevenueCatWebConfig } from '@/lib/revenuecat/web';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
@@ -65,6 +67,8 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
   const checkoutInFlightRef = useRef(false);
   const purchaseLeadIdRef = useRef<string | null>(null);
   const redeemUrlRef = useRef<string | null>(null);
+  const preflightTokenRef = useRef<string | null>(null);
+  const correlationFlightRef = useRef(new SingleFlight<void>());
 
   const countryCode = initialCountryCode ?? (isLocalPreviewHost() ? getLocalPreviewCountry() : undefined);
   const selected = useMemo(
@@ -138,14 +142,22 @@ export function PaywallPageClient({ initialCountryCode }: PaywallPageClientProps
 
   const correlatePurchasedCustomer = useCallback(async () => {
     if (!lead || !anonymousAppUserIdRef.current) return;
-    try {
-      const acknowledgedLead = await correlateRevenueCatCustomer(lead.lead_id, anonymousAppUserIdRef.current);
-      setLead(acknowledgedLead);
-      setRedemption(redemptionHandoff({ correlationAcknowledged: true, redeemUrl: redeemUrlRef.current }));
-    } catch {
-      // A completed provider payment must never reopen checkout while verification retries.
-      setRedemption({ kind: 'pending' });
-    }
+    return correlationFlightRef.current.run(async () => {
+      try {
+        const correlation = await correlateRevenueCatCustomer(lead.lead_id, anonymousAppUserIdRef.current!);
+        preflightTokenRef.current = correlation.preflightToken;
+        setLead(correlation.lead);
+        setRedemption(redemptionHandoff({
+          correlationAcknowledged: true,
+          redeemUrl: redeemUrlRef.current,
+          preflightToken: preflightTokenRef.current,
+          handoffSiteUrl: siteUrlForBrowserOrigin(window.location.origin),
+        }));
+      } catch {
+        // A completed provider payment must never reopen checkout while verification retries.
+        setRedemption({ kind: 'pending' });
+      }
+    });
   }, [lead, setLead]);
 
   useEffect(() => {

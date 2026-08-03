@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { getLocalPreviewCountry, localPreviewData, localPreviewLead, localPreviewTdee, setLocalPreviewCountry, useLocalPreviewHost } from '@/lib/local-preview';
 import { useQuizStore } from '@/lib/quiz/store';
+import { isFragmentCapabilityRoute } from '@/lib/handoff/fragment-capability-route';
 
 const routes = [
   ['H', 'Home', '/'],
@@ -21,7 +22,7 @@ export function LocalPreviewTools() {
   const setTdee = useQuizStore((s) => s.setTdee);
   const enabled = useLocalPreviewHost();
 
-  if (!enabled || pathname === '/open-nutree') return null;
+  if (!enabled || isFragmentCapabilityRoute(pathname)) return null;
 
   const previewCountry = getLocalPreviewCountry();
 
