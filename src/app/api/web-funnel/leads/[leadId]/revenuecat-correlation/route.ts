@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginMutation, LEAD_ACCESS_COOKIE } from '@/lib/handoff/lead-access-session';
-import { safeRevenueCatCorrelationProjection } from '@/lib/handoff/lead-projection';
+import { safeLeadProjection } from '@/lib/handoff/lead-projection';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,8 +22,8 @@ export async function POST(request: NextRequest, context: RouteContext<'/api/web
   });
   const payload = await upstream.json().catch(() => null);
   if (!upstream.ok) return NextResponse.json({ detail: 'Could not verify payment.' }, { status: upstream.status });
-  const safe = safeRevenueCatCorrelationProjection(payload);
+  const safe = safeLeadProjection(payload);
   return safe
-    ? NextResponse.json({ ...safe.lead, preflight_token: safe.preflightToken }, { headers: { 'Cache-Control': 'no-store' } })
+    ? NextResponse.json(safe, { headers: { 'Cache-Control': 'no-store' } })
     : NextResponse.json({ detail: 'Invalid payment response.' }, { status: 502 });
 }

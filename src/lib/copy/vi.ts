@@ -505,7 +505,7 @@ export const vi = {
   },
   success: {
     headline: 'Kế hoạch của bạn đã được mở khóa',
-    body: 'Sau khi thanh toán được xác minh, chúng tôi sẽ gửi email đăng nhập bảo mật để mở Nutree và khôi phục kế hoạch. Bạn không cần làm lại quiz.',
+    body: 'Sau khi thanh toán được xác minh, RevenueCat sẽ gửi liên kết bảo mật để mở Nutree và kích hoạt gói của bạn. Bạn không cần làm lại quiz.',
   },
 } as const;
 
