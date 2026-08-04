@@ -14,7 +14,7 @@ describe('email capture copy', () => {
 
   it('says the RevenueCat activation link is sent only after verified payment', () => {
     expect(en.success.body).toMatch(/payment is verified/i);
-    expect(en.success.body).toMatch(/RevenueCat will send a secure link/i);
+    expect(en.success.body).toMatch(/RevenueCat will email a secure link/i);
     expect(vi.success.body).toMatch(/thanh toán được xác minh/i);
     expect(vi.success.body).toMatch(/RevenueCat sẽ gửi liên kết bảo mật/i);
   });
