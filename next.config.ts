@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
     return [
       { source: '/open-nutree', headers },
       { source: '/redeem', headers },
+      { source: '/auth/email-link', headers },
     ];
   },
 };
