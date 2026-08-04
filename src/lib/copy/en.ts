@@ -510,6 +510,6 @@ export const en: Copy = {
   },
   success: {
     headline: 'Your plan is unlocked',
-    body: 'After your payment is verified, RevenueCat will send a secure link to open Nutree and activate your plan. No need to retake the quiz.',
+    body: 'After your payment is verified, RevenueCat will email a secure link. Open it in Nutree, then sign in with Google or Apple using the same checkout email. No need to retake the quiz.',
   },
 };

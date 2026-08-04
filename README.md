@@ -1,7 +1,7 @@
 # Nutree Web Funnel
 
 Web onboarding funnel (quiz.nutreeai.com production, quiz.preview.nutreeai.com preview): quiz -> TDEE results -> email capture ->
-RevenueCat Web checkout -> direct Nutree magic-link/custom-token handoff.
+RevenueCat Web checkout -> RevenueCat Redemption Link -> authenticated mobile claim.
 
 Design spec: `docs/superpowers/specs/2026-07-07-web-to-app-funnel-design.md`
 
@@ -74,8 +74,8 @@ Preview must use RevenueCat's sandbox web key/config; Production uses the live w
 
 - **RevenueCat Web**: connect Paddle Billing, import products, map them to the Nutree Premium entitlement, and configure the web offering/package IDs above.
 - **Lead handoff BFF**: the web app creates a possession-bound checkout draft through `/api/web-funnel/session` and `/api/web-funnel/leads`, then polls `/status` and can request `/resend` or `/session/reset` with the same-origin lead-access cookie.
-- **Firebase Auth**: configure the mobile app’s custom-token claim path. The web funnel never completes Firebase auth in-browser; `/open-nutree` is a token-free install/reopen fallback.
-- **Redemption handoff**: when `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED=true`, the web app generates an anonymous RevenueCat customer, completes checkout with that customer, and then sends only the anonymous `app_user_id` to the same-origin BFF for lead correlation. A successful correlation returns an opaque one-time preflight token; the browser keeps it and the RevenueCat redemption URL only in memory, then delivers both to mobile in a fragment-only `https://quiz…/redeem` app link. The browser does not sign in to Firebase or receive the checkout email.
+- **Firebase Auth**: the web funnel never completes Firebase auth in-browser; `/open-nutree` and `/redeem` are token-free install/reopen fallbacks.
+- **Redemption handoff**: when `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED=true`, the web app generates an anonymous RevenueCat web customer, completes checkout with that customer, and sends only the anonymous `app_user_id` plus a SHA-256 digest of the redemption URL to the same-origin BFF for lead correlation. The browser keeps the raw redemption URL only in memory, then navigates to `/postcheckout`. RevenueCat sends the Redemption Link to the checkout email; the mobile app keeps the normal passwordless email-link sign-in flow visible and silently resumes redemption after Firebase authentication. The browser never grants access.
 - **Backend**: retains its RevenueCat webhook/cache for enforcing Premium APIs and lead-status projection.
   For live checkout, use an approved production domain. Sandbox supports localhost.
 - **Airbridge**: tracking link created in dashboard (goes in

@@ -11,7 +11,7 @@ export default function RedeemPage() {
         <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-teal-brand">Nutree</p>
         <h1 className="mt-4 text-3xl font-extrabold tracking-[-0.045em] text-forest">Continue your redemption on your phone.</h1>
         <p className="mt-4 text-base font-semibold leading-relaxed text-slate-brand">
-          Open Nutree on the same phone you used for sign-in, then complete Apple, Google, or email-link sign-in with the same email you used at checkout.
+          Open Nutree on your phone, then use the normal passwordless sign-in flow with the same email address you used at checkout.
         </p>
         <div className="mt-6 flex flex-col gap-3">
           <a href="nutree://open-nutree" className="rounded-full bg-forest px-5 py-3 font-extrabold text-white">Open Nutree</a>
