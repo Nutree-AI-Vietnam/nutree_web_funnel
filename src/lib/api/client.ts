@@ -102,7 +102,7 @@ export function toWebFunnelSnapshot(data: OnboardingPayload) {
     ...(data.body_fat_percentage != null && { body_fat_percentage: data.body_fat_percentage }),
     job_type: data.job_type,
     training_days_per_week: data.training_days_per_week,
-    training_minutes_per_session: data.training_minutes_per_session,
+    training_minutes_per_session: data.training_days_per_week === 0 ? 0 : data.training_minutes_per_session,
     goal: data.fitness_goal,
     pain_points: data.pain_points ?? [],
     dietary_preferences: data.dietary_preferences ?? [],

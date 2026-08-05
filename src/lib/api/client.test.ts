@@ -151,4 +151,8 @@ describe('toWebFunnelSnapshot', () => {
       pain_points: [], dietary_preferences: [], target_weight_kg: undefined,
     });
   });
+
+  it('normalizes stale training minutes when no training days are selected', () => {
+    expect(toWebFunnelSnapshot({ ...payload, training_days_per_week: 0, training_minutes_per_session: 60 }).training_minutes_per_session).toBe(0);
+  });
 });
