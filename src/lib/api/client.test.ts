@@ -118,6 +118,14 @@ describe('createLead', () => {
     const leadRequest = (fetch as ReturnType<typeof vi.fn>).mock.calls.find(([url]) => url === '/api/web-funnel/leads');
     expect(leadRequest?.[1].headers).not.toHaveProperty('X-Lead-Access-Key');
   });
+
+  it('preserves upstream validation details for checkout draft failures', async () => {
+    (fetch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ready: true }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ detail: [{ loc: ['body', 'payload', 'goal'], msg: 'Field required' }] }), { status: 422 }));
+
+    await expect(createLead('person@example.com', payload)).rejects.toThrow('[{"loc":["body","payload","goal"],"msg":"Field required"}]');
+  });
 });
 
 describe('correlateRevenueCatCustomer', () => {

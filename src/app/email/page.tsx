@@ -39,8 +39,8 @@ export default function EmailPage() {
       setLead(await createLead(currentEmail.trim(), data));
       trackEvent('email_captured', {});
       router.push('/welcome-gift');
-    } catch {
-      setError('We could not save your checkout draft. Please try again.');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'We could not save your checkout draft. Please try again.');
     } finally { setSubmitting(false); }
   };
 

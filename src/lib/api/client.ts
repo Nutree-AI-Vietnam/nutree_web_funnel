@@ -78,7 +78,15 @@ async function createLeadOnce(email: string, payload: OnboardingPayload, request
     headers: { 'Content-Type': 'application/json', 'X-Request-ID': requestId },
     body: JSON.stringify({ email, payload: toWebFunnelSnapshot(payload) }),
   });
-  if (!res.ok) throw new Error(`Could not save your checkout draft: ${res.status}`);
+  if (!res.ok) {
+    const response = await res.json().catch(() => null) as { detail?: unknown } | null;
+    const detail = typeof response?.detail === 'string'
+      ? response.detail
+      : Array.isArray(response?.detail)
+        ? JSON.stringify(response.detail)
+        : `Could not save your checkout draft: ${res.status}`;
+    throw new Error(detail);
+  }
   return res.json() as Promise<Lead>;
 }
 
