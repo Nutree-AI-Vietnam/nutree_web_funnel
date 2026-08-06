@@ -24,6 +24,13 @@ describe('redemption handoff', () => {
     await expect(redemptionLinkHash(null)).resolves.toBeNull();
   });
 
+  it('uses the inner redemption URL when RevenueCat wraps it in an HTTPS redirect', async () => {
+    const innerLink = 'rc-test://redeem_web_purchase?redemption_token=opaque';
+    const redirectLink = `https://api.revenuecat.com/rcbilling/v1/redirect?url=${encodeURIComponent(innerLink)}`;
+
+    await expect(redemptionLinkHash(redirectLink)).resolves.toBe(await redemptionLinkHash(innerLink));
+  });
+
   it('persists only a valid hash to resume correlation after a reload', () => {
     const storage = memoryStorage();
     const correlation = { leadId: 'lead-1', appUserId: '$RCAnonymousID:customer-1', redemptionLinkHash: 'a'.repeat(64) };

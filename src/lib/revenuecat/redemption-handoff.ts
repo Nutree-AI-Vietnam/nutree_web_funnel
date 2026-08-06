@@ -63,10 +63,17 @@ export function clearPendingRedemptionCorrelation(leadId: string, storage = brow
   }
 }
 
+function canonicalRedemptionLink(redeemUrl: string): string {
+  const parsed = new URL(redeemUrl);
+  const nested = parsed.searchParams.get('url');
+  return nested && URL.canParse(nested) ? nested : redeemUrl;
+}
+
 /** Returns the lowercase SHA-256 digest needed for server-side link correlation. */
 export async function redemptionLinkHash(redeemUrl: string | null | undefined): Promise<string | null> {
   if (!redeemUrl || !URL.canParse(redeemUrl)) return null;
-  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(redeemUrl));
+  const canonicalLink = canonicalRedemptionLink(redeemUrl);
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonicalLink));
   return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
