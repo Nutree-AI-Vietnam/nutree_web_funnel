@@ -7,6 +7,7 @@ import type { CheckoutResponse, Lead, OnboardingPayload, TdeeResult } from './ty
 export type PayPalCheckout = CheckoutResponse & { offerLabel: string };
 
 export const STORAGE_KEY = 'nutree_funnel_v1';
+const STORE_VERSION = 4;
 
 interface QuizState {
   data: OnboardingPayload;
@@ -38,6 +39,35 @@ const initial = {
   purchased: false,
 };
 
+type PersistedQuizState = Pick<QuizState, 'data' | 'locale' | 'tdee' | 'tdeeSource' | 'lead'>;
+
+function toPersistedQuizState(state: QuizState): PersistedQuizState {
+  return {
+    data: state.data,
+    locale: state.locale,
+    tdee: state.tdee,
+    tdeeSource: state.tdeeSource,
+    lead: state.lead ? { lead_id: state.lead.lead_id, masked_email: state.lead.masked_email, status: state.lead.status } : null,
+  };
+}
+
+/** Drops untrusted legacy checkout and claim data during persisted-state upgrades. */
+export function migratePersistedQuizState(persistedState: unknown): PersistedQuizState {
+  const state = persistedState && typeof persistedState === 'object'
+    ? persistedState as Partial<QuizState>
+    : {};
+
+  return {
+    data: state.data ?? initial.data,
+    locale: state.locale ?? initial.locale,
+    tdee: state.tdee ?? initial.tdee,
+    tdeeSource: state.tdeeSource ?? initial.tdeeSource,
+    lead: state.lead?.lead_id && state.lead.masked_email && state.lead.status
+      ? { lead_id: state.lead.lead_id, masked_email: state.lead.masked_email, status: state.lead.status }
+      : null,
+  };
+}
+
 export const useQuizStore = create<QuizState>()(
   persist(
     (set) => ({
@@ -55,6 +85,9 @@ export const useQuizStore = create<QuizState>()(
     {
       name: STORAGE_KEY,
       storage: createJSONStorage(() => localStorage),
+      version: STORE_VERSION,
+      partialize: toPersistedQuizState,
+      migrate: (persistedState) => migratePersistedQuizState(persistedState),
     },
   ),
 );

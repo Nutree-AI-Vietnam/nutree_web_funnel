@@ -399,10 +399,10 @@ export const en: Copy = {
   },
   email: {
     headline: 'Save your plan and get your welcome reward',
-    body: 'Continue with Google to save your plan and reveal your welcome price.',
-    helper: 'Nutree uses your verified Google email to save the plan and prefill checkout.',
-    placeholder: '',
-    cta: 'Continue with Google',
+    body: 'Enter your email to save your plan and reveal your welcome price.',
+    helper: 'We’ll use it to save your plan and prefill secure checkout. After payment is confirmed, we’ll email a secure link to open your plan in Nutree.',
+    placeholder: 'you@example.com',
+    cta: 'Save my plan',
     devBypass: 'Skip email locally',
     skip: '',
     invalid: 'That email doesn’t look right',
@@ -510,10 +510,6 @@ export const en: Copy = {
   },
   success: {
     headline: 'Your plan is unlocked',
-    body: 'Download the Nutree app and sign in with the email you just used to get your plan back. No need to retake the quiz.',
-    qrHint: 'Scan the QR code with your phone',
-    emailHint: 'We also emailed your download link. Check your inbox if you’re on a computer.',
-    appStore: 'Download on the App Store',
-    playStore: 'Get it on Google Play',
+    body: 'After your payment is verified, RevenueCat will email a secure link. Open it in Nutree, then sign in with Google or Apple using the same checkout email. No need to retake the quiz.',
   },
 };

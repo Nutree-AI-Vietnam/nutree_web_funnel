@@ -35,11 +35,9 @@ export function setLocalPreviewCountry(country: 'VN' | 'US') {
 }
 
 export const localPreviewLead: Lead = {
-  email: 'local-preview@nutree.dev',
-  lead_id: 'lead_local_preview',
-  web_user_id: 'web_local_preview',
-  masked_email: 'local-preview@nutree.dev',
-  claim_token: 'claim_local_preview',
+  lead_id: 'local-preview-lead',
+  masked_email: 'l***@nutree.dev',
+  status: 'payment_pending',
 };
 
 export const localPreviewData: OnboardingPayload = {
@@ -49,7 +47,9 @@ export const localPreviewData: OnboardingPayload = {
   target_weight_kg: 54,
   weight_kg: 68,
   height_cm: 170,
-  age: 30,
+  birth_year: 1996,
+  birth_month: 3,
+  birth_day: 14,
   gender: 'male',
   training_days_per_week: 3,
   training_minutes_per_session: 45,

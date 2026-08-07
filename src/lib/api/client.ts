@@ -1,14 +1,6 @@
-import type {
-  CheckoutResponse,
-  FunnelContext,
-  FunnelOffer,
-  Lead,
-  MomoCheckout,
-  OnboardingPayload,
-  PaymentStatus,
-  TdeeResult,
-} from '../quiz/types';
-import type { FirebaseIdentity } from '../firebase/client';
+import { deriveAge } from '../quiz/dob';
+import { safeLeadProjection } from '../handoff/lead-projection';
+import type { Lead, OnboardingPayload, TdeeResult } from '../quiz/types';
 
 function baseUrl(): string {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -26,13 +18,6 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${baseUrl()}${path}`);
-  if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
-  return res.json() as Promise<T>;
-}
-
-/** Backend response for /v1/tdee/preview (see nutree_ai tdee_models.dart). */
 interface TdeeApiResponse {
   bmr: number;
   tdee: number;
@@ -50,8 +35,10 @@ interface TdeeApiResponse {
 
 /** Calls the existing unauthenticated TDEE preview endpoint. */
 export async function previewTdee(data: OnboardingPayload): Promise<TdeeResult> {
+  const age = deriveAge(data);
+  if (age == null) throw new Error('A valid birth date is required before previewing TDEE.');
   const body = {
-    age: data.age,
+    age,
     sex: data.gender,
     height: data.height_cm,
     weight: data.weight_kg,
@@ -62,83 +49,102 @@ export async function previewTdee(data: OnboardingPayload): Promise<TdeeResult> 
     goal: data.fitness_goal,
     unit_system: 'metric',
   };
-  const r = await post<TdeeApiResponse>('/v1/tdee/preview', body);
+  const result = await post<TdeeApiResponse>('/v1/tdee/preview', body);
   return {
-    bmr: r.bmr,
-    tdee: r.tdee,
-    calories: r.macros.calories,
-    protein_g: r.macros.protein_grams ?? r.macros.protein,
-    carbs_g: r.macros.carbs_grams ?? r.macros.carbs,
-    fat_g: r.macros.fat_grams ?? r.macros.fat,
+    bmr: result.bmr,
+    tdee: result.tdee,
+    calories: result.macros.calories,
+    protein_g: result.macros.protein_grams ?? result.macros.protein,
+    carbs_g: result.macros.carbs_grams ?? result.macros.carbs,
+    fat_g: result.macros.fat_grams ?? result.macros.fat,
   };
 }
 
-/** Sync a Firebase-authenticated Google identity before starting Paddle checkout. */
-export async function createLeadFromFirebase(identity: FirebaseIdentity): Promise<Lead> {
-  const res = await fetch(`${baseUrl()}/v1/users/sync`, {
+/** Creates a possession-bound lead through the same-origin BFF. */
+export async function createLead(email: string, payload: OnboardingPayload): Promise<Lead> {
+  if (!leadCreation) {
+    const requestId = crypto.randomUUID();
+    leadCreation = createLeadOnce(email, payload, requestId).finally(() => { leadCreation = null; });
+  }
+  return leadCreation;
+}
+
+let leadCreation: Promise<Lead> | null = null;
+
+async function createLeadOnce(email: string, payload: OnboardingPayload, requestId: string): Promise<Lead> {
+  await initializeLeadSession();
+  const res = await fetch('/api/web-funnel/leads', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${identity.idToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      firebase_uid: identity.uid,
-      email: identity.email,
-      display_name: identity.displayName,
-      photo_url: identity.photoUrl,
-      provider: 'google',
-    }),
+    headers: { 'Content-Type': 'application/json', 'X-Request-ID': requestId },
+    body: JSON.stringify({ email, payload: toWebFunnelSnapshot(payload) }),
   });
-  if (!res.ok) throw new Error(`POST /v1/users/sync failed: ${res.status}`);
+  if (!res.ok) {
+    const response = await res.json().catch(() => null) as { detail?: unknown } | null;
+    const detail = typeof response?.detail === 'string'
+      ? response.detail
+      : Array.isArray(response?.detail)
+        ? JSON.stringify(response.detail)
+        : `Could not save your checkout draft: ${res.status}`;
+    throw new Error(detail);
+  }
+  return res.json() as Promise<Lead>;
+}
 
+/** Maps quiz field names to the backend's strict mobile onboarding contract. */
+export function toWebFunnelSnapshot(data: OnboardingPayload) {
   return {
-    email: identity.email,
-    lead_id: identity.uid,
-    web_user_id: identity.uid,
-    masked_email: identity.email.replace(/^(.{2}).*(@.*)$/, '$1***$2'),
+    birth_year: data.birth_year,
+    birth_month: data.birth_month,
+    birth_day: data.birth_day,
+    gender: data.gender,
+    height: data.height_cm,
+    weight: data.weight_kg,
+    ...(data.body_fat_percentage != null && { body_fat_percentage: data.body_fat_percentage }),
+    job_type: data.job_type,
+    training_days_per_week: data.training_days_per_week,
+    training_minutes_per_session: data.training_days_per_week === 0 ? 0 : data.training_minutes_per_session,
+    goal: data.fitness_goal,
+    pain_points: data.pain_points ?? [],
+    dietary_preferences: data.dietary_preferences ?? [],
+    target_weight_kg: data.target_weight_kg,
+    ...(data.challenge_duration && { challenge_duration: data.challenge_duration }),
   };
 }
 
-export async function getFunnelContext(): Promise<FunnelContext> {
-  return get<FunnelContext>('/api/funnel/context');
+export async function getLeadStatus(leadId: string): Promise<Lead> {
+  const res = await fetch(`/api/web-funnel/leads/${encodeURIComponent(leadId)}/status`, { cache: 'no-store', credentials: 'same-origin' });
+  if (!res.ok) throw new Error(`Could not load checkout status: ${res.status}`);
+  return res.json() as Promise<Lead>;
 }
 
-export async function revealWelcomeReward(sessionId: string, leadId: string): Promise<FunnelContext> {
-  return post<FunnelContext>(`/v1/web-funnel/sessions/${sessionId}/welcome-reward/reveal`, {
-    lead_id: leadId,
+/** Sends the anonymous provider ID and redemption-link digest to the same-origin BFF after checkout. */
+export async function correlateRevenueCatCustomer(leadId: string, appUserId: string, redemptionLinkHash: string): Promise<Lead> {
+  const res = await fetch(`/api/web-funnel/leads/${encodeURIComponent(leadId)}/revenuecat-correlation`, {
+    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app_user_id: appUserId, redemption_link_hash: redemptionLinkHash }),
   });
+  if (!res.ok) throw new Error(`Could not verify payment: ${res.status}`);
+  const safe = safeLeadProjection(await res.json());
+  if (!safe) throw new Error('Could not verify payment response.');
+  return safe;
 }
 
-export async function createCheckout({
-  leadId,
-  offer,
-  billingCountry,
-}: {
-  leadId: string;
-  offer: FunnelOffer;
-  billingCountry: string;
-}): Promise<CheckoutResponse> {
-  return post<CheckoutResponse>('/v1/web-funnel/checkouts', {
-    lead_id: leadId,
-    offer_id: offer.id,
-    reward_id: offer.reward_id,
-    billing_country: billingCountry,
-    idempotency_key: crypto.randomUUID(),
-  });
+export async function requestLeadResend(leadId: string): Promise<void> {
+  const res = await fetch(`/api/web-funnel/leads/${encodeURIComponent(leadId)}/resend`, { method: 'POST', credentials: 'same-origin' });
+  if (!res.ok) throw new Error(`Could not request a new link: ${res.status}`);
 }
 
-export async function createMomoSubscriptionCheckout(
-  webUserId: string,
-  planId = 'monthly',
-): Promise<MomoCheckout> {
-  return post<MomoCheckout>('/v1/web-funnel/momo/subscription-checkouts', {
-    web_user_id: webUserId,
-    plan_id: planId,
-  });
+export async function resetLeadSession(leadId: string): Promise<void> {
+  const res = await fetch('/api/web-funnel/session/reset', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lead_id: leadId }) });
+  if (!res.ok) throw new Error(`Could not reset checkout draft: ${res.status}`);
 }
 
-export async function getPaymentStatus(orderId: string): Promise<PaymentStatus> {
-  const res = await fetch(`${baseUrl()}/v1/web-funnel/payment-orders/${orderId}/status`);
-  if (!res.ok) throw new Error(`GET payment status failed: ${res.status}`);
-  return res.json() as Promise<PaymentStatus>;
+let sessionRequest: Promise<void> | null = null;
+
+function initializeLeadSession(): Promise<void> {
+  if (!sessionRequest) {
+    sessionRequest = fetch('/api/web-funnel/session', { method: 'POST', credentials: 'same-origin' })
+      .then((res) => { if (!res.ok) throw new Error('Could not establish checkout session.'); })
+      .finally(() => { sessionRequest = null; });
+  }
+  return sessionRequest;
 }

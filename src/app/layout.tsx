@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Be_Vietnam_Pro } from 'next/font/google';
 import { AnalyticsScripts } from '@/components/analytics-scripts';
 import { LocalPreviewTools } from '@/components/local-preview-tools';
+import { siteUrl } from '@/lib/site-url';
 import './globals.css';
 
 const beVietnam = Be_Vietnam_Pro({
@@ -11,7 +12,7 @@ const beVietnam = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://start.nutree.ai'),
+  metadataBase: new URL(siteUrl),
   applicationName: 'Nutree',
   title: {
     default: 'Nutree - Kế hoạch dinh dưỡng cá nhân hóa',

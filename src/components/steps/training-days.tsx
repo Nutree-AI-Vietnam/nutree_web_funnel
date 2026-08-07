@@ -18,6 +18,7 @@ export function TrainingDaysStep() {
   const vi = useCopy();
   const router = useRouter();
   const value = useQuizStore((s) => s.data.training_days_per_week);
+  const minutes = useQuizStore((s) => s.data.training_minutes_per_session);
   const setData = useQuizStore((s) => s.setData);
 
   return (
@@ -29,7 +30,7 @@ export function TrainingDaysStep() {
             type="button"
             aria-pressed={value === d}
             onClick={() => {
-              setData({ training_days_per_week: d });
+              setData({ training_days_per_week: d, training_minutes_per_session: d === 0 ? 0 : minutes });
               router.push(d === 0 ? '/quiz/eating_pattern' : nextRoute('training_days'));
             }}
             className={`${optionClass(value === d)} relative min-h-14 py-4 text-xl font-extrabold`}

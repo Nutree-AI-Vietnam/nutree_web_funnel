@@ -1,15 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
-  createLeadFromFirebase,
-  createMomoSubscriptionCheckout,
-  getPaymentStatus,
+  createLead,
+  correlateRevenueCatCustomer,
   previewTdee,
+  toWebFunnelSnapshot,
 } from './client';
 import type { OnboardingPayload } from '../quiz/types';
-import type { FirebaseIdentity } from '../firebase/client';
 
 const payload: OnboardingPayload = {
-  age: 30,
+  birth_year: 1996,
+  birth_month: 3,
+  birth_day: 14,
   gender: 'male',
   height_cm: 175,
   weight_kg: 75,
@@ -104,84 +105,54 @@ describe('previewTdee', () => {
   });
 });
 
-describe('createLeadFromFirebase', () => {
-  const identity: FirebaseIdentity = {
-    uid: 'firebase-user-1',
-    email: 'person@example.com',
-    displayName: 'Test Person',
-    photoUrl: 'https://example.com/avatar.png',
-    idToken: 'firebase-id-token',
-  };
+describe('createLead', () => {
+  it('uses the same-origin BFF and returns only the safe lead projection', async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(new Response(JSON.stringify({
+      lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_pending',
+    }), { status: 201 }));
 
-  it('syncs the verified Google identity before Paddle checkout', async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(new Response('{}', { status: 200 }));
-
-    const lead = await createLeadFromFirebase(identity);
-
-    expect(fetch).toHaveBeenCalledWith(
-      'https://api.test/v1/users/sync',
-      expect.objectContaining({
-        method: 'POST',
-        headers: {
-          Authorization: 'Bearer firebase-id-token',
-          'Content-Type': 'application/json',
-        },
-      }),
-    );
-    const body = JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
-    expect(body).toEqual({
-      firebase_uid: 'firebase-user-1',
-      email: 'person@example.com',
-      display_name: 'Test Person',
-      photo_url: 'https://example.com/avatar.png',
-      provider: 'google',
+    await expect(createLead('person@example.com', payload)).resolves.toEqual({
+      lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_pending',
     });
-    expect(lead).toMatchObject({
-      email: 'person@example.com',
-      lead_id: 'firebase-user-1',
-      web_user_id: 'firebase-user-1',
-    });
+    expect(fetch).toHaveBeenCalledWith('/api/web-funnel/leads', expect.objectContaining({ method: 'POST' }));
+    const leadRequest = (fetch as ReturnType<typeof vi.fn>).mock.calls.find(([url]) => url === '/api/web-funnel/leads');
+    expect(leadRequest?.[1].headers).not.toHaveProperty('X-Lead-Access-Key');
+  });
+
+  it('preserves upstream validation details for checkout draft failures', async () => {
+    (fetch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ready: true }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ detail: [{ loc: ['body', 'payload', 'goal'], msg: 'Field required' }] }), { status: 422 }));
+
+    await expect(createLead('person@example.com', payload)).rejects.toThrow('[{"loc":["body","payload","goal"],"msg":"Field required"}]');
   });
 });
 
-describe('createMomoSubscriptionCheckout', () => {
-  it('creates a monthly MoMo subscription checkout', async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          order_id: 'NUTREE1',
-          pay_url: 'https://payment.test/pay',
-          deeplink: null,
-          qr_code_url: null,
-          status: 'pending',
-        }),
-        { status: 200 },
-      ),
-    );
+describe('correlateRevenueCatCustomer', () => {
+  it('uses the same-origin BFF and only returns the safe lead projection', async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(new Response(JSON.stringify({
+      lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_verified', redemption_info: { redeem_url: 'secret' },
+    }), { status: 200 }));
 
-    const checkout = await createMomoSubscriptionCheckout('web_1');
-    expect(fetch).toHaveBeenCalledWith(
-      'https://api.test/v1/web-funnel/momo/subscription-checkouts',
-      expect.objectContaining({ method: 'POST' }),
-    );
-    const body = JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
-    expect(body).toEqual({ web_user_id: 'web_1', plan_id: 'monthly' });
-    expect(checkout.pay_url).toBe('https://payment.test/pay');
+    await expect(correlateRevenueCatCustomer('lead-1', '$RCAnonymousID:customer-1', 'a'.repeat(64))).resolves.toEqual({
+      lead_id: 'lead-1', masked_email: 'p***@example.com', status: 'payment_verified',
+    });
+    expect(fetch).toHaveBeenCalledWith('/api/web-funnel/leads/lead-1/revenuecat-correlation', expect.objectContaining({
+      method: 'POST', credentials: 'same-origin', body: JSON.stringify({ app_user_id: '$RCAnonymousID:customer-1', redemption_link_hash: 'a'.repeat(64) }),
+    }));
   });
 });
 
-describe('getPaymentStatus', () => {
-  it('fetches payment status by order id', async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
-      new Response(JSON.stringify({ order_id: 'NUTREE1', status: 'paid', paid: true }), {
-        status: 200,
-      }),
-    );
+describe('toWebFunnelSnapshot', () => {
+  it("maps the web quiz shape to the backend's strict mobile-compatible snapshot", () => {
+    expect(toWebFunnelSnapshot(payload)).toEqual({
+      birth_year: 1996, birth_month: 3, birth_day: 14, gender: 'male', height: 175, weight: 75,
+      job_type: 'desk', training_days_per_week: 4, training_minutes_per_session: 60, goal: 'cut',
+      pain_points: [], dietary_preferences: [], target_weight_kg: undefined,
+    });
+  });
 
-    const status = await getPaymentStatus('NUTREE1');
-    expect(fetch).toHaveBeenCalledWith(
-      'https://api.test/v1/web-funnel/payment-orders/NUTREE1/status',
-    );
-    expect(status.paid).toBe(true);
+  it('normalizes stale training minutes when no training days are selected', () => {
+    expect(toWebFunnelSnapshot({ ...payload, training_days_per_week: 0, training_minutes_per_session: 60 }).training_minutes_per_session).toBe(0);
   });
 });

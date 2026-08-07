@@ -1,6 +1,5 @@
 import type { MetadataRoute } from 'next';
-
-const siteUrl = 'https://start.nutree.ai';
+import { siteUrl } from '@/lib/site-url';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [

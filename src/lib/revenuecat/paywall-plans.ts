@@ -1,34 +1,17 @@
-export interface PaywallPlan {
+export interface RevenueCatPaywallPlan {
   id: '4-week' | '12-week' | '52-week';
   label: { en: string; vi: string };
   description: { en: string; vi: string };
   billingLabel: { en: string; vi: string };
-  priceId: string;
   recommended: boolean;
 }
 
-export const paddlePaywallDiscountId = 'dsc_01kyvmbjc01p8dghmdsfbtp9b9';
-export const paddleExitDiscountId = 'dsc_01kyvn4sy5brqty9nr2zm63meg';
-
-export function shouldShowPaddleExitOffer({
-  secondsLeft,
-  activeDiscountId,
-  hasBeenShown,
-}: {
-  secondsLeft: number;
-  activeDiscountId?: string;
-  hasBeenShown: boolean;
-}) {
-  return secondsLeft > 0 && activeDiscountId !== paddleExitDiscountId && !hasBeenShown;
-}
-
-export const paddlePaywallPlans: PaywallPlan[] = [
+export const revenueCatPaywallPlans: RevenueCatPaywallPlan[] = [
   {
     id: '4-week',
     label: { en: '4-week', vi: '4 tuần' },
     description: { en: 'Start with 4-week flexibility', vi: 'Linh hoạt trong 4 tuần đầu' },
     billingLabel: { en: 'Every 4 weeks', vi: 'Mỗi 4 tuần' },
-    priceId: 'pri_01kyvmbhrx16j0k5vk8er6bt6m',
     recommended: false,
   },
   {
@@ -36,7 +19,6 @@ export const paddlePaywallPlans: PaywallPlan[] = [
     label: { en: '12-week', vi: '12 tuần' },
     description: { en: 'Recommended for a full 12-week rhythm', vi: 'Đủ 12 tuần để tạo nhịp theo dõi' },
     billingLabel: { en: 'Every 12 weeks', vi: 'Mỗi 12 tuần' },
-    priceId: 'pri_01kyvmbj1fvwrgj0jw8ejsgt91',
     recommended: true,
   },
   {
@@ -44,7 +26,6 @@ export const paddlePaywallPlans: PaywallPlan[] = [
     label: { en: '52-week', vi: '52 tuần' },
     description: { en: 'Best for 52 weeks of consistency', vi: 'Theo dõi trọn 52 tuần, ít gián đoạn hơn' },
     billingLabel: { en: 'Every 52 weeks', vi: 'Mỗi 52 tuần' },
-    priceId: 'pri_01kyvmbj9jgent2kemgqwmkx91',
     recommended: false,
   },
 ];

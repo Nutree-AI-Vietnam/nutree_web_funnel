@@ -9,7 +9,9 @@ export interface OnboardingPayload {
   motivation?: 'confidence' | 'energy' | 'health' | 'clothes' | 'training' | 'clarity';
   hardest_eating_moment?: 'morning' | 'lunch' | 'evening' | 'late_night' | 'weekend' | 'eating_out';
   gender?: 'male' | 'female';
-  age?: number;
+  birth_year?: number;
+  birth_month?: number;
+  birth_day?: number;
   height_cm?: number;
   weight_kg?: number;
   body_review_confirmed_at?: string;
@@ -32,12 +34,13 @@ export interface TdeeResult {
   fat_g: number;
 }
 
+export type LeadStatus = 'payment_pending' | 'payment_verified' | 'claim_email_sent' | 'email_delivery_delayed' | 'claim_expired' | 'claim_revoked' | 'claim_conflict' | 'claimed';
+
+/** Browser-safe projection only. Email and capability never enter Zustand. */
 export interface Lead {
-  email: string;
-  web_user_id: string;
-  lead_id?: string;
-  masked_email?: string;
-  claim_token?: string;
+  lead_id: string;
+  masked_email: string;
+  status: LeadStatus;
 }
 
 export interface MomoCheckout {
@@ -128,4 +131,13 @@ export interface CheckoutResponse {
     planId: string;
     customId: string;
   };
+}
+
+export interface CheckoutStatusResponse {
+  checkoutId: string;
+  status: 'PENDING_APPROVAL' | 'PENDING_PAYMENT' | 'PAID_ACTIVE' | 'CLAIMED' | 'REVOKED';
+  provider: PaymentProvider | 'paypal';
+  claimable: boolean;
+  claimed: boolean;
+  paidAt?: string | null;
 }

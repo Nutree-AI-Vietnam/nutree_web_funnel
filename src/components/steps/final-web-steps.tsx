@@ -9,6 +9,7 @@ import type { Copy } from '@/lib/copy';
 import { nextRoute } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
+import { deriveAge } from '@/lib/quiz/dob';
 import { isMetricValueValid, MetricInput, parseMetricDraft } from './metric-input';
 import { QuizStepFrame } from './quiz-step-frame';
 
@@ -26,8 +27,8 @@ export function BodyBasicsStep() {
   const copy = useCopy();
   const data = useQuizStore((s) => s.data);
   const setData = useQuizStore((s) => s.setData);
-  const [age, setAge] = useDraftNumber('age', 30);
-  const ageValid = isMetricValueValid(age, 18, 100);
+  const [age, setAge] = useDraftNumber('birth_year', 1990);
+  const ageValid = isMetricValueValid(age, 1900, new Date().getFullYear() - 18);
 
   return (
     <QuizStepFrame title={copy.body_basics.question} hint={copy.body_basics.hint}>
@@ -60,7 +61,7 @@ export function BodyBasicsStep() {
           onClick={() => {
             const parsed = parseMetricDraft(age);
             if (!parsed) return;
-            setData({ age: parsed });
+            setData({ birth_year: parsed, birth_month: 1, birth_day: 1 });
             router.push(nextRoute('sex'));
           }}
         >
@@ -183,7 +184,7 @@ export function BodyReviewStep() {
   const review = copy.body_review;
   const rows = [
     [review.goalLabel, getGoalLabel(copy, data.fitness_goal)],
-    [review.ageLabel, data.age ? `${data.age}` : review.missingValue],
+    [review.ageLabel, deriveAge(data) ? `${deriveAge(data)}` : review.missingValue],
     [review.heightLabel, data.height_cm ? `${data.height_cm} cm` : review.missingValue],
     [review.weightLabel, data.weight_kg ? `${data.weight_kg} kg` : review.missingValue],
     [review.targetWeightLabel, data.target_weight_kg ? `${data.target_weight_kg} kg` : review.targetWeightPending],
@@ -279,4 +280,3 @@ export function RoutineStep() {
     </QuizStepFrame>
   );
 }
-

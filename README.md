@@ -1,7 +1,7 @@
 # Nutree Web Funnel
 
-Web onboarding funnel (start.nutree.ai): quiz -> TDEE results -> email capture ->
-Paddle subscription checkout -> app download handoff.
+Web onboarding funnel (quiz.nutreeai.com production, quiz.preview.nutreeai.com preview): quiz -> TDEE results -> email capture ->
+RevenueCat Web checkout -> RevenueCat Redemption Link -> authenticated mobile claim.
 
 Design spec: `docs/superpowers/specs/2026-07-07-web-to-app-funnel-design.md`
 
@@ -13,8 +13,8 @@ Vitest. Localized copy lives in `src/lib/copy/vi.ts` and
 
 ## Localization and Pricing
 
-- Vietnam (`VN`) uses Vietnamese copy and Paddle's VND price override.
-- Every non-Vietnam market uses English copy and Paddle's USD price.
+- Vietnam (`VN`) uses Vietnamese copy and the VND offering configured in RevenueCat.
+- Every non-Vietnam market uses English copy and the USD offering configured in RevenueCat.
 - Keep text and currency aligned on every screen: do not show Vietnamese copy
   with USD, and do not show English copy with VND.
 - Market detection should stay automatic from browser/backend country context;
@@ -36,12 +36,12 @@ npm run build                # production build check
 | Variable | Purpose |
 |---|---|
 | `NEXT_PUBLIC_API_BASE_URL` | Nutree backend base URL (no trailing slash) |
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Web app API key for Google sign-in |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Web app auth domain |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project matching the backend and mobile flavor |
-| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase Web app ID |
-| `NEXT_PUBLIC_PADDLE_ENVIRONMENT` | Required Paddle target: `sandbox` or `live` |
-| `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` | Paddle browser token matching the target environment |
+| `WEB_FUNNEL_BFF_SHARED_SECRET` | Server-only shared credential required by MealTrack for lead creation |
+| `NEXT_PUBLIC_REVENUECAT_WEB_API_KEY` | RevenueCat Web public API key for the web checkout config |
+| `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED` | Public default-off anonymous-customer redemption handoff; enable only for staging/SIT and redeploy after changing |
+| `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID` | Offering identifier containing the three web packages |
+| `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_4_WEEK` / `12_WEEK` / `52_WEEK` | Exact package identifiers from that offering |
+| `NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID` / `NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME` | Matching Nutree app bundle/package IDs for the phone handoff flow |
 | `NEXT_PUBLIC_GA4_ID` | GA4 measurement id (optional; script omitted if unset) |
 | `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel id (optional) |
 | `NEXT_PUBLIC_TIKTOK_PIXEL_ID` | TikTok Pixel id (optional) |
@@ -53,7 +53,8 @@ npm run build                # production build check
 ## Deploy (Vercel)
 
 Import the repo in Vercel, set the env vars above for Production/Preview, and point
-`start.nutree.ai` at the project. No special build settings (defaults work).
+`quiz.nutreeai.com` at the production project and `quiz.preview.nutreeai.com`
+at the preview deployment. No special build settings (defaults work).
 
 ### Vercel import templates
 
@@ -66,15 +67,16 @@ files, which stay ignored by Git, then import non-empty values with:
 ./scripts/import-vercel-env.sh production .env.production.local
 ```
 
-Preview must use the staging Firebase project plus Paddle sandbox; Production uses
-the production Firebase project plus Paddle live. Redeploy after an import because
+Preview must use RevenueCat's sandbox web key/config; Production uses the live web key/config. Redeploy after an import because
 `NEXT_PUBLIC_*` values are embedded during the build.
 
 ## External Dependencies
 
-- **Backend** (separate team): `POST /v1/tdee/preview`, `POST /v1/web-funnel/leads`,
-  and the verified Paddle webhook at `POST /v1/webhooks/paddle`.
-- **Paddle**: configure the default payment link under Checkout > Checkout settings.
+- **RevenueCat Web**: connect Paddle Billing, import products, map them to the Nutree Premium entitlement, and configure the web offering/package IDs above.
+- **Lead handoff BFF**: the web app creates a possession-bound checkout draft through `/api/web-funnel/session` and `/api/web-funnel/leads`, then polls `/status` and can request `/resend` or `/session/reset` with the same-origin lead-access cookie.
+- **Firebase Auth**: the web funnel never completes Firebase auth in-browser; `/open-nutree` and `/redeem` are token-free install/reopen fallbacks.
+- **Redemption handoff**: when `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED=true`, the web app generates an anonymous RevenueCat web customer, completes checkout with that customer, and sends only the anonymous `app_user_id` plus a SHA-256 digest of the redemption URL to the same-origin BFF for lead correlation. The browser keeps the raw redemption URL only in memory, then navigates to `/postcheckout`. RevenueCat sends the Redemption Link to the checkout email; the mobile app keeps the normal passwordless email-link sign-in flow visible and silently resumes redemption after Firebase authentication. The browser never grants access.
+- **Backend**: retains its RevenueCat webhook/cache for enforcing Premium APIs and lead-status projection.
   For live checkout, use an approved production domain. Sandbox supports localhost.
 - **Airbridge**: tracking link created in dashboard (goes in
   `NEXT_PUBLIC_AIRBRIDGE_TRACKING_LINK`).
