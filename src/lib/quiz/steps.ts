@@ -2,6 +2,7 @@
 export const QUIZ_STEPS = [
   'goal',
   'name_ask',
+  'welcome',
   'challenges',
   'duration',
   'motivation',
@@ -12,14 +13,19 @@ export const QUIZ_STEPS = [
   'weight',
   'target_weight',
   'body_review',
+  'science',
+  'science_sources',
   'activity_level',
   'training_days',
   'training_duration',
   'eating_pattern',
   'diet',
   'support_style',
+  'preview',
+  'care_pause',
   'calculating',
   'result',
+  'progress',
 ] as const;
 
 export type QuizStep = (typeof QUIZ_STEPS)[number];
@@ -28,6 +34,7 @@ export type QuizChapter = 'intent' | 'body' | 'routine' | 'plan';
 export const STEP_CHAPTERS: Record<QuizStep, QuizChapter> = {
   goal: 'intent',
   name_ask: 'intent',
+  welcome: 'intent',
   challenges: 'intent',
   duration: 'intent',
   motivation: 'intent',
@@ -38,14 +45,19 @@ export const STEP_CHAPTERS: Record<QuizStep, QuizChapter> = {
   weight: 'body',
   target_weight: 'body',
   body_review: 'body',
+  science: 'routine',
+  science_sources: 'routine',
   activity_level: 'routine',
   training_days: 'routine',
   training_duration: 'routine',
   eating_pattern: 'routine',
   diet: 'routine',
   support_style: 'routine',
+  preview: 'plan',
+  care_pause: 'plan',
   calculating: 'plan',
   result: 'plan',
+  progress: 'plan',
 };
 
 export const CHAPTER_LABELS: Record<QuizChapter, string> = {

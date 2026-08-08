@@ -6,6 +6,7 @@ describe('quiz steps', () => {
     expect(QUIZ_STEPS).toEqual([
       'goal',
       'name_ask',
+      'welcome',
       'challenges',
       'duration',
       'motivation',
@@ -16,14 +17,19 @@ describe('quiz steps', () => {
       'weight',
       'target_weight',
       'body_review',
+      'science',
+      'science_sources',
       'activity_level',
       'training_days',
       'training_duration',
       'eating_pattern',
       'diet',
       'support_style',
+      'preview',
+      'care_pause',
       'calculating',
       'result',
+      'progress',
     ]);
   });
 
@@ -35,11 +41,15 @@ describe('quiz steps', () => {
 
   it('navigates forward through quiz steps', () => {
     expect(nextRoute('goal')).toBe('/quiz/name_ask');
+    expect(nextRoute('name_ask')).toBe('/quiz/welcome');
     expect(nextRoute('diet')).toBe('/quiz/support_style');
+    expect(nextRoute('science')).toBe('/quiz/science_sources');
+    expect(nextRoute('science_sources')).toBe('/quiz/activity_level');
   });
 
-  it('exits to /email after the last quiz step', () => {
-    expect(nextRoute('result')).toBe('/email');
+  it('routes the result through progress before email capture', () => {
+    expect(nextRoute('result')).toBe('/quiz/progress');
+    expect(nextRoute('progress')).toBe('/email');
   });
 
   it('navigates backward, landing page before first step', () => {
@@ -49,8 +59,8 @@ describe('quiz steps', () => {
 
   it('exposes 1-based progress index', () => {
     expect(stepIndex('goal')).toBe(1);
-    expect(stepIndex('height')).toBe(9);
-    expect(stepIndex('result')).toBe(20);
+    expect(stepIndex('height')).toBe(10);
+    expect(stepIndex('result')).toBe(25);
     expect(chapterLabel('training_days')).toBe('Thói quen');
   });
 });

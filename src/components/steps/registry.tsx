@@ -9,6 +9,7 @@ import {
   BodyReviewStep,
   TargetWeightStep,
 } from './final-web-steps';
+import { CarePauseStep, WelcomeStep, ScienceStep, ScienceSourcesStep, PreviewStep } from './impression-steps';
 import { MultiChoiceStep } from './multi-choice';
 import { NumberInputStep } from './number-input-step';
 import { ReflectionStep } from './reflection';
@@ -16,6 +17,7 @@ import { SingleChoiceStep } from './single-choice';
 import { TdeeTargetsStep } from './tdee-targets';
 import { NameAskStep } from './text-input-step';
 import { TrainingDaysStep, TrainingDurationStep } from './training-days';
+import { ProgressStep } from './progress';
 
 /**
  * slug -> screen component. Every QuizStep must have an entry (registry check in page.tsx).
@@ -23,7 +25,7 @@ import { TrainingDaysStep, TrainingDurationStep } from './training-days';
  * re-render live when the active locale changes.
  */
 export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
-  goal: () => {
+  goal: function GoalStep() {
     const c = useCopy();
     return (
       <SingleChoiceStep
@@ -35,7 +37,8 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
     );
   },
   name_ask: () => <NameAskStep step="name_ask" />,
-  challenges: () => {
+  welcome: () => <WelcomeStep />,
+  challenges: function ChallengesStep() {
     const c = useCopy();
     return (
       <MultiChoiceStep
@@ -47,7 +50,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       />
     );
   },
-  duration: () => {
+  duration: function DurationStep() {
     const c = useCopy();
     return (
       <SingleChoiceStep
@@ -58,7 +61,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       />
     );
   },
-  motivation: () => {
+  motivation: function MotivationStep() {
     const c = useCopy();
     return (
       <SingleChoiceStep
@@ -70,12 +73,12 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
     );
   },
   reflection: () => <ReflectionStep />,
-  sex: () => {
+  sex: function SexStep() {
     const c = useCopy();
     return <SingleChoiceStep step="sex" field="gender" question={c.sex.question} options={c.sex.options} />;
   },
   age: () => <BirthDateStep />,
-  height: () => {
+  height: function HeightStep() {
     const c = useCopy();
     return (
       <NumberInputStep
@@ -88,7 +91,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       />
     );
   },
-  weight: () => {
+  weight: function WeightStep() {
     const c = useCopy();
     return (
       <NumberInputStep
@@ -103,7 +106,9 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
   },
   target_weight: () => <TargetWeightStep />,
   body_review: () => <BodyReviewStep />,
-  activity_level: () => {
+  science: () => <ScienceStep />,
+  science_sources: () => <ScienceSourcesStep />,
+  activity_level: function ActivityLevelStep() {
     const c = useCopy();
     return (
       <SingleChoiceStep
@@ -115,7 +120,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
     );
   },
   training_days: () => <TrainingDaysStep />,
-  training_duration: () => {
+  training_duration: function TrainingDurationQuizStep() {
     const c = useCopy();
     return (
       <TrainingDurationStep
@@ -124,7 +129,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       />
     );
   },
-  eating_pattern: () => {
+  eating_pattern: function EatingPatternStep() {
     const c = useCopy();
     return (
       <SingleChoiceStep
@@ -135,7 +140,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       />
     );
   },
-  diet: () => {
+  diet: function DietStep() {
     const c = useCopy();
     return (
       <MultiChoiceStep
@@ -147,7 +152,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       />
     );
   },
-  support_style: () => {
+  support_style: function SupportStyleStep() {
     const c = useCopy();
     return (
       <SingleChoiceStep
@@ -158,6 +163,9 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       />
     );
   },
+  preview: () => <PreviewStep />,
+  care_pause: () => <CarePauseStep />,
   calculating: () => <CalculatingStep />,
   result: () => <TdeeTargetsStep />,
+  progress: () => <ProgressStep />,
 };

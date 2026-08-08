@@ -9,6 +9,7 @@ import { MovingBorderLink } from '@/components/ui/moving-border-button';
 import { trackStepViewed } from '@/lib/analytics/track';
 import { LOCALE_LABELS, LOCALE_NAMES, LOCALE_ORDER } from '@/lib/copy';
 import { useCopy, useLocale, useSetLocale } from '@/lib/copy/use-copy';
+import { useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 
 const MACRO_BARS = [
@@ -124,6 +125,7 @@ function SignalMarquee() {
 
 export default function LandingPage() {
   const copy = useCopy();
+  const resetQuiz = useQuizStore((state) => state.reset);
   useEffect(() => trackStepViewed('landing'), []);
 
   return (
@@ -155,7 +157,13 @@ export default function LandingPage() {
               <TasteWords text={copy.landing.subheadline} />
             </p>
             <div className="mt-5">
-              <MovingBorderLink href="/quiz/goal">
+              <MovingBorderLink
+                href="/quiz/goal"
+                onClick={() => {
+                  resetQuiz();
+                  window.sessionStorage.removeItem('quiz:lastIndex');
+                }}
+              >
                 {copy.landing.cta}
               </MovingBorderLink>
             </div>

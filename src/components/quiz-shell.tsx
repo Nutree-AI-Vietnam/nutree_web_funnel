@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { BackgroundBeams } from '@/components/ui/background-beams';
+import { ExitIntentModal } from '@/components/exit-intent-modal';
 import { trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { QUIZ_STEPS, prevRoute, stepIndex, type QuizStep } from '@/lib/quiz/steps';
@@ -87,6 +88,7 @@ export function QuizShell({ step, children }: { step: QuizStep; children: React.
       >
         {children}
       </motion.div>
+      <ExitIntentModal currentStepIndex={currentStep} />
     </main>
   );
 }

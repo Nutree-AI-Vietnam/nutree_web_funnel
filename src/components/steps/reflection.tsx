@@ -33,7 +33,7 @@ export function ReflectionStep() {
   ];
 
   return (
-    <QuizStepFrame className="justify-center gap-5">
+    <QuizStepFrame className="gap-5">
       <p className="max-w-[22rem] text-[1.5rem] font-extrabold leading-[1.2] tracking-tight text-forest [text-wrap:balance]">
         {buildReflection(data, copy)}
       </p>

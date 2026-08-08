@@ -17,7 +17,7 @@ type FieldConfig = {
   label: string;
   hint?: string;
   step: number;
-  defaultValue: number;
+  defaultValue?: number;
 };
 
 /** Field labels/hints follow the active locale, so rebuild the map from copy. */
@@ -27,13 +27,12 @@ function fieldConfigFor(copy: Copy): Record<NumberField, FieldConfig> {
       label: copy.target_weight.label,
       hint: copy.target_weight.hint,
       step: 1,
-      defaultValue: 50,
     },
     height_cm: {
       label: copy.height.heightLabel,
       hint: copy.height.heightHint,
       step: 1,
-      defaultValue: 170,
+      defaultValue: 160,
     },
     weight_kg: {
       label: copy.weight.weightLabel,
@@ -45,7 +44,6 @@ function fieldConfigFor(copy: Copy): Record<NumberField, FieldConfig> {
       label: copy.body_fat.label,
       hint: copy.body_fat.inputHint,
       step: 0.5,
-      defaultValue: 20,
     },
   };
 }
@@ -76,7 +74,7 @@ export function NumberInputStep({
   const [touched, setTouched] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const config = fieldConfigFor(copy)[field];
-  const [value, setValue] = useState(saved != null ? String(saved) : String(config.defaultValue));
+  const [value, setValue] = useState(saved != null ? String(saved) : config.defaultValue != null ? String(config.defaultValue) : '');
 
   const parsed = parseMetricDraft(value);
   const valid = isMetricValueValid(value, min, max);

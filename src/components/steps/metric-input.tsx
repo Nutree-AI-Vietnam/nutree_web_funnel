@@ -1,6 +1,7 @@
 'use client';
 
 import { MetricWheelPicker } from './metric-wheel-picker';
+import type { WheelVariant } from './metric-wheel-picker';
 
 export function normalizeMetricDraft(value: string): string {
   return value.trim().replace(',', '.');
@@ -42,6 +43,7 @@ export function MetricInput({
   bare,
   onChange,
   onBlur,
+  variant = 'default',
 }: {
   id: string;
   label: string;
@@ -57,9 +59,10 @@ export function MetricInput({
   bare?: boolean;
   onChange: (value: string) => void;
   onBlur: () => void;
+  variant?: WheelVariant;
 }) {
   const parsed = parseMetricDraft(value);
-  const current = clamp(parsed ?? min, min, max);
+  const current = parsed == null ? null : clamp(parsed, min, max);
 
   const picker = (
     <MetricWheelPicker
@@ -76,6 +79,7 @@ export function MetricInput({
       }}
       formatValue={(next) => formatMetric(next, step)}
       autoFocus={autoFocus}
+      variant={variant}
     />
   );
 

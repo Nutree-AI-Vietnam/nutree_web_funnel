@@ -9,7 +9,8 @@ function isCalendarDate(value: BirthDate): boolean {
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
-export function deriveAge(value: BirthDate, today = new Date()): number | null {
+export function deriveAge(value: BirthDate & { age?: number }, today = new Date()): number | null {
+  if (typeof value.age === 'number' && Number.isInteger(value.age)) return value.age;
   if (!isCalendarDate(value)) return null;
   const year = value.birth_year!;
   const month = value.birth_month!;
@@ -19,7 +20,11 @@ export function deriveAge(value: BirthDate, today = new Date()): number | null {
   return age;
 }
 
+export function validateAge(age: number): boolean {
+  return Number.isInteger(age) && age >= 12 && age <= 100;
+}
+
 export function validateBirthDate(value: BirthDate, today = new Date()): { valid: boolean; age?: number } {
   const age = deriveAge(value, today);
-  return age != null && age >= 18 && age <= 100 ? { valid: true, age } : { valid: false };
+  return age != null && age >= 12 && age <= 100 ? { valid: true, age } : { valid: false };
 }

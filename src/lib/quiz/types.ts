@@ -9,6 +9,7 @@ export interface OnboardingPayload {
   motivation?: 'confidence' | 'energy' | 'health' | 'clothes' | 'training' | 'clarity';
   hardest_eating_moment?: 'morning' | 'lunch' | 'evening' | 'late_night' | 'weekend' | 'eating_out';
   gender?: 'male' | 'female';
+  age?: number;
   birth_year?: number;
   birth_month?: number;
   birth_day?: number;
