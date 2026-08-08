@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { chapterLabel, QUIZ_STEPS, isQuizStep, nextRoute, prevRoute, stepIndex } from './steps';
+import { chapterLabel, QUIZ_STEPS, isQuizStep, nextStep, previousStep, stepIndex } from './steps';
 
 describe('quiz steps', () => {
   it('keeps one input or decision per quiz screen', () => {
@@ -39,22 +39,22 @@ describe('quiz steps', () => {
     expect(isQuizStep('nonsense')).toBe(false);
   });
 
-  it('navigates forward through quiz steps', () => {
-    expect(nextRoute('goal')).toBe('/quiz/name_ask');
-    expect(nextRoute('name_ask')).toBe('/quiz/welcome');
-    expect(nextRoute('diet')).toBe('/quiz/support_style');
-    expect(nextRoute('science')).toBe('/quiz/science_sources');
-    expect(nextRoute('science_sources')).toBe('/quiz/activity_level');
+  it('navigates forward through quiz screens without creating subroutes', () => {
+    expect(nextStep('goal')).toBe('name_ask');
+    expect(nextStep('name_ask')).toBe('welcome');
+    expect(nextStep('diet')).toBe('support_style');
+    expect(nextStep('science')).toBe('science_sources');
+    expect(nextStep('science_sources')).toBe('activity_level');
   });
 
-  it('routes the result through progress before email capture', () => {
-    expect(nextRoute('result')).toBe('/quiz/progress');
-    expect(nextRoute('progress')).toBe('/email');
+  it('continues from result through progress before email capture', () => {
+    expect(nextStep('result')).toBe('progress');
+    expect(nextStep('progress')).toBeNull();
   });
 
-  it('navigates backward, landing page before first step', () => {
-    expect(prevRoute('name_ask')).toBe('/quiz/goal');
-    expect(prevRoute('goal')).toBe('/');
+  it('navigates backward, landing page before first screen', () => {
+    expect(previousStep('name_ask')).toBe('goal');
+    expect(previousStep('goal')).toBeNull();
   });
 
   it('exposes 1-based progress index', () => {

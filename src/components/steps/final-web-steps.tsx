@@ -6,7 +6,7 @@ import { OptionCard } from '@/components/option-card';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
 import type { Copy } from '@/lib/copy';
-import { nextRoute } from '@/lib/quiz/steps';
+import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
 import { deriveAge } from '@/lib/quiz/dob';
@@ -64,7 +64,7 @@ export function BodyBasicsStep() {
             const parsed = parseMetricDraft(age);
             if (!parsed) return;
             setData({ birth_year: parsed, birth_month: 1, birth_day: 1 });
-            router.push(nextRoute('sex'));
+            goToNextQuizStep(router, 'sex');
           }}
         >
           {copy.common.continue}
@@ -119,7 +119,7 @@ export function BodyMetricsStep() {
             const weightKg = parseMetricDraft(weight);
             if (!heightCm || !weightKg) return;
             setData({ height_cm: heightCm, weight_kg: weightKg });
-            router.push(nextRoute('height'));
+            goToNextQuizStep(router, 'height');
           }}
         >
           {copy.common.continue}
@@ -250,7 +250,7 @@ export function TargetWeightStep() {
         type="button"
         onClick={() => {
           setData({ target_weight_kg: undefined, target_weight_unsure: true });
-          router.push(nextRoute('target_weight'));
+          goToNextQuizStep(router, 'target_weight');
         }}
         className="rounded-2xl border border-border-brand bg-white/78 px-4 py-3 text-left text-sm font-extrabold text-forest shadow-sm"
       >
@@ -263,7 +263,7 @@ export function TargetWeightStep() {
             const parsed = parseMetricDraft(target);
             if (!parsed) return;
             setData({ target_weight_kg: parsed, target_weight_unsure: false });
-            router.push(nextRoute('target_weight'));
+          goToNextQuizStep(router, 'target_weight');
           }}
         >
           {copy.common.continue}
@@ -301,7 +301,7 @@ export function BodyReviewStep() {
         <PrimaryButton
           onClick={() => {
             setData({ body_review_confirmed_at: new Date().toISOString() });
-            router.push(nextRoute('body_review'));
+          goToNextQuizStep(router, 'body_review');
           }}
         >
           {copy.body_review.cta}
@@ -369,7 +369,7 @@ export function RoutineStep() {
       <div className="mt-auto pt-4">
         <PrimaryButton
           disabled={!data.job_type || trainingDays == null || (durationRequired && !data.training_minutes_per_session)}
-          onClick={() => router.push(nextRoute('activity_level'))}
+          onClick={() => goToNextQuizStep(router, 'activity_level')}
         >
           {copy.common.continue}
         </PrimaryButton>

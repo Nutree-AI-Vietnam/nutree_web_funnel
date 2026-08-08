@@ -9,3 +9,8 @@ export function normalizeCountryCode(countryCode: string | null | undefined): st
 
   return normalized;
 }
+
+export function localeFromCountryCode(countryCode: string | null | undefined): 'vi' | 'en' {
+  const normalized = normalizeCountryCode(countryCode);
+  return normalized ? (normalized === 'VN' ? 'vi' : 'en') : 'vi';
+}

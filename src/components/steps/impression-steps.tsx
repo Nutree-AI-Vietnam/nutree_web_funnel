@@ -7,7 +7,7 @@ import { PrimaryButton } from '@/components/primary-button';
 import { Slideshow } from '@/components/slideshow';
 import type { Copy } from '@/lib/copy';
 import { useCopy } from '@/lib/copy/use-copy';
-import { nextRoute } from '@/lib/quiz/steps';
+import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import { QuizStepFrame } from './quiz-step-frame';
 
@@ -80,7 +80,7 @@ export function WelcomeStep() {
         transition={{ delay: 0.45, duration: 0.4 }}
         className="mt-auto pt-4"
       >
-        <PrimaryButton onClick={() => router.push(nextRoute('welcome'))}>
+        <PrimaryButton onClick={() => goToNextQuizStep(router, 'welcome')}>
           {copy.welcome.cta}
         </PrimaryButton>
       </motion.div>
@@ -139,7 +139,7 @@ export function ScienceStep() {
       </div>
 
       <div className="mt-auto pt-2">
-        <PrimaryButton onClick={() => router.push(nextRoute('science'))}>
+        <PrimaryButton onClick={() => goToNextQuizStep(router, 'science')}>
           {copy.science.cta}
         </PrimaryButton>
       </div>
@@ -163,7 +163,7 @@ export function ScienceSourcesStep() {
         <ScienceSourcesSection copy={copy} />
       </div>
       <div className="mt-auto pt-2">
-        <PrimaryButton onClick={() => router.push(nextRoute('science_sources'))}>
+        <PrimaryButton onClick={() => goToNextQuizStep(router, 'science_sources')}>
           {copy.science.cta}
         </PrimaryButton>
       </div>
@@ -204,7 +204,7 @@ export function CarePauseStep() {
         <p className="mt-5 text-lg font-extrabold text-forest">{copy.care_pause.support}</p>
       </div>
       <div className="mt-auto w-full pt-5">
-        <PrimaryButton onClick={() => router.push(nextRoute('care_pause'))}>{copy.care_pause.cta}</PrimaryButton>
+        <PrimaryButton onClick={() => goToNextQuizStep(router, 'care_pause')}>{copy.care_pause.cta}</PrimaryButton>
       </div>
     </QuizStepFrame>
   );
@@ -241,7 +241,7 @@ export function PreviewStep() {
       </div>
 
       <div className="mt-auto pt-4">
-        <PrimaryButton onClick={() => router.push(nextRoute('preview'))}>
+        <PrimaryButton onClick={() => goToNextQuizStep(router, 'preview')}>
           {copy.preview.cta}
         </PrimaryButton>
       </div>

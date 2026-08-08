@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
 import { buildReflection } from '@/lib/quiz/reflection';
-import { nextRoute } from '@/lib/quiz/steps';
+import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import { QuizStepFrame } from './quiz-step-frame';
 
@@ -99,7 +99,7 @@ export function ReflectionStep() {
       </div>
 
       <div className="mt-auto">
-        <PrimaryButton onClick={() => router.push(nextRoute('reflection'))}>
+        <PrimaryButton onClick={() => goToNextQuizStep(router, 'reflection')}>
           {copy.common.continue}
         </PrimaryButton>
       </div>

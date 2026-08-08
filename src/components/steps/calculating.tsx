@@ -6,7 +6,7 @@ import { PrimaryButton } from '@/components/primary-button';
 import { previewTdee } from '@/lib/api/client';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { isLocalPreviewHost } from '@/lib/local-preview';
-import { nextRoute } from '@/lib/quiz/steps';
+import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import { computeTdeeResult } from '@/lib/tdee/calculator';
 import { cn } from '@/lib/utils';
@@ -267,7 +267,7 @@ export function CalculatingStep() {
       {/* Wait for user confirmation instead of auto-advancing */}
       <div className="mt-auto pt-4">
         {ready ? (
-          <PrimaryButton onClick={() => router.push(nextRoute('calculating'))}>
+          <PrimaryButton onClick={() => goToNextQuizStep(router, 'calculating')}>
             {vi.calculating.cta}
           </PrimaryButton>
         ) : error ? (

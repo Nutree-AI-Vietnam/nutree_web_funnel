@@ -20,7 +20,7 @@ A web onboarding funnel that mirrors the Nutree mobile app's quiz flow, converts
 
 ## Architecture
 
-- **One route per quiz step** (`/quiz/goal`, `/quiz/sex`, …) using the same snake_case slugs as the app's `OnboardingScreenId.rcKey`. Gives browser back-button support and per-step funnel analytics.
+- **One quiz route** (`/quiz`) with the active screen held in persisted client-side flow state. Screen slugs remain stable for per-screen analytics and backend payload mapping without creating quiz subroutes.
 - **Client-side state** object with keys matching backend snake_case fields (`fitness_goal`, `pain_points`, `height_cm`, …), persisted to `localStorage` for mid-quiz resume. No mapping layer.
 - **Copy** in a single Vietnamese strings module, keyed for future i18n.
 - **External systems:** existing backend API (TDEE preview + 2 new endpoints), RevenueCat Web Billing, Airbridge (attribution + deferred deep link).

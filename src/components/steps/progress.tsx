@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
-import { nextRoute } from '@/lib/quiz/steps';
+import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import { QuizStepFrame } from './quiz-step-frame';
 
@@ -81,7 +81,7 @@ export function ProgressStep() {
       )}
       <p className="text-xs italic leading-relaxed text-muted-brand">{copy.progress.disclaimer}</p>
       <div className="mt-auto pt-2">
-        <PrimaryButton onClick={() => router.push(nextRoute('progress'))}>{copy.progress.cta}</PrimaryButton>
+        <PrimaryButton onClick={() => goToNextQuizStep(router, 'progress')}>{copy.progress.cta}</PrimaryButton>
       </div>
     </QuizStepFrame>
   );

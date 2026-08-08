@@ -34,7 +34,7 @@ export function WelcomeStatus() {
   }, [leadId, setLead]);
 
   if (!hydrated) return null;
-  if (!lead) return <Link href="/email" className="mt-8 inline-flex rounded-full bg-forest px-6 py-3 text-sm font-extrabold text-white">Return to email capture</Link>;
+  if (!lead) return <Link href="/survey/vi" className="mt-8 inline-flex rounded-full bg-forest px-6 py-3 text-sm font-extrabold text-white">Return to survey</Link>;
   const canResend = lead.status === 'email_delivery_delayed' || lead.status === 'claim_expired';
   return <><p className="mt-5 text-base font-semibold leading-relaxed text-slate-brand" role="status">{statusCopy[lead.status]}</p>{error && <p className="mt-4 text-sm font-bold text-error-brand" role="alert">{error}</p>}{canResend && <button type="button" disabled={resending} onClick={() => { setResending(true); void requestLeadResend(lead.lead_id).then(() => getLeadStatus(lead.lead_id)).then(setLead).catch(() => setError('We could not send a new link yet.')).finally(() => setResending(false)); }} className="mt-6 rounded-full bg-forest px-6 py-3 text-sm font-extrabold text-white disabled:opacity-50">{resending ? 'Sending…' : 'Send a new secure link'}</button>}</>;
 }

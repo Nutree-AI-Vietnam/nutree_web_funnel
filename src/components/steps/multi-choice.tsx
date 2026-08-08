@@ -5,7 +5,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { OptionCard } from '@/components/option-card';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
-import { nextRoute, type QuizStep } from '@/lib/quiz/steps';
+import { goToNextQuizStep } from '@/lib/quiz/navigation';
+import type { QuizStep } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
 import { cn } from '@/lib/utils';
@@ -87,7 +88,7 @@ export function MultiChoiceStep({
       setShowCareModal(true);
       return;
     }
-    router.push(nextRoute(step));
+    goToNextQuizStep(router, step);
   };
 
   return (
@@ -134,7 +135,7 @@ export function MultiChoiceStep({
               ref={modalConfirmRef}
               onClick={() => {
                 closeCareModal();
-                router.push(nextRoute(step));
+                goToNextQuizStep(router, step);
               }}
               className="mt-6"
             >

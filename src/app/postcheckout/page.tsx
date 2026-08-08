@@ -23,7 +23,7 @@ export default function PostcheckoutPage() {
         </ol>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <Link href="/redeem" className="rounded-full bg-forest px-6 py-3 text-sm font-extrabold text-white">Open Nutree</Link>
-          <Link href="/email" className="rounded-full border border-border-brand px-6 py-3 text-sm font-extrabold text-emerald-deep">Need help?</Link>
+          <Link href="/survey/vi" className="rounded-full border border-border-brand px-6 py-3 text-sm font-extrabold text-emerald-deep">Need help?</Link>
         </div>
       </section>
     </main>

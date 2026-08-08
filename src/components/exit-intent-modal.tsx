@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { PrimaryButton } from './primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
@@ -20,7 +19,7 @@ const encouragementMessages = [
 ];
 
 export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number }) {
-  const router = useRouter();
+  const setFunnelScreen = useQuizStore((state) => state.setFunnelScreen);
   const copy = useCopy();
   const data = useQuizStore((s) => s.data);
   const [open, setOpen] = useState(false);
@@ -63,7 +62,7 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
   const stay = () => setOpen(false);
   const leave = () => {
     setOpen(false);
-    router.push('/');
+    setFunnelScreen('landing');
   };
 
   return (
@@ -190,4 +189,3 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
     </AnimatePresence>
   );
 }
-

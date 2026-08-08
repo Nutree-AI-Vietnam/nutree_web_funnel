@@ -68,5 +68,5 @@ Also minor: `src/app/momo/return/page.tsx` still shows a literal "MoMo" brand ch
 
 ## 5. Verification
 - `npx tsc --noEmit` → clean (proves `en` matches the `vi` shape, functions included).
-- `/`, `/email`, `/paywall`, `/success`, `/quiz/goal` → HTTP 200 on the running dev server.
+- `/`, `/email`, `/paywall`, `/success`, `/quiz` → HTTP 200 on the running dev server.
 - Landing SSR renders the default (VI) copy and the accessible VI/EN toggle (`aria-pressed`, full-name `aria-label`); switching is client-side via the persisted store and `useCopy()`.

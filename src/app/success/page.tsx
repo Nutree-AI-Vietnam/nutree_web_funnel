@@ -13,11 +13,12 @@ export default function SuccessPage() {
   const hydrated = useHydrated();
   const lead = useQuizStore((s) => s.lead);
   const purchased = useQuizStore((s) => s.purchased);
+  const locale = useQuizStore((s) => s.locale);
 
   useEffect(() => trackStepViewed('success'), []);
   useEffect(() => {
-    if (hydrated && (!lead || !purchased)) router.replace(lead ? '/paywall' : '/email');
-  }, [hydrated, lead, purchased, router]);
+    if (hydrated && (!lead || !purchased)) router.replace(`/survey/${locale}`);
+  }, [hydrated, lead, locale, purchased, router]);
 
   if (!hydrated || !lead || !purchased) return null;
 

@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { BackgroundBeams } from '@/components/ui/background-beams';
+import { useLocale } from '@/lib/copy/use-copy';
 import { cn } from '@/lib/utils';
 
 export function ConversionShell({
@@ -18,6 +19,7 @@ export function ConversionShell({
   stickyHeader?: React.ReactNode;
   scrollable?: boolean;
 }) {
+  const locale = useLocale();
   return (
     <main className={cn(
       'relative mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))]',
@@ -26,7 +28,7 @@ export function ConversionShell({
       <BackgroundBeams />
       {!hideLogo && (
         <div className="relative z-10 mb-6 flex items-center">
-          <Link href="/" aria-label="Nutree" className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/70 bg-white/70 shadow-[inset_0_0_0_1px_rgb(255_255_255_/_0.5),0_2px_8px_rgb(16_39_32_/_0.06)] backdrop-blur">
+          <Link href={`/survey/${locale}`} aria-label="Nutree" className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/70 bg-white/70 shadow-[inset_0_0_0_1px_rgb(255_255_255_/_0.5),0_2px_8px_rgb(16_39_32_/_0.06)] backdrop-blur">
             <Image src="/nutree-logo-simple.png" alt="" width={72} height={64} priority className="h-8 w-8 object-contain" />
           </Link>
         </div>

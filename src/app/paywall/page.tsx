@@ -1,18 +1,7 @@
-import type { Metadata } from 'next';
 import { headers } from 'next/headers';
-import { normalizeCountryCode } from '@/lib/market/country';
-import { PaywallPageClient } from './paywall-page-client';
+import { redirect } from 'next/navigation';
+import { localeFromCountryCode } from '@/lib/market/country';
 
-export const dynamic = 'force-dynamic';
-
-export const metadata: Metadata = {
-  title: 'Your Nutree plan',
-  description: 'Choose your personalized Nutree subscription.',
-};
-
-export default async function PaywallPage() {
-  const requestHeaders = await headers();
-  const countryCode = normalizeCountryCode(requestHeaders.get('x-vercel-ip-country'));
-
-  return <PaywallPageClient initialCountryCode={countryCode} />;
+export default async function LegacyPaywallPage() {
+  redirect(`/survey/${localeFromCountryCode((await headers()).get('x-vercel-ip-country'))}`);
 }

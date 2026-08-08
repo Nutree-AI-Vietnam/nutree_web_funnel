@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCopy } from '@/lib/copy/use-copy';
-import { nextRoute } from '@/lib/quiz/steps';
+import { goToNextQuizStep, goToQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 import { QuizStepFrame } from './quiz-step-frame';
@@ -31,7 +31,11 @@ export function TrainingDaysStep() {
             aria-pressed={value === d}
             onClick={() => {
               setData({ training_days_per_week: d, training_minutes_per_session: d === 0 ? 0 : minutes });
-              router.push(d === 0 ? '/quiz/eating_pattern' : nextRoute('training_days'));
+              if (d === 0) {
+                goToQuizStep(router, 'eating_pattern');
+              } else {
+                goToNextQuizStep(router, 'training_days');
+              }
             }}
             className={`${optionClass(value === d)} relative min-h-14 py-4 text-xl font-extrabold`}
           >
@@ -74,7 +78,7 @@ export function TrainingDurationStep({
           aria-pressed={value === Number(o.key)}
           onClick={() => {
             setData({ training_minutes_per_session: Number(o.key) });
-            router.push(nextRoute('training_duration'));
+            goToNextQuizStep(router, 'training_duration');
           }}
           className={cn(
             optionClass(value === Number(o.key)),

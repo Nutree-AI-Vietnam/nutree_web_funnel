@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
-import { nextRoute, type QuizStep } from '@/lib/quiz/steps';
+import { goToNextQuizStep } from '@/lib/quiz/navigation';
+import type { QuizStep } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 import { QuizStepFrame } from './quiz-step-frame';
 
@@ -17,7 +18,7 @@ export function NameAskStep({ step }: { step: QuizStep }) {
 
   const submit = () => {
     setData({ name: value.trim() || undefined });
-    router.push(nextRoute(step));
+    goToNextQuizStep(router, step);
   };
 
   return (
@@ -39,7 +40,7 @@ export function NameAskStep({ step }: { step: QuizStep }) {
           type="button"
           onClick={() => {
             setData({ name: undefined });
-            router.push(nextRoute(step));
+            goToNextQuizStep(router, step);
           }}
           className="py-2 text-sm font-medium text-muted-brand hover:text-slate-brand"
         >

@@ -25,6 +25,13 @@ while IFS='=' read -r key value || [[ -n "$key" ]]; do
     continue
   fi
 
+  # Local dotenv files escape literal leading "$" characters so Next does not
+  # expand provider package identifiers. Remove that transport-only escape
+  # before sending the value to Vercel.
+  if [[ "${value:0:1}" == "\\" && "${value:1:1}" == '$' ]]; then
+    value="${value:1}"
+  fi
+
   printf '%s' "$value" | npx vercel env add "$key" "$target" --force --yes --non-interactive
 done < "$env_file"
 

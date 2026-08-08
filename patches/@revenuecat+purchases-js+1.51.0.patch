@@ -1,0 +1,74 @@
+diff --git a/node_modules/@revenuecat/purchases-js/dist/Purchases.es.js b/node_modules/@revenuecat/purchases-js/dist/Purchases.es.js
+index 2e7bfd9..138e534 100644
+--- a/node_modules/@revenuecat/purchases-js/dist/Purchases.es.js
++++ b/node_modules/@revenuecat/purchases-js/dist/Purchases.es.js
+@@ -20751,14 +20751,16 @@ function iE({
+   locale: e,
+   customerEmail: t,
+   displayMode: n = "overlay",
+-  theme: a = "light"
++  theme: a = "light",
++  discountCode: discountCodeValue = null,
++  discountId: discountIdValue = null
+ }) {
+   const i = {
+     theme: a,
+     variant: "one-page",
+     locale: e,
+     allowLogout: !1,
+-    showAddDiscounts: !1,
++    showAddDiscounts: !0,
+     showAddTaxId: !1,
+     allowDiscountRemoval: !1
+   }, s = n === "inline" ? {
+@@ -20774,7 +20776,9 @@ function iE({
+   return {
+     transactionId: r,
+     settings: s,
+-    ...t && { customer: { email: t } }
++    ...t && { customer: { email: t } },
++    ...discountCodeValue && { discountCode: discountCodeValue },
++    ...discountIdValue && { discountId: discountIdValue }
+   };
+ }
+ class sE {
+@@ -20931,7 +20935,9 @@ class sE {
+         locale: _,
+         customerEmail: p,
+         displayMode: s,
+-        theme: l
++        theme: l,
++        discountCode: i.discountCode,
++        discountId: i.discountId
+       });
+       try {
+         d.Checkout.open(b);
+@@ -21589,7 +21595,9 @@ function TE(r, e) {
+           appUserId: e.appUserId,
+           presentedOfferingIdentifier: e.productDetails.presentedOfferingContext.offeringIdentifier,
+           customerEmail: e.customerEmail,
+-          locale: e.selectedLocale || e.defaultLocale
++          locale: e.selectedLocale || e.defaultLocale,
++          discountCode: e.discountCode,
++          discountId: e.discountId
+         },
+         ...o(g) && {
+           displayMode: "inline",
+@@ -25704,6 +25712,8 @@ const Pr = class Pr {
+       rcPackage: t,
+       purchaseOption: n,
+       customerEmail: a,
++      discountCode,
++      discountId,
+       attributionMetadata: i,
+       workflowPurchaseContext: s,
+       selectedLocale: l = Or,
+@@ -25764,6 +25774,8 @@ const Pr = class Pr {
+           appUserId: _,
+           purchaseOption: f,
+           customerEmail: a,
++          discountCode,
++          discountId,
+           attributionMetadata: i,
+           workflowPurchaseContext: s,
+           metadata: k,

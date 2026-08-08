@@ -1,14 +1,13 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
 import { useQuizStore } from '@/lib/quiz/store';
 
 export function ResultPromisingStep() {
   const vi = useCopy();
-  const router = useRouter();
   const name = useQuizStore((s) => s.data.name);
+  const setFunnelScreen = useQuizStore((s) => s.setFunnelScreen);
 
   return (
     <div className="flex flex-1 flex-col gap-2.5">
@@ -84,7 +83,7 @@ export function ResultPromisingStep() {
       </section>
 
       <div className="mt-auto pt-1">
-        <PrimaryButton onClick={() => router.push('/email')}>
+        <PrimaryButton onClick={() => setFunnelScreen('email')}>
           {vi.result_promising.cta}
         </PrimaryButton>
       </div>

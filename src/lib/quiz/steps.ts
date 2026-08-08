@@ -1,4 +1,4 @@
-/** Final web funnel order. Keep slugs stable because routes and persisted state use them. */
+/** Final web funnel order. Keep slugs stable because persisted quiz state uses them. */
 export const QUIZ_STEPS = [
   'goal',
   'name_ask',
@@ -71,16 +71,16 @@ export function isQuizStep(slug: string): slug is QuizStep {
   return (QUIZ_STEPS as readonly string[]).includes(slug);
 }
 
-/** Route after `step`; the funnel continues to /email after the last quiz step. */
-export function nextRoute(step: QuizStep): string {
+/** Returns the next in-app screen, or null when the quiz is complete. */
+export function nextStep(step: QuizStep): QuizStep | null {
   const i = QUIZ_STEPS.indexOf(step);
-  return i === QUIZ_STEPS.length - 1 ? '/email' : `/quiz/${QUIZ_STEPS[i + 1]}`;
+  return i === QUIZ_STEPS.length - 1 ? null : QUIZ_STEPS[i + 1];
 }
 
-/** Route before `step`; the landing page precedes the first step. */
-export function prevRoute(step: QuizStep): string {
+/** Returns the previous in-app screen, or null when the landing page precedes it. */
+export function previousStep(step: QuizStep): QuizStep | null {
   const i = QUIZ_STEPS.indexOf(step);
-  return i === 0 ? '/' : `/quiz/${QUIZ_STEPS[i - 1]}`;
+  return i === 0 ? null : QUIZ_STEPS[i - 1];
 }
 
 /** 1-based index for the progress bar. */

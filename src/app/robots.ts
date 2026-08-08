@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/quiz/', '/email', '/paywall', '/success', '/momo/'],
+      disallow: ['/quiz', '/email', '/welcome', '/welcome-gift', '/exit-offer', '/paywall', '/checkout', '/success', '/postcheckout', '/momo/', '/auth/', '/redeem', '/open-nutree'],
     },
     sitemap: `${siteUrl}/sitemap.xml`,
   };

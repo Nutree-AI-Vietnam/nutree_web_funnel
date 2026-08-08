@@ -6,7 +6,7 @@ priority: P1
 effort: 5d
 branch: "delivery"
 tags: [frontend, onboarding, funnel, ux, accessibility]
-blockedBy: [260807-1652-onboarding-v2-age-split]
+blockedBy: [260807-1652-onboarding-v2-age-split, 260808-2234-survey-route-unification]
 blocks: []
 created: "2026-08-08"
 createdBy: "ck:plan"
@@ -58,6 +58,9 @@ reassurance(new only if needed) -> calculating(10s sequence) -> result -> /email
 - Blocker: `plans/260807-1652-onboarding-v2-age-split/plan.md` owns the pending
   `age`/DOB contract and overlaps `src/lib/quiz/steps.ts`, `src/components/steps/registry.tsx`,
   `src/lib/quiz/types.ts`, and `src/lib/api/client.ts`.
+- Blocker: `plans/260808-2234-survey-route-unification/plan.md` supersedes this
+  plan's visible-route assumption of `/quiz -> /email -> /welcome-gift ->
+  /paywall` and now owns the canonical `/survey/{language}` contract.
 - Not a blocker: active email-link/RevenueCat plans stay compatible if this cut
   keeps `/email` route ownership and `createLead()` semantics unchanged.
 - External reference only: Nutree Flutter calculation/progress patterns come from

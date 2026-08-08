@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
 import { validateAge } from '@/lib/quiz/dob';
-import { nextRoute } from '@/lib/quiz/steps';
+import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import { MetricInput, parseMetricDraft } from './metric-input';
 import { QuizStepFrame } from './quiz-step-frame';
@@ -25,7 +25,7 @@ export function BirthDateStep() {
     if (!valid) return;
     const birthYear = new Date().getFullYear() - parsedAge!;
     setData({ age: parsedAge!, birth_year: birthYear, birth_month: 1, birth_day: 1 });
-    router.push(nextRoute('age'));
+    goToNextQuizStep(router, 'age');
   };
 
   return (

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
-import { nextRoute } from '@/lib/quiz/steps';
+import { goToNextQuizStep, goToQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import { bmi, bmiCategory } from '@/lib/tdee/insights';
 
@@ -20,7 +20,7 @@ export function TdeeTargetsStep() {
 
   const missing = !tdee || !data.weight_kg || !data.height_cm;
   useEffect(() => {
-    if (missing) router.replace('/quiz/calculating');
+    if (missing) goToQuizStep(router, 'calculating');
   }, [missing, router]);
 
   useEffect(() => {
@@ -130,7 +130,7 @@ export function TdeeTargetsStep() {
       </section>
 
       <div className="mt-auto pt-1">
-        <PrimaryButton onClick={() => router.push(nextRoute('result'))}>
+        <PrimaryButton onClick={() => goToNextQuizStep(router, 'result')}>
           {vi.common.continue}
         </PrimaryButton>
       </div>
