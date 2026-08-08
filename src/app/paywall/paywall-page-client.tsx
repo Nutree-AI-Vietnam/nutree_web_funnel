@@ -298,8 +298,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     const isExitOffer = discount === 'exit';
     const isWelcomeOffer = discount === 'welcome';
     let cancellationHandled = false;
+    let purchaseSettled = false;
     let cleanupCheckoutClosure = () => {};
-    const handleCheckoutCancellation = () => {
+    const applyCheckoutCancellation = () => {
       if (cancellationHandled) return;
       cancellationHandled = true;
       cleanupCheckoutClosure();
@@ -312,6 +313,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       trackEvent('revenuecat_checkout_cancelled', { plan: selected.id });
       trackEvent('exit_offer_shown', { plan: selected.id, discount_code: EXIT_DISCOUNT_CODE });
       onCheckoutCancelled?.();
+    };
+    const handleCheckoutCancellation = () => {
+      if (purchaseSettled) applyCheckoutCancellation();
     };
     const handleCheckoutHistoryChange = () => handleCheckoutCancellation();
     window.addEventListener('popstate', handleCheckoutHistoryChange);
@@ -332,7 +336,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
             : {}),
       } as Parameters<PurchasesInstance['purchase']>[0];
       const purchaseResult = await purchasesRef.current.purchase(purchaseParameters);
-      if (cancellationHandled) return;
+      purchaseSettled = true;
       clearPaywallCheckoutPending();
       trackEvent('revenuecat_checkout_completed', { plan: selected.id });
       if (!redemptionEnabled || !anonymousAppUserIdRef.current) {
@@ -350,8 +354,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       await correlatePurchasedCustomer();
       router.push('/postcheckout');
     } catch (purchaseError) {
+      purchaseSettled = true;
       if (isUserCancelledPurchase(purchaseError) && !isExitOffer) {
-        handleCheckoutCancellation();
+        applyCheckoutCancellation();
         return;
       }
       clearPaywallCheckoutPending();
