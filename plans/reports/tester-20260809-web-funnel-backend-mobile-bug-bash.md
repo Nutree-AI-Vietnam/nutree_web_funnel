@@ -4,7 +4,7 @@ Date: 2026-08-09 (Asia/Ho_Chi_Minh)
 
 ## Outcome
 
-Status: PARTIALLY VERIFIED — the web funnel and backend warm-up passed again on a clean simulator session; the web fixes are ready for `delivery`. Mobile remains local staging. Payment completion and physical-device Firebase redemption are still open gates.
+Status: PARTIALLY VERIFIED — the web funnel, backend warm-up, and pushed skipped-name UX fix passed on clean simulator sessions. Mobile remains local staging. Payment completion and physical-device Firebase redemption are still open gates.
 
 Test account: `cutung2002bk@gmail.com`
 
@@ -88,7 +88,7 @@ Root cause: `WelcomeStep` replaced `[name]` with an empty string instead of usin
 
 Fix implemented: the shared greeting now trims names and falls back to the locale-aware lowercase friendly name (`bạn`/`friend`). Focused regression coverage passes.
 
-Retest gate: verify the deployed preview build renders `Chào bạn!` after the skip action.
+Retest: passed on a second clean iPhone 16 iOS 18.5 simulator after the `delivery` push; the preview rendered accessible `Chào bạn!` after `Bỏ qua`.
 
 ## Considerations
 
@@ -98,7 +98,7 @@ Retest gate: verify the deployed preview build renders `Chào bạn!` after the 
 - Argent reported an available tool update. It was not applied during this run because updating the test harness was outside the requested test scope.
 - Full Flutter `test` is not a clean baseline: unrelated meal-scanner/meal-edit generated-model and localization compile errors remain outside this handoff. The changed passwordless/deep-link suite passes.
 - Full web `npm run lint` is also blocked by existing `.codex/skills/*` CommonJS helper-script violations; changed application files pass targeted ESLint and the production build.
-- The preview’s visible checkout shell exposed the original live build before the latest greeting fix was pushed; branch push is not deployment provenance. Confirm the delivery deployment revision before closing BUG-04.
+- Live behavior after the `delivery` push confirms BUG-04 is closed; exact hosting revision metadata was not exposed by the preview UI.
 
 ## Unresolved questions
 
