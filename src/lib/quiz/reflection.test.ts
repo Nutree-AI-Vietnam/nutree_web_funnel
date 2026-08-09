@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildReflection } from './reflection';
+import { buildReflection, getGreetingName } from './reflection';
 import { vi, en } from '../copy';
 
 describe('buildReflection', () => {
@@ -20,5 +20,11 @@ describe('buildReflection', () => {
   it('falls back to the locale name when name is skipped', () => {
     expect(buildReflection({ fitness_goal: 'bulk' }, vi).startsWith('Bạn')).toBe(true);
     expect(buildReflection({ fitness_goal: 'bulk' }, en).startsWith('friend')).toBe(true);
+  });
+
+  it('uses a friendly lowercase greeting fallback when name is skipped', () => {
+    expect(getGreetingName(undefined, vi)).toBe('bạn');
+    expect(getGreetingName('  ', vi)).toBe('bạn');
+    expect(getGreetingName(undefined, en)).toBe('friend');
   });
 });

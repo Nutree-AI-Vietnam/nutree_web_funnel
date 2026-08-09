@@ -8,6 +8,7 @@ import { Slideshow } from '@/components/slideshow';
 import type { Copy } from '@/lib/copy';
 import { useCopy } from '@/lib/copy/use-copy';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
+import { getGreetingName } from '@/lib/quiz/reflection';
 import { useQuizStore } from '@/lib/quiz/store';
 import { QuizStepFrame } from './quiz-step-frame';
 
@@ -23,6 +24,7 @@ export function WelcomeStep() {
   const router = useRouter();
   const copy = useCopy();
   const name = useQuizStore((s) => s.data.name);
+  const greetingName = getGreetingName(name, copy);
 
   return (
     <QuizStepFrame className="justify-center gap-6">
@@ -50,7 +52,7 @@ export function WelcomeStep() {
         className="text-center"
       >
         <h1 className="text-[2rem] font-extrabold leading-tight text-forest">
-          {copy.welcome.headline.replace('[name]', name || '')}
+          {copy.welcome.headline.replace('[name]', greetingName)}
         </h1>
         <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-brand">
           {copy.welcome.body}

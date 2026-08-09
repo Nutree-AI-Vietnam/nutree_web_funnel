@@ -27,3 +27,7 @@ export function buildReflection(data: OnboardingPayload, copy: Copy): string {
     .replace('[challenges]', challenges)
     .replace('[duration]', duration);
 }
+
+export function getGreetingName(name: string | undefined, copy: Copy): string {
+  return name?.trim() || copy.reflection.fallbackName.toLowerCase();
+}
