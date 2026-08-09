@@ -43,7 +43,7 @@ Retest evidence:
 - Paddle visibly showed `PAYMENT COMPLETE` in sandbox.
 - RevenueCat sent the sandbox redemption email.
 - The newest matching Neon lead is `status=payment_verified`, `payment_verified=true`, `has_redemption=true`, `verified=true`, `provider=revenuecat`, `environment=SANDBOX`, and `project=default`.
-- The row is intentionally still `claimed=false`, `preflight=false`, and `finalized=false` because mobile authentication/finalization has not completed on a device-capable target.
+- The row is intentionally still `claimed=false`, `preflight=true`, and `finalized=false`: the local staging replay reached backend claim eligibility, but mobile RevenueCat redemption/finalization has not completed on a device-capable target.
 
 Expected: the newly completed purchase should create or update the matching lead to payment-verified and create the redemption record needed by mobile finalization.
 
@@ -60,7 +60,7 @@ Severity: P1 / release blocker
 Observed in the current replay:
 
 - RevenueCat redemption links opened the local staging app and the pending redemption surface appeared.
-- Firebase links were delivered through the test inbox, but the iOS simulator stayed on the email-link surface and did not produce fresh preflight/finalize proof for this purchase.
+- Firebase links were delivered through the test inbox, and the latest read-only Neon state now shows `preflight=true`; the iOS simulator still stayed on the email-link surface and did not produce finalization proof for this purchase.
 - A physical/device-capable target is still required: the installed simulator app has an empty signed entitlement dictionary, so it cannot prove the `applinks:nutree-ai-staging.firebaseapp.com` Universal Link path.
 
 Expected: after a valid Firebase email-link sign-in, the app should restore the pending RevenueCat redemption, call preflight, redeem/finalize, sync the user, and route to Home without onboarding.
