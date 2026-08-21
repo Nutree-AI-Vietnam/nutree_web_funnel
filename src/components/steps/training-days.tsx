@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { PrimaryButton } from '@/components/primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
 import { nextRoute } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
@@ -30,8 +31,10 @@ export function TrainingDaysStep() {
             type="button"
             aria-pressed={value === d}
             onClick={() => {
-              setData({ training_days_per_week: d, training_minutes_per_session: d === 0 ? 0 : minutes });
-              router.push(d === 0 ? '/quiz/eating_pattern' : nextRoute('training_days'));
+              setData({
+                training_days_per_week: d,
+                training_minutes_per_session: d === 0 ? 0 : minutes === 0 ? undefined : minutes,
+              });
             }}
             className={`${optionClass(value === d)} relative min-h-14 py-4 text-xl font-extrabold`}
           >
@@ -50,6 +53,14 @@ export function TrainingDaysStep() {
       <p className="rounded-2xl bg-white/70 px-4 py-3 text-center text-sm font-semibold text-muted-brand shadow-sm backdrop-blur">
         {vi.training_days.unit}
       </p>
+      <div className="mt-auto pt-6">
+        <PrimaryButton
+          disabled={value == null}
+          onClick={() => router.push(value === 0 ? '/quiz/eating_pattern' : nextRoute('training_days'))}
+        >
+          {vi.common.continue}
+        </PrimaryButton>
+      </div>
     </QuizStepFrame>
   );
 }
@@ -61,6 +72,7 @@ export function TrainingDurationStep({
   question: string;
   options: ReadonlyArray<{ readonly key: string; readonly label: string }>;
 }) {
+  const copy = useCopy();
   const router = useRouter();
   const value = useQuizStore((s) => s.data.training_minutes_per_session);
   const setData = useQuizStore((s) => s.setData);
@@ -74,7 +86,6 @@ export function TrainingDurationStep({
           aria-pressed={value === Number(o.key)}
           onClick={() => {
             setData({ training_minutes_per_session: Number(o.key) });
-            router.push(nextRoute('training_duration'));
           }}
           className={cn(
             optionClass(value === Number(o.key)),
@@ -94,6 +105,11 @@ export function TrainingDurationStep({
           </span>
         </button>
       ))}
+      <div className="mt-auto pt-6">
+        <PrimaryButton disabled={!value} onClick={() => router.push(nextRoute('training_duration'))}>
+          {copy.common.continue}
+        </PrimaryButton>
+      </div>
     </QuizStepFrame>
   );
 }

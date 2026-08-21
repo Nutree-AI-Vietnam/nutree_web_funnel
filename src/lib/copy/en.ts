@@ -102,7 +102,7 @@ export const en: Copy = {
   },
   challenges: {
     question: 'What’s held you back before?',
-    hint: 'Pick up to 2 that fit best.',
+    hint: 'Select all that apply.',
     options: [
       { key: 'no_time', label: 'No time' },
       { key: 'no_motivation', label: 'Low motivation' },
