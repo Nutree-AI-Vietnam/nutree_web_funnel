@@ -6,16 +6,18 @@ import { OptionCard } from '@/components/option-card';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
 import type { Copy } from '@/lib/copy';
-import { nextRoute } from '@/lib/quiz/steps';
+import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
 import { deriveAge } from '@/lib/quiz/dob';
+import { bmi, bmiCategory } from '@/lib/tdee/insights';
+import { cn } from '@/lib/utils';
 import { isMetricValueValid, MetricInput, parseMetricDraft } from './metric-input';
 import { QuizStepFrame } from './quiz-step-frame';
 
-function useDraftNumber(field: keyof OnboardingPayload, fallback: number) {
+function useDraftNumber(field: keyof OnboardingPayload) {
   const saved = useQuizStore((s) => s.data[field]);
-  return useState(saved != null ? String(saved) : String(fallback));
+  return useState(saved != null ? String(saved) : '');
 }
 
 function getGoalLabel(copy: Copy, goal?: OnboardingPayload['fitness_goal']) {
@@ -27,8 +29,8 @@ export function BodyBasicsStep() {
   const copy = useCopy();
   const data = useQuizStore((s) => s.data);
   const setData = useQuizStore((s) => s.setData);
-  const [age, setAge] = useDraftNumber('birth_year', 1990);
-  const ageValid = isMetricValueValid(age, 1900, new Date().getFullYear() - 18);
+  const [age, setAge] = useDraftNumber('birth_year');
+  const ageValid = isMetricValueValid(age, 1900, new Date().getFullYear() - 12);
 
   return (
     <QuizStepFrame title={copy.body_basics.question} hint={copy.body_basics.hint}>
@@ -47,11 +49,11 @@ export function BodyBasicsStep() {
         label={copy.age.label}
         unit={copy.age.unit}
         value={age}
-        min={18}
+        min={12}
         max={100}
         step={1}
         hint={copy.age.hint}
-        error={age && !ageValid ? copy.metric.rangeError(copy.age.label, 18, 100, copy.age.unit) : undefined}
+        error={age && !ageValid ? copy.metric.rangeError(copy.age.label, 12, 100, copy.age.unit) : undefined}
         onChange={setAge}
         onBlur={() => null}
       />
@@ -62,7 +64,7 @@ export function BodyBasicsStep() {
             const parsed = parseMetricDraft(age);
             if (!parsed) return;
             setData({ birth_year: parsed, birth_month: 1, birth_day: 1 });
-            router.push(nextRoute('sex'));
+            goToNextQuizStep(router, 'sex');
           }}
         >
           {copy.common.continue}
@@ -76,8 +78,8 @@ export function BodyMetricsStep() {
   const router = useRouter();
   const copy = useCopy();
   const setData = useQuizStore((s) => s.setData);
-  const [height, setHeight] = useDraftNumber('height_cm', 170);
-  const [weight, setWeight] = useDraftNumber('weight_kg', 60);
+  const [height, setHeight] = useDraftNumber('height_cm');
+  const [weight, setWeight] = useDraftNumber('weight_kg');
   const heightValid = isMetricValueValid(height, 100, 230);
   const weightValid = isMetricValueValid(weight, 30, 250);
 
@@ -117,7 +119,7 @@ export function BodyMetricsStep() {
             const weightKg = parseMetricDraft(weight);
             if (!heightCm || !weightKg) return;
             setData({ height_cm: heightCm, weight_kg: weightKg });
-            router.push(nextRoute('height'));
+            goToNextQuizStep(router, 'height');
           }}
         >
           {copy.common.continue}
@@ -132,28 +134,123 @@ export function TargetWeightStep() {
   const copy = useCopy();
   const setData = useQuizStore((s) => s.setData);
   const data = useQuizStore((s) => s.data);
-  const [target, setTarget] = useDraftNumber('target_weight_kg', Math.round(data.weight_kg ?? 60));
+  const [target, setTarget] = useDraftNumber('target_weight_kg');
   const valid = isMetricValueValid(target, 30, 250);
+  const targetValue = parseMetricDraft(target);
+  const currentValue = data.weight_kg;
+  const currentAge = data.age ?? deriveAge(data);
+  const hasValidBmiContext = currentAge != null
+    && typeof data.height_cm === 'number' && Number.isFinite(data.height_cm) && data.height_cm > 0;
+  const targetBmi = targetValue != null && hasValidBmiContext
+    ? bmi(targetValue, data.height_cm!)
+    : null;
+  const targetBmiCategory = targetBmi != null && currentAge != null && currentAge >= 18
+    ? bmiCategory(targetBmi)
+    : null;
+  const goalBadge = (() => {
+    const goal = data.fitness_goal;
+    if (!goal || currentValue == null || targetValue == null || data.target_weight_unsure) return null;
+
+    const difference = targetValue - currentValue;
+    const aligned = goal === 'bulk'
+      ? difference > 0
+      : goal === 'cut'
+        ? difference < 0
+        : goal === 'maintain'
+          ? Math.abs(difference) <= 1
+          : true;
+    const bmiAligned = targetBmiCategory == null || targetBmiCategory === 'normal';
+    const directionStatus = goal === 'recomp'
+      ? copy.target_weight.goalBadge.flexible
+      : aligned
+        ? copy.target_weight.goalBadge.aligned
+        : copy.target_weight.goalBadge.adjust;
+    const bmiInsight = targetBmi == null
+      ? null
+      : targetBmiCategory != null
+        ? `${copy.target_weight.bmiTargetLabel} ${targetBmi.toFixed(1)} · ${copy.target_weight.bmiCategory[targetBmiCategory]}`
+        : `${copy.target_weight.bmiTargetLabel} ${targetBmi.toFixed(1)} · ${copy.target_weight.bmiAgeHint}`;
+
+    return {
+      label: copy.target_weight.goalBadge[goal],
+      status: bmiAligned
+        ? directionStatus
+        : `${directionStatus} · ${copy.target_weight.goalBadge.bmiAdjust}`,
+      recommendation: goal === 'recomp'
+        ? copy.target_weight.goalBadge.flexibleBody
+        : aligned
+          ? copy.target_weight.goalBadge.alignedBody
+          : copy.target_weight.goalBadge.adjustBody,
+      bmiInsight,
+      aligned: (goal === 'recomp' || aligned) && bmiAligned,
+    };
+  })();
 
   return (
-    <QuizStepFrame title={copy.target_weight.question} hint={copy.target_weight.hint}>
-      <MetricInput
-        id="target-weight"
-        label={copy.target_weight.label}
-        unit={copy.target_weight.unit}
-        value={target}
-        min={30}
-        max={250}
-        step={1}
-        bare
-        onChange={setTarget}
-        onBlur={() => null}
-      />
+    <QuizStepFrame title={copy.target_weight.question} className="gap-2">
+      <div className="flex min-h-[24rem] flex-1 flex-col items-center justify-center">
+        <div className="relative w-56 max-w-[58vw]">
+          <div className="mb-2 flex items-center justify-center gap-2 sm:pointer-events-none sm:absolute sm:right-full sm:top-1/2 sm:mb-0 sm:mr-3 sm:-translate-y-1/2 sm:justify-start sm:whitespace-nowrap">
+            <div className="text-center">
+              <span className="sr-only">{copy.target_weight.currentLabel}</span>
+              <span className="text-lg font-extrabold leading-none tracking-tight text-slate-brand">
+                {data.weight_kg ?? '—'}
+              </span>
+              <span className="ml-0.5 text-sm font-bold text-slate-brand">{copy.target_weight.unit}</span>
+            </div>
+            <span aria-hidden="true" className="text-2xl font-extrabold tracking-tight text-[#e6a0a8]">»</span>
+          </div>
+          <MetricInput
+            id="target-weight"
+            label={copy.target_weight.label}
+            unit={copy.target_weight.unit}
+            value={target}
+            min={30}
+            max={250}
+            step={1}
+            bare
+            variant="hero"
+            onChange={setTarget}
+            onBlur={() => null}
+          />
+        </div>
+      </div>
+      {goalBadge && (
+        <section
+          role="group"
+          aria-label={`${goalBadge.label} ${goalBadge.status}`}
+          className={cn(
+            'flex items-start gap-3 rounded-2xl px-4 py-3 shadow-sm',
+            goalBadge.aligned ? 'bg-emerald-50 text-emerald-900' : 'bg-amber-50 text-amber-900',
+          )}
+        >
+          <span
+            aria-hidden="true"
+            className={cn(
+              'mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-sm font-black text-white',
+              goalBadge.aligned ? 'bg-emerald-500' : 'bg-amber-500',
+            )}
+          >
+            {goalBadge.aligned ? '✓' : '!'}
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-extrabold leading-snug">
+              {goalBadge.label} · {goalBadge.status}
+            </p>
+            <p className="mt-1 text-xs font-semibold leading-relaxed opacity-75">
+              {goalBadge.bmiInsight ?? goalBadge.recommendation}
+            </p>
+            {goalBadge.bmiInsight && (
+              <p className="mt-1 text-xs font-semibold leading-relaxed opacity-75">{goalBadge.recommendation}</p>
+            )}
+          </div>
+        </section>
+      )}
       <button
         type="button"
         onClick={() => {
           setData({ target_weight_kg: undefined, target_weight_unsure: true });
-          router.push(nextRoute('target_weight'));
+          goToNextQuizStep(router, 'target_weight');
         }}
         className="rounded-2xl border border-border-brand bg-white/78 px-4 py-3 text-left text-sm font-extrabold text-forest shadow-sm"
       >
@@ -166,7 +263,7 @@ export function TargetWeightStep() {
             const parsed = parseMetricDraft(target);
             if (!parsed) return;
             setData({ target_weight_kg: parsed, target_weight_unsure: false });
-            router.push(nextRoute('target_weight'));
+          goToNextQuizStep(router, 'target_weight');
           }}
         >
           {copy.common.continue}
@@ -204,7 +301,7 @@ export function BodyReviewStep() {
         <PrimaryButton
           onClick={() => {
             setData({ body_review_confirmed_at: new Date().toISOString() });
-            router.push(nextRoute('body_review'));
+          goToNextQuizStep(router, 'body_review');
           }}
         >
           {copy.body_review.cta}
@@ -272,7 +369,7 @@ export function RoutineStep() {
       <div className="mt-auto pt-4">
         <PrimaryButton
           disabled={!data.job_type || trainingDays == null || (durationRequired && !data.training_minutes_per_session)}
-          onClick={() => router.push(nextRoute('activity_level'))}
+          onClick={() => goToNextQuizStep(router, 'activity_level')}
         >
           {copy.common.continue}
         </PrimaryButton>

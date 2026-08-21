@@ -1,22 +1,7 @@
-'use client';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { localeFromCountryCode } from '@/lib/market/country';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useHydrated, useQuizStore } from '@/lib/quiz/store';
-
-/**
- * Legacy browser checkout URLs must not infer entitlement from a client-side
- * provider callback. RevenueCat owns checkout and the mobile app confirms the
- * Redemption Link before it grants access.
- */
-export default function CheckoutPage() {
-  const router = useRouter();
-  const hydrated = useHydrated();
-  const hasLead = useQuizStore((state) => state.lead !== null);
-
-  useEffect(() => {
-    if (hydrated) router.replace(hasLead ? '/paywall' : '/email');
-  }, [hasLead, hydrated, router]);
-
-  return null;
+export default async function LegacyCheckoutPage() {
+  redirect(`/survey/${localeFromCountryCode((await headers()).get('x-vercel-ip-country'))}`);
 }

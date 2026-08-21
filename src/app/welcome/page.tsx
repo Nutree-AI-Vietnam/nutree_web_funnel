@@ -21,10 +21,10 @@ export default function WelcomePage() {
         </h1>
         <WelcomeStatus />
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link href="/" className="rounded-full bg-forest px-6 py-3 text-sm font-extrabold text-white transition hover:bg-emerald-deep">
+          <Link href="/survey/vi" className="rounded-full bg-forest px-6 py-3 text-sm font-extrabold text-white transition hover:bg-emerald-deep">
             Back home
           </Link>
-          <Link href="/email" className="rounded-full border border-border-brand px-6 py-3 text-sm font-extrabold text-emerald-deep transition hover:border-teal-brand/60">
+          <Link href="/survey/vi" className="rounded-full border border-border-brand px-6 py-3 text-sm font-extrabold text-emerald-deep transition hover:border-teal-brand/60">
             Need help?
           </Link>
         </div>

@@ -7,11 +7,7 @@ import { useQuizStore } from '@/lib/quiz/store';
 import { isFragmentCapabilityRoute } from '@/lib/handoff/fragment-capability-route';
 
 const routes = [
-  ['H', 'Home', '/'],
-  ['E', 'Email', '/email'],
-  ['G', 'Gift', '/welcome-gift'],
-  ['P', 'Paywall', '/paywall'],
-  ['C', 'Checkout', '/paywall?localCheckout=1'],
+  ['S', 'Survey', '/survey/vi'],
 ] as const;
 
 export function LocalPreviewTools() {
@@ -20,6 +16,7 @@ export function LocalPreviewTools() {
   const setLead = useQuizStore((s) => s.setLead);
   const setLocale = useQuizStore((s) => s.setLocale);
   const setTdee = useQuizStore((s) => s.setTdee);
+  const setFunnelScreen = useQuizStore((s) => s.setFunnelScreen);
   const enabled = useLocalPreviewHost();
 
   if (!enabled || isFragmentCapabilityRoute(pathname)) return null;
@@ -30,13 +27,14 @@ export function LocalPreviewTools() {
     setData(localPreviewData);
     setLead(localPreviewLead);
     setTdee(localPreviewTdee, 'fallback');
+    setFunnelScreen('paywall');
   };
 
   const toggleMarket = () => {
     const nextCountry = previewCountry === 'VN' ? 'US' : 'VN';
     setLocalPreviewCountry(nextCountry);
     setLocale(nextCountry === 'VN' ? 'vi' : 'en');
-    window.location.reload();
+    window.location.assign(`/survey/${nextCountry === 'VN' ? 'vi' : 'en'}`);
   };
 
   return (

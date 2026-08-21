@@ -1,27 +1,8 @@
-import { notFound } from 'next/navigation';
-import type { Metadata } from 'next';
-import { QuizShell } from '@/components/quiz-shell';
-import { isQuizStep, QUIZ_STEPS } from '@/lib/quiz/steps';
-import { StepRenderer } from './step-renderer';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { localeFromCountryCode } from '@/lib/market/country';
 
-export const metadata: Metadata = {
-  robots: {
-    index: false,
-    follow: false,
-  },
-};
-
-export function generateStaticParams() {
-  return QUIZ_STEPS.map((step) => ({ step }));
-}
-
-export default async function QuizStepPage({ params }: { params: Promise<{ step: string }> }) {
-  const { step } = await params;
-  if (!isQuizStep(step)) notFound();
-
-  return (
-    <QuizShell step={step}>
-      <StepRenderer step={step} />
-    </QuizShell>
-  );
+/** Keeps old step links inside the single canonical survey route. */
+export default async function LegacyQuizStepPage() {
+  redirect(`/survey/${localeFromCountryCode((await headers()).get('x-vercel-ip-country'))}`);
 }

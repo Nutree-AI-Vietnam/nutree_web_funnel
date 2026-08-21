@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { OptionCard } from '@/components/option-card';
-import { nextRoute, type QuizStep } from '@/lib/quiz/steps';
+import { goToNextQuizStep } from '@/lib/quiz/navigation';
+import type { QuizStep } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
 import { QuizStepFrame } from './quiz-step-frame';
@@ -34,7 +35,7 @@ export function SingleChoiceStep<K extends keyof OnboardingPayload>({
     if (pending) return;
     setData({ [field]: key } as Partial<OnboardingPayload>);
     setPending(key);
-    timerRef.current = setTimeout(() => router.push(nextRoute(step)), 240);
+    timerRef.current = setTimeout(() => goToNextQuizStep(router, step), 240);
   };
 
   return (

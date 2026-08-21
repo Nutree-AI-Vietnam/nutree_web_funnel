@@ -37,14 +37,17 @@ export function MovingBorderLink({
   children,
   href,
   className,
+  onClick,
 }: {
   children: React.ReactNode;
   href: string;
   className?: string;
+  onClick?: () => void;
 }) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       className={cn(
         'cta-premium group flex min-h-[3.5rem] w-full items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-center text-lg font-extrabold tracking-tight text-white outline-none transition-transform duration-300 hover:-translate-y-0.5 focus-visible:ring-4 focus-visible:ring-teal-brand/30',
         className,

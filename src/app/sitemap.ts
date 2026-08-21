@@ -2,12 +2,11 @@ import type { MetadataRoute } from 'next';
 import { siteUrl } from '@/lib/site-url';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [
-    {
-      url: siteUrl,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 1,
-    },
-  ];
+  const lastModified = new Date();
+  return (['vi', 'en'] as const).map((language) => ({
+    url: `${siteUrl}/survey/${language}`,
+    lastModified,
+    changeFrequency: 'weekly' as const,
+    priority: 1,
+  }));
 }

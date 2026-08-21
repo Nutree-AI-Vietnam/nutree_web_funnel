@@ -57,6 +57,13 @@ describe('quiz store', () => {
     expect(useQuizStore.getState().purchased).toBe(true);
   });
 
+  it('persists the implicit funnel screen', () => {
+    useQuizStore.getState().setFunnelScreen('paywall');
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).state.funnelScreen).toBe('paywall');
+    useQuizStore.getState().reset();
+    expect(useQuizStore.getState().funnelScreen).toBe('landing');
+  });
+
   it('persists to localStorage under the versioned key', () => {
     useQuizStore.getState().setData({ name: 'Anh' });
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -78,6 +85,8 @@ describe('quiz store', () => {
     });
 
     expect(migrated).toEqual({
+      funnelScreen: 'paywall',
+      currentStep: 'goal',
       data: { measurement_unit: 'metric', name: 'Anh' },
       locale: 'en',
       tdee: null,

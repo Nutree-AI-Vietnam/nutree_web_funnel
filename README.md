@@ -40,7 +40,8 @@ npm run build                # production build check
 | `NEXT_PUBLIC_REVENUECAT_WEB_API_KEY` | RevenueCat Web public API key for the web checkout config |
 | `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED` | Public default-off anonymous-customer redemption handoff; enable only for staging/SIT and redeploy after changing |
 | `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID` | Offering identifier containing the three web packages |
-| `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_4_WEEK` / `12_WEEK` / `52_WEEK` | Exact package identifiers from that offering |
+| `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_4_WEEK` / `12_WEEK` / `52_WEEK` / `1_WEEK` | Exact package identifiers from that offering |
+| `NEXT_PUBLIC_REVENUECAT_WEB_1_WEEK_ENABLED` | Build-time toggle: `true` shows the 1-week package instead of the 52-week package |
 | `NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID` / `NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME` | Matching Nutree app bundle/package IDs for the phone handoff flow |
 | `NEXT_PUBLIC_GA4_ID` | GA4 measurement id (optional; script omitted if unset) |
 | `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel id (optional) |
@@ -49,12 +50,37 @@ npm run build                # production build check
 | `NEXT_PUBLIC_AIRBRIDGE_WEB_TOKEN` | Airbridge web SDK token (optional) |
 | `NEXT_PUBLIC_AIRBRIDGE_TRACKING_LINK` | Airbridge tracking link for the success page |
 | `NEXT_PUBLIC_APPSTORE_URL` / `NEXT_PUBLIC_PLAYSTORE_URL` | Raw store URLs |
+| `NUTREE_ANDROID_SHA256_CERT_FINGERPRINTS` | Server-only comma/newline-separated release SHA-256 fingerprints for Android App Links |
 
 ## Deploy (Vercel)
 
-Import the repo in Vercel, set the env vars above for Production/Preview, and point
-`quiz.nutreeai.com` at the production project and `quiz.preview.nutreeai.com`
-at the preview deployment. No special build settings (defaults work).
+The quiz is a Next.js deployment on Vercel. Use the linked `nutree_web_funnel`
+project, set the env vars above in the matching Preview/Production
+environments, and attach these domains to that project:
+
+| Vercel environment | Domain | Firebase project used by the matching mobile flavor |
+|---|---|---|
+| Preview | `quiz.preview.nutreeai.com` | `nutree-ai-staging` |
+| Production | `quiz.nutreeai.com` | `nutree-ai` |
+
+Deploy with the guarded helpers below. They run the web tests and production
+build before submitting a deployment, and require an explicit confirmation
+flag for production:
+
+```bash
+./scripts/deploy-vercel.sh preview
+CONFIRM_PRODUCTION_DEPLOY=1 ./scripts/deploy-vercel.sh production
+```
+
+No special Vercel build settings are required. The custom domains must be
+owned by the Vercel team and resolve to this project before the domain URLs are
+deployment proof. `NEXT_PUBLIC_*` values are embedded at build time, so
+changing them requires a new deployment.
+
+The app serves host-specific `/.well-known/apple-app-site-association` and
+`/.well-known/assetlinks.json` responses. Set the matching release fingerprint
+in each Vercel environment; leaving it empty intentionally returns no Android
+association until the signing certificate is configured.
 
 ### Vercel import templates
 

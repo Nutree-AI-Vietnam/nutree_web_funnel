@@ -21,13 +21,13 @@ export const metadata: Metadata = {
   description:
     'Trả lời vài câu hỏi để nhận kế hoạch calo & macro dựa trên khoa học, thiết kế riêng cho bạn.',
   alternates: {
-    canonical: '/',
+    canonical: '/survey/vi',
   },
   openGraph: {
     title: 'Nutree - Kế hoạch dinh dưỡng cá nhân hóa',
     description:
       'Trả lời vài câu hỏi để nhận kế hoạch calo & macro dựa trên khoa học, thiết kế riêng cho bạn.',
-    url: '/',
+    url: '/survey/vi',
     siteName: 'Nutree',
     locale: 'vi_VN',
     type: 'website',

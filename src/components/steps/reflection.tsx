@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
 import { buildReflection } from '@/lib/quiz/reflection';
-import { nextRoute } from '@/lib/quiz/steps';
+import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import { QuizStepFrame } from './quiz-step-frame';
 
@@ -33,7 +33,7 @@ export function ReflectionStep() {
   ];
 
   return (
-    <QuizStepFrame className="justify-center gap-5">
+    <QuizStepFrame className="gap-5">
       <p className="max-w-[22rem] text-[1.5rem] font-extrabold leading-[1.2] tracking-tight text-forest [text-wrap:balance]">
         {buildReflection(data, copy)}
       </p>
@@ -99,7 +99,7 @@ export function ReflectionStep() {
       </div>
 
       <div className="mt-auto">
-        <PrimaryButton onClick={() => router.push(nextRoute('reflection'))}>
+        <PrimaryButton onClick={() => goToNextQuizStep(router, 'reflection')}>
           {copy.common.continue}
         </PrimaryButton>
       </div>

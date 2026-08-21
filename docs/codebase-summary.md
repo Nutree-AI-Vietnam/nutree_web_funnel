@@ -51,10 +51,11 @@ a quick orientation for developers and documentation updates.
 
 | Route | Purpose |
 | --- | --- |
-| `/` | Funnel entry and landing experience |
-| `/quiz/[step]` | Quiz step routing |
-| `/email` | Email capture and checkout draft recovery |
-| `/paywall` | RevenueCat checkout entry |
+| `/` | Locale bootstrap that redirects into `/survey/{language}` |
+| `/survey/{language}` | Canonical pre-checkout funnel shell with persisted screen state |
+| `/quiz` | Legacy quiz URL; redirects into `/survey/{language}` |
+| `/email` | Legacy email URL; redirects into `/survey/{language}` |
+| `/paywall` | Legacy paywall URL; redirects into `/survey/{language}` before checkout |
 | `/success` | Post-purchase success experience |
 | `/welcome` | Claim and onboarding continuation state |
 | `/open-nutree` | Token-free install/reopen path for mobile claim handoff |
@@ -116,6 +117,8 @@ a quick orientation for developers and documentation updates.
 | `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_4_WEEK` | Public | 4-week package identifier |
 | `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_12_WEEK` | Public | 12-week package identifier |
 | `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_52_WEEK` | Public | 52-week package identifier |
+| `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_1_WEEK` | Public | Optional 1-week package identifier |
+| `NEXT_PUBLIC_REVENUECAT_WEB_1_WEEK_ENABLED` | Public | Build-time toggle replacing the 52-week UI/package with 1-week |
 | `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED` | Public | Default-off anonymous redemption handoff flag |
 
 ## Commands
@@ -142,5 +145,5 @@ a quick orientation for developers and documentation updates.
 - The redemption handoff is default-off and controlled by a public flag.
 - The browser does not complete Firebase auth.
 - The redemption URL must remain memory-only until the mobile claim takes over.
+- The pre-checkout funnel now renders as implicit screens under `/survey/{language}`; legacy funnel URLs redirect there and persisted `funnelScreen` state keeps refresh and timer behavior stable.
 - Production should stay blocked until sandbox SIT proves the full flow.
-

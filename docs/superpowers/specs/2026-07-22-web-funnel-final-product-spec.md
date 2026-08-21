@@ -155,28 +155,28 @@ Vietnamese adults who arrive from paid search, paid social, creator content, or 
 
 ## 5. Fixed route map
 
-The exact route names may be adapted to existing conventions, but the sequence and responsibilities are fixed.
+The quiz sequence and responsibilities are fixed. Every quiz screen renders inside the single `/quiz` route; the active screen is internal client-side flow state.
 
 | # | Route | Screen | Input / output | Purpose |
 |---:|---|---|---|---|
 | 0 | `/` | Landing | Entry promise | Set outcome, time, free initial result, and eventual price expectation |
-| 1 | `/quiz/goal` | Goal | `fitness_goal` | Self-definition and calculation input |
-| 2 | `/quiz/name_ask` | Name | `name` | Self-reference and personalized copy |
-| 3 | `/quiz/challenges` | Main obstacles | `pain_points`, maximum 2 | Problem recognition and paid-value personalization |
-| 4 | `/quiz/duration` | Time pursuing goal | `challenge_duration` | Narrative investment and tone selection |
-| 5 | `/quiz/motivation` | Desired personal outcome | `motivation` | Positive future orientation |
-| 6 | `/quiz/reflection` | Personalized reflection | Derived text | Reward progress and prove Nutree listened |
-| 7 | `/quiz/body_basics` | Biological sex + age | `gender`, `age` | Calculation inputs and adult eligibility |
-| 8 | `/quiz/body_metrics` | Height + current weight | `height_cm`, `weight_kg` | Calculation inputs |
-| 9 | `/quiz/target_weight` | Target weight | `target_weight_kg` or no numeric target | Goal context |
-| 10 | `/quiz/body_review` | Body-data confirmation | Confirmation event | Prevent accidental defaults and create explicit commitment |
-| 11 | `/quiz/routine` | Daily activity + training | `job_type`, `training_days_per_week`, `training_minutes_per_session` | Calculation and result explanation |
-| 12 | `/quiz/eating_pattern` | Difficult eating moment | `hardest_eating_moment` | Meal-preview and product-message personalization |
-| 13 | `/quiz/diet` | Dietary constraints | `dietary_preferences`, optional | Meal-preview credibility |
-| 14 | `/quiz/support_style` | Preferred plan style | `support_style` | Self-authored product framing |
-| 15 | `/quiz/plan_summary` | Personalized plan summary | Derived summary + confirmation | Endowed progress and ownership |
-| 16 | `/quiz/calculating` | Calculation | TDEE API or validated fallback | Short anticipation tied to real work |
-| 17 | `/quiz/result` | Initial result + product demonstration | TDEE, macros, explanation | Deliver value and show the paid execution system |
+| 1 | `/quiz` | Goal | `fitness_goal` | Self-definition and calculation input |
+| 2 | `/quiz` | Name | `name` | Self-reference and personalized copy |
+| 3 | `/quiz` | Main obstacles | `pain_points`, maximum 2 | Problem recognition and paid-value personalization |
+| 4 | `/quiz` | Time pursuing goal | `challenge_duration` | Narrative investment and tone selection |
+| 5 | `/quiz` | Desired personal outcome | `motivation` | Positive future orientation |
+| 6 | `/quiz` | Personalized reflection | Derived text | Reward progress and prove Nutree listened |
+| 7 | `/quiz` | Biological sex + age | `gender`, `age` | Calculation inputs and adult eligibility |
+| 8 | `/quiz` | Height + current weight | `height_cm`, `weight_kg` | Calculation inputs |
+| 9 | `/quiz` | Target weight | `target_weight_kg` or no numeric target | Goal context |
+| 10 | `/quiz` | Body-data confirmation | Confirmation event | Prevent accidental defaults and create explicit commitment |
+| 11 | `/quiz` | Daily activity + training | `job_type`, `training_days_per_week`, `training_minutes_per_session` | Calculation and result explanation |
+| 12 | `/quiz` | Difficult eating moment | `hardest_eating_moment` | Meal-preview and product-message personalization |
+| 13 | `/quiz` | Dietary constraints | `dietary_preferences`, optional | Meal-preview credibility |
+| 14 | `/quiz` | Preferred plan style | `support_style` | Self-authored product framing |
+| 15 | `/quiz` | Personalized plan summary | Derived summary + confirmation | Endowed progress and ownership |
+| 16 | `/quiz` | Calculation | TDEE API or validated fallback | Short anticipation tied to real work |
+| 17 | `/quiz` | Initial result + product demonstration | TDEE, macros, explanation | Deliver value and show the paid execution system |
 | 18 | `/email` | Save-plan commitment | `email` | Recovery and identity handoff with explicit payment preview |
 | 19 | `/paywall` | Nutree Premium offer | Monthly plan | Transparent immediate MoMo purchase |
 | 20 | `/momo/return` | Payment status | Server order status | Pending/paid/failed recovery |

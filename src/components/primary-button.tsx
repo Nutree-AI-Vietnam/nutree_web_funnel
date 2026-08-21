@@ -1,22 +1,24 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { forwardRef } from 'react';
 
-export function PrimaryButton({
-  children,
-  onClick,
-  disabled,
-  type = 'button',
-  className,
-}: {
+export const PrimaryButton = forwardRef<HTMLButtonElement, {
   children: React.ReactNode;
   onClick?: () => void;
   disabled?: boolean;
   type?: 'button' | 'submit';
   className?: string;
-}) {
+}>(({
+  children,
+  onClick,
+  disabled,
+  type = 'button',
+  className,
+}, ref) => {
   return (
     <button
+      ref={ref}
       type={type}
       onClick={onClick}
       disabled={disabled}
@@ -28,4 +30,6 @@ export function PrimaryButton({
       {children}
     </button>
   );
-}
+});
+
+PrimaryButton.displayName = 'PrimaryButton';

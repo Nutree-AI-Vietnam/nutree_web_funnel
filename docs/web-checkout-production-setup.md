@@ -124,6 +124,8 @@ NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID=<sandbox-offering-id>
 NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_4_WEEK=<sandbox-4-week-package-id>
 NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_12_WEEK=<sandbox-12-week-package-id>
 NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_52_WEEK=<sandbox-52-week-package-id>
+NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_1_WEEK=<sandbox-1-week-package-id>
+NEXT_PUBLIC_REVENUECAT_WEB_1_WEEK_ENABLED=false
 NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED=true
 NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID=<staging-ios-bundle-id>
 NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME=<staging-android-package-name>
@@ -140,6 +142,8 @@ NEXT_PUBLIC_PLAYSTORE_URL=<staging-android-install-url>
 | `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_4_WEEK` | Sandbox package ID |
 | `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_12_WEEK` | Sandbox package ID |
 | `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_52_WEEK` | Sandbox package ID |
+| `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_1_WEEK` | Optional sandbox package ID used when the 1-week toggle is enabled |
+| `NEXT_PUBLIC_REVENUECAT_WEB_1_WEEK_ENABLED` | `true` to show 1-week instead of 52-week; `false` to keep 52-week |
 | `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED` | `true` for staging/SIT Preview, `false` everywhere else until production sign-off |
 | `NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID` / `NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME` | Exact staging mobile bundle/package for phone handoff |
 | `NEXT_PUBLIC_APPSTORE_URL` / `NEXT_PUBLIC_PLAYSTORE_URL` | Staging-compatible install destinations |

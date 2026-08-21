@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
-import { nextRoute, type QuizStep } from '@/lib/quiz/steps';
+import { goToNextQuizStep } from '@/lib/quiz/navigation';
+import type { QuizStep } from '@/lib/quiz/steps';
 import { cn } from '@/lib/utils';
 
 function PromoIcon({ variant }: { variant: 'science' | 'macro' | 'meals' }) {
@@ -84,7 +85,7 @@ export function PromoStep({
       </div>
 
       <div className="mt-auto pt-2">
-        <PrimaryButton onClick={() => router.push(nextRoute(step))}>{vi.common.continue}</PrimaryButton>
+        <PrimaryButton onClick={() => goToNextQuizStep(router, step)}>{vi.common.continue}</PrimaryButton>
       </div>
     </div>
   );
