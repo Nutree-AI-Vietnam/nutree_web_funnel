@@ -34,7 +34,6 @@ export function MultiChoiceStep({
 
   const toggle = (key: string) => {
     let next = values.includes(key) ? values.filter((v) => v !== key) : [...values, key];
-    if (field === 'pain_points') next = next.slice(-2);
     if (field === 'dietary_preferences') {
       next = key === 'none' && !values.includes('none')
         ? ['none']

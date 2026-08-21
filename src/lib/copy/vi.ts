@@ -99,7 +99,7 @@ export const vi = {
   },
   challenges: {
     question: 'Bạn đã gặp khó khăn nào?',
-    hint: 'Chọn tối đa 2 mục đúng nhất.',
+    hint: 'Chọn tất cả mục phù hợp với bạn.',
     options: [
       { key: 'no_time', label: 'Không có thời gian' },
       { key: 'no_motivation', label: 'Thiếu động lực' },
