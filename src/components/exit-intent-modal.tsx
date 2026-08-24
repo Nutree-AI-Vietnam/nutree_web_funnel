@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PrimaryButton } from './primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
@@ -23,6 +23,48 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
   const copy = useCopy();
   const data = useQuizStore((s) => s.data);
   const [open, setOpen] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const primaryButtonRef = useRef<HTMLButtonElement>(null);
+
+  const stay = useCallback(() => setOpen(false), []);
+  const leave = useCallback(() => {
+    setOpen(false);
+    setFunnelScreen('landing');
+  }, [setFunnelScreen]);
+
+  useEffect(() => {
+    if (!open) return;
+    const previousActiveElement = document.activeElement as HTMLElement | null;
+    primaryButtonRef.current?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        stay();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusable || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      previousActiveElement?.focus();
+    };
+  }, [open, stay]);
 
   useEffect(() => {
     if (currentStepIndex < MIN_STEP_INDEX) return;
@@ -59,12 +101,6 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
     ? copy.goal.options.find((o) => o.key === goal)?.label
     : undefined;
 
-  const stay = () => setOpen(false);
-  const leave = () => {
-    setOpen(false);
-    setFunnelScreen('landing');
-  };
-
   return (
     <AnimatePresence>
       {open && (
@@ -75,8 +111,13 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
           transition={{ duration: 0.2 }}
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center"
           onClick={stay}
+          role="presentation"
         >
           <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="exit-intent-title"
             initial={{ opacity: 0, y: 40, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -113,6 +154,7 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
                     {name ? `${name} ơi` : 'Bạn ơi'}
                   </motion.p>
                   <motion.h2
+                    id="exit-intent-title"
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 }}
@@ -171,7 +213,7 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
                 transition={{ delay: 0.5 }}
                 className="grid gap-2"
               >
-                <PrimaryButton onClick={stay}>
+                <PrimaryButton ref={primaryButtonRef} onClick={stay}>
                   Tiếp tục ngay
                 </PrimaryButton>
                 <button
