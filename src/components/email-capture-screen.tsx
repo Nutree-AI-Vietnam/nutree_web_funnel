@@ -10,6 +10,7 @@ import { useCopy } from '@/lib/copy/use-copy';
 import { isValidEmail } from '@/lib/quiz/email';
 import { isLocalPreviewHost } from '@/lib/local-preview';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
+import { saveCheckoutEmail } from '@/lib/revenuecat/checkout-email';
 
 const TRUST_AVATAR_IMAGES = ['/images/trust-female.webp', '/images/trust-aiony.webp', '/images/trust-good-faces.webp', '/images/trust-ali.webp', '/images/trust-jurica.webp'] as const;
 
@@ -38,6 +39,7 @@ export function EmailCaptureScreen({ onComplete }: { onComplete: () => void }) {
     setError(null);
     try {
       setLead(await createLead(email.trim(), data));
+      saveCheckoutEmail(email.trim());
       trackEvent('email_captured', {});
       onComplete();
     } catch (submitError) {

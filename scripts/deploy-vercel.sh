@@ -43,6 +43,17 @@ if [[ "${SKIP_WEB_CHECKS:-0}" != "1" ]]; then
   npm run build
 fi
 
+# Production association fails closed when Android fingerprints are empty.
+# Require the env to be present locally (or via `vercel env pull`) before prod.
+if [[ "$target" == "production" || "$target" == "both" ]]; then
+  if [[ -z "${NUTREE_ANDROID_SHA256_CERT_FINGERPRINTS:-}" ]]; then
+    echo "Production deploy requires NUTREE_ANDROID_SHA256_CERT_FINGERPRINTS in the environment." >&2
+    echo "Set it to the Play App Signing / upload SHA-256 fingerprints (comma or newline separated)." >&2
+    echo "assetlinks.json returns [] when empty — App Links will not open." >&2
+    exit 1
+  fi
+fi
+
 deploy_target() {
   local environment="$1"
   if [[ "$environment" == "preview" ]]; then
