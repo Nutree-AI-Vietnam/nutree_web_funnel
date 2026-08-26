@@ -1,7 +1,12 @@
 # Mobile-first paid web magic-link identity handoff
 
-Status: planning contract, revised 2026-08-02. The filename is retained so existing
-cross-repo references remain valid; the paid flow no longer uses Firebase Email Link.
+> **Historical (Phase 6).** This document describes the retired lead-UUID +
+> magic-token / custom-token claim path. It is **not** the active producer
+> contract. Canonical flow: anonymous RC checkout → correlation → Home shell →
+> Firebase email → eligibility → redeem → finalize. See
+> `docs/web-checkout-production-setup.md` and mobile `docs/contracts.md`.
+
+Status: superseded 2026-08-25. Filename retained for cross-repo references.
 
 ## Product outcome
 

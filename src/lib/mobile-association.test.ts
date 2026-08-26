@@ -21,11 +21,21 @@ describe('mobile association mapping', () => {
         details: [
           {
             appID: 'KB4Q9QGD7M.com.nutreeai.mobile.staging',
-            paths: ['/auth/email-link*', '/open-nutree*', '/redeem*', '/postcheckout*'],
+            paths: ['/auth/email-link*', '/open-nutree*', '/redeem*'],
           },
         ],
       },
     });
+  });
+
+  it('keeps /postcheckout browser-owned (not associated)', () => {
+    const staging = appleAssociationForHost('quiz.preview.nutreeai.com');
+    const production = appleAssociationForHost('quiz.nutreeai.com');
+    for (const association of [staging, production]) {
+      const paths = association?.applinks.details[0]?.paths ?? [];
+      expect(paths.some((path) => path.includes('postcheckout'))).toBe(false);
+      expect(paths).toEqual(['/auth/email-link*', '/open-nutree*', '/redeem*']);
+    }
   });
 
   it('renders configured production Android signing fingerprints', () => {

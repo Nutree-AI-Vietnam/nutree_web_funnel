@@ -42,4 +42,13 @@ describe('redemption handoff', () => {
     clearPendingRedemptionCorrelation('lead-1', storage);
     expect(readPendingRedemptionCorrelation(storage)).toBeNull();
   });
+
+  it('missing digest after pay is recovery, never access or second checkout', () => {
+    expect(redemptionHandoff({ correlationAcknowledged: true, redemptionLinkHash: null })).toEqual({
+      kind: 'recovery',
+    });
+    expect(redemptionHandoff({ correlationAcknowledged: false, redemptionLinkHash: null })).toEqual({
+      kind: 'pending',
+    });
+  });
 });
