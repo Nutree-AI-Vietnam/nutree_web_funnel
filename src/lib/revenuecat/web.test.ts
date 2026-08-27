@@ -17,6 +17,12 @@ const environment = {
 };
 
 describe('RevenueCat Web configuration', () => {
+  it('sends the Paddle discount codes used by the live checkout', async () => {
+    const { WELCOME_DISCOUNT_CODE, EXIT_DISCOUNT_CODE } = await import('./web');
+    expect(WELCOME_DISCOUNT_CODE).toBe('WELCOME50');
+    expect(EXIT_DISCOUNT_CODE).toBe('LASTCHANCE75');
+  });
+
   it('calculates a provider-price discount using the currency returned by RevenueCat', () => {
     expect(discountedFormattedPrice({ amountMicros: 19_990_000, amount: 19.99, currency: 'USD', formattedPrice: '$19.99' }, 'en-US')).toBe('$10.00');
     expect(discountedFormattedPrice({ amountMicros: 499_000_000_000, amount: 499_000, currency: 'VND', formattedPrice: '₫499,000' }, 'vi-VN')).toBe('249.500 ₫');

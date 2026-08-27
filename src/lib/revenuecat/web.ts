@@ -16,7 +16,7 @@ export interface RevenueCatWebConfig {
 
 export const WELCOME_DISCOUNT_CODE = 'WELCOME50';
 export const WELCOME_DISCOUNT_PERCENT = 50;
-export const EXIT_DISCOUNT_CODE = 'EXIT75';
+export const EXIT_DISCOUNT_CODE = 'LASTCHANCE75';
 export const EXIT_DISCOUNT_PERCENT = 75;
 export const PAYWALL_OFFER_STATE_STORAGE_KEY = 'nutree.paywall.offer-state.v1';
 export const PAYWALL_EXIT_OFFER_CLAIMED_STORAGE_KEY = 'nutree.paywall.exit-offer-claimed.v1';
