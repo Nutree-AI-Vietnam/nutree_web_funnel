@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "postinstall": "patch-package"
+    "postinstall": "node scripts/apply-package-patches.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
