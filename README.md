@@ -1,7 +1,7 @@
 # Nutree Web Funnel
 
-Web onboarding funnel (quiz.nutreeai.com production, quiz.preview.nutreeai.com preview): quiz -> TDEE results -> email capture ->
-RevenueCat Web checkout -> RevenueCat Redemption Link -> authenticated mobile claim.
+Web onboarding funnel (quiz.nutreeai.com production, quiz.preview.nutreeai.com preview): quiz → TDEE results → email capture →
+anonymous RevenueCat Web checkout → thin correlation → redemption email → mobile Home shell → Firebase email → redeem → finalize.
 
 Design spec: `docs/superpowers/specs/2026-07-07-web-to-app-funnel-design.md`
 
@@ -38,7 +38,7 @@ npm run build                # production build check
 | `NEXT_PUBLIC_API_BASE_URL` | Nutree backend base URL (no trailing slash) |
 | `WEB_FUNNEL_BFF_SHARED_SECRET` | Server-only shared credential required by MealTrack for lead creation |
 | `NEXT_PUBLIC_REVENUECAT_WEB_API_KEY` | RevenueCat Web public API key for the web checkout config |
-| `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED` | Public default-off anonymous-customer redemption handoff; enable only for staging/SIT and redeploy after changing |
+| `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED` | Public new-checkout admission kill switch (anonymous RC only; never `/welcome`). Paid digest correlation recovery still works when off. Enable only for staging/SIT and redeploy after changing |
 | `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID` | Offering identifier containing the three web packages |
 | `NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_4_WEEK` / `12_WEEK` / `52_WEEK` / `1_WEEK` | Exact package identifiers from that offering |
 | `NEXT_PUBLIC_REVENUECAT_WEB_1_WEEK_ENABLED` | Build-time toggle: `true` shows the 1-week package instead of the 52-week package |
@@ -99,9 +99,9 @@ Preview must use RevenueCat's sandbox web key/config; Production uses the live w
 ## External Dependencies
 
 - **RevenueCat Web**: connect Paddle Billing, import products, map them to the Nutree Premium entitlement, and configure the web offering/package IDs above.
-- **Lead handoff BFF**: the web app creates a possession-bound checkout draft through `/api/web-funnel/session` and `/api/web-funnel/leads`, then polls `/status` and can request `/resend` or `/session/reset` with the same-origin lead-access cookie.
+- **Lead handoff BFF**: the web app creates a possession-bound checkout draft through `/api/web-funnel/session` and `/api/web-funnel/leads`, correlates anonymous RC customers after pay, and can `/session/reset` an unpaid draft with the same-origin lead-access cookie. Legacy `/resend` magic-claim remains on the BFF for compatibility only (backend-gated; web UI no longer offers it). `/welcome` is guidance-only.
 - **Firebase Auth**: the web funnel never completes Firebase auth in-browser; `/open-nutree` and `/redeem` are token-free install/reopen fallbacks.
-- **Redemption handoff**: when `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED=true`, the web app generates an anonymous RevenueCat web customer, completes checkout with that customer, and sends only the anonymous `app_user_id` plus a SHA-256 digest of the redemption URL to the same-origin BFF for lead correlation. The browser keeps the raw redemption URL only in memory, then navigates to `/postcheckout`. RevenueCat sends the Redemption Link to the checkout email; the mobile app keeps the normal passwordless email-link sign-in flow visible and silently resumes redemption after Firebase authentication. The browser never grants access.
+- **Redemption handoff**: anonymous RevenueCat web customer only. After checkout the browser sends `app_user_id` + SHA-256 digest to the BFF, keeps the raw redeem URL in memory only, and navigates to `/postcheckout`. `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED` is the new-checkout admission switch (not a legacy lead-ID fork). RevenueCat emails the Redemption Link; `/redeem` is guidance-only and does not activate.
 - **Backend**: retains its RevenueCat webhook/cache for enforcing Premium APIs and lead-status projection.
   For live checkout, use an approved production domain. Sandbox supports localhost.
 - **Airbridge**: tracking link created in dashboard (goes in

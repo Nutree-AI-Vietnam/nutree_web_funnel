@@ -57,9 +57,10 @@ a quick orientation for developers and documentation updates.
 | `/email` | Legacy email URL; redirects into `/survey/{language}` |
 | `/paywall` | Legacy paywall URL; redirects into `/survey/{language}` before checkout |
 | `/success` | Post-purchase success experience |
-| `/welcome` | Claim and onboarding continuation state |
+| `/welcome` | Guidance only — RC email / `/postcheckout` (magic-claim UI retired) |
 | `/open-nutree` | Token-free install/reopen path for mobile claim handoff |
-| `/api/web-funnel/*` | Same-origin BFF surface for session, lead, resend, status, and correlation |
+| `/postcheckout` | Browser-owned post-pay correlation recovery |
+| `/api/web-funnel/*` | BFF: session, lead, status, correlation, session reset; `/resend` compatibility-only |
 
 ## Key Code Areas
 

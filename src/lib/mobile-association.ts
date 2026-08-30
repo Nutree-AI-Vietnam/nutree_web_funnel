@@ -28,7 +28,6 @@ const quizAssociationPaths = [
   '/auth/email-link*',
   '/open-nutree*',
   '/redeem*',
-  '/postcheckout*',
 ];
 
 function normalizedHost(host: string | null): string {

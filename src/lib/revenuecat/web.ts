@@ -16,7 +16,7 @@ export interface RevenueCatWebConfig {
 
 export const WELCOME_DISCOUNT_CODE = 'WELCOME50';
 export const WELCOME_DISCOUNT_PERCENT = 50;
-export const EXIT_DISCOUNT_CODE = 'EXIT75';
+export const EXIT_DISCOUNT_CODE = 'LASTCHANCE75';
 export const EXIT_DISCOUNT_PERCENT = 75;
 export const PAYWALL_OFFER_STATE_STORAGE_KEY = 'nutree.paywall.offer-state.v1';
 export const PAYWALL_EXIT_OFFER_CLAIMED_STORAGE_KEY = 'nutree.paywall.exit-offer-claimed.v1';
@@ -145,15 +145,6 @@ export function readRevenueCatWebConfig(source?: PublicEnvironment, oneWeekEnabl
       { id: '12-week', packageIdentifier: required(environment, 'NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_12_WEEK') },
     ],
   };
-}
-
-/** Legacy identified checkout remains available while redemption is default-off. */
-export function configureRevenueCatForLead(config: RevenueCatWebConfig, leadId: string) {
-  if (!leadId.trim()) throw new Error('A verified lead ID is required before opening RevenueCat checkout.');
-  return Purchases.configure({
-    apiKey: config.apiKey,
-    appUserId: leadId,
-  });
 }
 
 /** Configure one generated anonymous customer; backend later verifies and binds it to the lead. */

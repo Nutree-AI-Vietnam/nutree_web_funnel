@@ -2,46 +2,90 @@
 
 ## Overview
 
-This guide prepares the paid web onboarding flow:
+Canonical paid web → mobile handoff (ship-first contract):
 
 ```text
-Web quiz -> possession-bound lead -> RevenueCat Web checkout
--> verified standard entitlement -> Nutree magic email
--> mobile custom-token claim -> restored profile, plan, and access
+Survey email (lead) → anonymous RevenueCat Web SDK checkout
+→ thin correlation (app_user_id + redeem-link digest)
+→ redemption CTA / RC email → mobile Home shell
+→ Firebase email (match lead) → eligibility → redeem once
+→ MealTrack finalize → entitlement refresh → home_active
 ```
 
-The browser never grants access from a checkout callback. MealTrack verifies the
-provider state and the mobile app completes the authenticated claim.
+The browser never grants access from a checkout callback. MealTrack owns
+purchase/access truth. Legacy magic-email / custom-token claim is not the
+active producer path.
 
-The authenticated RevenueCat redemption handoff is public and default-off in the
-web app. Keep it enabled only for staging/SIT verification until the full
-sandbox journey is proved end to end.
+Redemption checkout stays default-off in production until staging SIT passes
+(`NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED`).
+
+## Contract (cross-repo)
+
+1. **Lead email** is ownership authority.
+2. **Correlation** = lead + anonymous RC `app_user_id` + redeem-link **digest**
+   (never raw URL in storage/logs/analytics).
+3. **Eligibility** = verified Firebase email/UID may consume that row before redeem.
+4. **Finalize** = atomic MealTrack grant; idempotent; select by hash+UID (not
+   “latest matching UID”).
+5. **Home pending** = inert shell + email prompt; **home_active** only after refresh.
+
+Deferred: opaque preflight receipts, lease/CAS. Browser-loss without digest →
+RC purchase email / support; never a second charge.
+
+## Flavor matrix (no secrets)
+
+| Flavor | Bundle / package | Firebase project | Quiz / continue host | RC redemption scheme | Vercel domain |
+|---|---|---|---|---|---|
+| staging | `com.nutreeai.mobile.staging` | `nutree-ai-staging` | `quiz.preview.nutreeai.com` | `rc-6eb1beb650` | Preview |
+| prod | `com.nutreeai.mobile` | `nutree-ai` | `quiz.nutreeai.com` | **ops-provisioned** (build fails on placeholder) | Production |
+| dev | `com.nutreeai.mobile.dev` | `nutree-ai-dev-4c49d` | preview host (non-prod) | placeholder until needed | local |
+
+Android App Links fingerprints live only in Vercel
+`NUTREE_ANDROID_SHA256_CERT_FINGERPRINTS` (never commit). Empty → fail-closed
+`assetlinks.json` (`[]`).
+
+Associated Universal / App Link paths (browser-owned otherwise):
+`/auth/email-link*`, `/open-nutree*`, `/redeem*`. **`/postcheckout*` is not
+associated** — post-pay stays in the browser.
+
+Runtime: mobile rejects wrong-flavor RC schemes and Firebase hosts/projects
+before parse or secure persistence.
 
 ## Prerequisites
 
-- Mobile `delivery` still lacks the claim coordinator from #587/#588. Do not
-  treat the flow as released until that mobile work is deployed and verified.
-- The exact staging or production claim host opens the installed app and routes
-  app-absent users to `/open-nutree` with a token-free request path/query.
-- RevenueCat has the matching web offering, packages, `standard` entitlement,
-  webhook destination, API credentials, and environment-specific app identifiers.
-- MealTrack deploys migrations with its Render pre-deploy command.
-- `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED` is set to `true` in the staging
-  Preview build used for SIT and stays `false` in production until SIT sign-off.
+- Mobile build registers the RevenueCat Redemption Links custom URL scheme and
+  ships Home-shell redemption (not activate-plan-only).
+- App-absent users get install + reopen-the-same-email guidance (no custom
+  deferred-link service).
+- RevenueCat: web offering, packages, `standard` entitlement, Redemption Links,
+  webhook, environment-specific identifiers.
+- MealTrack migrations run on deploy (`python migrations/run.py`).
+- `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED=true` only on staging Preview until
+  SIT sign-off; production stays `false` until then.
+
+## Sandbox proof matrix (installed / app-absent)
+
+| Journey | Expected |
+|---|---|
+| Staging RC redeem link, app installed | Opens staging build → Home shell + email prompt |
+| Firebase email action link, app installed | Opens staging build; wrong-project / wrong-host rejected |
+| App absent → install from store/TestFlight | User reopens **same** checkout / RC redemption email (no deferred-link service) |
+| Wrong-flavor scheme / host | Rejected before persist; no Home pending state |
+
+Do not invent deferred deep linking. If capability is lost after install,
+instruct reopen of the same email / RC ~60‑minute resend.
 
 ## Redemption handoff guardrails
 
-- The browser generates a new anonymous RevenueCat customer when redemption is
-  enabled. It does not reuse the lead ID as the RevenueCat `appUserId`.
-- After checkout, the browser posts only the anonymous `app_user_id` to the
-  same-origin BFF endpoint `/api/web-funnel/leads/[leadId]/revenuecat-correlation`.
-- The redemption URL returned by RevenueCat is kept in memory only. Do not
-  persist it to local storage, session storage, route state, analytics, or logs.
-- The web funnel never signs in to Firebase in the browser.
-- Mobile claim finalization still requires the user to sign in with the same
-  email used at checkout.
-- Production enablement stays blocked until sandbox SIT passes with a released
-  staging mobile build.
+- New anonymous RevenueCat customer per checkout; do not reuse lead ID as
+  `appUserId`.
+- After checkout, BFF posts `app_user_id` + digest to
+  `/api/web-funnel/leads/[leadId]/revenuecat-correlation`.
+- Raw redemption URL stays memory-only for CTA/QR; persist digest only.
+- Web never signs in to Firebase.
+- Mobile redeem requires the same email as the lead.
+- Independent kill switch for new checkout; paid correlation/preflight/finalize
+  stay available during rollback.
 
 RevenueCat owns web packages and offering experiments. MealTrack verifies the
 environment and active `standard` entitlement; it does not use a product
@@ -50,15 +94,12 @@ callback never grants access by itself.
 
 ## Release blockers and checklist
 
-- [ ] Mobile `delivery` contains the claim coordinator from #587/#588 and the
-  deployed app has completed a real claim journey.
-- [ ] The claim host opens the installed app on both platforms and falls back to
-  `/open-nutree` if the app is absent.
-- [ ] Staging and production backend values are configured with no secrets in
-  source control or documentation.
-- [ ] Sandbox SIT has verified anonymous RevenueCat correlation, same-origin
-  BFF handoff, memory-only redemption URL handling, and same-email mobile
-  sign-in before production enablement.
+- [ ] Staging mobile build opens RC redeem links into Home shell (email prompt;
+  onboarding suppressed) and completes redeem → finalize → refresh.
+- [ ] App-absent journey: install, reopen same email / RC resend; no second charge.
+- [ ] Staging/production backend + Vercel env configured with no secrets in docs.
+- [ ] Sandbox SIT: anonymous checkout, BFF correlation, digest-only handoff,
+  same-email mobile redeem, rollback kill switch preserves paid recovery.
 
 ## Staging release
 
@@ -82,7 +123,8 @@ never put it in `NEXT_PUBLIC_*`, source control, logs, or this document.
 ```dotenv
 WEB_FUNNEL_BFF_ORIGIN=https://<vercel-preview-origin>
 WEB_FUNNEL_BFF_SHARED_SECRET=<generate-a-new-staging-secret>
-WEB_FUNNEL_CLAIM_LINK_BASE_URL=https://<staging-claim-host>/open-nutree
+WEB_FUNNEL_LEGACY_CLAIM_ENABLED=false
+# WEB_FUNNEL_CLAIM_LINK_BASE_URL=  # legacy magic-claim only; leave unset while LEGACY=false
 REVENUECAT_SECRET_API_KEY=<server-only-revenuecat-secret>
 REVENUECAT_WEBHOOK_SECRET=<staging-revenuecat-webhook-secret>
 WEB_FUNNEL_REVENUECAT_ENVIRONMENT=SANDBOX
@@ -98,7 +140,8 @@ webhook from a different RevenueCat environment cannot issue a claim.
 |---|---|
 | `WEB_FUNNEL_BFF_ORIGIN` | Exact Vercel Preview origin |
 | `WEB_FUNNEL_BFF_SHARED_SECRET` | New server-only shared secret |
-| `WEB_FUNNEL_CLAIM_LINK_BASE_URL` | `https://<staging-claim-host>/open-nutree` |
+| `WEB_FUNNEL_LEGACY_CLAIM_ENABLED` | `false` (default). Keep off; do not enqueue/send magic claim email |
+| `WEB_FUNNEL_CLAIM_LINK_BASE_URL` | Legacy-only; required only if temporarily re-enabling magic claim |
 | `REVENUECAT_SECRET_API_KEY` | Server-only sandbox/appropriate RevenueCat secret key |
 | `REVENUECAT_WEBHOOK_SECRET` | Exact secret for the staging webhook endpoint |
 | `WEB_FUNNEL_REVENUECAT_ENVIRONMENT` | `SANDBOX` for staging; `PRODUCTION` in production |
@@ -152,25 +195,29 @@ Redeploy Preview after changing any `NEXT_PUBLIC_*` value.
 
 ### 4. Verify the complete staging journey
 
-Use a sandbox buyer and a compatible installed staging mobile build containing
-the claim coordinator and failed-claim subscription recovery.
+Use a sandbox buyer and a compatible installed **staging** mobile build with
+Home-shell redemption (`rc-6eb1beb650` scheme registered).
 
-1. Complete the web quiz with a valid DOB and submit email.
+1. Complete the web quiz with a valid DOB and submit email (lead ownership).
 2. Confirm one possession-bound lead is created; a second browser with only the
    email cannot recover it.
-3. Confirm RevenueCat Web checkout identifies the customer as the lead UUID.
-4. Complete payment and verify the browser remains in pending state until the
-   RevenueCat webhook plus backend customer fetch verify `standard`.
-5. Confirm the email contains the direct fragment link and neither browser logs
-   nor Vercel request metadata contain the magic token.
-6. Open the link on mobile, complete custom-token claim, and verify restored
-   profile/DOB/plan plus fresh `standard` access. Confirm the Firebase user is
-   associated with the paid lead's RevenueCat customer ID.
-7. Exercise resend, duplicate submit, claim replay, refund/revocation, and
-   app-not-installed recovery.
+3. Confirm RevenueCat Web checkout stays **anonymous** (not lead UUID as
+   `appUserId`); optional `customerEmail` may match the survey email.
+4. Complete payment; browser correlates `app_user_id` + redeem-link **digest**,
+   then lands on `/postcheckout` (browser-owned). Raw redeem URL is never
+   persisted.
+5. Confirm checkout/RC email has the redemption link; logs/analytics never store
+   the raw URL or magic tokens.
+6. Open the redemption link on the staging app → Home shell + passwordless email
+   prompt (onboarding suppressed). Sign in with the **same** lead email →
+   eligibility → redeem once → finalize → entitlement refresh → `home_active`.
+7. Exercise duplicate open, wrong-email rejection, kill-switch rollback
+   (paid recovery still works), and app-not-installed → install → reopen same
+   email / RC redemption resend. Do **not** exercise MealTrack magic-claim resend
+   (`WEB_FUNNEL_LEGACY_CLAIM_ENABLED` stays false).
 
-Do not promote while any step is unverified or while the mobile claim coordinator
-is absent from the deployed build.
+Do not promote while any step is unverified or while the staging scheme /
+fingerprints / associations are unproven on device.
 
 ## Production promotion
 
@@ -211,8 +258,9 @@ production BFF shared secret; do not reuse the staging secret.
 | Lead create returns 401/403 | HttpOnly cookie presence and same-origin BFF request checks. |
 | Checkout remains pending | RevenueCat webhook delivery, exact `SANDBOX`/`PRODUCTION` match, and backend-fetched `standard` entitlement. |
 | No email | Backend email setting, claim-link base URL, outbox worker, and sender configuration. |
-| Link opens browser instead of app | Exact claim host, iOS/Android association files, released mobile build, and app-not-installed fallback. |
-| Mobile claim conflicts | Firebase identity state and backend claim/recovery logs; do not merge accounts manually. |
+| Link opens browser instead of app | Exact quiz host associations (`/auth/email-link*`, `/open-nutree*`, `/redeem*` only), fingerprints, released mobile build, and install + reopen-same-email fallback. |
+| Mobile redeem conflicts | Firebase email match to lead, flavor scheme allowlist, and backend preflight/finalize logs; do not merge accounts manually. |
+| Prod build blocked on RC scheme | Provision live Redemption Links scheme in RC dashboard; set `REVENUECAT_REDEMPTION_URL_SCHEME` (iOS xcconfig / Android CI) and matching Dart define. |
 
 ## References
 

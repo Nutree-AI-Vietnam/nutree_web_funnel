@@ -1,5 +1,11 @@
 # Nutree Checkout and Subscription Flow
 
+> **Partially historical (Phase 6).** Sections that describe lead UUID as the
+> RevenueCat App User ID, MealTrack magic-claim email, or custom-token exchange
+> are superseded. Canonical web path: anonymous RC Web SDK → digest correlation →
+> redemption email → mobile Home shell → Firebase passwordless → preflight →
+> redeem → finalize. Evergreen setup: `docs/web-checkout-production-setup.md`.
+
 ## Purpose
 
 This brief explains the Nutree subscription journey for Product, Business
