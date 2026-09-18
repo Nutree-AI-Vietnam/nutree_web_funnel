@@ -31,6 +31,20 @@ describe('redemption handoff', () => {
     await expect(redemptionLinkHash(redirectLink)).resolves.toBe(await redemptionLinkHash(innerLink));
   });
 
+  it('matches shared silent-login hash goldens', async () => {
+    await expect(redemptionLinkHash('https://redeem.test/token')).resolves.toBe(
+      'e0b11b09be73ee47d9380b59eef9590fb4eb42fa10734fca6cfbcb8cecf9d25b',
+    );
+    await expect(
+      redemptionLinkHash('rc-test://redeem_web_purchase?redemption_token=opaque'),
+    ).resolves.toBe('becc43a70131005e53d56a70e1f75bf7dfcd5d05f9b994f04966a15309d5882f');
+    const inner = 'rc-test://redeem_web_purchase?redemption_token=opaque';
+    const redirect = `https://api.revenuecat.com/rcbilling/v1/redirect?url=${encodeURIComponent(inner)}`;
+    await expect(redemptionLinkHash(redirect)).resolves.toBe(
+      'becc43a70131005e53d56a70e1f75bf7dfcd5d05f9b994f04966a15309d5882f',
+    );
+  });
+
   it('persists only a valid hash to resume correlation after a reload', () => {
     const storage = memoryStorage();
     const correlation = { leadId: 'lead-1', appUserId: '$RCAnonymousID:customer-1', redemptionLinkHash: 'a'.repeat(64) };
