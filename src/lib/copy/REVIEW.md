@@ -22,7 +22,7 @@ That's it. `Locale`, the switcher, persistence and every `useCopy()` call pick i
 `vi` is `as const`, so `typeof vi` is a tree of **literal** types (`'Tiếp tục'`). A translation can't reuse those literals, so `Widen` recursively widens literals to their base types while preserving object structure, function signatures, and `readonly` arrays. Result: `en` is checked for **completeness and correct types** (including the functions like `metric.rangeError(...)`, `tdee_targets.projectionWeeks(n)`, `paywall.perDayNote(x)`) with **no `any`**.
 
 ### Accessor + persistence
-- Locale is a field on the existing zustand store (`src/lib/quiz/store.ts`), persisted to `localStorage` with the rest of the funnel state, and **kept across `reset()`** (language is a UI preference, not quiz data).
+- Locale is a field on the existing zustand store (`src/lib/quiz/store.ts`), persisted to the current tab's `sessionStorage` with the rest of the funnel state, and **kept across `reset()`** (language is a UI preference, not quiz data).
 - `useLocale()` returns `DEFAULT_LOCALE` until the store has rehydrated, so SSR and first client render agree (no hydration mismatch); it then flips to the persisted choice.
 - The switcher (`LanguageToggle` in `src/app/page.tsx`) is a segmented VI/EN control: `role="group"`, per-button `aria-pressed` + `aria-label` (full language name), 44px touch targets (`min-h-11 min-w-11`), `focus-visible` ring, on-brand forest gradient for the active state.
 

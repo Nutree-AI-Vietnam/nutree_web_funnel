@@ -16,6 +16,21 @@ Object.defineProperty(globalThis, 'localStorage', {
   } satisfies Storage,
 });
 
+const sessionMem = new Map<string, string>();
+Object.defineProperty(globalThis, 'sessionStorage', {
+  configurable: true,
+  value: {
+  getItem: (k: string) => sessionMem.get(k) ?? null,
+  setItem: (k: string, v: string) => void sessionMem.set(k, v),
+  removeItem: (k: string) => void sessionMem.delete(k),
+  clear: () => sessionMem.clear(),
+  key: (i: number) => [...sessionMem.keys()][i] ?? null,
+  get length() {
+    return sessionMem.size;
+  },
+  } satisfies Storage,
+});
+
 let useQuizStore: typeof useQuizStoreType;
 let STORAGE_KEY: string;
 let migratePersistedQuizState: typeof import('./store').migratePersistedQuizState;
@@ -31,6 +46,7 @@ describe('quiz store', () => {
   beforeEach(() => {
     useQuizStore.getState().reset();
     mem.clear();
+    sessionMem.clear();
   });
 
   it('merges partial payload patches', () => {
@@ -59,18 +75,19 @@ describe('quiz store', () => {
 
   it('persists the implicit funnel screen', () => {
     useQuizStore.getState().setFunnelScreen('paywall');
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).state.funnelScreen).toBe('paywall');
+    expect(JSON.parse(sessionStorage.getItem(STORAGE_KEY)!).state.funnelScreen).toBe('paywall');
     useQuizStore.getState().reset();
     expect(useQuizStore.getState().funnelScreen).toBe('landing');
   });
 
-  it('persists to localStorage under the versioned key', () => {
+  it('persists to sessionStorage under the versioned key', () => {
     useQuizStore.getState().setData({ name: 'Anh' });
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = sessionStorage.getItem(STORAGE_KEY);
     expect(raw).toBeTruthy();
     expect(JSON.parse(raw!).state.data.name).toBe('Anh');
     expect(JSON.parse(raw!).state).not.toHaveProperty('purchased');
     expect(JSON.parse(raw!).state).not.toHaveProperty('paypalCheckout');
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
   });
 
   it('drops legacy claim credentials and untrusted payment state during migration', () => {
@@ -100,7 +117,7 @@ describe('quiz store', () => {
   });
 
   it('rehydrates legacy records without restoring a client-claimed purchase', async () => {
-    mem.set(STORAGE_KEY, JSON.stringify({
+    sessionMem.set(STORAGE_KEY, JSON.stringify({
       state: {
         data: { measurement_unit: 'metric' },
         locale: 'en',

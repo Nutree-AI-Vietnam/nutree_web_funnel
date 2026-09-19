@@ -31,6 +31,7 @@ describe('web funnel lead BFF', () => {
 
     expect(response.status).toBe(422);
     expect(response.headers.get('X-Request-ID')).toBe('request-422');
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].headers).not.toHaveProperty('Origin');
     expect(await response.json()).toEqual({ detail: [{ loc: ['body', 'payload', 'goal'], msg: 'Field required' }], request_id: 'request-422' });
   });
 });

@@ -33,6 +33,7 @@ describe('RevenueCat correlation BFF', () => {
     expect(fetch).toHaveBeenCalledWith('https://api.test/v1/web-funnel/leads/lead-1/revenuecat-correlation', expect.objectContaining({
       method: 'POST', body: JSON.stringify({ app_user_id: '$RCAnonymousID:customer-1', redemption_link_hash: 'a'.repeat(64) }), headers: expect.objectContaining({ 'X-Lead-Access-Key': 'access-key', 'X-Web-Funnel-BFF-Token': 'bff-secret' }),
     }));
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].headers).not.toHaveProperty('Origin');
   });
 
   it('rejects cross-site and malformed requests before contacting the backend', async () => {

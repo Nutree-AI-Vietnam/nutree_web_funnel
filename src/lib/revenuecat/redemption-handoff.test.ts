@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, savePendingRedemptionCorrelation } from './redemption-handoff';
+import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, redemptionUrlFromCheckoutOperation, savePendingRedemptionCorrelation } from './redemption-handoff';
 
 function memoryStorage() {
   const values = new Map<string, string>();
@@ -31,6 +31,20 @@ describe('redemption handoff', () => {
     await expect(redemptionLinkHash(redirectLink)).resolves.toBe(await redemptionLinkHash(innerLink));
   });
 
+  it('matches shared silent-login hash goldens', async () => {
+    await expect(redemptionLinkHash('https://redeem.test/token')).resolves.toBe(
+      'e0b11b09be73ee47d9380b59eef9590fb4eb42fa10734fca6cfbcb8cecf9d25b',
+    );
+    await expect(
+      redemptionLinkHash('rc-test://redeem_web_purchase?redemption_token=opaque'),
+    ).resolves.toBe('becc43a70131005e53d56a70e1f75bf7dfcd5d05f9b994f04966a15309d5882f');
+    const inner = 'rc-test://redeem_web_purchase?redemption_token=opaque';
+    const redirect = `https://api.revenuecat.com/rcbilling/v1/redirect?url=${encodeURIComponent(inner)}`;
+    await expect(redemptionLinkHash(redirect)).resolves.toBe(
+      'becc43a70131005e53d56a70e1f75bf7dfcd5d05f9b994f04966a15309d5882f',
+    );
+  });
+
   it('persists only a valid hash to resume correlation after a reload', () => {
     const storage = memoryStorage();
     const correlation = { leadId: 'lead-1', appUserId: '$RCAnonymousID:customer-1', redemptionLinkHash: 'a'.repeat(64) };
@@ -50,5 +64,22 @@ describe('redemption handoff', () => {
     expect(redemptionHandoff({ correlationAcknowledged: false, redemptionLinkHash: null })).toEqual({
       kind: 'pending',
     });
+  });
+
+  it('recovers a redemption URL published after Paddle checkout completes', async () => {
+    const fetcher = async () => new Response(JSON.stringify({ operation: { redemption_info: { redeem_url: 'rc-test://redeem_web_purchase?redemption_token=opaque' } } }), { status: 200 });
+
+    await expect(redemptionUrlFromCheckoutOperation('rcb_sb_test', 'operation-1', { fetcher, attempts: 1 })).resolves.toBe('rc-test://redeem_web_purchase?redemption_token=opaque');
+  });
+
+  it('retries when RevenueCat has not published the redemption URL yet', async () => {
+    let calls = 0;
+    const fetcher = async () => {
+      calls += 1;
+      return new Response(JSON.stringify(calls === 1 ? { operation: { redemption_info: null } } : { operation: { redemption_info: { redeem_url: 'rc-test://redeem_web_purchase?redemption_token=opaque' } } }), { status: 200 });
+    };
+
+    await expect(redemptionUrlFromCheckoutOperation('rcb_sb_test', 'operation-1', { fetcher, attempts: 2, delayMs: 0 })).resolves.toBe('rc-test://redeem_web_purchase?redemption_token=opaque');
+    expect(calls).toBe(2);
   });
 });
