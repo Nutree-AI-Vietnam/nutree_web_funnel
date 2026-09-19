@@ -9,6 +9,7 @@ import { isLocalPreviewHost } from '@/lib/local-preview';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import { computeTdeeResult } from '@/lib/tdee/calculator';
+import type { TdeeResult } from '@/lib/quiz/types';
 import { cn } from '@/lib/utils';
 
 // Deliberately paced so the "building your plan" moment feels substantial.
@@ -43,6 +44,7 @@ export function CalculatingStep() {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [resolvedPreview, setResolvedPreview] = useState<TdeeResult | null>(null);
 
   // Compute the user's real numbers locally so the animation counts up to
   // *their* target, not a placeholder. (API result still drives navigation.)
@@ -56,6 +58,7 @@ export function CalculatingStep() {
     setElapsed(duration === 0 ? TOTAL_MS : 0);
     setReady(false);
     setError(false);
+    setResolvedPreview(null);
 
     const finishDelay = new Promise<void>((resolve) => {
       delayTimer = window.setTimeout(resolve, duration);
@@ -84,6 +87,7 @@ export function CalculatingStep() {
       if (cancelled) return;
       if (raf != null) cancelAnimationFrame(raf);
       if (outcome) {
+        setResolvedPreview(outcome.result);
         setTdee(outcome.result, outcome.source);
         setReady(true);
       } else {
@@ -114,15 +118,19 @@ export function CalculatingStep() {
     : 0;
   const slide = slides[slideIndex] ?? { title: '', body: '' };
 
-  const calories = preview ? Math.round((preview.calories * frac) / 5) * 5 : null;
+  // Keep the animated preview aligned with the backend response whenever it
+  // succeeds. The local calculation is only a fallback while that response
+  // is still pending or unavailable.
+  const displayPreview = resolvedPreview ?? preview;
+  const calories = displayPreview ? Math.round((displayPreview.calories * frac) / 5) * 5 : null;
   const calorieLocale = locale === 'vi' ? 'vi-VN' : 'en-US';
 
-  const macroMax = preview ? Math.max(preview.protein_g, preview.carbs_g, preview.fat_g) : 1;
-  const macros = preview
+  const macroMax = displayPreview ? Math.max(displayPreview.protein_g, displayPreview.carbs_g, displayPreview.fat_g) : 1;
+  const macros = displayPreview
     ? [
-        { label: vi.tdee_targets.protein, grams: preview.protein_g, color: 'bg-protein' },
-        { label: vi.tdee_targets.carbs, grams: preview.carbs_g, color: 'bg-carbs' },
-        { label: vi.tdee_targets.fat, grams: preview.fat_g, color: 'bg-fat' },
+        { label: vi.tdee_targets.protein, grams: displayPreview.protein_g, color: 'bg-protein' },
+        { label: vi.tdee_targets.carbs, grams: displayPreview.carbs_g, color: 'bg-carbs' },
+        { label: vi.tdee_targets.fat, grams: displayPreview.fat_g, color: 'bg-fat' },
       ]
     : [];
 
@@ -192,7 +200,7 @@ export function CalculatingStep() {
         </div>
 
         {/* Macro split bars grow toward the real allocation */}
-        {preview && (
+        {displayPreview && (
           <section aria-label={vi.calculating.macroCaption} className="grid gap-2">
             <p className="text-center text-[0.68rem] font-bold uppercase tracking-wide text-muted-brand">
               {vi.calculating.macroCaption}
