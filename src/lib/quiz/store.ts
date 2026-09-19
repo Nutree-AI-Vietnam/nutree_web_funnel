@@ -61,6 +61,19 @@ function toPersistedQuizState(state: QuizState): PersistedQuizState {
   };
 }
 
+/**
+ * Keep funnel progress inside the current browser tab only. Remove the old
+ * localStorage record so an upgrade cannot resurrect prior survey data.
+ */
+function getQuizStorage(): Storage {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Continue with session storage when legacy storage is unavailable.
+  }
+  return sessionStorage;
+}
+
 /** Drops untrusted legacy checkout and claim data during persisted-state upgrades. */
 export function migratePersistedQuizState(persistedState: unknown): PersistedQuizState {
   const state = persistedState && typeof persistedState === 'object'
@@ -101,7 +114,7 @@ export const useQuizStore = create<QuizState>()(
     }),
     {
       name: STORAGE_KEY,
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(getQuizStorage),
       version: STORE_VERSION,
       partialize: toPersistedQuizState,
       migrate: (persistedState) => migratePersistedQuizState(persistedState),
@@ -110,8 +123,8 @@ export const useQuizStore = create<QuizState>()(
 );
 
 /**
- * True once the persisted state has been rehydrated on the client.
- * Render quiz UI only after this to avoid SSR/localStorage mismatch.
+ * True once the tab-scoped state has been rehydrated on the client.
+ * Render quiz UI only after this to avoid SSR/sessionStorage mismatch.
  */
 export function useHydrated(): boolean {
   return useSyncExternalStore(

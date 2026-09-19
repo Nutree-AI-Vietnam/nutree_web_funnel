@@ -77,6 +77,47 @@ export async function redemptionLinkHash(redeemUrl: string | null | undefined): 
   return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+interface CheckoutStatusResponse {
+  operation?: {
+    redemption_info?: { redeem_url?: string | null } | null;
+  };
+}
+
+/**
+ * RevenueCat may publish the redemption URL just after Paddle reports success.
+ * Poll the operation using the public SDK key, without persisting the URL.
+ */
+export async function redemptionUrlFromCheckoutOperation(
+  apiKey: string,
+  operationSessionId: string,
+  options: { fetcher?: typeof fetch; attempts?: number; delayMs?: number } = {},
+): Promise<string | null> {
+  if (!apiKey || !operationSessionId) return null;
+  const fetcher = options.fetcher ?? fetch;
+  const attempts = Math.max(1, options.attempts ?? 8);
+  const delayMs = Math.max(0, options.delayMs ?? 1000);
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (attempt > 0 && delayMs > 0) await new Promise((resolve) => globalThis.setTimeout(resolve, delayMs));
+    try {
+      const response = await fetcher(`https://api.revenuecat.com/rcbilling/v1/checkout/${encodeURIComponent(operationSessionId)}`, {
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          'X-Platform': 'web',
+        },
+      });
+      if (!response.ok) continue;
+      const body = await response.json() as CheckoutStatusResponse;
+      const redeemUrl = body.operation?.redemption_info?.redeem_url;
+      if (typeof redeemUrl === 'string' && URL.canParse(redeemUrl)) return redeemUrl;
+    } catch {
+      // A provider read is best-effort; the caller will show the recovery state.
+    }
+  }
+  return null;
+}
+
 /** Keeps redemption capabilities out of persistence, routing state, and UI output. */
 export function redemptionHandoff({ correlationAcknowledged, redemptionLinkHash }: { correlationAcknowledged: boolean; redemptionLinkHash: string | null | undefined }): RedemptionHandoff {
   if (!correlationAcknowledged) return { kind: 'pending' };

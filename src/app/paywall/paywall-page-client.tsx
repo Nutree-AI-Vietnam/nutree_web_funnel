@@ -12,7 +12,7 @@ import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
 import { createRevenueCatPaywallPlans, type RevenueCatPaywallPlan } from '@/lib/revenuecat/paywall-plans';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
-import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, savePendingRedemptionCorrelation, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
+import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, redemptionUrlFromCheckoutOperation, savePendingRedemptionCorrelation, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
 import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, discountedFormattedPrice, EXIT_DISCOUNT_CODE, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markPaywallCheckoutPending, packagesByPlan, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_CODE, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
 import { clearCheckoutEmail, readCheckoutEmail } from '@/lib/revenuecat/checkout-email';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
@@ -351,7 +351,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       clearPaywallCheckoutPending();
       trackEvent('revenuecat_checkout_completed', { plan: selected.id });
       purchaseLeadIdRef.current = lead.lead_id;
-      redemptionLinkHashRef.current = await redemptionLinkHash(purchaseResult.redemptionInfo?.redeemUrl);
+      const redeemUrl = purchaseResult.redemptionInfo?.redeemUrl
+        ?? await redemptionUrlFromCheckoutOperation(readRevenueCatWebConfig(undefined, oneWeekPlanEnabled).apiKey, purchaseResult.operationSessionId);
+      redemptionLinkHashRef.current = await redemptionLinkHash(redeemUrl);
       if (!redemptionLinkHashRef.current) {
         setRedemption({ kind: 'recovery' });
         return;
@@ -374,7 +376,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       checkoutInFlightRef.current = false;
       setBusy(false);
     }
-  }, [activeLocale, countryCode, correlatePurchasedCustomer, lead, onCheckoutCancelled, planPackages, router, selected]);
+  }, [activeLocale, countryCode, correlatePurchasedCustomer, lead, onCheckoutCancelled, oneWeekPlanEnabled, planPackages, router, selected]);
 
   const requestCheckout = () => {
     if (lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id) {
