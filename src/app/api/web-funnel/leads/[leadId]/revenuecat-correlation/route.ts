@@ -18,7 +18,7 @@ export async function POST(request: NextRequest, context: RouteContext<'/api/web
   if (!appUserId || appUserId.length > 255) return NextResponse.json({ detail: 'Invalid payment customer.' }, { status: 400 });
   if (!/^[a-f0-9]{64}$/.test(redemptionLinkHash)) return NextResponse.json({ detail: 'Invalid redemption link verification.' }, { status: 400 });
   const upstream = await fetch(`${base}/v1/web-funnel/leads/${encodeURIComponent(leadId)}/revenuecat-correlation`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Lead-Access-Key': key, 'X-Web-Funnel-BFF-Token': bffToken, Origin: request.nextUrl.origin }, body: JSON.stringify({ app_user_id: appUserId, redemption_link_hash: redemptionLinkHash }), cache: 'no-store',
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Lead-Access-Key': key, 'X-Web-Funnel-BFF-Token': bffToken }, body: JSON.stringify({ app_user_id: appUserId, redemption_link_hash: redemptionLinkHash }), cache: 'no-store',
   });
   const payload = await upstream.json().catch(() => null);
   if (!upstream.ok) return NextResponse.json({ detail: 'Could not verify payment.' }, { status: upstream.status });
