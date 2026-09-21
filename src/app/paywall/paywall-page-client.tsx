@@ -15,7 +15,7 @@ import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, redemptionUrlFromCheckoutOperation, savePendingRedemptionCorrelation, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
 import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, discountedAmount, discountedFormattedPrice, EXIT_DISCOUNT_CODE, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markPaywallCheckoutPending, packagesByPlan, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_CODE, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
 import { clearCheckoutEmail, readCheckoutEmail } from '@/lib/revenuecat/checkout-email';
-import { useHydrated, useQuizStore } from '@/lib/quiz/store';
+import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 
 interface PaywallPageClientProps {
@@ -140,6 +140,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const data = useQuizStore((state) => state.data);
   const activeLocale = useQuizStore((state) => state.locale);
   const tdee = useQuizStore((state) => state.tdee);
+  const purchased = useQuizStore((state) => state.purchased);
+  const setPurchased = useQuizStore((state) => state.setPurchased);
   const setData = useQuizStore((state) => state.setData);
   const setLead = useQuizStore((state) => state.setLead);
   const setLocale = useQuizStore((state) => state.setLocale);
@@ -168,6 +170,13 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     () => revenueCatPaywallPlans.find((plan) => plan.id === selectedId) ?? revenueCatPaywallPlans[1],
     [revenueCatPaywallPlans, selectedId],
   );
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (isUserPurchased({ purchased, lead })) {
+      router.replace('/postcheckout');
+    }
+  }, [hydrated, lead, purchased, router]);
 
   useEffect(() => trackStepViewed('paywall'), []);
 
@@ -317,7 +326,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       checkoutInFlightRef.current = false;
       setBusy(false);
       clearPaywallCheckoutPending();
-      if (isExitOffer || hasExitOfferBeenClaimed()) return;
+      if (isExitOffer || hasExitOfferBeenClaimed() || isUserPurchased({ purchased, lead })) return;
       setError(null);
       saveSelectedPaywallPlan(selected.id);
       trackEvent('revenuecat_checkout_cancelled', { plan: selected.id });
@@ -325,7 +334,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       onCheckoutCancelled?.();
     };
     const handleCheckoutCancellation = () => {
-      if (purchaseSettled) applyCheckoutCancellation();
+      if (!purchaseSettled) applyCheckoutCancellation();
     };
     const handleCheckoutHistoryChange = () => handleCheckoutCancellation();
     window.addEventListener('popstate', handleCheckoutHistoryChange);
@@ -354,7 +363,10 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       } as Parameters<PurchasesInstance['purchase']>[0];
       const purchaseResult = await purchasesRef.current.purchase(purchaseParameters);
       purchaseSettled = true;
+      cleanupCheckoutClosure();
+      window.removeEventListener('popstate', handleCheckoutHistoryChange);
       clearPaywallCheckoutPending();
+      setPurchased(true);
       trackEvent('revenuecat_checkout_completed', { plan: selected.id, ...checkoutCommerce });
       purchaseLeadIdRef.current = lead.lead_id;
       const redeemUrl = purchaseResult.redemptionInfo?.redeemUrl
@@ -382,7 +394,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       checkoutInFlightRef.current = false;
       setBusy(false);
     }
-  }, [activeLocale, countryCode, correlatePurchasedCustomer, lead, onCheckoutCancelled, oneWeekPlanEnabled, planPackages, router, selected]);
+  }, [activeLocale, countryCode, correlatePurchasedCustomer, lead, onCheckoutCancelled, oneWeekPlanEnabled, planPackages, purchased, router, selected, setPurchased]);
 
   const requestCheckout = () => {
     if (lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id) {
