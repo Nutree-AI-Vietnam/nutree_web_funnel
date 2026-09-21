@@ -12,7 +12,7 @@ import { WelcomeGiftScreen } from '@/components/welcome-gift-screen';
 import { captureAttribution } from '@/lib/analytics/attribution';
 import { isOneWeekPlanEnabled, type RevenueCatPaywallPlanId } from '@/lib/revenuecat/paywall-plans';
 import { clearPaywallCheckoutPending, hasExitOfferBeenClaimed, hasPaywallCheckoutPending, readSelectedPaywallPlan } from '@/lib/revenuecat/web';
-import { useHydrated, useQuizStore } from '@/lib/quiz/store';
+import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import type { FunnelScreen } from '@/lib/quiz/store';
 import type { Locale } from '@/lib/copy';
 
@@ -24,6 +24,8 @@ export function SurveyPageClient({ language }: { language: Locale }) {
   const activeLocale = useQuizStore((state) => state.locale);
   const setLocale = useQuizStore((state) => state.setLocale);
   const setFunnelScreen = useQuizStore((state) => state.setFunnelScreen);
+  const lead = useQuizStore((state) => state.lead);
+  const purchased = useQuizStore((state) => state.purchased);
 
   useEffect(() => {
     if (hydrated && activeLocale !== language) setLocale(language);
@@ -37,8 +39,17 @@ export function SurveyPageClient({ language }: { language: Locale }) {
   useEffect(() => {
     if (!hydrated || screen !== 'paywall' || !hasPaywallCheckoutPending()) return;
     clearPaywallCheckoutPending();
-    if (!hasExitOfferBeenClaimed()) setFunnelScreen('exit-offer');
-  }, [hydrated, screen, setFunnelScreen]);
+    if (!hasExitOfferBeenClaimed() && !isUserPurchased({ purchased, lead })) {
+      setFunnelScreen('exit-offer');
+    }
+  }, [hydrated, lead, purchased, screen, setFunnelScreen]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (isUserPurchased({ purchased, lead }) && (screen === 'paywall' || screen === 'exit-offer')) {
+      router.replace('/postcheckout');
+    }
+  }, [hydrated, lead, purchased, router, screen]);
 
   const goToScreen = useCallback((nextScreen: FunnelScreen) => {
     setFunnelScreen(nextScreen);
@@ -61,11 +72,19 @@ export function SurveyPageClient({ language }: { language: Locale }) {
     case 'welcome-gift':
       return <WelcomeGiftScreen onComplete={() => goToScreen('paywall')} onMissingLead={() => goToScreen('email')} />;
     case 'exit-offer': {
+      if (isUserPurchased({ purchased, lead })) {
+        router.replace('/postcheckout');
+        return null;
+      }
       const planId = (readSelectedPaywallPlan() ?? '12-week') as RevenueCatPaywallPlanId;
       return <ExitOfferPageClient initialPlanId={planId} onClaim={() => goToScreen('paywall')} onDismiss={() => goToScreen('paywall')} onMissingLead={() => goToScreen('email')} onAlreadyClaimed={() => goToScreen('paywall')} />;
     }
     case 'paywall':
-      return <PaywallPageClient initialCountryCode={language === 'vi' ? 'VN' : 'US'} exitOfferMode={false} oneWeekPlanEnabled={isOneWeekPlanEnabled()} onMissingLead={() => goToScreen('email')} onCheckoutCancelled={() => goToScreen('exit-offer')} />;
+      return <PaywallPageClient initialCountryCode={language === 'vi' ? 'VN' : 'US'} exitOfferMode={false} oneWeekPlanEnabled={isOneWeekPlanEnabled()} onMissingLead={() => goToScreen('email')} onCheckoutCancelled={() => {
+        if (!isUserPurchased({ purchased, lead })) {
+          goToScreen('exit-offer');
+        }
+      }} />;
     default:
       return null;
   }
