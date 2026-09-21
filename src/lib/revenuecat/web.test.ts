@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { configureRevenueCatForAnonymousCheckout, discountedFormattedPrice, packagesByPlan, readRevenueCatWebConfig } from './web';
+import { configureRevenueCatForAnonymousCheckout, discountedAmount, discountedFormattedPrice, packagesByPlan, readRevenueCatWebConfig } from './web';
 import { createRevenueCatPaywallPlans } from './paywall-plans';
 import { Purchases } from '@revenuecat/purchases-js';
 import { vi } from 'vitest';
@@ -26,6 +26,7 @@ describe('RevenueCat Web configuration', () => {
   it('calculates a provider-price discount using the currency returned by RevenueCat', () => {
     expect(discountedFormattedPrice({ amountMicros: 19_990_000, amount: 19.99, currency: 'USD', formattedPrice: '$19.99' }, 'en-US')).toBe('$10.00');
     expect(discountedFormattedPrice({ amountMicros: 499_000_000_000, amount: 499_000, currency: 'VND', formattedPrice: '₫499,000' }, 'vi-VN')).toBe('249.500 ₫');
+    expect(discountedAmount({ amountMicros: 499_000_000_000, amount: 499_000, currency: 'VND', formattedPrice: '₫499,000' }, 50)).toBe(249_500);
   });
 
   it('requires the public web config and maps dashboard package identifiers', () => {

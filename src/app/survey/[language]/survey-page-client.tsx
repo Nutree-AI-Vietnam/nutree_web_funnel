@@ -9,6 +9,7 @@ import { EmailCaptureScreen } from '@/components/email-capture-screen';
 import { LandingPage } from '@/components/landing-page';
 import { QuizShell } from '@/components/quiz-shell';
 import { WelcomeGiftScreen } from '@/components/welcome-gift-screen';
+import { captureAttribution } from '@/lib/analytics/attribution';
 import { isOneWeekPlanEnabled, type RevenueCatPaywallPlanId } from '@/lib/revenuecat/paywall-plans';
 import { clearPaywallCheckoutPending, hasExitOfferBeenClaimed, hasPaywallCheckoutPending, readSelectedPaywallPlan } from '@/lib/revenuecat/web';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
@@ -29,6 +30,7 @@ export function SurveyPageClient({ language }: { language: Locale }) {
   }, [activeLocale, hydrated, language, setLocale]);
 
   useEffect(() => {
+    captureAttribution();
     if (window.location.search) window.history.replaceState(window.history.state, '', window.location.pathname + window.location.hash);
   }, []);
 

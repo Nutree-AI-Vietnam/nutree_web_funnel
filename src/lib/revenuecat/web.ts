@@ -104,6 +104,11 @@ export function clearPaywallOfferState() {
   }
 }
 
+export function discountedAmount(price: Price | null | undefined, percent = 0): number | null {
+  if (!price || !Number.isFinite(price.amountMicros) || percent < 0 || percent > 100) return null;
+  return (price.amountMicros / 1_000_000) * (1 - percent / 100);
+}
+
 export function discountedFormattedPrice(price: Price | null | undefined, locale: string, percent = WELCOME_DISCOUNT_PERCENT): string | null {
   if (!price || !Number.isFinite(price.amountMicros) || percent < 0 || percent > 100) return null;
   const currency = /^[A-Z]{3}$/.test(price.currency) ? price.currency : null;

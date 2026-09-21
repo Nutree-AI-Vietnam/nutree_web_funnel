@@ -13,7 +13,7 @@ import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPrev
 import { createRevenueCatPaywallPlans, type RevenueCatPaywallPlan } from '@/lib/revenuecat/paywall-plans';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, redemptionUrlFromCheckoutOperation, savePendingRedemptionCorrelation, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
-import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, discountedFormattedPrice, EXIT_DISCOUNT_CODE, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markPaywallCheckoutPending, packagesByPlan, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_CODE, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
+import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, discountedAmount, discountedFormattedPrice, EXIT_DISCOUNT_CODE, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markPaywallCheckoutPending, packagesByPlan, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_CODE, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
 import { clearCheckoutEmail, readCheckoutEmail } from '@/lib/revenuecat/checkout-email';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
@@ -330,7 +330,13 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     const handleCheckoutHistoryChange = () => handleCheckoutCancellation();
     window.addEventListener('popstate', handleCheckoutHistoryChange);
     cleanupCheckoutClosure = observeCheckoutClosure(ensureCheckoutRoot(), handleCheckoutCancellation);
-    trackEvent('revenuecat_checkout_started', { plan: selected.id, package_id: rcPackage.identifier, country_code: countryCode ?? 'auto' });
+    const offerPercent = isExitOffer ? EXIT_DISCOUNT_PERCENT : isWelcomeOffer ? WELCOME_DISCOUNT_PERCENT : 0;
+    const billedPrice = rcPackage.webBillingProduct?.introPricePhase?.price ?? rcPackage.webBillingProduct?.price;
+    const billedValue = discountedAmount(billedPrice, offerPercent);
+    const checkoutCommerce = billedValue != null && billedPrice
+      ? { value: billedValue, currency: billedPrice.currency }
+      : {};
+    trackEvent('revenuecat_checkout_started', { plan: selected.id, package_id: rcPackage.identifier, country_code: countryCode ?? 'auto', ...checkoutCommerce });
 
     try {
       markPaywallCheckoutPending();
@@ -349,7 +355,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       const purchaseResult = await purchasesRef.current.purchase(purchaseParameters);
       purchaseSettled = true;
       clearPaywallCheckoutPending();
-      trackEvent('revenuecat_checkout_completed', { plan: selected.id });
+      trackEvent('revenuecat_checkout_completed', { plan: selected.id, ...checkoutCommerce });
       purchaseLeadIdRef.current = lead.lead_id;
       const redeemUrl = purchaseResult.redemptionInfo?.redeemUrl
         ?? await redemptionUrlFromCheckoutOperation(readRevenueCatWebConfig(undefined, oneWeekPlanEnabled).apiKey, purchaseResult.operationSessionId);
