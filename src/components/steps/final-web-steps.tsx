@@ -288,7 +288,7 @@ export function BodyReviewStep() {
   ];
 
   return (
-    <QuizStepFrame title={copy.body_review.question} hint={copy.body_review.hint}>
+    <QuizStepFrame title={copy.body_review.question} hint={copy.body_review.hint} titleClassName="max-w-[22rem]">
       <div className="rounded-[1.5rem] bg-white/86 p-4 shadow-[0_18px_48px_rgb(26_71_57_/_0.10)]">
         {rows.map(([label, value]) => (
           <div key={label} className="flex items-center justify-between border-b border-border-brand/60 py-3 last:border-0">

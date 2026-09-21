@@ -17,14 +17,14 @@ describe('quiz steps', () => {
       'weight',
       'target_weight',
       'body_review',
-      'science',
-      'science_sources',
       'activity_level',
       'training_days',
       'training_duration',
       'eating_pattern',
       'diet',
       'support_style',
+      'science',
+      'science_sources',
       'preview',
       'care_pause',
       'calculating',
@@ -43,8 +43,10 @@ describe('quiz steps', () => {
     expect(nextStep('goal')).toBe('name_ask');
     expect(nextStep('name_ask')).toBe('welcome');
     expect(nextStep('diet')).toBe('support_style');
+    expect(nextStep('body_review')).toBe('activity_level');
+    expect(nextStep('support_style')).toBe('science');
     expect(nextStep('science')).toBe('science_sources');
-    expect(nextStep('science_sources')).toBe('activity_level');
+    expect(nextStep('science_sources')).toBe('preview');
   });
 
   it('continues from result through progress before email capture', () => {

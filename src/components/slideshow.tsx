@@ -18,6 +18,15 @@ function SlideArtwork({ index, visualImage, compact }: { index: number; visualIm
     <>
       <div className="absolute -right-10 -top-12 h-36 w-36 rounded-full bg-[#f3b4aa]/35 blur-2xl" />
       <div className="absolute -bottom-16 -left-8 h-32 w-32 rounded-full bg-[#8bbca7]/35 blur-2xl" />
+      {index === 0 && (
+        <svg viewBox="0 0 300 150" className={`absolute inset-0 h-full w-full ${compact ? 'p-3' : 'p-5'}`} aria-hidden="true">
+          <rect x="36" y="38" width="176" height="18" rx="9" fill="#1f8a73" />
+          <rect x="36" y="66" width="128" height="18" rx="9" fill="#7cae62" />
+          <rect x="36" y="94" width="92" height="18" rx="9" fill="#e88b71" />
+          <circle cx="246" cy="75" r="22" fill="#1A4739" />
+          <path d="M237 76.5 244 83.5 258 66" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
       {index === 1 && (
         <div className={`absolute inset-x-10 rounded-[2rem] bg-gradient-to-br from-[#dcebd2] via-[#f2c98d] to-[#dd8b72] shadow-[inset_0_0_0_8px_rgb(255_255_255_/_0.45),0_14px_25px_rgb(26_71_57_/_0.12)] ${compact ? 'bottom-3 top-3' : 'bottom-4 top-4'}`}>
           <div className="absolute left-7 top-7 h-16 w-16 rounded-full bg-[#f9f4dc]/90" />

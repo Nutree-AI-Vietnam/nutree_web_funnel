@@ -130,13 +130,12 @@ export function ScienceStep() {
   const copy = useCopy();
 
   return (
-    <QuizStepFrame title={copy.science.headline} eyebrow={copy.science.eyebrow} className="gap-3 overflow-hidden">
+    <QuizStepFrame title={copy.science.headline} hint={copy.science.hint} eyebrow={copy.science.eyebrow} titleClassName="max-w-[22rem]" className="gap-3 overflow-hidden">
       <div className="min-h-0 flex flex-1 flex-col gap-2">
         <Slideshow
           slides={copy.science.slides}
           compact
           ariaLabel={copy.science.carouselLabel}
-          visualImage="/images/macro-progress.webp"
         />
       </div>
 
