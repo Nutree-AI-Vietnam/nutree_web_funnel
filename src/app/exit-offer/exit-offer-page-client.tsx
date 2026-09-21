@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { ConversionShell } from '@/components/conversion-shell';
 import { ScratchTicketCover } from '@/components/scratch-ticket-cover';
@@ -9,7 +10,7 @@ import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { activatePaywallExitOffer, expirePaywallOfferState, EXIT_DISCOUNT_CODE, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markExitOfferClaimed, readSelectedPaywallPlan, saveSelectedPaywallPlan } from '@/lib/revenuecat/web';
 import { createRevenueCatPaywallPlans, type RevenueCatPaywallPlanId } from '@/lib/revenuecat/paywall-plans';
-import { useHydrated, useQuizStore } from '@/lib/quiz/store';
+import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { useLocale } from '@/lib/copy/use-copy';
 
 interface ExitOfferPageClientProps {
@@ -21,10 +22,12 @@ interface ExitOfferPageClientProps {
 }
 
 export function ExitOfferPageClient({ initialPlanId, onClaim, onDismiss, onMissingLead, onAlreadyClaimed }: ExitOfferPageClientProps) {
+  const router = useRouter();
   const copy = useCopy();
   const locale = useLocale();
   const hydrated = useHydrated();
   const lead = useQuizStore((state) => state.lead);
+  const purchased = useQuizStore((state) => state.purchased);
   const plans = createRevenueCatPaywallPlans();
   const selectedPlanId = readSelectedPaywallPlan() ?? initialPlanId;
   const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) ?? plans[2];
@@ -35,15 +38,19 @@ export function ExitOfferPageClient({ initialPlanId, onClaim, onDismiss, onMissi
 
   useEffect(() => {
     if (!hydrated) return;
+    if (isUserPurchased({ purchased, lead })) {
+      router.replace('/postcheckout');
+      return;
+    }
     if (!lead) {
       onMissingLead?.();
       return;
     }
     if (window.location.search) window.history.replaceState(window.history.state, '', window.location.pathname + window.location.hash);
     if (hasExitOfferBeenClaimed()) onAlreadyClaimed?.();
-  }, [hydrated, lead, onAlreadyClaimed, onMissingLead]);
+  }, [hydrated, lead, onAlreadyClaimed, onMissingLead, purchased, router]);
 
-  if (!hydrated || !lead) return null;
+  if (!hydrated || !lead || isUserPurchased({ purchased, lead })) return null;
 
   const finishReveal = () => {
     if (revealTriggered.current) return;

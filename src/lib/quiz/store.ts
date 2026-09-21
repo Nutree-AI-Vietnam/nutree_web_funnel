@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { DEFAULT_LOCALE, type Locale } from '@/lib/copy';
+import { readPendingRedemptionCorrelation } from '@/lib/revenuecat/redemption-handoff';
 import { isQuizStep, type QuizStep } from './steps';
 import type { CheckoutResponse, Lead, OnboardingPayload, TdeeResult } from './types';
 
@@ -133,3 +134,20 @@ export function useHydrated(): boolean {
     () => false,
   );
 }
+
+export function isUserPurchased(state?: { purchased?: boolean; lead?: { lead_id?: string; status?: string } | null }): boolean {
+  if (state?.purchased) return true;
+  if (state?.lead?.status && state.lead.status !== 'payment_pending') return true;
+  try {
+    const current = useQuizStore.getState();
+    if (current.purchased) return true;
+    if (current.lead?.status && current.lead.status !== 'payment_pending') return true;
+    const pending = readPendingRedemptionCorrelation();
+    const effectiveLeadId = state?.lead?.lead_id ?? current.lead?.lead_id;
+    if (pending && (!effectiveLeadId || pending.leadId === effectiveLeadId)) return true;
+  } catch {
+    // Session storage or store unavailable
+  }
+  return false;
+}
+
