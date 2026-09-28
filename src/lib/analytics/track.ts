@@ -3,10 +3,10 @@
  * Step names use OnboardingScreenId.rcKey slugs to align with the app's
  * analytics taxonomy.
  *
- * Meta Ads optimization uses standard events only (ViewContent / Lead /
- * InitiateCheckout / Purchase). Custom names still fire so GA4/TikTok keep
- * the funnel taxonomy. Do not name Meta custom conversions after health
- * conditions — use these standard events instead.
+ * Meta Ads optimization uses four standard events only (ViewContent / Lead /
+ * InitiateCheckout / Purchase). Quiz-step custom names stay on GA4/TikTok so
+ * they cannot occupy Aggregated Event Measurement slots. Do not name Meta
+ * custom conversions after health conditions.
  */
 import { getAttribution } from './attribution';
 
@@ -56,15 +56,21 @@ function metaStandardEvent(
   return null;
 }
 
+function eventID(event: string): string {
+  const uuid = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `${Date.now()}`;
+  return `${event}.${uuid}`;
+}
+
 export function trackEvent(name: string, params: Record<string, unknown> = {}): void {
   if (typeof window === 'undefined') return;
   const w = window as AnyWindow;
   const payload = withAttribution(params);
   try {
     w.gtag?.('event', name, payload);
-    w.fbq?.('trackCustom', name, payload);
     const standard = metaStandardEvent(name, payload);
-    if (standard) w.fbq?.('track', standard.event, standard.params);
+    if (standard) w.fbq?.('track', standard.event, standard.params, { eventID: eventID(standard.event) });
     w.ttq?.track(name, payload);
   } catch {
     // Analytics must never break the funnel.
