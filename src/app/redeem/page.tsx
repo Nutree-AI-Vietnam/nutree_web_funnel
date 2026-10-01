@@ -11,7 +11,7 @@ export default function RedeemPage() {
         <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-teal-brand">Nutree</p>
         <h1 className="mt-4 text-3xl font-extrabold tracking-[-0.045em] text-forest">Continue your redemption on your phone.</h1>
         <p className="mt-4 text-base font-semibold leading-relaxed text-slate-brand">
-          This page does not activate a purchase. Open the redemption link from your checkout email in Nutree, then sign in with the same email you used at checkout.
+          This page does not activate a purchase. Open the redemption link from your checkout email in Nutree. Nutree signs you in and activates your plan automatically.
         </p>
         <p className="mt-3 text-sm font-semibold text-muted-brand">
           If the app is not installed: install Nutree, then reopen the same email and tap the link again.

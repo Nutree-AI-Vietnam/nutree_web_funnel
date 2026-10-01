@@ -50,7 +50,7 @@ export function PostcheckoutPageClient() {
       ? (vi ? 'Email kích hoạt đã sẵn sàng. Kiểm tra hộp thư thanh toán, rồi mở liên kết trên điện thoại.' : 'Your secure redemption email is ready. Check your checkout inbox, then open the link on your phone.')
       : correlationState === 'retry_exhausted'
         ? (vi ? 'Thanh toán đã xong nhưng xác nhận đang chậm hơn dự kiến. Tải lại trang sau; bạn sẽ không bị trừ thêm.' : 'Payment is complete, but confirmation is taking longer than expected. Refresh this page in a moment; you will not be charged again.')
-        : (vi ? 'Kiểm tra email thanh toán để lấy liên kết kích hoạt Nutree. Mở trên điện thoại, rồi đăng nhập passwordless bằng cùng địa chỉ email.' : 'Check your checkout email for the Nutree redemption link. Open it on your phone, then use passwordless sign-in with the same email address.');
+        : (vi ? 'Kiểm tra email thanh toán để lấy liên kết kích hoạt Nutree. Mở trên điện thoại để tự động đăng nhập và kích hoạt gói.' : 'Check your checkout email for the Nutree redemption link. Open it on your phone to sign in and activate your plan automatically.');
 
   return (
     <main className="grid min-h-dvh place-items-center bg-[#f6faf7] px-5 text-charcoal">
@@ -61,7 +61,7 @@ export function PostcheckoutPageClient() {
         <ol className="mx-auto mt-7 max-w-md space-y-3 text-left text-sm font-semibold text-slate-brand">
           <li><span className="mr-2 font-extrabold text-forest">1.</span>{vi ? 'Kiểm tra email bạn dùng khi thanh toán.' : 'Check the email you used at checkout.'}</li>
           <li><span className="mr-2 font-extrabold text-forest">2.</span>{vi ? 'Mở liên kết kích hoạt trong Nutree trên điện thoại.' : 'Open the redemption link in Nutree on your phone.'}</li>
-          <li><span className="mr-2 font-extrabold text-forest">3.</span>{vi ? 'Đăng nhập passwordless bằng cùng địa chỉ email.' : 'Sign in with the passwordless email link using the same address.'}</li>
+          <li><span className="mr-2 font-extrabold text-forest">3.</span>{vi ? 'Nutree tự động đăng nhập và kích hoạt gói của bạn.' : 'Nutree signs you in and activates your plan automatically.'}</li>
         </ol>
         <p className="mt-5 text-xs font-semibold text-muted-brand">{vi ? 'Trang /redeem chỉ hướng dẫn — không kích hoạt gói. Liên kết trong email mới là liên kết kích hoạt.' : 'The /redeem page is guidance only — it does not activate a plan. The emailed redemption link is the activating link.'}</p>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
