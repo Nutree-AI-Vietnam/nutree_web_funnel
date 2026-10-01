@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ConversionShell } from '@/components/conversion-shell';
 import { PrimaryButton } from '@/components/primary-button';
 import { createLead } from '@/lib/api/client';
+import { identifyMetaUser } from '@/lib/analytics/meta-identity';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { isValidEmail } from '@/lib/quiz/email';
@@ -38,8 +39,10 @@ export function EmailCaptureScreen({ onComplete }: { onComplete: () => void }) {
     setSubmitting(true);
     setError(null);
     try {
-      setLead(await createLead(email.trim(), data));
+      const lead = await createLead(email.trim(), data);
+      setLead(lead);
       saveCheckoutEmail(email.trim());
+      identifyMetaUser({ email: email.trim(), externalId: lead.lead_id, firstName: data.name });
       trackEvent('email_captured', {});
       onComplete();
     } catch (submitError) {

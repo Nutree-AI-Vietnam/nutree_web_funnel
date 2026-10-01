@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ConversionShell } from '@/components/conversion-shell';
+import { identifyMetaUser } from '@/lib/analytics/meta-identity';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
@@ -307,6 +308,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       return;
     }
     const customerEmail = readCheckoutEmail();
+    if (customerEmail) identifyMetaUser({ email: customerEmail, externalId: lead.lead_id, firstName: data.name });
     if (!customerEmail) {
       setError(activeLocale === 'vi' ? 'Vui lòng quay lại bước email để xác nhận địa chỉ thanh toán trước khi mua.' : 'Return to email capture to confirm your checkout email before purchasing.');
       return;
@@ -394,7 +396,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       checkoutInFlightRef.current = false;
       setBusy(false);
     }
-  }, [activeLocale, countryCode, correlatePurchasedCustomer, lead, onCheckoutCancelled, oneWeekPlanEnabled, planPackages, purchased, router, selected, setPurchased]);
+  }, [activeLocale, countryCode, correlatePurchasedCustomer, data.name, lead, onCheckoutCancelled, oneWeekPlanEnabled, planPackages, purchased, router, selected, setPurchased]);
 
   const requestCheckout = () => {
     if (lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id) {
