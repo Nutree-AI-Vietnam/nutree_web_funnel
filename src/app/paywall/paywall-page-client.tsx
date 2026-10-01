@@ -40,8 +40,6 @@ interface StoredPaywallOffer {
 
 const OFFER_SECONDS = 600;
 const benefitEmoji = ['📋', '📸', '🍽️', '🔥', '💬'];
-/** New-checkout admission kill switch. Paid correlation recovery still works when a digest is pending. */
-const checkoutAdmissionEnabled = process.env.NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED === 'true';
 
 function formatCountdown(seconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
@@ -299,10 +297,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const openCheckout = useCallback(async (discount: CheckoutDiscount = 'welcome') => {
     const rcPackage = planPackages[selected.id];
     if (checkoutInFlightRef.current || purchaseLeadIdRef.current === lead?.lead_id) return;
-    if (!checkoutAdmissionEnabled) {
-      setError(activeLocale === 'vi' ? 'Thanh toán web tạm thời chưa mở. Nếu bạn đã thanh toán, kiểm tra email kích hoạt.' : 'Web checkout is temporarily closed. If you already paid, check your activation email.');
-      return;
-    }
     if (!purchasesRef.current || !lead || !rcPackage || !anonymousAppUserIdRef.current) {
       setError('RevenueCat checkout is still loading. Please try again in a moment.');
       return;
@@ -403,10 +397,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       setRedemption({ kind: 'pending' });
       return;
     }
-    if (!checkoutAdmissionEnabled) {
-      setError(activeLocale === 'vi' ? 'Thanh toán web tạm thời chưa mở.' : 'Web checkout is temporarily closed.');
-      return;
-    }
     if (!purchasesRef.current || !lead || !pricesReady) {
       setError('RevenueCat checkout is still loading. Please try again in a moment.');
       return;
@@ -424,7 +414,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const benefits = copy.paywall.benefits.map((benefit, index) => ({ ...benefit, icon: benefitEmoji[index] ?? '✅' }));
   const persistedCorrelation = Boolean(lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id);
   const displayedRedemption = redemption ?? (persistedCorrelation ? ({ kind: 'pending' } satisfies RedemptionHandoff) : lead?.status === 'payment_verified' ? ({ kind: 'email_sent' } satisfies RedemptionHandoff) : null);
-  const checkoutUnavailable = Boolean(displayedRedemption) || !checkoutAdmissionEnabled;
+  const checkoutUnavailable = Boolean(displayedRedemption);
   const personalRows = [
     { icon: '🔥', label: copy.paywall.goalLabel, value: goal },
     { icon: '🎯', label: copy.paywall.personalizedFor, value: gender },
@@ -531,8 +521,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         {error && <p role="alert" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-error-brand">{error}</p>}
         {displayedRedemption?.kind === 'pending' && <p role="status" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-brand">{activeLocale === 'vi' ? 'Đang xác minh thanh toán của bạn…' : 'Verifying your payment…'}</p>}
         {displayedRedemption?.kind === 'recovery' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Thanh toán đã được ghi nhận' : 'Payment received'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'Chúng tôi không thể xác minh liên kết kích hoạt. Vui lòng kiểm tra email thanh toán của bạn hoặc liên hệ hỗ trợ.' : 'We could not verify your activation link. Check your purchase email or contact support.'}</p></section>}
-        {displayedRedemption?.kind === 'email_sent' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Kiểm tra email của bạn' : 'Check your email'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'RevenueCat đã gửi liên kết bảo mật đến email thanh toán. Mở liên kết đó trong Nutree và đăng nhập bằng cùng email để kích hoạt gói.' : 'RevenueCat sent a secure link to your checkout email. Open it in Nutree and sign in with the same email to activate your plan.'}</p></section>}
-        {!checkoutAdmissionEnabled && !displayedRedemption && <p role="status" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-brand">{activeLocale === 'vi' ? 'Thanh toán web tạm thời chưa mở. Nếu bạn đã thanh toán, kiểm tra email kích hoạt.' : 'Web checkout is temporarily closed. If you already paid, check your activation email.'}</p>}
+        {displayedRedemption?.kind === 'email_sent' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Kiểm tra email của bạn' : 'Check your email'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'RevenueCat đã gửi liên kết bảo mật đến email thanh toán. Mở liên kết đó trong Nutree để tự động kích hoạt gói.' : 'RevenueCat sent a secure link to your checkout email. Open it in Nutree to activate your plan automatically.'}</p></section>}
         <p className="mx-auto mt-6 max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{copy.paywall.termsIntro} {copy.paywall.secure}</p>
       </div>
       {typeof document !== 'undefined' && createPortal(
