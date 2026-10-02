@@ -3,6 +3,7 @@ import { ClearFragmentBeforeRender } from '../open-nutree/clear-fragment-before-
 import { redeemMetadata } from './security';
 import { copyFor } from '@/lib/copy';
 import { localeFromCountryCode } from '@/lib/market/country';
+import { appStoreUrl, playStoreUrl } from '@/lib/store-links';
 
 export const metadata = redeemMetadata;
 
@@ -24,8 +25,8 @@ export default async function RedeemPage() {
         <p className="mt-3 text-sm font-semibold text-muted-brand">{copy.installHint}</p>
         <div className="mt-6 flex flex-col gap-3">
           <a href="nutree://open-nutree" className="rounded-full bg-forest px-5 py-3 font-extrabold text-white">{copy.openApp}</a>
-          <a href={process.env.NEXT_PUBLIC_APPSTORE_URL} className="rounded-full bg-forest px-5 py-3 font-extrabold text-white">App Store</a>
-          <a href={process.env.NEXT_PUBLIC_PLAYSTORE_URL} className="rounded-full border border-border-brand px-5 py-3 font-extrabold text-forest">Google Play</a>
+          <a href={appStoreUrl()} className="rounded-full bg-forest px-5 py-3 font-extrabold text-white">App Store</a>
+          <a href={playStoreUrl()} className="rounded-full border border-border-brand px-5 py-3 font-extrabold text-forest">Google Play</a>
         </div>
       </section>
     </main>
