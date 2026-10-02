@@ -16,6 +16,7 @@ export function PostcheckoutPageClient() {
   const locale = useQuizStore((state) => state.locale);
   const setLead = useQuizStore((state) => state.setLead);
   const [correlationState, setCorrelationState] = useState<Exclude<CorrelationState, 'syncing'>>('idle');
+  const [supportOpen, setSupportOpen] = useState(false);
   const pendingCorrelation = hydrated && lead ? readPendingRedemptionCorrelation() : null;
   const pendingLeadId = pendingCorrelation?.leadId;
   const pendingAppUserId = pendingCorrelation?.appUserId;
@@ -63,11 +64,28 @@ export function PostcheckoutPageClient() {
           <li><span className="mr-2 font-extrabold text-forest">2.</span>{vi ? 'Mở liên kết kích hoạt trong Nutree trên điện thoại.' : 'Open the redemption link in Nutree on your phone.'}</li>
           <li><span className="mr-2 font-extrabold text-forest">3.</span>{vi ? 'Nutree tự động đăng nhập và kích hoạt gói của bạn.' : 'Nutree signs you in and activates your plan automatically.'}</li>
         </ol>
-        <p className="mt-5 text-xs font-semibold text-muted-brand">{vi ? 'Trang /redeem chỉ hướng dẫn — không kích hoạt gói. Liên kết trong email mới là liên kết kích hoạt.' : 'The /redeem page is guidance only — it does not activate a plan. The emailed redemption link is the activating link.'}</p>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link href="/redeem" className="rounded-full bg-forest px-6 py-3 text-sm font-extrabold text-white">{vi ? 'Mở hướng dẫn Nutree' : 'Open Nutree guidance'}</Link>
-          <Link href={`/survey/${locale}`} className="rounded-full border border-border-brand px-6 py-3 text-sm font-extrabold text-emerald-deep">{vi ? 'Cần hỗ trợ?' : 'Need help?'}</Link>
+          <Link href="/redeem" className="rounded-full bg-forest px-6 py-3 text-sm font-extrabold text-white">{vi ? 'Tải hoặc mở Nutree' : 'Get or open Nutree'}</Link>
+          <button
+            type="button"
+            aria-expanded={supportOpen}
+            onClick={() => setSupportOpen((open) => !open)}
+            className="rounded-full border border-border-brand px-6 py-3 text-sm font-extrabold text-emerald-deep"
+          >
+            {vi ? 'Cần hỗ trợ?' : 'Need help?'}
+          </button>
         </div>
+        {supportOpen && (
+          <div className="mx-auto mt-4 max-w-md rounded-2xl bg-[#f6faf7] px-4 py-4 text-left text-sm font-semibold leading-relaxed text-slate-brand">
+            <p>{vi ? 'Chưa thấy email? Kiểm tra thư rác, rồi mở liên kết trên điện thoại.' : 'No email yet? Check spam, then open the link on your phone.'}</p>
+            <p className="mt-2">
+              {vi ? 'Cần người hỗ trợ? Gửi email tới ' : 'Need a person? Email '}
+              <a className="font-extrabold text-forest underline" href="mailto:nutreeaidev@gmail.com">nutreeaidev@gmail.com</a>
+              {vi ? ' hoặc mở ' : ' or open '}
+              <a className="font-extrabold text-forest underline" href="https://nutreeai.com/contact" target="_blank" rel="noopener noreferrer">{vi ? 'trang liên hệ' : 'the contact page'}</a>.
+            </p>
+          </div>
+        )}
       </section>
     </main>
   );

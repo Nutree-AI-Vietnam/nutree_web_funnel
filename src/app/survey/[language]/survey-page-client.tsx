@@ -98,7 +98,6 @@ export function SurveyPageClient({ language }: { language: Locale }) {
 function AndroidFilteredScreen({ onBack }: { onBack: () => void }) {
   const allCopy = useCopy();
   const copy = allCopy.operatingSystem;
-  const playStoreUrl = process.env.NEXT_PUBLIC_PLAYSTORE_URL;
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
@@ -112,20 +111,10 @@ function AndroidFilteredScreen({ onBack }: { onBack: () => void }) {
         <h1 ref={headingRef} tabIndex={-1} className="rounded-sm text-3xl font-extrabold leading-tight text-forest focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">{copy.androidHeadline}</h1>
         <p className="mt-3 text-base font-semibold leading-relaxed text-slate-brand">{copy.androidBody}</p>
       </div>
-      {playStoreUrl && (
-        <a
-          href={playStoreUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex min-h-14 items-center justify-center rounded-2xl bg-forest px-6 py-4 text-base font-extrabold text-white shadow-[0_16px_34px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25"
-        >
-          {copy.androidCta}
-        </a>
-      )}
       <button
         type="button"
         onClick={onBack}
-        className="min-h-11 self-center px-4 text-sm font-bold text-muted-brand underline decoration-muted-brand/40 underline-offset-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20"
+        className="inline-flex min-h-14 items-center justify-center rounded-2xl bg-forest px-6 py-4 text-base font-extrabold text-white shadow-[0_16px_34px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25"
       >
         {allCopy.common.back}
       </button>
