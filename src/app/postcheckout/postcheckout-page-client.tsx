@@ -47,7 +47,7 @@ export function PostcheckoutPageClient() {
   const statusMessage = pendingCorrelation && correlationState === 'idle'
     ? (vi ? 'Thanh toán đã xong. Đang xác nhận email kích hoạt bảo mật…' : 'Payment is complete. We’re confirming your secure redemption email…')
     : correlationState === 'sent'
-      ? (vi ? 'Email kích hoạt đã sẵn sàng. Kiểm tra hộp thư thanh toán, rồi mở liên kết trên điện thoại.' : 'Your secure redemption email is ready. Check your checkout inbox, then open the link on your phone.')
+      ? (vi ? 'Kiểm tra email bạn đã dùng khi thanh toán để tiếp tục với Nutree.' : 'Check the email you used at checkout to continue with Nutree.')
       : correlationState === 'retry_exhausted'
         ? (vi ? 'Thanh toán đã xong nhưng xác nhận đang chậm hơn dự kiến. Tải lại trang sau; bạn sẽ không bị trừ thêm.' : 'Payment is complete, but confirmation is taking longer than expected. Refresh this page in a moment; you will not be charged again.')
         : (vi ? 'Kiểm tra email thanh toán để lấy liên kết kích hoạt Nutree. Mở trên điện thoại để tự động đăng nhập và kích hoạt gói.' : 'Check your checkout email for the Nutree redemption link. Open it on your phone to sign in and activate your plan automatically.');
@@ -56,7 +56,7 @@ export function PostcheckoutPageClient() {
     <main className="grid min-h-dvh place-items-center bg-[#f6faf7] px-5 text-charcoal">
       <section className="w-full max-w-xl rounded-[2rem] border border-border-brand bg-white p-8 text-center shadow-[0_24px_70px_rgb(23_69_58_/_0.10)] sm:p-10">
         <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-teal-brand">{vi ? 'Thanh toán hoàn tất' : 'Payment complete'}</p>
-        <h1 className="mt-4 text-4xl font-extrabold tracking-[-0.055em] text-forest">{vi ? 'Gói Nutree của bạn đã sẵn sàng.' : 'Your Nutree plan is ready.'}</h1>
+        <h1 className="mt-4 text-4xl font-extrabold tracking-[-0.055em] text-forest">{vi ? 'Kiểm tra email của bạn' : 'Check your email'}</h1>
         <p className="mt-5 text-base font-semibold leading-relaxed text-slate-brand" role="status">{statusMessage}</p>
         <ol className="mx-auto mt-7 max-w-md space-y-3 text-left text-sm font-semibold text-slate-brand">
           <li><span className="mr-2 font-extrabold text-forest">1.</span>{vi ? 'Kiểm tra email bạn dùng khi thanh toán.' : 'Check the email you used at checkout.'}</li>

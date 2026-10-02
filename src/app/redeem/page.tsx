@@ -1,23 +1,29 @@
+import { cookies, headers } from 'next/headers';
 import { ClearFragmentBeforeRender } from '../open-nutree/clear-fragment-before-render';
 import { redeemMetadata } from './security';
+import { copyFor } from '@/lib/copy';
+import { localeFromCountryCode } from '@/lib/market/country';
 
 export const metadata = redeemMetadata;
 
-export default function RedeemPage() {
+export default async function RedeemPage() {
+  const [requestCookies, requestHeaders] = await Promise.all([cookies(), headers()]);
+  const storedLocale = requestCookies.get('nutree_locale')?.value;
+  const locale = storedLocale === 'vi' || storedLocale === 'en'
+    ? storedLocale
+    : localeFromCountryCode(requestHeaders.get('x-vercel-ip-country'));
+  const copy = copyFor(locale).redeem;
+
   return (
     <main className="grid min-h-dvh place-items-center bg-[#f6faf7] px-5 text-charcoal">
       <ClearFragmentBeforeRender path="/redeem" />
       <section className="w-full max-w-md rounded-[2rem] border border-border-brand bg-white p-7 text-center shadow-[0_24px_70px_rgb(23_69_58_/_0.10)] sm:p-9">
         <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-teal-brand">Nutree</p>
-        <h1 className="mt-4 text-3xl font-extrabold tracking-[-0.045em] text-forest">Continue your redemption on your phone.</h1>
-        <p className="mt-4 text-base font-semibold leading-relaxed text-slate-brand">
-          This page does not activate a purchase. Open the redemption link from your checkout email in Nutree. Nutree signs you in and activates your plan automatically.
-        </p>
-        <p className="mt-3 text-sm font-semibold text-muted-brand">
-          If the app is not installed: install Nutree, then reopen the same email and tap the link again.
-        </p>
+        <h1 className="mt-4 text-3xl font-extrabold tracking-[-0.045em] text-forest">{copy.headline}</h1>
+        <p className="mt-4 text-base font-semibold leading-relaxed text-slate-brand">{copy.body}</p>
+        <p className="mt-3 text-sm font-semibold text-muted-brand">{copy.installHint}</p>
         <div className="mt-6 flex flex-col gap-3">
-          <a href="nutree://open-nutree" className="rounded-full bg-forest px-5 py-3 font-extrabold text-white">Open Nutree</a>
+          <a href="nutree://open-nutree" className="rounded-full bg-forest px-5 py-3 font-extrabold text-white">{copy.openApp}</a>
           <a href={process.env.NEXT_PUBLIC_APPSTORE_URL} className="rounded-full bg-forest px-5 py-3 font-extrabold text-white">App Store</a>
           <a href={process.env.NEXT_PUBLIC_PLAYSTORE_URL} className="rounded-full border border-border-brand px-5 py-3 font-extrabold text-forest">Google Play</a>
         </div>

@@ -7,14 +7,18 @@ import { isQuizStep, type QuizStep } from './steps';
 import type { CheckoutResponse, Lead, OnboardingPayload, TdeeResult } from './types';
 
 export type PayPalCheckout = CheckoutResponse & { offerLabel: string };
-export type FunnelScreen = 'landing' | 'quiz' | 'email' | 'welcome-gift' | 'paywall' | 'exit-offer';
+export type FunnelScreen = 'landing' | 'quiz' | 'email' | 'welcome-gift' | 'paywall' | 'exit-offer' | 'android-filter';
+export type DeviceOS = 'android' | 'ios';
+export type ResumeAfterOS = { screen: 'quiz'; step: QuizStep } | { screen: 'email' };
 
 export const STORAGE_KEY = 'nutree_funnel_v1';
-const STORE_VERSION = 6;
+const STORE_VERSION = 7;
 
 interface QuizState {
   funnelScreen: FunnelScreen;
   currentStep: QuizStep;
+  deviceOS: DeviceOS | null;
+  resumeAfterOS: ResumeAfterOS | null;
   data: OnboardingPayload;
   locale: Locale;
   tdee: TdeeResult | null;
@@ -26,6 +30,8 @@ interface QuizState {
   setData: (patch: Partial<OnboardingPayload>) => void;
   setFunnelScreen: (screen: FunnelScreen) => void;
   setCurrentStep: (step: QuizStep) => void;
+  setDeviceOS: (deviceOS: DeviceOS) => void;
+  setResumeAfterOS: (resume: ResumeAfterOS | null) => void;
   setLocale: (locale: Locale) => void;
   setTdee: (result: TdeeResult, source: 'api' | 'fallback') => void;
   setLead: (lead: Lead) => void;
@@ -37,7 +43,9 @@ interface QuizState {
 
 const initial = {
   funnelScreen: 'landing' as FunnelScreen,
-  currentStep: 'goal' as QuizStep,
+  currentStep: 'operating_system' as QuizStep,
+  deviceOS: null as DeviceOS | null,
+  resumeAfterOS: null as ResumeAfterOS | null,
   data: { measurement_unit: 'metric' } as OnboardingPayload,
   locale: DEFAULT_LOCALE,
   tdee: null,
@@ -48,12 +56,14 @@ const initial = {
   purchased: false,
 };
 
-type PersistedQuizState = Pick<QuizState, 'funnelScreen' | 'currentStep' | 'data' | 'locale' | 'tdee' | 'tdeeSource' | 'lead'>;
+type PersistedQuizState = Pick<QuizState, 'funnelScreen' | 'currentStep' | 'deviceOS' | 'resumeAfterOS' | 'data' | 'locale' | 'tdee' | 'tdeeSource' | 'lead'>;
 
 function toPersistedQuizState(state: QuizState): PersistedQuizState {
   return {
     funnelScreen: state.funnelScreen ?? initial.funnelScreen,
     currentStep: state.currentStep ?? initial.currentStep,
+    deviceOS: state.deviceOS ?? initial.deviceOS,
+    resumeAfterOS: state.resumeAfterOS ?? initial.resumeAfterOS,
     data: state.data,
     locale: state.locale,
     tdee: state.tdee,
@@ -76,17 +86,38 @@ function getQuizStorage(): Storage {
 }
 
 /** Drops untrusted legacy checkout and claim data during persisted-state upgrades. */
-export function migratePersistedQuizState(persistedState: unknown): PersistedQuizState {
+export function migratePersistedQuizState(persistedState: unknown, version = STORE_VERSION): PersistedQuizState {
   const state = persistedState && typeof persistedState === 'object'
     ? persistedState as Partial<QuizState>
     : {};
 
-  const hasFunnelScreen = state.funnelScreen === 'landing' || state.funnelScreen === 'quiz' || state.funnelScreen === 'email' || state.funnelScreen === 'welcome-gift' || state.funnelScreen === 'paywall' || state.funnelScreen === 'exit-offer';
-  const currentStep = typeof state.currentStep === 'string' && isQuizStep(state.currentStep) ? state.currentStep : initial.currentStep;
+  const hasFunnelScreen = state.funnelScreen === 'landing' || state.funnelScreen === 'quiz' || state.funnelScreen === 'email' || state.funnelScreen === 'welcome-gift' || state.funnelScreen === 'paywall' || state.funnelScreen === 'exit-offer' || state.funnelScreen === 'android-filter';
+  const deviceOS = state.deviceOS === 'android' || state.deviceOS === 'ios' ? state.deviceOS : null;
+  const hasLeadProjection = Boolean(state.lead?.lead_id && state.lead.masked_email && state.lead.status);
+  const storedStep = typeof state.currentStep === 'string' && isQuizStep(state.currentStep) ? state.currentStep : initial.currentStep;
+  const savedResume = state.resumeAfterOS;
+  const validSavedResume: ResumeAfterOS | null = savedResume?.screen === 'quiz' && isQuizStep(savedResume.step)
+    ? { screen: 'quiz', step: savedResume.step }
+    : savedResume?.screen === 'email' ? { screen: 'email' } : null;
+  const needsLegacyOSGate = version < STORE_VERSION && !deviceOS && !hasLeadProjection;
+  const migratedResume: ResumeAfterOS | null = needsLegacyOSGate && state.funnelScreen === 'quiz'
+    ? { screen: 'quiz', step: storedStep }
+    : needsLegacyOSGate && (state.funnelScreen === 'email' || state.funnelScreen === 'welcome-gift')
+      ? { screen: 'email' }
+      : needsLegacyOSGate && !hasFunnelScreen && storedStep !== initial.currentStep
+        ? { screen: 'quiz', step: storedStep }
+        : null;
+  const resumeAfterOS = migratedResume ?? validSavedResume;
+  const needsOSGate = resumeAfterOS !== null && deviceOS !== 'android';
+  const currentStep = needsOSGate ? initial.currentStep : storedStep;
 
   return {
-    funnelScreen: hasFunnelScreen ? state.funnelScreen as FunnelScreen : state.lead ? 'paywall' : currentStep === initial.currentStep ? 'landing' : 'quiz',
+    funnelScreen: needsOSGate
+      ? 'quiz'
+      : hasFunnelScreen ? state.funnelScreen as FunnelScreen : state.lead ? 'paywall' : currentStep === initial.currentStep ? 'landing' : 'quiz',
     currentStep,
+    deviceOS,
+    resumeAfterOS,
     data: state.data ?? initial.data,
     locale: state.locale ?? initial.locale,
     tdee: state.tdee ?? initial.tdee,
@@ -104,6 +135,8 @@ export const useQuizStore = create<QuizState>()(
       setData: (patch) => set((s) => ({ data: { ...s.data, ...patch } })),
       setFunnelScreen: (funnelScreen) => set({ funnelScreen }),
       setCurrentStep: (currentStep) => set({ currentStep }),
+      setDeviceOS: (deviceOS) => set({ deviceOS }),
+      setResumeAfterOS: (resumeAfterOS) => set({ resumeAfterOS }),
       setLocale: (locale) => set({ locale }),
       setTdee: (result, source) => set({ tdee: result, tdeeSource: source }),
       setLead: (lead) => set({ lead }),
@@ -118,7 +151,7 @@ export const useQuizStore = create<QuizState>()(
       storage: createJSONStorage(getQuizStorage),
       version: STORE_VERSION,
       partialize: toPersistedQuizState,
-      migrate: (persistedState) => migratePersistedQuizState(persistedState),
+      migrate: (persistedState, version) => migratePersistedQuizState(persistedState, version),
     },
   ),
 );
@@ -150,4 +183,3 @@ export function isUserPurchased(state?: { purchased?: boolean; lead?: { lead_id?
   }
   return false;
 }
-

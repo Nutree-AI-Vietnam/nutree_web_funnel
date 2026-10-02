@@ -7,7 +7,7 @@ import { PrimaryButton } from '@/components/primary-button';
 import { createLead } from '@/lib/api/client';
 import { identifyMetaUser } from '@/lib/analytics/meta-identity';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
-import { useCopy } from '@/lib/copy/use-copy';
+import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { isValidEmail } from '@/lib/quiz/email';
 import { isLocalPreviewHost } from '@/lib/local-preview';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
@@ -17,6 +17,7 @@ const TRUST_AVATAR_IMAGES = ['/images/trust-female.webp', '/images/trust-aiony.w
 
 export function EmailCaptureScreen({ onComplete }: { onComplete: () => void }) {
   const copy = useCopy();
+  const locale = useLocale();
   const hydrated = useHydrated();
   const setLead = useQuizStore((s) => s.setLead);
   const data = useQuizStore((s) => s.data);
@@ -42,6 +43,8 @@ export function EmailCaptureScreen({ onComplete }: { onComplete: () => void }) {
       const lead = await createLead(email.trim(), data);
       setLead(lead);
       saveCheckoutEmail(email.trim());
+      const secureCookie = window.location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = `nutree_locale=${locale}; Max-Age=31536000; Path=/; SameSite=Lax${secureCookie}`;
       identifyMetaUser({ email: email.trim(), externalId: lead.lead_id, firstName: data.name });
       trackEvent('email_captured', {});
       onComplete();
