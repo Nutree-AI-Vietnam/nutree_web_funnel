@@ -1,3 +1,4 @@
+import { appStoreUrl, playStoreUrl } from '@/lib/store-links';
 import { ClearFragmentBeforeRender } from './clear-fragment-before-render';
 import { openNutreeMetadata } from './security';
 
@@ -13,8 +14,8 @@ export default function OpenNutreePage() {
         <p className="mt-4 text-base font-semibold leading-relaxed text-slate-brand">Install Nutree if needed, then reopen the purchase link on your phone to continue securely.</p>
         <div className="mt-6 flex flex-col gap-3">
           <a href="nutree://open-nutree" className="rounded-full bg-forest px-5 py-3 font-extrabold text-white">Open Nutree</a>
-          <a href={process.env.NEXT_PUBLIC_APPSTORE_URL} className="rounded-full bg-forest px-5 py-3 font-extrabold text-white">App Store</a>
-          <a href={process.env.NEXT_PUBLIC_PLAYSTORE_URL} className="rounded-full border border-border-brand px-5 py-3 font-extrabold text-forest">Google Play</a>
+          <a href={appStoreUrl()} className="rounded-full bg-forest px-5 py-3 font-extrabold text-white">App Store</a>
+          <a href={playStoreUrl()} className="rounded-full border border-border-brand px-5 py-3 font-extrabold text-forest">Google Play</a>
         </div>
       </section>
     </main>

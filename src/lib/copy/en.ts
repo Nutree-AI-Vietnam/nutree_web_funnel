@@ -7,9 +7,9 @@ import type { Copy } from './index';
 
 export const en: Copy = {
   redeem: {
-    headline: 'Check your email',
-    body: 'This page does not activate a purchase. Open the redemption link from your checkout email in Nutree. Nutree signs you in and activates your plan automatically.',
-    installHint: 'If the app is not installed: install Nutree, then reopen the same email and tap the link again.',
+    headline: 'Open Nutree on your phone',
+    body: 'Your activation link is in the email you used at checkout. Open that email on your phone and tap the link. Nutree signs you in and turns on your plan.',
+    installHint: 'Don’t have the app yet? Install Nutree, then open that same email and tap the link.',
     openApp: 'Open Nutree',
   },
   common: {
@@ -24,9 +24,8 @@ export const en: Copy = {
     question: 'Is your phone Android or iOS?',
     ios: 'iOS',
     android: 'Android',
-    androidHeadline: 'Get started with Nutree on Android',
-    androidBody: 'This web plan builder is designed for iPhone. You can still get started with Nutree on your Android phone.',
-    androidCta: 'Get Nutree on Google Play',
+    androidHeadline: 'Android is almost here',
+    androidBody: 'Nutree for Android is nearly ready. Please wait a little longer. If you use an iPhone, go back and choose iOS.',
   },
   metric: {
     decrement: (label: string) => `Decrease ${label}`,

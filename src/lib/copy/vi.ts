@@ -4,9 +4,9 @@
  */
 export const vi = {
   redeem: {
-    headline: 'Kiểm tra email của bạn',
-    body: 'Trang này không kích hoạt gói. Mở liên kết kích hoạt trong email thanh toán bằng Nutree. Nutree tự động đăng nhập và kích hoạt gói của bạn.',
-    installHint: 'Nếu chưa cài ứng dụng: hãy cài Nutree, rồi mở lại email đó và nhấn liên kết lần nữa.',
+    headline: 'Mở Nutree trên điện thoại',
+    body: 'Liên kết kích hoạt nằm trong email bạn dùng khi thanh toán. Mở email đó trên điện thoại và nhấn liên kết. Nutree sẽ tự đăng nhập và bật gói.',
+    installHint: 'Chưa có app? Cài Nutree trước, rồi mở lại đúng email đó và nhấn liên kết.',
     openApp: 'Mở Nutree',
   },
   common: {
@@ -21,9 +21,8 @@ export const vi = {
     question: 'Bạn đang dùng Android hay iOS?',
     ios: 'iOS',
     android: 'Android',
-    androidHeadline: 'Bắt đầu với Nutree trên Android',
-    androidBody: 'Quy trình tạo kế hoạch trên web hiện dành cho iPhone. Bạn vẫn có thể bắt đầu với Nutree trên điện thoại Android.',
-    androidCta: 'Tải Nutree trên Google Play',
+    androidHeadline: 'Android sắp có',
+    androidBody: 'Nutree trên Android gần xong rồi. Vui lòng đợi thêm một chút. Nếu bạn dùng iPhone, quay lại và chọn iOS.',
   },
   metric: {
     decrement: (label: string) => `Giảm ${label}`,
@@ -591,7 +590,7 @@ export const vi = {
     discount: '50%',
     ticketValue: 'GIẢM 50%',
     priceLine: (amount: string, plan: string) => `${amount} cho gói ${plan}.`,
-    cta: 'Claim reward',
+    cta: 'Nhận ưu đãi',
     lockedCta: 'Mở giá trước',
   },
   paywall: {
@@ -648,7 +647,7 @@ export const vi = {
     activityLabel: 'Khớp với vận động:',
     activityValue: (days: number) => `${days} ngày`,
     providerLabel: 'Thanh toán an toàn qua:',
-    termsIntro: 'Không có free trial. Bạn có thể hủy gia hạn theo điều khoản của nhà cung cấp.',
+    termsIntro: 'Không có dùng thử miễn phí. Bạn có thể hủy gia hạn theo điều khoản của nhà cung cấp.',
     benefits: [
       { title: 'Kế hoạch tất cả trong một', body: 'Calo, macro, nước, bước chân và gợi ý bữa ăn.' },
       { title: 'Ghi bữa ăn thông minh', body: 'Ghi bữa ăn bằng ảnh hoặc tìm kiếm.' },
@@ -656,7 +655,7 @@ export const vi = {
       { title: 'Hướng dẫn theo vận động', body: 'Tính cả lịch tập và vận động trong kế hoạch.' },
       { title: 'Nutree AI Coach', body: 'Hướng dẫn rõ ràng khi bạn cần.' },
     ],
-    secure: 'Thanh toán an toàn. Entitlement chỉ mở sau khi nhà cung cấp xác nhận.',
+    secure: 'Thanh toán an toàn. Gói chỉ mở sau khi nhà cung cấp xác nhận.',
     cta: () => 'Chọn gói của tôi',
     paypalSummary: (amount: string, renewal: string) => `${amount} hôm nay và ${renewal} khi gói còn hoạt động`,
     paypalPlaceholder: 'Nút PayPal sẽ hiển thị tại đây sau khi backend trả cấu hình nhà cung cấp.',
