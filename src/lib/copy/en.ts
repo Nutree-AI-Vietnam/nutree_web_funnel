@@ -6,6 +6,12 @@
 import type { Copy } from './index';
 
 export const en: Copy = {
+  redeem: {
+    headline: 'Check your email',
+    body: 'This page does not activate a purchase. Open the redemption link from your checkout email in Nutree. Nutree signs you in and activates your plan automatically.',
+    installHint: 'If the app is not installed: install Nutree, then reopen the same email and tap the link again.',
+    openApp: 'Open Nutree',
+  },
   common: {
     continue: 'Continue',
     back: 'Back',
@@ -13,6 +19,14 @@ export const en: Copy = {
     retry: 'Try again',
     progress: 'Quiz progress',
     stepCount: (current: number, total: number) => `Question ${current}/${total}`,
+  },
+  operatingSystem: {
+    question: 'Is your phone Android or iOS?',
+    ios: 'iOS',
+    android: 'Android',
+    androidHeadline: 'Get started with Nutree on Android',
+    androidBody: 'This web plan builder is designed for iPhone. You can still get started with Nutree on your Android phone.',
+    androidCta: 'Get Nutree on Google Play',
   },
   metric: {
     decrement: (label: string) => `Decrease ${label}`,

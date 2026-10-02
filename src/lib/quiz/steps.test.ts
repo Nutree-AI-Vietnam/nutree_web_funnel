@@ -4,6 +4,7 @@ import { chapterLabel, QUIZ_STEPS, isQuizStep, nextStep, previousStep, stepIndex
 describe('quiz steps', () => {
   it('keeps one input or decision per quiz screen', () => {
     expect(QUIZ_STEPS).toEqual([
+      'operating_system',
       'goal',
       'name_ask',
       'welcome',
@@ -40,6 +41,7 @@ describe('quiz steps', () => {
   });
 
   it('navigates forward through quiz screens without creating subroutes', () => {
+    expect(nextStep('operating_system')).toBe('goal');
     expect(nextStep('goal')).toBe('name_ask');
     expect(nextStep('name_ask')).toBe('welcome');
     expect(nextStep('diet')).toBe('support_style');
@@ -56,13 +58,15 @@ describe('quiz steps', () => {
 
   it('navigates backward, landing page before first screen', () => {
     expect(previousStep('name_ask')).toBe('goal');
-    expect(previousStep('goal')).toBeNull();
+    expect(previousStep('goal')).toBe('operating_system');
+    expect(previousStep('operating_system')).toBeNull();
   });
 
   it('exposes 1-based progress index', () => {
-    expect(stepIndex('goal')).toBe(1);
-    expect(stepIndex('height')).toBe(10);
-    expect(stepIndex('result')).toBe(25);
+    expect(stepIndex('operating_system')).toBe(1);
+    expect(stepIndex('goal')).toBe(2);
+    expect(stepIndex('height')).toBe(11);
+    expect(stepIndex('result')).toBe(26);
     expect(chapterLabel('training_days')).toBe('Thói quen');
   });
 });

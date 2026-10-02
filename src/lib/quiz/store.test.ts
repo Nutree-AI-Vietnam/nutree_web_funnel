@@ -103,7 +103,9 @@ describe('quiz store', () => {
 
     expect(migrated).toEqual({
       funnelScreen: 'paywall',
-      currentStep: 'goal',
+      currentStep: 'operating_system',
+      deviceOS: null,
+      resumeAfterOS: null,
       data: { measurement_unit: 'metric', name: 'Anh' },
       locale: 'en',
       tdee: null,

@@ -13,7 +13,7 @@ import { CarePauseStep, WelcomeStep, ScienceStep, ScienceSourcesStep, PreviewSte
 import { MultiChoiceStep } from './multi-choice';
 import { NumberInputStep } from './number-input-step';
 import { ReflectionStep } from './reflection';
-import { SingleChoiceStep } from './single-choice';
+import { OperatingSystemStep, SingleChoiceStep } from './single-choice';
 import { TdeeTargetsStep } from './tdee-targets';
 import { NameAskStep } from './text-input-step';
 import { TrainingDaysStep, TrainingDurationStep } from './training-days';
@@ -25,6 +25,7 @@ import { ProgressStep } from './progress';
  * re-render live when the active locale changes.
  */
 export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
+  operating_system: () => <OperatingSystemStep />,
   goal: function GoalStep() {
     const c = useCopy();
     return (

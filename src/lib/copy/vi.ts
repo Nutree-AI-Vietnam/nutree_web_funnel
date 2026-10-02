@@ -3,6 +3,12 @@
  * in nutree_ai). Structured so adding a locale later = adding a sibling module.
  */
 export const vi = {
+  redeem: {
+    headline: 'Kiểm tra email của bạn',
+    body: 'Trang này không kích hoạt gói. Mở liên kết kích hoạt trong email thanh toán bằng Nutree. Nutree tự động đăng nhập và kích hoạt gói của bạn.',
+    installHint: 'Nếu chưa cài ứng dụng: hãy cài Nutree, rồi mở lại email đó và nhấn liên kết lần nữa.',
+    openApp: 'Mở Nutree',
+  },
   common: {
     continue: 'Tiếp tục',
     back: 'Quay lại',
@@ -10,6 +16,14 @@ export const vi = {
     retry: 'Thử lại',
     progress: 'Tiến độ bài quiz',
     stepCount: (current: number, total: number) => `Câu ${current}/${total}`,
+  },
+  operatingSystem: {
+    question: 'Bạn đang dùng Android hay iOS?',
+    ios: 'iOS',
+    android: 'Android',
+    androidHeadline: 'Bắt đầu với Nutree trên Android',
+    androidBody: 'Quy trình tạo kế hoạch trên web hiện dành cho iPhone. Bạn vẫn có thể bắt đầu với Nutree trên điện thoại Android.',
+    androidCta: 'Tải Nutree trên Google Play',
   },
   metric: {
     decrement: (label: string) => `Giảm ${label}`,
