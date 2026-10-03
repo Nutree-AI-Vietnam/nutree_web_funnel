@@ -1,4 +1,5 @@
-import { appStoreUrl, playStoreUrl } from '@/lib/store-links';
+import { headers } from 'next/headers';
+import { StoreInstallLinks } from '@/components/store-install-links';
 
 type FirebaseEmailLinkPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -17,7 +18,7 @@ export function firebaseEmailAppLink(actionLink: string): string {
 export default async function FirebaseEmailLinkFallbackPage({
   searchParams,
 }: FirebaseEmailLinkPageProps) {
-  const params = await searchParams;
+  const [params, requestHeaders] = await Promise.all([searchParams, headers()]);
   const actionLink =
     (typeof params.link === 'string' && params.link.trim()) ||
     (typeof params.plink === 'string' && params.plink.trim()) ||
@@ -36,8 +37,7 @@ export default async function FirebaseEmailLinkFallbackPage({
         </p>
         <div className="mt-6 flex flex-col gap-3">
           <a href={openNutreeHref} className="rounded-full bg-forest px-5 py-3 font-extrabold text-white">Open Nutree</a>
-          <a href={appStoreUrl()} className="rounded-full bg-forest px-5 py-3 font-extrabold text-white">App Store</a>
-          <a href={playStoreUrl()} className="rounded-full border border-border-brand px-5 py-3 font-extrabold text-forest">Google Play</a>
+          <StoreInstallLinks userAgent={requestHeaders.get('user-agent')} />
         </div>
       </section>
     </main>

@@ -137,6 +137,22 @@ describe('quiz store', () => {
     expect(useQuizStore.getState().paypalCheckout).toBeNull();
   });
 
+  it('continues a saved Android filter into the quiz', () => {
+    const migrated = migratePersistedQuizState({
+      funnelScreen: 'android-filter',
+      currentStep: 'operating_system',
+      deviceOS: 'android',
+      resumeAfterOS: null,
+      data: { measurement_unit: 'metric' },
+      locale: 'en',
+    }, 7);
+
+    expect(migrated.funnelScreen).toBe('quiz');
+    expect(migrated.currentStep).toBe('goal');
+    expect(migrated.deviceOS).toBe('android');
+    expect(migrated.resumeAfterOS).toBeNull();
+  });
+
   it('reset clears everything', () => {
     useQuizStore.getState().setData({ name: 'Anh' });
     useQuizStore.getState().setPurchased(true);

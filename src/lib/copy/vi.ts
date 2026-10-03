@@ -4,10 +4,11 @@
  */
 export const vi = {
   redeem: {
-    headline: 'Mở Nutree trên điện thoại',
-    body: 'Liên kết kích hoạt nằm trong email bạn dùng khi thanh toán. Mở email đó trên điện thoại và nhấn liên kết. Nutree sẽ tự đăng nhập và bật gói.',
-    installHint: 'Chưa có app? Cài Nutree trước, rồi mở lại đúng email đó và nhấn liên kết.',
-    openApp: 'Mở Nutree',
+    headline: 'Kiểm tra email của bạn',
+    body: 'Mở email Nutree trên điện thoại. Email trông như thế này.',
+    imageAlt: 'Email Nutree: cài ứng dụng, rồi nhấn nút xanh Mở ứng dụng và đổi mã',
+    imageCaption: 'Trên điện thoại, nhấn nút xanh “Mở ứng dụng và đổi mã”.',
+    installHint: 'Chưa có app? Làm bước 1 trong email trước, rồi nhấn nút xanh.',
   },
   common: {
     continue: 'Tiếp tục',
@@ -21,8 +22,6 @@ export const vi = {
     question: 'Bạn đang dùng Android hay iOS?',
     ios: 'iOS',
     android: 'Android',
-    androidHeadline: 'Android sắp có',
-    androidBody: 'Nutree trên Android gần xong rồi. Vui lòng đợi thêm một chút. Nếu bạn dùng iPhone, quay lại và chọn iOS.',
   },
   metric: {
     decrement: (label: string) => `Giảm ${label}`,

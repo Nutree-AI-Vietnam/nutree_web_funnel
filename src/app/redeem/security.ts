@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const redeemMetadata: Metadata = {
-  title: 'Redeem on Nutree',
+  title: 'Check your email',
   robots: { index: false, follow: false },
 };
 

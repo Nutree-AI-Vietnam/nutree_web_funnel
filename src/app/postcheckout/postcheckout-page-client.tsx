@@ -1,8 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { RedemptionEmailPreview } from '@/components/redemption-email-guide';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
+import { copyFor } from '@/lib/copy';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { clearCheckoutEmail } from '@/lib/revenuecat/checkout-email';
 import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation } from '@/lib/revenuecat/redemption-handoff';
@@ -22,6 +23,7 @@ export function PostcheckoutPageClient() {
   const pendingAppUserId = pendingCorrelation?.appUserId;
   const pendingLinkHash = pendingCorrelation?.redemptionLinkHash;
   const vi = locale === 'vi';
+  const redeemCopy = copyFor(vi ? 'vi' : 'en').redeem;
 
   useEffect(() => {
     if (!hydrated || !lead) return;
@@ -59,13 +61,9 @@ export function PostcheckoutPageClient() {
         <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-teal-brand">{vi ? 'Thanh toán hoàn tất' : 'Payment complete'}</p>
         <h1 className="mt-4 text-4xl font-extrabold tracking-[-0.055em] text-forest">{vi ? 'Kiểm tra email của bạn' : 'Check your email'}</h1>
         <p className="mt-5 text-base font-semibold leading-relaxed text-slate-brand" role="status">{statusMessage}</p>
-        <ol className="mx-auto mt-7 max-w-md space-y-3 text-left text-sm font-semibold text-slate-brand">
-          <li><span className="mr-2 font-extrabold text-forest">1.</span>{vi ? 'Kiểm tra email bạn dùng khi thanh toán.' : 'Check the email you used at checkout.'}</li>
-          <li><span className="mr-2 font-extrabold text-forest">2.</span>{vi ? 'Mở liên kết kích hoạt trong Nutree trên điện thoại.' : 'Open the redemption link in Nutree on your phone.'}</li>
-          <li><span className="mr-2 font-extrabold text-forest">3.</span>{vi ? 'Nutree tự động đăng nhập và kích hoạt gói của bạn.' : 'Nutree signs you in and activates your plan automatically.'}</li>
-        </ol>
+        <RedemptionEmailPreview alt={redeemCopy.imageAlt} caption={redeemCopy.imageCaption} />
+        <p className="mt-4 text-sm font-semibold text-muted-brand">{redeemCopy.installHint}</p>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link href="/redeem" className="rounded-full bg-forest px-6 py-3 text-sm font-extrabold text-white">{vi ? 'Tải hoặc mở Nutree' : 'Get or open Nutree'}</Link>
           <button
             type="button"
             aria-expanded={supportOpen}

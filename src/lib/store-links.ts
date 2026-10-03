@@ -21,6 +21,30 @@ export function appStoreUrl(configured = process.env.NEXT_PUBLIC_APPSTORE_URL): 
  */
 const productionPlayPackageId = 'com.nutreeai.mobile';
 
+export type PhoneStore = 'android' | 'ios';
+
+/** Which install button should lead, from the browser that opened the handoff page. */
+export function phoneStoreFromUserAgent(userAgent: string | null | undefined): PhoneStore | null {
+  const agent = userAgent ?? '';
+  if (/android/i.test(agent)) return 'android';
+  if (/iPad|iPhone|iPod/i.test(agent)) return 'ios';
+  return null;
+}
+
+export function orderedStoreLinks(platform: PhoneStore | null): Array<{
+  href: string;
+  label: 'Google Play' | 'App Store';
+  primary: boolean;
+}> {
+  const play = { href: playStoreUrl(), label: 'Google Play' as const };
+  const apple = { href: appStoreUrl(), label: 'App Store' as const };
+  const [first, second] = platform === 'android' ? [play, apple] : [apple, play];
+  return [
+    { ...first, primary: true },
+    { ...second, primary: false },
+  ];
+}
+
 export function playStoreUrl(configured = process.env.NEXT_PUBLIC_PLAYSTORE_URL): string {
   const url = httpsUrl(configured);
   const packageId = url?.searchParams.get('id') ?? '';

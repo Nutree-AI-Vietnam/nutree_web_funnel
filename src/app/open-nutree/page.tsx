@@ -1,23 +1,23 @@
-import { appStoreUrl, playStoreUrl } from '@/lib/store-links';
+import { cookies, headers } from 'next/headers';
+import { RedemptionEmailGuide } from '@/components/redemption-email-guide';
+import { copyFor } from '@/lib/copy';
+import { localeFromCountryCode } from '@/lib/market/country';
 import { ClearFragmentBeforeRender } from './clear-fragment-before-render';
 import { openNutreeMetadata } from './security';
 
 export const metadata = openNutreeMetadata;
 
-export default function OpenNutreePage() {
+export default async function OpenNutreePage() {
+  const [requestCookies, requestHeaders] = await Promise.all([cookies(), headers()]);
+  const storedLocale = requestCookies.get('nutree_locale')?.value;
+  const locale = storedLocale === 'vi' || storedLocale === 'en'
+    ? storedLocale
+    : localeFromCountryCode(requestHeaders.get('x-vercel-ip-country'));
+
   return (
     <main className="grid min-h-dvh place-items-center bg-[#f6faf7] px-5 text-charcoal">
       <ClearFragmentBeforeRender />
-      <section className="w-full max-w-md rounded-[2rem] border border-border-brand bg-white p-7 text-center shadow-[0_24px_70px_rgb(23_69_58_/_0.10)] sm:p-9">
-        <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-teal-brand">Nutree</p>
-        <h1 className="mt-4 text-3xl font-extrabold tracking-[-0.045em] text-forest">Open Nutree on your phone.</h1>
-        <p className="mt-4 text-base font-semibold leading-relaxed text-slate-brand">Install Nutree if needed, then reopen the purchase link on your phone to continue securely.</p>
-        <div className="mt-6 flex flex-col gap-3">
-          <a href="nutree://open-nutree" className="rounded-full bg-forest px-5 py-3 font-extrabold text-white">Open Nutree</a>
-          <a href={appStoreUrl()} className="rounded-full bg-forest px-5 py-3 font-extrabold text-white">App Store</a>
-          <a href={playStoreUrl()} className="rounded-full border border-border-brand px-5 py-3 font-extrabold text-forest">Google Play</a>
-        </div>
-      </section>
+      <RedemptionEmailGuide copy={copyFor(locale).redeem} />
     </main>
   );
 }

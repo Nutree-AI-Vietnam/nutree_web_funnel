@@ -2,7 +2,7 @@ diff --git a/node_modules/@revenuecat/purchases-js/dist/Purchases.es.js b/node_m
 index 2e7bfd9..12c6836 100644
 --- a/node_modules/@revenuecat/purchases-js/dist/Purchases.es.js
 +++ b/node_modules/@revenuecat/purchases-js/dist/Purchases.es.js
-@@ -20751,14 +20751,16 @@ function iE({
+@@ -20751,14 +20751,17 @@ function iE({
    locale: e,
    customerEmail: t,
    displayMode: n = "overlay",
@@ -19,7 +19,8 @@ index 2e7bfd9..12c6836 100644
 -    showAddDiscounts: !1,
 +    showAddDiscounts: !0,
      showAddTaxId: !1,
-     allowDiscountRemoval: !1
+-    allowDiscountRemoval: !1
++    allowDiscountRemoval: !0
    }, s = n === "inline" ? {
 @@ -20774,7 +20776,9 @@ function iE({
    return {

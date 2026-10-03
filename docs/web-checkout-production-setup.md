@@ -37,7 +37,7 @@ RC purchase email / support; never a second charge.
 | Flavor | Bundle / package | Firebase project | Quiz / continue host | RC redemption scheme | Vercel domain |
 |---|---|---|---|---|---|
 | staging | `com.nutreeai.mobile.staging` | `nutree-ai-staging` | `quiz.preview.nutreeai.com` | `rc-6eb1beb650` | Preview |
-| prod | `com.nutreeai.mobile` | `nutree-ai` | `quiz.nutreeai.com` | **ops-provisioned** (build fails on placeholder) | Production |
+| prod | `com.nutreeai.mobile` | `nutree-ai` | `quiz.nutreeai.com` | `rc-490b49db28` (iOS xcconfig and Android prod flavor) | Production |
 | dev | `com.nutreeai.mobile.dev` | `nutree-ai-dev-4c49d` | preview host (non-prod) | placeholder until needed | local |
 
 Android App Links fingerprints live only in Vercel
