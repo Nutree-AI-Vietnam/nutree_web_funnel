@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { appStoreUrl, playStoreUrl } from './store-links';
+import { appStoreUrl, orderedStoreLinks, phoneStoreFromUserAgent, playStoreUrl } from './store-links';
 
 describe('store links', () => {
   it('keeps a real production store URL', () => {
@@ -24,5 +24,17 @@ describe('store links', () => {
       ),
     ).toBe('https://play.google.com/store/apps/details?id=com.nutreeai.mobile');
     expect(appStoreUrl('')).toBe('https://apps.apple.com/app/id6751159552');
+  });
+
+  it('leads with the store that matches the phone', () => {
+    expect(phoneStoreFromUserAgent('Mozilla/5.0 (Linux; Android 14)')).toBe('android');
+    expect(phoneStoreFromUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)')).toBe('ios');
+    expect(phoneStoreFromUserAgent('Mozilla/5.0 (Macintosh)')).toBeNull();
+    expect(orderedStoreLinks('android').map((store) => store.label)).toEqual(['Google Play', 'App Store']);
+    expect(orderedStoreLinks('ios').map((store) => [store.label, store.primary])).toEqual([
+      ['App Store', true],
+      ['Google Play', false],
+    ]);
+    expect(orderedStoreLinks(null)[0]?.label).toBe('App Store');
   });
 });

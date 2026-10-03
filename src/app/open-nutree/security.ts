@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const openNutreeMetadata: Metadata = {
-  title: 'Open Nutree',
+  title: 'Check your email',
   robots: { index: false, follow: false },
 };
 

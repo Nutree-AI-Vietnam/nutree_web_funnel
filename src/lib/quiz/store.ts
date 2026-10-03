@@ -3,16 +3,17 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { DEFAULT_LOCALE, type Locale } from '@/lib/copy';
 import { readPendingRedemptionCorrelation } from '@/lib/revenuecat/redemption-handoff';
+import { continuationAfterOperatingSystem } from './operating-system';
 import { isQuizStep, type QuizStep } from './steps';
 import type { CheckoutResponse, Lead, OnboardingPayload, TdeeResult } from './types';
 
 export type PayPalCheckout = CheckoutResponse & { offerLabel: string };
-export type FunnelScreen = 'landing' | 'quiz' | 'email' | 'welcome-gift' | 'paywall' | 'exit-offer' | 'android-filter';
+export type FunnelScreen = 'landing' | 'quiz' | 'email' | 'welcome-gift' | 'paywall' | 'exit-offer';
 export type DeviceOS = 'android' | 'ios';
 export type ResumeAfterOS = { screen: 'quiz'; step: QuizStep } | { screen: 'email' };
 
 export const STORAGE_KEY = 'nutree_funnel_v1';
-const STORE_VERSION = 7;
+const STORE_VERSION = 8;
 
 interface QuizState {
   funnelScreen: FunnelScreen;
@@ -91,7 +92,11 @@ export function migratePersistedQuizState(persistedState: unknown, version = STO
     ? persistedState as Partial<QuizState>
     : {};
 
-  const hasFunnelScreen = state.funnelScreen === 'landing' || state.funnelScreen === 'quiz' || state.funnelScreen === 'email' || state.funnelScreen === 'welcome-gift' || state.funnelScreen === 'paywall' || state.funnelScreen === 'exit-offer' || state.funnelScreen === 'android-filter';
+  const persistedScreen = typeof (state as { funnelScreen?: unknown }).funnelScreen === 'string'
+    ? (state as { funnelScreen: string }).funnelScreen
+    : '';
+  const wasAndroidFiltered = persistedScreen === 'android-filter';
+  const hasFunnelScreen = state.funnelScreen === 'landing' || state.funnelScreen === 'quiz' || state.funnelScreen === 'email' || state.funnelScreen === 'welcome-gift' || state.funnelScreen === 'paywall' || state.funnelScreen === 'exit-offer';
   const deviceOS = state.deviceOS === 'android' || state.deviceOS === 'ios' ? state.deviceOS : null;
   const hasLeadProjection = Boolean(state.lead?.lead_id && state.lead.masked_email && state.lead.status);
   const storedStep = typeof state.currentStep === 'string' && isQuizStep(state.currentStep) ? state.currentStep : initial.currentStep;
@@ -107,14 +112,22 @@ export function migratePersistedQuizState(persistedState: unknown, version = STO
       : needsLegacyOSGate && !hasFunnelScreen && storedStep !== initial.currentStep
         ? { screen: 'quiz', step: storedStep }
         : null;
-  const resumeAfterOS = migratedResume ?? validSavedResume;
+  const savedResumeAfterOS = migratedResume ?? validSavedResume;
+  const androidContinuation = wasAndroidFiltered
+    ? continuationAfterOperatingSystem(savedResumeAfterOS)
+    : null;
+  const resumeAfterOS = androidContinuation ? null : savedResumeAfterOS;
   const needsOSGate = resumeAfterOS !== null && deviceOS !== 'android';
-  const currentStep = needsOSGate ? initial.currentStep : storedStep;
+  const currentStep = androidContinuation?.screen === 'quiz'
+    ? androidContinuation.step
+    : needsOSGate ? initial.currentStep : storedStep;
 
   return {
-    funnelScreen: needsOSGate
-      ? 'quiz'
-      : hasFunnelScreen ? state.funnelScreen as FunnelScreen : state.lead ? 'paywall' : currentStep === initial.currentStep ? 'landing' : 'quiz',
+    funnelScreen: androidContinuation
+      ? androidContinuation.screen
+      : needsOSGate
+        ? 'quiz'
+        : hasFunnelScreen ? state.funnelScreen as FunnelScreen : state.lead ? 'paywall' : currentStep === initial.currentStep ? 'landing' : 'quiz',
     currentStep,
     deviceOS,
     resumeAfterOS,

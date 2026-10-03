@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
@@ -9,6 +9,7 @@ const patchMarkers = [
   'discountCodeValue = null',
   'discountIdValue = null',
   'showAddDiscounts: !0',
+  'allowDiscountRemoval: !0',
   'discountCode: i.discountCode',
 ];
 
@@ -26,6 +27,25 @@ if (packageVersion !== '1.51.0') {
 const bundle = readFileSync(patchedBundle, 'utf8');
 if (patchMarkers.every((marker) => bundle.includes(marker))) {
   console.log('RevenueCat package patch already applied.');
+  process.exit(0);
+}
+
+const lockedDiscountRemoval = `showAddDiscounts: !0,
+    showAddTaxId: !1,
+    allowDiscountRemoval: !1`;
+if (bundle.includes(lockedDiscountRemoval)) {
+  const unlocked = bundle.replace(
+    lockedDiscountRemoval,
+    `showAddDiscounts: !0,
+    showAddTaxId: !1,
+    allowDiscountRemoval: !0`,
+  );
+  if (!patchMarkers.every((marker) => unlocked.includes(marker))) {
+    console.error('Could not enable Paddle discount removal on the existing RevenueCat patch.');
+    process.exit(1);
+  }
+  writeFileSync(patchedBundle, unlocked);
+  console.log('Enabled Paddle discount removal on the existing RevenueCat patch.');
   process.exit(0);
 }
 
