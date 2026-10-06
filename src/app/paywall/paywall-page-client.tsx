@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ConversionShell } from '@/components/conversion-shell';
-import { PaywallInlineCheckout } from '@/components/paywall-inline-checkout';
 import { identifyMetaUser } from '@/lib/analytics/meta-identity';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
@@ -80,48 +79,6 @@ function isUserCancelledPurchase(error: unknown): boolean {
     || (typeof error === 'object' && error !== null && 'errorCode' in error && (error as { errorCode?: unknown }).errorCode === ErrorCode.UserCancelledError);
 }
 
-function observeCheckoutClosure(root: HTMLElement, onClosed: () => void): () => void {
-  let mounted = false;
-  let closeTimer: number | null = null;
-  const isVisible = () => {
-    const checkoutFrame = root.querySelector('iframe');
-    const rootStyle = window.getComputedStyle(root);
-    if (checkoutFrame) {
-      const frameStyle = window.getComputedStyle(checkoutFrame);
-      const frameRect = checkoutFrame.getBoundingClientRect();
-      return frameStyle.display !== 'none' && frameStyle.visibility !== 'hidden' && frameRect.width > 0 && frameRect.height > 0;
-    }
-    if (root.childElementCount === 0 || rootStyle.display === 'none' || rootStyle.visibility === 'hidden') return false;
-    const candidates = [root, ...Array.from(root.children)];
-    return candidates.some((candidate) => {
-      const rect = candidate.getBoundingClientRect();
-      const style = window.getComputedStyle(candidate);
-      return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
-    });
-  };
-  const check = () => {
-    if (isVisible()) {
-      mounted = true;
-      if (closeTimer !== null) window.clearTimeout(closeTimer);
-      closeTimer = null;
-      return;
-    }
-    if (!mounted || closeTimer !== null) return;
-    closeTimer = window.setTimeout(() => {
-      closeTimer = null;
-      if (mounted && !isVisible()) onClosed();
-    }, 250);
-  };
-  const observer = new MutationObserver(check);
-  observer.observe(document.body, { childList: true, subtree: true });
-  const poll = window.setInterval(check, 250);
-  return () => {
-    observer.disconnect();
-    window.clearInterval(poll);
-    if (closeTimer !== null) window.clearTimeout(closeTimer);
-  };
-}
-
 export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOfferMode, oneWeekPlanEnabled, onMissingLead, onCheckoutCancelled }: PaywallPageClientProps) {
   const router = useRouter();
   const copy = useCopy();
@@ -146,17 +103,11 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
-  const [inlineCheckoutDiscount, setInlineCheckoutDiscount] = useState<CheckoutDiscount | null>(null);
   const [redemption, setRedemption] = useState<RedemptionHandoff | null>(null);
   const purchasesRef = useRef<PurchasesInstance | null>(null);
   const anonymousAppUserIdRef = useRef<string | null>(null);
   const checkoutRef = useRef<{ leadId: string; purchases: PurchasesInstance; appUserId: string | null } | null>(null);
   const checkoutInFlightRef = useRef(false);
-  const inlineCheckoutStartedRef = useRef(false);
-  const inlineCheckoutTargetRef = useRef<HTMLDivElement | null>(null);
-  const setInlineCheckoutTarget = useCallback((element: HTMLDivElement | null) => {
-    inlineCheckoutTargetRef.current = element;
-  }, []);
   const purchaseLeadIdRef = useRef<string | null>(null);
   const redemptionLinkHashRef = useRef<string | null>(null);
   const revenueCatPaywallPlans = useMemo(() => createRevenueCatPaywallPlans(oneWeekPlanEnabled), [oneWeekPlanEnabled]);
@@ -291,22 +242,17 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     return () => window.clearTimeout(retry);
   }, [correlatePurchasedCustomer, lead, redemption]);
 
-  const openCheckout = useCallback(async (discount: CheckoutDiscount, htmlTarget: HTMLElement) => {
+  const openCheckout = useCallback(async (discount: CheckoutDiscount) => {
     const rcPackage = planPackages[selected.id];
-    if (checkoutInFlightRef.current || purchaseLeadIdRef.current === lead?.lead_id) {
-      setInlineCheckoutDiscount(null);
-      return;
-    }
+    if (checkoutInFlightRef.current || purchaseLeadIdRef.current === lead?.lead_id) return;
     if (!purchasesRef.current || !lead || !rcPackage || !anonymousAppUserIdRef.current) {
       setError('RevenueCat checkout is still loading. Please try again in a moment.');
-      setInlineCheckoutDiscount(null);
       return;
     }
     const customerEmail = readCheckoutEmail();
     if (customerEmail) identifyMetaUser({ email: customerEmail, externalId: lead.lead_id, firstName: data.name });
     if (!customerEmail) {
       setError(activeLocale === 'vi' ? 'Vui lòng quay lại bước email để xác nhận địa chỉ thanh toán trước khi mua.' : 'Return to email capture to confirm your checkout email before purchasing.');
-      setInlineCheckoutDiscount(null);
       return;
     }
     checkoutInFlightRef.current = true;
@@ -314,13 +260,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     setError(null);
     const isExitOffer = discount === 'exit';
     const isWelcomeOffer = discount === 'welcome';
-    let cancellationHandled = false;
-    let purchaseSettled = false;
-    let cleanupCheckoutClosure = () => {};
     const applyCheckoutCancellation = () => {
-      if (cancellationHandled) return;
-      cancellationHandled = true;
-      cleanupCheckoutClosure();
       checkoutInFlightRef.current = false;
       setBusy(false);
       clearPaywallCheckoutPending();
@@ -331,10 +271,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       trackEvent('exit_offer_shown', { plan: selected.id, discount_code: EXIT_DISCOUNT_CODE });
       onCheckoutCancelled?.();
     };
-    const handleCheckoutCancellation = () => {
-      if (!purchaseSettled) applyCheckoutCancellation();
-    };
-    cleanupCheckoutClosure = observeCheckoutClosure(htmlTarget, handleCheckoutCancellation);
     const offerPercent = isExitOffer ? EXIT_DISCOUNT_PERCENT : isWelcomeOffer ? WELCOME_DISCOUNT_PERCENT : 0;
     const billedPrice = rcPackage.webBillingProduct?.introPricePhase?.price ?? rcPackage.webBillingProduct?.price;
     const billedValue = discountedAmount(billedPrice, offerPercent);
@@ -351,7 +287,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         selectedLocale: activeLocale,
         defaultLocale: 'en',
         skipSuccessPage: true,
-        htmlTarget,
         ...(isExitOffer
           ? { discountCode: EXIT_DISCOUNT_CODE }
           : isWelcomeOffer
@@ -359,8 +294,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
             : {}),
       } as Parameters<PurchasesInstance['purchase']>[0];
       const purchaseResult = await purchasesRef.current.purchase(purchaseParameters);
-      purchaseSettled = true;
-      cleanupCheckoutClosure();
       clearPaywallCheckoutPending();
       setPurchased(true);
       trackEvent('revenuecat_checkout_completed', { plan: selected.id, ...checkoutCommerce });
@@ -377,7 +310,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       await correlatePurchasedCustomer();
       router.push('/postcheckout');
     } catch (purchaseError) {
-      purchaseSettled = true;
       if (isUserCancelledPurchase(purchaseError) && !isExitOffer) {
         applyCheckoutCancellation();
         return;
@@ -385,20 +317,10 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       clearPaywallCheckoutPending();
       setError(purchaseError instanceof Error ? purchaseError.message : 'RevenueCat could not complete checkout. Please try again.');
     } finally {
-      cleanupCheckoutClosure();
       checkoutInFlightRef.current = false;
-      inlineCheckoutStartedRef.current = false;
       setBusy(false);
-      setInlineCheckoutDiscount(null);
     }
   }, [activeLocale, countryCode, correlatePurchasedCustomer, data.name, lead, onCheckoutCancelled, oneWeekPlanEnabled, planPackages, purchased, router, selected, setPurchased]);
-
-  useEffect(() => {
-    const target = inlineCheckoutTargetRef.current;
-    if (!inlineCheckoutDiscount || !target || inlineCheckoutStartedRef.current) return;
-    inlineCheckoutStartedRef.current = true;
-    void openCheckout(inlineCheckoutDiscount, target);
-  }, [inlineCheckoutDiscount, openCheckout]);
 
   const requestCheckout = () => {
     if (lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id) {
@@ -438,11 +360,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const offerDiscountPercent = isExitOfferMode ? (exitOfferActive ? EXIT_DISCOUNT_PERCENT : 0) : (welcomeOfferActive ? WELCOME_DISCOUNT_PERCENT : 0);
   const introTotal = discountedFormattedPrice(selectedOriginalPrice, activeLocale === 'vi' ? 'vi-VN' : 'en-US', offerDiscountPercent) ?? originalTotal;
   const renewalTotal = selectedProduct?.price.formattedPrice ?? '…';
-  const inlineDiscountPercent = inlineCheckoutDiscount === 'exit'
-    ? EXIT_DISCOUNT_PERCENT
-    : inlineCheckoutDiscount === 'welcome'
-      ? WELCOME_DISCOUNT_PERCENT
-      : 0;
   const pricesReady = loadState === 'ready';
   const offerNote = exitOfferActive
     ? (activeLocale === 'vi' ? `Ưu đãi giảm ${EXIT_DISCOUNT_PERCENT}% đã được áp dụng cho tất cả gói.` : `Your ${EXIT_DISCOUNT_PERCENT}% offer applies to every plan.`)
@@ -554,20 +471,10 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
             <h2 id="checkout-confirm-title" className="text-2xl font-extrabold tracking-[-0.04em] text-forest">{confirmCopy.title}</h2>
             <p className="mt-3 text-sm font-medium leading-relaxed text-muted-brand">{confirmCopy.body}</p>
             <div className="mt-5 rounded-2xl bg-mist px-4 py-3 text-left"><p className="font-extrabold text-forest">{selected.label[activeLocale]}</p><p className="mt-1 text-sm font-extrabold text-forest">{confirmPriceCopy.first}</p><p className="mt-1 text-xs font-semibold leading-relaxed text-muted-brand">{confirmPriceCopy.renewal}</p></div>
-            <button autoFocus type="button" onClick={() => { setShowCheckoutConfirm(false); setInlineCheckoutDiscount(exitOfferActive ? 'exit' : welcomeOfferActive ? 'welcome' : 'none'); }} className="mt-6 min-h-13 w-full rounded-2xl bg-forest px-5 font-extrabold text-white transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">{confirmCopy.continue}</button>
+            <button autoFocus type="button" onClick={() => { setShowCheckoutConfirm(false); void openCheckout(exitOfferActive ? 'exit' : welcomeOfferActive ? 'welcome' : 'none'); }} className="mt-6 min-h-13 w-full rounded-2xl bg-forest px-5 font-extrabold text-white transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">{confirmCopy.continue}</button>
             <button type="button" onClick={() => setShowCheckoutConfirm(false)} className="mt-3 min-h-11 w-full text-sm font-bold text-muted-brand underline underline-offset-4">{confirmCopy.dismiss}</button>
           </section>
         </div>
-      )}
-      {inlineCheckoutDiscount !== null && (
-        <PaywallInlineCheckout
-          locale={activeLocale}
-          planLabel={selected.label[activeLocale]}
-          renewalCadence={selected.billingLabel[activeLocale]}
-          discountPercent={inlineDiscountPercent}
-          error={error}
-          checkoutTargetRef={setInlineCheckoutTarget}
-        />
       )}
         </>,
         document.body,
