@@ -1,5 +1,7 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState } from 'react';
+
 interface PaywallInlineCheckoutProps {
   locale: 'vi' | 'en';
   planLabel: string;
@@ -35,6 +37,36 @@ export function PaywallInlineCheckout({
   checkoutTargetRef,
 }: PaywallInlineCheckoutProps) {
   const isVietnamese = locale === 'vi';
+  const targetRef = useRef<HTMLDivElement | null>(null);
+  const frameLoadedRef = useRef(false);
+  const [formState, setFormState] = useState<'loading' | 'loaded' | 'timeout'>('loading');
+  const setTarget = useCallback((element: HTMLDivElement | null) => {
+    targetRef.current = element;
+    checkoutTargetRef(element);
+  }, [checkoutTargetRef]);
+
+  useEffect(() => {
+    const target = targetRef.current;
+    if (!target) return;
+
+    const handleFrameLoad = (event: Event) => {
+      const frame = event.target;
+      if (!(frame instanceof HTMLIFrameElement)) return;
+      if (!target.contains(frame) && !frame.src.includes('paddle')) return;
+      frameLoadedRef.current = true;
+      setFormState('loaded');
+    };
+    document.addEventListener('load', handleFrameLoad, true);
+
+    const timeout = window.setTimeout(() => {
+      if (!frameLoadedRef.current) setFormState('timeout');
+    }, 30_000);
+
+    return () => {
+      document.removeEventListener('load', handleFrameLoad, true);
+      window.clearTimeout(timeout);
+    };
+  }, []);
 
   return (
     <div className="fixed inset-0 z-[70] overflow-y-auto bg-[#f3f7f5]" role="dialog" aria-modal="true" aria-labelledby="inline-checkout-title">
@@ -78,7 +110,18 @@ export function PaywallInlineCheckout({
 
           {error && <p role="alert" className="mt-4 rounded-xl bg-[#fff1ed] px-4 py-3 text-sm font-bold text-error-brand">{error}</p>}
 
-          <div className="mt-4 min-w-[312px]" ref={checkoutTargetRef} aria-label={isVietnamese ? 'Biểu mẫu thanh toán Paddle' : 'Paddle payment form'} />
+          {formState === 'loading' && <p role="status" className="mt-5 flex items-center gap-3 rounded-xl bg-[#f5faf7] px-4 py-4 text-sm font-semibold text-muted-brand">
+            <span aria-hidden="true" className="h-5 w-5 animate-spin rounded-full border-2 border-[#b6d3c5] border-t-forest" />
+            {isVietnamese ? 'Đang tải biểu mẫu thanh toán bảo mật của Paddle…' : 'Loading Paddle’s secure payment form…'}
+          </p>}
+          {formState === 'timeout' && <div role="alert" className="mt-5 rounded-xl bg-[#fff1ed] px-4 py-4 text-sm text-error-brand">
+            <p className="font-bold">{isVietnamese ? 'Biểu mẫu thanh toán chưa tải được.' : 'The payment form did not load.'}</p>
+            <p className="mt-1">{isVietnamese ? 'Hãy kiểm tra kết nối hoặc mở trang bằng Safari/Chrome rồi thử lại.' : 'Check your connection or open this page in Safari/Chrome, then try again.'}</p>
+            <button type="button" onClick={() => window.location.reload()} className="mt-3 font-extrabold underline underline-offset-4">
+              {isVietnamese ? 'Tải lại trang thanh toán' : 'Reload checkout'}
+            </button>
+          </div>}
+          <div className="mt-4 min-h-[450px] min-w-[312px]" ref={setTarget} aria-label={isVietnamese ? 'Biểu mẫu thanh toán Paddle' : 'Paddle payment form'} />
         </main>
       </div>
     </div>
