@@ -478,16 +478,16 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       : (activeLocale === 'vi' ? `Ưu đãi giảm ${EXIT_DISCOUNT_PERCENT}% đã hết hạn` : `${EXIT_DISCOUNT_PERCENT}% offer expired`))
     : secondsLeft > 0 ? copy.paywall.offerEnds(countdown) : (activeLocale === 'vi' ? 'Xem giá hiện tại của bạn' : 'See your current price');
   const confirmCopy = activeLocale === 'vi'
-    ? { title: 'Xác nhận gói của bạn', body: 'Bạn sẽ mở thanh toán bảo mật của Nutree cho gói đã chọn.', continue: 'Tiếp tục thanh toán', dismiss: 'Quay lại' }
-    : { title: 'Confirm your plan', body: 'You’ll open Nutree’s secure checkout for the plan you selected.', continue: 'Continue to checkout', dismiss: 'Go back' };
+    ? { title: 'Xác nhận đăng ký', body: 'Thanh toán an toàn qua Paddle. Chúng tôi sẽ gửi hướng dẫn kích hoạt gói đến email của bạn.', continue: 'Tiếp tục thanh toán', dismiss: 'Quay lại' }
+    : { title: 'Confirm your subscription', body: 'Checkout is securely processed by Paddle. We’ll email you instructions to activate your plan.', continue: 'Continue to payment', dismiss: 'Go back' };
   const confirmPriceCopy = activeLocale === 'vi'
     ? {
-        first: offerDiscountPercent > 0 ? `Ưu đãi giảm ${offerDiscountPercent}% áp dụng cho gói đầu tiên.` : 'Bạn thanh toán theo giá đầy đủ của gói.',
-        renewal: `Từ kỳ tiếp theo, gói tự gia hạn theo giá đầy đủ ${selected.billingLabel.vi} cho đến khi bạn hủy. Paddle sẽ hiển thị tổng tiền và thuế chính xác trước khi bạn xác nhận.`,
+        first: offerDiscountPercent > 0 ? `Giảm ${offerDiscountPercent}% cho lần thanh toán đầu tiên.` : 'Lần thanh toán đầu theo giá đầy đủ.',
+        renewal: `Sau đó, gói tự động gia hạn theo giá đầy đủ ${selected.billingLabel.vi.toLowerCase()}. Bạn có thể hủy bất cứ lúc nào.`,
       }
     : {
-        first: offerDiscountPercent > 0 ? `Your ${offerDiscountPercent}% discount applies to the first plan.` : 'You pay the full price for this plan.',
-        renewal: `From the next cycle, the plan renews at full price ${selected.billingLabel.en.toLowerCase()} until you cancel. Paddle shows the exact total and tax before you confirm.`,
+        first: offerDiscountPercent > 0 ? `${offerDiscountPercent}% off your first payment.` : 'The first payment is at full price.',
+        renewal: `After that, the plan renews at full price ${selected.billingLabel.en.toLowerCase()}. Cancel anytime.`,
       };
 
   if (!hydrated || !lead || !offerStateReady) return null;
