@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ConversionShell } from '@/components/conversion-shell';
+import { PaywallInlineCheckout } from '@/components/paywall-inline-checkout';
 import { identifyMetaUser } from '@/lib/analytics/meta-identity';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
@@ -79,21 +80,11 @@ function isUserCancelledPurchase(error: unknown): boolean {
     || (typeof error === 'object' && error !== null && 'errorCode' in error && (error as { errorCode?: unknown }).errorCode === ErrorCode.UserCancelledError);
 }
 
-function ensureCheckoutRoot(): HTMLElement {
-  const existing = document.getElementById('rcb-ui-root');
-  if (existing) return existing;
-  const root = document.createElement('div');
-  root.id = 'rcb-ui-root';
-  root.className = 'rcb-ui-root';
-  document.body.appendChild(root);
-  return root;
-}
-
 function observeCheckoutClosure(root: HTMLElement, onClosed: () => void): () => void {
   let mounted = false;
   let closeTimer: number | null = null;
   const isVisible = () => {
-    const checkoutFrame = root.querySelector('iframe') ?? document.querySelector('iframe');
+    const checkoutFrame = root.querySelector('iframe');
     const rootStyle = window.getComputedStyle(root);
     if (checkoutFrame) {
       const frameStyle = window.getComputedStyle(checkoutFrame);
@@ -155,11 +146,17 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
+  const [inlineCheckoutDiscount, setInlineCheckoutDiscount] = useState<CheckoutDiscount | null>(null);
   const [redemption, setRedemption] = useState<RedemptionHandoff | null>(null);
   const purchasesRef = useRef<PurchasesInstance | null>(null);
   const anonymousAppUserIdRef = useRef<string | null>(null);
   const checkoutRef = useRef<{ leadId: string; purchases: PurchasesInstance; appUserId: string | null } | null>(null);
   const checkoutInFlightRef = useRef(false);
+  const inlineCheckoutStartedRef = useRef(false);
+  const inlineCheckoutTargetRef = useRef<HTMLDivElement | null>(null);
+  const setInlineCheckoutTarget = useCallback((element: HTMLDivElement | null) => {
+    inlineCheckoutTargetRef.current = element;
+  }, []);
   const purchaseLeadIdRef = useRef<string | null>(null);
   const redemptionLinkHashRef = useRef<string | null>(null);
   const revenueCatPaywallPlans = useMemo(() => createRevenueCatPaywallPlans(oneWeekPlanEnabled), [oneWeekPlanEnabled]);
@@ -294,17 +291,22 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     return () => window.clearTimeout(retry);
   }, [correlatePurchasedCustomer, lead, redemption]);
 
-  const openCheckout = useCallback(async (discount: CheckoutDiscount = 'welcome') => {
+  const openCheckout = useCallback(async (discount: CheckoutDiscount, htmlTarget: HTMLElement) => {
     const rcPackage = planPackages[selected.id];
-    if (checkoutInFlightRef.current || purchaseLeadIdRef.current === lead?.lead_id) return;
+    if (checkoutInFlightRef.current || purchaseLeadIdRef.current === lead?.lead_id) {
+      setInlineCheckoutDiscount(null);
+      return;
+    }
     if (!purchasesRef.current || !lead || !rcPackage || !anonymousAppUserIdRef.current) {
       setError('RevenueCat checkout is still loading. Please try again in a moment.');
+      setInlineCheckoutDiscount(null);
       return;
     }
     const customerEmail = readCheckoutEmail();
     if (customerEmail) identifyMetaUser({ email: customerEmail, externalId: lead.lead_id, firstName: data.name });
     if (!customerEmail) {
       setError(activeLocale === 'vi' ? 'Vui lòng quay lại bước email để xác nhận địa chỉ thanh toán trước khi mua.' : 'Return to email capture to confirm your checkout email before purchasing.');
+      setInlineCheckoutDiscount(null);
       return;
     }
     checkoutInFlightRef.current = true;
@@ -332,9 +334,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     const handleCheckoutCancellation = () => {
       if (!purchaseSettled) applyCheckoutCancellation();
     };
-    const handleCheckoutHistoryChange = () => handleCheckoutCancellation();
-    window.addEventListener('popstate', handleCheckoutHistoryChange);
-    cleanupCheckoutClosure = observeCheckoutClosure(ensureCheckoutRoot(), handleCheckoutCancellation);
+    cleanupCheckoutClosure = observeCheckoutClosure(htmlTarget, handleCheckoutCancellation);
     const offerPercent = isExitOffer ? EXIT_DISCOUNT_PERCENT : isWelcomeOffer ? WELCOME_DISCOUNT_PERCENT : 0;
     const billedPrice = rcPackage.webBillingProduct?.introPricePhase?.price ?? rcPackage.webBillingProduct?.price;
     const billedValue = discountedAmount(billedPrice, offerPercent);
@@ -351,6 +351,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         selectedLocale: activeLocale,
         defaultLocale: 'en',
         skipSuccessPage: true,
+        htmlTarget,
         ...(isExitOffer
           ? { discountCode: EXIT_DISCOUNT_CODE }
           : isWelcomeOffer
@@ -360,7 +361,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       const purchaseResult = await purchasesRef.current.purchase(purchaseParameters);
       purchaseSettled = true;
       cleanupCheckoutClosure();
-      window.removeEventListener('popstate', handleCheckoutHistoryChange);
       clearPaywallCheckoutPending();
       setPurchased(true);
       trackEvent('revenuecat_checkout_completed', { plan: selected.id, ...checkoutCommerce });
@@ -386,11 +386,19 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       setError(purchaseError instanceof Error ? purchaseError.message : 'RevenueCat could not complete checkout. Please try again.');
     } finally {
       cleanupCheckoutClosure();
-      window.removeEventListener('popstate', handleCheckoutHistoryChange);
       checkoutInFlightRef.current = false;
+      inlineCheckoutStartedRef.current = false;
       setBusy(false);
+      setInlineCheckoutDiscount(null);
     }
   }, [activeLocale, countryCode, correlatePurchasedCustomer, data.name, lead, onCheckoutCancelled, oneWeekPlanEnabled, planPackages, purchased, router, selected, setPurchased]);
+
+  useEffect(() => {
+    const target = inlineCheckoutTargetRef.current;
+    if (!inlineCheckoutDiscount || !target || inlineCheckoutStartedRef.current) return;
+    inlineCheckoutStartedRef.current = true;
+    void openCheckout(inlineCheckoutDiscount, target);
+  }, [inlineCheckoutDiscount, openCheckout]);
 
   const requestCheckout = () => {
     if (lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id) {
@@ -430,6 +438,11 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const offerDiscountPercent = isExitOfferMode ? (exitOfferActive ? EXIT_DISCOUNT_PERCENT : 0) : (welcomeOfferActive ? WELCOME_DISCOUNT_PERCENT : 0);
   const introTotal = discountedFormattedPrice(selectedOriginalPrice, activeLocale === 'vi' ? 'vi-VN' : 'en-US', offerDiscountPercent) ?? originalTotal;
   const renewalTotal = selectedProduct?.price.formattedPrice ?? '…';
+  const inlineDiscountPercent = inlineCheckoutDiscount === 'exit'
+    ? EXIT_DISCOUNT_PERCENT
+    : inlineCheckoutDiscount === 'welcome'
+      ? WELCOME_DISCOUNT_PERCENT
+      : 0;
   const pricesReady = loadState === 'ready';
   const offerNote = exitOfferActive
     ? (activeLocale === 'vi' ? `Ưu đãi giảm ${EXIT_DISCOUNT_PERCENT}% đã được áp dụng cho tất cả gói.` : `Your ${EXIT_DISCOUNT_PERCENT}% offer applies to every plan.`)
@@ -467,6 +480,15 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const confirmCopy = activeLocale === 'vi'
     ? { title: 'Xác nhận gói của bạn', body: 'Bạn sẽ mở thanh toán bảo mật của Nutree cho gói đã chọn.', continue: 'Tiếp tục thanh toán', dismiss: 'Quay lại' }
     : { title: 'Confirm your plan', body: 'You’ll open Nutree’s secure checkout for the plan you selected.', continue: 'Continue to checkout', dismiss: 'Go back' };
+  const confirmPriceCopy = activeLocale === 'vi'
+    ? {
+        first: offerDiscountPercent > 0 ? `Ưu đãi giảm ${offerDiscountPercent}% áp dụng cho gói đầu tiên.` : 'Bạn thanh toán theo giá đầy đủ của gói.',
+        renewal: `Từ kỳ tiếp theo, gói tự gia hạn theo giá đầy đủ ${selected.billingLabel.vi} cho đến khi bạn hủy. Paddle sẽ hiển thị tổng tiền và thuế chính xác trước khi bạn xác nhận.`,
+      }
+    : {
+        first: offerDiscountPercent > 0 ? `Your ${offerDiscountPercent}% discount applies to the first plan.` : 'You pay the full price for this plan.',
+        renewal: `From the next cycle, the plan renews at full price ${selected.billingLabel.en.toLowerCase()} until you cancel. Paddle shows the exact total and tax before you confirm.`,
+      };
 
   if (!hydrated || !lead || !offerStateReady) return null;
 
@@ -531,11 +553,21 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
           <section className="w-full max-w-sm rounded-[2rem] bg-white p-7 text-center shadow-[0_28px_80px_rgb(10_18_16_/_0.34)]">
             <h2 id="checkout-confirm-title" className="text-2xl font-extrabold tracking-[-0.04em] text-forest">{confirmCopy.title}</h2>
             <p className="mt-3 text-sm font-medium leading-relaxed text-muted-brand">{confirmCopy.body}</p>
-            <div className="mt-5 rounded-2xl bg-mist px-4 py-3 text-left"><p className="font-extrabold text-forest">{selected.label[activeLocale]}</p>{offerDiscountPercent > 0 && <p className="mt-1 text-xs font-bold text-muted-brand line-through">{originalTotal}</p>}<p className="mt-1 text-sm font-extrabold text-forest">{introTotal} {activeLocale === 'vi' ? 'hôm nay' : 'today'}{offerDiscountPercent > 0 ? ` · ${offerDiscountPercent}% OFF` : activeLocale === 'vi' ? ' · Giá gốc' : ' · Original price'}</p><p className="mt-1 text-xs font-semibold text-muted-brand">{renewalTotal} {selected.billingLabel[activeLocale]}</p></div>
-            <button autoFocus type="button" onClick={() => { setShowCheckoutConfirm(false); void openCheckout(exitOfferActive ? 'exit' : welcomeOfferActive ? 'welcome' : 'none'); }} className="mt-6 min-h-13 w-full rounded-2xl bg-forest px-5 font-extrabold text-white transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">{confirmCopy.continue}</button>
+            <div className="mt-5 rounded-2xl bg-mist px-4 py-3 text-left"><p className="font-extrabold text-forest">{selected.label[activeLocale]}</p><p className="mt-1 text-sm font-extrabold text-forest">{confirmPriceCopy.first}</p><p className="mt-1 text-xs font-semibold leading-relaxed text-muted-brand">{confirmPriceCopy.renewal}</p></div>
+            <button autoFocus type="button" onClick={() => { setShowCheckoutConfirm(false); setInlineCheckoutDiscount(exitOfferActive ? 'exit' : welcomeOfferActive ? 'welcome' : 'none'); }} className="mt-6 min-h-13 w-full rounded-2xl bg-forest px-5 font-extrabold text-white transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">{confirmCopy.continue}</button>
             <button type="button" onClick={() => setShowCheckoutConfirm(false)} className="mt-3 min-h-11 w-full text-sm font-bold text-muted-brand underline underline-offset-4">{confirmCopy.dismiss}</button>
           </section>
         </div>
+      )}
+      {inlineCheckoutDiscount !== null && (
+        <PaywallInlineCheckout
+          locale={activeLocale}
+          planLabel={selected.label[activeLocale]}
+          renewalCadence={selected.billingLabel[activeLocale]}
+          discountPercent={inlineDiscountPercent}
+          error={error}
+          checkoutTargetRef={setInlineCheckoutTarget}
+        />
       )}
         </>,
         document.body,
