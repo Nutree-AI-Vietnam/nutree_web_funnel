@@ -21,11 +21,6 @@ export const en: Copy = {
     progress: 'Quiz progress',
     stepCount: (current: number, total: number) => `Question ${current}/${total}`,
   },
-  operatingSystem: {
-    question: 'Is your phone Android or iOS?',
-    ios: 'iOS',
-    android: 'Android',
-  },
   metric: {
     decrement: (label: string) => `Decrease ${label}`,
     increment: (label: string) => `Increase ${label}`,
@@ -137,14 +132,12 @@ export const en: Copy = {
       recomp: 'Improve body shape',
       maintain: 'Maintain weight',
       aligned: 'Fits your goal',
-      adjust: 'Goal needs a check',
+      changed: 'Goal updated',
       bmiAdjust: 'Check target BMI',
-      flexible: 'Flexible goal',
       healthyTitle: (value: number) => `A healthy target is about ${value} kg`,
       healthyBody: 'This sits near a healthy BMI range based on your height.',
       alignedBody: 'This weight direction matches the goal you selected.',
-      adjustBody: 'For this goal, choose a target in the opposite direction.',
-      flexibleBody: 'You can adjust this target around how you want to improve your body composition.',
+      changedBody: 'Nutree will plan for this goal so it matches the weight you picked.',
     },
   },
   challenges: {

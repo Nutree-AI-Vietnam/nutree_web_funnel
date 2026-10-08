@@ -85,7 +85,7 @@ export function MetricInput({
 
   if (bare) {
     return (
-      <div className="flex flex-1 flex-col justify-center">
+      <div className="flex flex-1 flex-col">
         {picker}
         {error && (
           <p id={`${id}-error`} role="alert" className="mt-4 text-center text-sm font-medium text-error-brand">

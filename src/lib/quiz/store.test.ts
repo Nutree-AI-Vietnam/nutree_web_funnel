@@ -103,9 +103,7 @@ describe('quiz store', () => {
 
     expect(migrated).toEqual({
       funnelScreen: 'paywall',
-      currentStep: 'operating_system',
-      deviceOS: null,
-      resumeAfterOS: null,
+      currentStep: 'goal',
       data: { measurement_unit: 'metric', name: 'Anh' },
       locale: 'en',
       tdee: null,
@@ -145,12 +143,77 @@ describe('quiz store', () => {
       resumeAfterOS: null,
       data: { measurement_unit: 'metric' },
       locale: 'en',
-    }, 7);
+    });
 
     expect(migrated.funnelScreen).toBe('quiz');
     expect(migrated.currentStep).toBe('goal');
-    expect(migrated.deviceOS).toBe('android');
-    expect(migrated.resumeAfterOS).toBeNull();
+    expect(migrated).not.toHaveProperty('deviceOS');
+    expect(migrated).not.toHaveProperty('resumeAfterOS');
+  });
+
+  it('moves a tab waiting on the removed phone question to where it was headed', () => {
+    const atPhoneQuestion = { funnelScreen: 'quiz', currentStep: 'operating_system', deviceOS: null, data: { measurement_unit: 'metric' }, locale: 'vi' };
+
+    const fresh = migratePersistedQuizState({ ...atPhoneQuestion, resumeAfterOS: null });
+    expect([fresh.funnelScreen, fresh.currentStep]).toEqual(['quiz', 'goal']);
+
+    const midQuiz = migratePersistedQuizState({ ...atPhoneQuestion, resumeAfterOS: { screen: 'quiz', step: 'activity_level' } });
+    expect([midQuiz.funnelScreen, midQuiz.currentStep]).toEqual(['quiz', 'activity_level']);
+
+    const finished = migratePersistedQuizState({ ...atPhoneQuestion, resumeAfterOS: { screen: 'email' } });
+    expect(finished.funnelScreen).toBe('email');
+  });
+
+  it('keeps a saved landing or paywall screen when the old phone step is stored', () => {
+    const landing = migratePersistedQuizState({
+      funnelScreen: 'landing',
+      currentStep: 'operating_system',
+      resumeAfterOS: { screen: 'quiz', step: 'height' },
+      data: { measurement_unit: 'metric' },
+    });
+    expect([landing.funnelScreen, landing.currentStep]).toEqual(['landing', 'height']);
+
+    const paywall = migratePersistedQuizState({
+      funnelScreen: 'paywall',
+      currentStep: 'operating_system',
+      data: { measurement_unit: 'metric' },
+      lead: { lead_id: 'lead-1', masked_email: 'a***@b.c', status: 'payment_pending' },
+    });
+    expect([paywall.funnelScreen, paywall.currentStep]).toEqual(['paywall', 'goal']);
+  });
+
+  it('keeps ordinary saved quiz progress unchanged', () => {
+    const migrated = migratePersistedQuizState({
+      funnelScreen: 'quiz',
+      currentStep: 'activity_level',
+      data: { measurement_unit: 'metric', fitness_goal: 'cut', weight_kg: 60, target_weight_kg: 55 },
+    });
+    expect([migrated.funnelScreen, migrated.currentStep]).toEqual(['quiz', 'activity_level']);
+    expect(migrated.data.fitness_goal).toBe('cut');
+  });
+
+  it('derives the goal from the target weight for answers saved before email', () => {
+    const tdee = { bmr: 1300, tdee: 1820, calories: 2120, protein_g: 88, carbs_g: 300, fat_g: 59 };
+    const saved = {
+      funnelScreen: 'quiz',
+      currentStep: 'result',
+      data: { measurement_unit: 'metric', fitness_goal: 'bulk', weight_kg: 52, target_weight_kg: 47 },
+      tdee,
+      tdeeSource: 'api',
+    };
+
+    const inProgress = migratePersistedQuizState(saved);
+    expect(inProgress.data.fitness_goal).toBe('cut');
+    expect(inProgress.tdee).toBeNull();
+    expect(inProgress.tdeeSource).toBeNull();
+
+    const withLead = migratePersistedQuizState({
+      ...saved,
+      funnelScreen: 'paywall',
+      lead: { lead_id: 'lead-1', masked_email: 'a***@b.c', status: 'payment_pending' },
+    });
+    expect(withLead.data.fitness_goal).toBe('bulk');
+    expect(withLead.tdee).toEqual(tdee);
   });
 
   it('reset clears everything', () => {

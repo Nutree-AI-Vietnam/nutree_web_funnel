@@ -1,6 +1,6 @@
 # Nutree Web Funnel
 
-Web onboarding funnel (quiz.nutreeai.com production, quiz.preview.nutreeai.com preview): landing → OS choice (Android → Google Play; iOS → quiz) → TDEE results → email capture →
+Web onboarding funnel (quiz.nutreeai.com production, quiz.preview.nutreeai.com preview): landing → quiz → TDEE results → email capture →
 anonymous RevenueCat Web checkout → thin correlation → redemption email → mobile Home shell → Firebase email → redeem → finalize.
 
 Design spec: `docs/superpowers/specs/2026-07-07-web-to-app-funnel-design.md`

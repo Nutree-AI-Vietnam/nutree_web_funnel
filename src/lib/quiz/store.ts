@@ -3,23 +3,20 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { DEFAULT_LOCALE, type Locale } from '@/lib/copy';
 import { readPendingRedemptionCorrelation } from '@/lib/revenuecat/redemption-handoff';
-import { continuationAfterOperatingSystem } from './operating-system';
+import { goalAfterTargetWeight } from './fitness-goal';
 import { isQuizStep, type QuizStep } from './steps';
 import type { CheckoutResponse, Lead, OnboardingPayload, TdeeResult } from './types';
 
 export type PayPalCheckout = CheckoutResponse & { offerLabel: string };
-export type FunnelScreen = 'landing' | 'quiz' | 'email' | 'welcome-gift' | 'paywall' | 'exit-offer';
-export type DeviceOS = 'android' | 'ios';
-export type ResumeAfterOS = { screen: 'quiz'; step: QuizStep } | { screen: 'email' };
+const FUNNEL_SCREENS = ['landing', 'quiz', 'email', 'welcome-gift', 'paywall', 'exit-offer'] as const;
+export type FunnelScreen = (typeof FUNNEL_SCREENS)[number];
 
 export const STORAGE_KEY = 'nutree_funnel_v1';
-const STORE_VERSION = 8;
+const STORE_VERSION = 9;
 
 interface QuizState {
   funnelScreen: FunnelScreen;
   currentStep: QuizStep;
-  deviceOS: DeviceOS | null;
-  resumeAfterOS: ResumeAfterOS | null;
   data: OnboardingPayload;
   locale: Locale;
   tdee: TdeeResult | null;
@@ -31,8 +28,6 @@ interface QuizState {
   setData: (patch: Partial<OnboardingPayload>) => void;
   setFunnelScreen: (screen: FunnelScreen) => void;
   setCurrentStep: (step: QuizStep) => void;
-  setDeviceOS: (deviceOS: DeviceOS) => void;
-  setResumeAfterOS: (resume: ResumeAfterOS | null) => void;
   setLocale: (locale: Locale) => void;
   setTdee: (result: TdeeResult, source: 'api' | 'fallback') => void;
   setLead: (lead: Lead) => void;
@@ -44,9 +39,7 @@ interface QuizState {
 
 const initial = {
   funnelScreen: 'landing' as FunnelScreen,
-  currentStep: 'operating_system' as QuizStep,
-  deviceOS: null as DeviceOS | null,
-  resumeAfterOS: null as ResumeAfterOS | null,
+  currentStep: 'goal' as QuizStep,
   data: { measurement_unit: 'metric' } as OnboardingPayload,
   locale: DEFAULT_LOCALE,
   tdee: null,
@@ -57,14 +50,12 @@ const initial = {
   purchased: false,
 };
 
-type PersistedQuizState = Pick<QuizState, 'funnelScreen' | 'currentStep' | 'deviceOS' | 'resumeAfterOS' | 'data' | 'locale' | 'tdee' | 'tdeeSource' | 'lead'>;
+type PersistedQuizState = Pick<QuizState, 'funnelScreen' | 'currentStep' | 'data' | 'locale' | 'tdee' | 'tdeeSource' | 'lead'>;
 
 function toPersistedQuizState(state: QuizState): PersistedQuizState {
   return {
     funnelScreen: state.funnelScreen ?? initial.funnelScreen,
     currentStep: state.currentStep ?? initial.currentStep,
-    deviceOS: state.deviceOS ?? initial.deviceOS,
-    resumeAfterOS: state.resumeAfterOS ?? initial.resumeAfterOS,
     data: state.data,
     locale: state.locale,
     tdee: state.tdee,
@@ -86,58 +77,51 @@ function getQuizStorage(): Storage {
   return sessionStorage;
 }
 
-/** Drops untrusted legacy checkout and claim data during persisted-state upgrades. */
-export function migratePersistedQuizState(persistedState: unknown, version = STORE_VERSION): PersistedQuizState {
-  const state = persistedState && typeof persistedState === 'object'
-    ? persistedState as Partial<QuizState>
-    : {};
+type LegacyResume = { screen: 'quiz'; step: QuizStep } | { screen: 'email' };
 
-  const persistedScreen = typeof (state as { funnelScreen?: unknown }).funnelScreen === 'string'
-    ? (state as { funnelScreen: string }).funnelScreen
-    : '';
-  const wasAndroidFiltered = persistedScreen === 'android-filter';
-  const hasFunnelScreen = state.funnelScreen === 'landing' || state.funnelScreen === 'quiz' || state.funnelScreen === 'email' || state.funnelScreen === 'welcome-gift' || state.funnelScreen === 'paywall' || state.funnelScreen === 'exit-offer';
-  const deviceOS = state.deviceOS === 'android' || state.deviceOS === 'ios' ? state.deviceOS : null;
-  const hasLeadProjection = Boolean(state.lead?.lead_id && state.lead.masked_email && state.lead.status);
+/** Where a tab saved behind the removed phone question was headed next. */
+function legacyResume(saved: unknown): LegacyResume | null {
+  if (!saved || typeof saved !== 'object') return null;
+  const { screen, step } = saved as { screen?: unknown; step?: unknown };
+  if (screen === 'quiz' && typeof step === 'string' && isQuizStep(step)) return { screen: 'quiz', step };
+  return screen === 'email' ? { screen: 'email' } : null;
+}
+
+/** Older answers could pair a gain goal with a lower target weight; derive it like the app does. */
+function withGoalForTargetWeight(data: OnboardingPayload): OnboardingPayload {
+  if (data.target_weight_kg == null) return data;
+  const fitness_goal = goalAfterTargetWeight(data.fitness_goal, data.weight_kg, data.target_weight_kg);
+  return fitness_goal === data.fitness_goal ? data : { ...data, fitness_goal };
+}
+
+/** Drops untrusted legacy checkout and claim data during persisted-state upgrades. */
+export function migratePersistedQuizState(persistedState: unknown): PersistedQuizState {
+  const state = (persistedState && typeof persistedState === 'object' ? persistedState : {}) as
+    Partial<Omit<QuizState, 'funnelScreen' | 'currentStep'>> & { funnelScreen?: unknown; currentStep?: unknown; resumeAfterOS?: unknown };
+  const savedScreen = FUNNEL_SCREENS.find((screen) => screen === state.funnelScreen);
   const storedStep = typeof state.currentStep === 'string' && isQuizStep(state.currentStep) ? state.currentStep : initial.currentStep;
-  const savedResume = state.resumeAfterOS;
-  const validSavedResume: ResumeAfterOS | null = savedResume?.screen === 'quiz' && isQuizStep(savedResume.step)
-    ? { screen: 'quiz', step: savedResume.step }
-    : savedResume?.screen === 'email' ? { screen: 'email' } : null;
-  const needsLegacyOSGate = version < STORE_VERSION && !deviceOS && !hasLeadProjection;
-  const migratedResume: ResumeAfterOS | null = needsLegacyOSGate && state.funnelScreen === 'quiz'
-    ? { screen: 'quiz', step: storedStep }
-    : needsLegacyOSGate && (state.funnelScreen === 'email' || state.funnelScreen === 'welcome-gift')
-      ? { screen: 'email' }
-      : needsLegacyOSGate && !hasFunnelScreen && storedStep !== initial.currentStep
-        ? { screen: 'quiz', step: storedStep }
-        : null;
-  const savedResumeAfterOS = migratedResume ?? validSavedResume;
-  const androidContinuation = wasAndroidFiltered
-    ? continuationAfterOperatingSystem(savedResumeAfterOS)
+  const resume = legacyResume(state.resumeAfterOS);
+  const atPhoneQuestion = state.funnelScreen === 'android-filter' || (state.currentStep === 'operating_system' && savedScreen === 'quiz');
+  const currentStep = resume?.screen === 'quiz' ? resume.step : storedStep;
+  const lead = state.lead?.lead_id && state.lead.masked_email && state.lead.status
+    ? { lead_id: state.lead.lead_id, masked_email: state.lead.masked_email, status: state.lead.status }
     : null;
-  const resumeAfterOS = androidContinuation ? null : savedResumeAfterOS;
-  const needsOSGate = resumeAfterOS !== null && deviceOS !== 'android';
-  const currentStep = androidContinuation?.screen === 'quiz'
-    ? androidContinuation.step
-    : needsOSGate ? initial.currentStep : storedStep;
+  const savedData = state.data ?? initial.data;
+  // A lead's snapshot already holds the goal on the server, so only answers still in progress are corrected.
+  const data = lead ? savedData : withGoalForTargetWeight(savedData);
+  const goalChanged = data !== savedData;
 
   return {
-    funnelScreen: androidContinuation
-      ? androidContinuation.screen
-      : needsOSGate
-        ? 'quiz'
-        : hasFunnelScreen ? state.funnelScreen as FunnelScreen : state.lead ? 'paywall' : currentStep === initial.currentStep ? 'landing' : 'quiz',
+    funnelScreen: atPhoneQuestion
+      ? resume?.screen ?? 'quiz'
+      : savedScreen ?? (state.lead ? 'paywall' : currentStep === initial.currentStep ? 'landing' : 'quiz'),
     currentStep,
-    deviceOS,
-    resumeAfterOS,
-    data: state.data ?? initial.data,
+    data,
     locale: state.locale ?? initial.locale,
-    tdee: state.tdee ?? initial.tdee,
-    tdeeSource: state.tdeeSource ?? initial.tdeeSource,
-    lead: state.lead?.lead_id && state.lead.masked_email && state.lead.status
-      ? { lead_id: state.lead.lead_id, masked_email: state.lead.masked_email, status: state.lead.status }
-      : null,
+    // Calories computed for the old goal would contradict the corrected one; the result step recalculates.
+    tdee: goalChanged ? null : state.tdee ?? initial.tdee,
+    tdeeSource: goalChanged ? null : state.tdeeSource ?? initial.tdeeSource,
+    lead,
   };
 }
 
@@ -148,8 +132,6 @@ export const useQuizStore = create<QuizState>()(
       setData: (patch) => set((s) => ({ data: { ...s.data, ...patch } })),
       setFunnelScreen: (funnelScreen) => set({ funnelScreen }),
       setCurrentStep: (currentStep) => set({ currentStep }),
-      setDeviceOS: (deviceOS) => set({ deviceOS }),
-      setResumeAfterOS: (resumeAfterOS) => set({ resumeAfterOS }),
       setLocale: (locale) => set({ locale }),
       setTdee: (result, source) => set({ tdee: result, tdeeSource: source }),
       setLead: (lead) => set({ lead }),
@@ -164,7 +146,7 @@ export const useQuizStore = create<QuizState>()(
       storage: createJSONStorage(getQuizStorage),
       version: STORE_VERSION,
       partialize: toPersistedQuizState,
-      migrate: (persistedState, version) => migratePersistedQuizState(persistedState, version),
+      migrate: (persistedState) => migratePersistedQuizState(persistedState),
     },
   ),
 );

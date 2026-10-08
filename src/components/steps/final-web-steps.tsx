@@ -10,6 +10,7 @@ import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
 import { deriveAge } from '@/lib/quiz/dob';
+import { goalAfterTargetWeight } from '@/lib/quiz/fitness-goal';
 import { bmi, bmiCategory } from '@/lib/tdee/insights';
 import { cn } from '@/lib/utils';
 import { isMetricValueValid, MetricInput, parseMetricDraft } from './metric-input';
@@ -151,20 +152,13 @@ export function TargetWeightStep() {
     const goal = data.fitness_goal;
     if (!goal || currentValue == null || targetValue == null || data.target_weight_unsure) return null;
 
-    const difference = targetValue - currentValue;
-    const aligned = goal === 'bulk'
-      ? difference > 0
-      : goal === 'cut'
-        ? difference < 0
-        : goal === 'maintain'
-          ? Math.abs(difference) <= 1
-          : true;
+    // Shows the goal that Continue will save, so a target that points the other way is visible here.
+    const nextGoal = goalAfterTargetWeight(goal, currentValue, targetValue) ?? goal;
+    const goalChanged = nextGoal !== goal;
     const bmiAligned = targetBmiCategory == null || targetBmiCategory === 'normal';
-    const directionStatus = goal === 'recomp'
-      ? copy.target_weight.goalBadge.flexible
-      : aligned
-        ? copy.target_weight.goalBadge.aligned
-        : copy.target_weight.goalBadge.adjust;
+    const directionStatus = goalChanged
+      ? copy.target_weight.goalBadge.changed
+      : copy.target_weight.goalBadge.aligned;
     const bmiInsight = targetBmi == null
       ? null
       : targetBmiCategory != null
@@ -172,24 +166,22 @@ export function TargetWeightStep() {
         : `${copy.target_weight.bmiTargetLabel} ${targetBmi.toFixed(1)} · ${copy.target_weight.bmiAgeHint}`;
 
     return {
-      label: copy.target_weight.goalBadge[goal],
+      label: copy.target_weight.goalBadge[nextGoal],
       status: bmiAligned
         ? directionStatus
         : `${directionStatus} · ${copy.target_weight.goalBadge.bmiAdjust}`,
-      recommendation: goal === 'recomp'
-        ? copy.target_weight.goalBadge.flexibleBody
-        : aligned
-          ? copy.target_weight.goalBadge.alignedBody
-          : copy.target_weight.goalBadge.adjustBody,
+      recommendation: goalChanged
+        ? copy.target_weight.goalBadge.changedBody
+        : copy.target_weight.goalBadge.alignedBody,
       bmiInsight,
-      aligned: (goal === 'recomp' || aligned) && bmiAligned,
+      aligned: !goalChanged && bmiAligned,
     };
   })();
 
   return (
     <QuizStepFrame title={copy.target_weight.question} className="gap-2">
-      <div className="flex min-h-[24rem] flex-1 flex-col items-center justify-center">
-        <div className="relative w-56 max-w-[58vw]">
+      <div className="flex flex-1 flex-col items-center">
+        <div className="relative flex w-56 max-w-[58vw] flex-1 flex-col">
           <div className="mb-2 flex items-center justify-center gap-2 sm:pointer-events-none sm:absolute sm:right-full sm:top-1/2 sm:mb-0 sm:mr-3 sm:-translate-y-1/2 sm:justify-start sm:whitespace-nowrap">
             <div className="text-center">
               <span className="sr-only">{copy.target_weight.currentLabel}</span>
@@ -198,7 +190,7 @@ export function TargetWeightStep() {
               </span>
               <span className="ml-0.5 text-sm font-bold text-slate-brand">{copy.target_weight.unit}</span>
             </div>
-            <span aria-hidden="true" className="text-2xl font-extrabold tracking-tight text-[#e6a0a8]">»</span>
+            <span aria-hidden="true" className="text-2xl font-extrabold leading-none tracking-tight text-[#e6a0a8]">»</span>
           </div>
           <MetricInput
             id="target-weight"
@@ -220,7 +212,7 @@ export function TargetWeightStep() {
           role="group"
           aria-label={`${goalBadge.label} ${goalBadge.status}`}
           className={cn(
-            'flex items-start gap-3 rounded-2xl px-4 py-3 shadow-sm',
+            'quiz-goal-badge flex items-start gap-3 rounded-2xl px-4 py-3 shadow-sm',
             goalBadge.aligned ? 'bg-emerald-50 text-emerald-900' : 'bg-amber-50 text-amber-900',
           )}
         >
@@ -241,7 +233,7 @@ export function TargetWeightStep() {
               {goalBadge.bmiInsight ?? goalBadge.recommendation}
             </p>
             {goalBadge.bmiInsight && (
-              <p className="mt-1 text-xs font-semibold leading-relaxed opacity-75">{goalBadge.recommendation}</p>
+              <p className="quiz-goal-badge-note mt-1 text-xs font-semibold leading-relaxed opacity-75">{goalBadge.recommendation}</p>
             )}
           </div>
         </section>
@@ -256,14 +248,18 @@ export function TargetWeightStep() {
       >
         {copy.target_weight.unsure}
       </button>
-      <div className="mt-auto pt-4">
+      <div className="quiz-number-actions mt-auto pt-4">
         <PrimaryButton
           disabled={!valid}
           onClick={() => {
             const parsed = parseMetricDraft(target);
             if (!parsed) return;
-            setData({ target_weight_kg: parsed, target_weight_unsure: false });
-          goToNextQuizStep(router, 'target_weight');
+            setData({
+              target_weight_kg: parsed,
+              target_weight_unsure: false,
+              fitness_goal: goalAfterTargetWeight(data.fitness_goal, data.weight_kg, parsed),
+            });
+            goToNextQuizStep(router, 'target_weight');
           }}
         >
           {copy.common.continue}

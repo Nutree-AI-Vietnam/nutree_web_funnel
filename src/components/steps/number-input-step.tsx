@@ -93,7 +93,7 @@ export function NumberInputStep({
   return (
     <QuizStepFrame title={question} hint={hint}>
       <form
-        className="flex flex-1 flex-col gap-4"
+        className="quiz-number-form flex min-h-0 flex-1 flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
           submit();
@@ -113,7 +113,7 @@ export function NumberInputStep({
           onChange={setValue}
           onBlur={() => setTouched(true)}
         />
-        <div className="mt-auto flex flex-col gap-3 pt-6">
+        <div className="quiz-number-actions mt-auto flex flex-col gap-3 pt-6">
           <PrimaryButton type="submit">{copy.common.continue}</PrimaryButton>
           {optional && (
             <button

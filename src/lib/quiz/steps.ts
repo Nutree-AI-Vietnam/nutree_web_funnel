@@ -1,6 +1,5 @@
 /** Final web funnel order. Keep slugs stable because persisted quiz state uses them. */
 export const QUIZ_STEPS = [
-  'operating_system',
   'goal',
   'name_ask',
   'welcome',
@@ -33,7 +32,6 @@ export type QuizStep = (typeof QUIZ_STEPS)[number];
 export type QuizChapter = 'intent' | 'body' | 'routine' | 'plan';
 
 export const STEP_CHAPTERS: Record<QuizStep, QuizChapter> = {
-  operating_system: 'intent',
   goal: 'intent',
   name_ask: 'intent',
   welcome: 'intent',

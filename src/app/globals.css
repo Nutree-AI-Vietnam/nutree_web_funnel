@@ -265,6 +265,54 @@ h2 {
   display: none;
 }
 
+/* Wheel steps fill the viewport. If even their minimum layout is taller, the shell scrolls instead of clipping. */
+.quiz-shell[data-fit-viewport] .quiz-step-frame {
+  min-height: auto;
+}
+
+/* Short phones: tighten the chrome and the steps built around a wheel so it keeps room. */
+@media (max-height: 700px) {
+  .quiz-shell[data-fit-viewport] {
+    padding-block: max(0.5rem, env(safe-area-inset-top)) max(0.5rem, env(safe-area-inset-bottom));
+  }
+
+  .quiz-shell[data-fit-viewport] .quiz-shell-header {
+    margin-bottom: 0.5rem;
+  }
+
+  .quiz-shell[data-fit-viewport] .quiz-shell-progress {
+    margin-bottom: 0.75rem;
+  }
+
+  .quiz-shell[data-fit-viewport] .quiz-step-frame h1 {
+    font-size: 1.5rem;
+  }
+
+  .quiz-number-form {
+    gap: 0.75rem;
+  }
+
+  .quiz-number-actions {
+    padding-top: 0.75rem;
+  }
+
+  .quiz-goal-badge {
+    padding-block: 0.5rem;
+  }
+
+  .quiz-goal-badge p + p {
+    margin-top: 0.125rem;
+    line-height: 1.45;
+  }
+}
+
+/* Very short phones: drop the badge's explanatory note so the wheel and Continue both fit. */
+@media (max-height: 600px) {
+  .quiz-goal-badge-note {
+    display: none;
+  }
+}
+
 /* Skeletal shimmer for loading states */
 .shimmer {
   position: relative;

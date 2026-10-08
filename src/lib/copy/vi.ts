@@ -18,11 +18,6 @@ export const vi = {
     progress: 'Tiến độ bài quiz',
     stepCount: (current: number, total: number) => `Câu ${current}/${total}`,
   },
-  operatingSystem: {
-    question: 'Bạn đang dùng Android hay iOS?',
-    ios: 'iOS',
-    android: 'Android',
-  },
   metric: {
     decrement: (label: string) => `Giảm ${label}`,
     increment: (label: string) => `Tăng ${label}`,
@@ -134,14 +129,12 @@ export const vi = {
       recomp: 'Cải thiện vóc dáng',
       maintain: 'Giữ cân',
       aligned: 'Phù hợp mục tiêu',
-      adjust: 'Chưa khớp mục tiêu',
+      changed: 'Đã cập nhật mục tiêu',
       bmiAdjust: 'Cần xem lại BMI',
-      flexible: 'Mục tiêu linh hoạt',
       healthyTitle: (value: number) => `Mục tiêu lành mạnh khoảng ${value} kg`,
       healthyBody: 'Mốc này nằm gần vùng BMI lành mạnh dựa trên chiều cao của bạn.',
       alignedBody: 'Hướng cân nặng này khớp với mục tiêu bạn đã chọn.',
-      adjustBody: 'Với mục tiêu hiện tại, hãy chọn một mốc ở hướng ngược lại.',
-      flexibleBody: 'Bạn có thể điều chỉnh mốc này theo cách bạn muốn cải thiện vóc dáng.',
+      changedBody: 'Nutree sẽ lập kế hoạch theo mục tiêu này cho khớp với cân nặng bạn chọn.',
     },
   },
   challenges: {

@@ -18,7 +18,7 @@ export function QuizStepFrame({
   titleClassName?: string;
 }) {
   return (
-    <div className={cn('flex flex-1 flex-col gap-4', className)}>
+    <div className={cn('quiz-step-frame flex min-h-0 flex-1 flex-col gap-4', className)}>
       {(eyebrow || title) && (
         <header>
           {eyebrow && (

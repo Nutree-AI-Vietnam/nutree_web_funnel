@@ -11,8 +11,12 @@ import { useCopy } from '@/lib/copy/use-copy';
 import { goToPreviousQuizStep } from '@/lib/quiz/navigation';
 import { QUIZ_STEPS, stepIndex, type QuizStep } from '@/lib/quiz/steps';
 import { useHydrated } from '@/lib/quiz/store';
+import { cn } from '@/lib/utils';
 
 const LAST_INDEX_KEY = 'quiz:lastIndex';
+
+/** Steps built around a wheel picker; they fill the viewport instead of growing past it. */
+const FIT_VIEWPORT_STEPS: readonly QuizStep[] = ['age', 'height', 'weight', 'target_weight'];
 
 export function QuizShell({ step, children }: { step: QuizStep; children: React.ReactNode }) {
   const router = useRouter();
@@ -52,11 +56,18 @@ export function QuizShell({ step, children }: { step: QuizStep; children: React.
   if (!hydrated) return null;
 
   const progress = (currentStep / QUIZ_STEPS.length) * 100;
+  const fitViewport = FIT_VIEWPORT_STEPS.includes(step);
 
   return (
-    <main className="relative mx-auto flex min-h-dvh w-full max-w-lg flex-col overflow-hidden px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-5">
+    <main
+      data-fit-viewport={fitViewport || undefined}
+      className={cn(
+        'quiz-shell relative mx-auto flex w-full max-w-lg flex-col overflow-hidden px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-5',
+        fitViewport ? 'h-dvh' : 'min-h-dvh',
+      )}
+    >
       <BackgroundBeams className="opacity-70" />
-      <div className="relative z-10 mb-4 flex items-center justify-between gap-3">
+      <div className="quiz-shell-header relative z-10 mb-4 flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={() => goToPreviousQuizStep(router, step)}
@@ -81,7 +92,7 @@ export function QuizShell({ step, children }: { step: QuizStep; children: React.
         aria-valuemin={1}
         aria-valuemax={QUIZ_STEPS.length}
         aria-valuenow={currentStep}
-        className="relative z-10 mb-6 h-1 overflow-hidden rounded-full bg-forest/10"
+        className="quiz-shell-progress relative z-10 mb-6 h-1 overflow-hidden rounded-full bg-forest/10"
       >
         <div
           className="h-full rounded-full bg-[linear-gradient(90deg,#17453a,#1fa892)] transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
@@ -93,7 +104,12 @@ export function QuizShell({ step, children }: { step: QuizStep; children: React.
         initial={reduceMotion ? { opacity: 0 } : { opacity: 0, x: stepDirection * 32 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 flex flex-1 flex-col"
+        className={cn(
+          'quiz-shell-content relative z-10 flex min-h-0 flex-1 flex-col',
+          // Only scrolls when a step outgrows the screen. The negative margins give the
+          // CTA shadow and focus ring room so the scroll box does not clip them.
+          fitViewport && '-mx-5 -mb-6 overflow-y-auto overscroll-contain px-5 pb-6',
+        )}
       >
         {children}
       </motion.div>
