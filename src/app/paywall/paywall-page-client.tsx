@@ -12,6 +12,7 @@ import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
 import { buildRevenueCatPaywall, defaultPaywallPlan, type RevenueCatPaywall } from '@/lib/revenuecat/paywall-plans';
+import { formatPerDay, planPerDay, savingsVersusPriciest } from '@/lib/revenuecat/plan-pricing';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, redemptionUrlFromCheckoutOperation, savePendingRedemptionCorrelation, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
 import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, discountedAmount, discountedFormattedPrice, EXIT_DISCOUNT_CODE, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markPaywallCheckoutPending, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_CODE, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
@@ -359,6 +360,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const offerDiscountPercent = isExitOfferMode ? (exitOfferActive ? EXIT_DISCOUNT_PERCENT : 0) : (welcomeOfferActive ? WELCOME_DISCOUNT_PERCENT : 0);
   const introTotal = discountedFormattedPrice(selectedOriginalPrice, activeLocale === 'vi' ? 'vi-VN' : 'en-US', offerDiscountPercent) ?? originalTotal;
   const renewalTotal = selectedProduct?.price.formattedPrice ?? '…';
+  const priceLocale = activeLocale === 'vi' ? 'vi-VN' : 'en-US';
+  const perDayByPlan = Object.fromEntries(plans.map((plan) => [plan.id, planPerDay(plan.rcPackage.webBillingProduct, offerDiscountPercent)]));
+  const savingsByPlan = savingsVersusPriciest(perDayByPlan);
   const pricesReady = loadState === 'ready';
   const offerNote = exitOfferActive
     ? (activeLocale === 'vi' ? `Ưu đãi giảm ${EXIT_DISCOUNT_PERCENT}% đã được áp dụng cho tất cả gói.` : `Your ${EXIT_DISCOUNT_PERCENT}% offer applies to every plan.`)
@@ -439,14 +443,29 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
               const product = plan.rcPackage.webBillingProduct;
               const originalPrice = product?.introPricePhase?.price ?? product?.price;
               const original = originalPrice?.formattedPrice ?? '…';
-              const intro = discountedFormattedPrice(originalPrice, activeLocale === 'vi' ? 'vi-VN' : 'en-US', offerDiscountPercent) ?? original;
-              const renewal = product?.price.formattedPrice ?? '…';
+              const intro = discountedFormattedPrice(originalPrice, priceLocale, offerDiscountPercent) ?? original;
+              const perDayLabel = formatPerDay(perDayByPlan[plan.id] ?? null, priceLocale);
+              const savings = savingsByPlan[plan.id];
               return <button key={plan.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(plan.id); saveSelectedPaywallPlan(plan.id); trackEvent('offer_selected', { offer_id: plan.id, provider: 'revenuecat' }); }} className={cn('overflow-hidden rounded-[1.4rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-[#ff5b1f] shadow-[0_12px_26px_rgb(255_106_31_/_0.10)]' : 'border-[#dfe7e3] hover:border-teal-brand/60')}>
                 {plan.recommended && <span className="block bg-gradient-to-r from-[#ef4d59] to-[#ff781f] px-3 py-1.5 text-center text-[0.62rem] font-extrabold uppercase tracking-[0.18em] text-white">{copy.paywall.recommendedTag}</span>}
-                <span className={cn('grid min-h-[5.25rem] grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-3', active && 'bg-[#fffafa]')}><span className={cn('grid h-6 w-6 place-items-center rounded-full border-2', active ? 'border-[#111418]' : 'border-[#c8cfcc]')}>{active && <span className="h-3 w-3 rounded-full bg-forest" />}</span><span><span className={cn('block text-[0.98rem] font-extrabold', active ? 'text-[#111418]' : 'text-[#5f6764]')}>{plan.label[activeLocale]}</span>{plan.description[activeLocale] && <span className="mt-1 block text-[0.76rem] font-semibold text-muted-brand">{plan.description[activeLocale]}</span>}{offerDiscountPercent > 0 && <span className="mt-2 block text-[0.78rem] font-bold text-muted-brand line-through">{renewal}</span>}</span><span className="min-w-[5.2rem] rounded-[0.9rem] bg-[#f2f2f1] px-2 py-2 text-center text-[#111418]">{offerDiscountPercent > 0 && <span className="block text-[0.68rem] font-bold leading-none text-muted-brand line-through">{original}</span>}<span className={cn('block text-[1.38rem] font-extrabold leading-none tracking-[-0.04em]', offerDiscountPercent > 0 && 'mt-1')}>{intro}</span><span className="mt-1 block text-[0.58rem] font-extrabold leading-none text-muted-brand">{plan.billingLabel[activeLocale]}</span></span></span>
+                <span className={cn('grid min-h-[5.6rem] grid-cols-[auto_1fr_auto] items-center gap-3 px-3.5 py-3.5', active && 'bg-[#fffafa]')}>
+                  <span className={cn('grid h-6 w-6 place-items-center rounded-full border-2', active ? 'border-[#111418]' : 'border-[#c8cfcc]')}>{active && <span className="h-3 w-3 rounded-full bg-forest" />}</span>
+                  <span className="min-w-0">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className={cn('text-[1rem] font-extrabold leading-tight', active ? 'text-[#111418]' : 'text-[#5f6764]')}>{plan.label[activeLocale]}</span>
+                      {savings !== undefined && <span className="rounded-full bg-[#e3f5ec] px-2 py-0.5 text-[0.64rem] font-extrabold leading-tight text-[#0f6b4a]">{copy.paywall.savePerDay(savings)}</span>}
+                    </span>
+                    {plan.description[activeLocale] && <span className="mt-1 block text-[0.76rem] font-semibold leading-snug text-muted-brand">{plan.description[activeLocale]}</span>}
+                  </span>
+                  <span className={cn('min-w-[5.6rem] rounded-[1rem] px-2.5 py-2.5 text-center', active ? 'bg-[#fff1e8] text-[#c2410c]' : 'bg-[#f2f2f1] text-[#111418]')}>
+                    <span className="block text-[1.42rem] font-extrabold leading-none tracking-[-0.04em] tabular-nums">{perDayLabel ? `~${perDayLabel}` : intro}</span>
+                    <span className="mt-1.5 block text-[0.6rem] font-extrabold uppercase leading-none tracking-[0.08em] opacity-75">{perDayLabel ? `/ ${copy.paywall.perDay}` : plan.billingLabel[activeLocale]}</span>
+                  </span>
+                </span>
               </button>;
             })}
           </div>
+          <p className="mt-3 text-center text-[0.7rem] font-semibold leading-snug text-muted-brand">{copy.paywall.perDayFootnote}</p>
           <p className="mt-5 text-[0.94rem] leading-relaxed text-slate-brand">{paywall.recommendationNote?.[activeLocale] ?? copy.paywall.planRecommendation}</p>
           <p className="mt-1.5 text-sm font-medium text-muted-brand">{offerNote}</p>
           <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta()}</button>

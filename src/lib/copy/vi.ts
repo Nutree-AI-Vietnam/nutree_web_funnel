@@ -604,6 +604,8 @@ export const vi = {
     recommendedTag: 'Phổ biến nhất',
     discountTag: (percent: number) => `Giảm ${percent}%`,
     perDay: 'mỗi ngày',
+    savePerDay: (percent: number) => `Tiết kiệm ${percent}%`,
+    perDayFootnote: 'Giá mỗi ngày là ước tính, tính từ số tiền thanh toán kỳ đầu. Các kỳ sau gia hạn theo giá đầy đủ.',
     appStoreTitle: 'Được người dùng iOS đánh giá cao',
     appStoreRating: '4.7/5',
     appStoreReviews: '4k+ đánh giá App Store',

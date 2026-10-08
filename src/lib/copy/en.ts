@@ -607,6 +607,8 @@ export const en: Copy = {
     recommendedTag: 'Most popular',
     discountTag: (percent: number) => `${percent}% OFF`,
     perDay: 'per day',
+    savePerDay: (percent: number) => `Save ${percent}%`,
+    perDayFootnote: 'Daily price is an estimate based on your first payment. Later periods renew at the full price.',
     appStoreTitle: 'Loved by iOS users',
     appStoreRating: '4.7/5',
     appStoreReviews: '4k+ App Store reviews',
