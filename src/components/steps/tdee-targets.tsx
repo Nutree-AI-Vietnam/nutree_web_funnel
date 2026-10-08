@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
-import { useCopy } from '@/lib/copy/use-copy';
+import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { goToNextQuizStep, goToQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import { bmi, bmiCategory } from '@/lib/tdee/insights';
@@ -13,6 +13,7 @@ const BMI_MAX = 35;
 
 export function TdeeTargetsStep() {
   const vi = useCopy();
+  const locale = useLocale();
   const router = useRouter();
   const data = useQuizStore((s) => s.data);
   const tdee = useQuizStore((s) => s.tdee);
@@ -61,7 +62,7 @@ export function TdeeTargetsStep() {
         <div className="relative mt-3 grid grid-cols-[1fr_auto] items-center gap-3">
           <div>
             <div className="text-[3rem] font-extrabold leading-none text-forest">
-              {displayCalories || Math.round(tdee.calories)}
+              {(displayCalories || Math.round(tdee.calories)).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')}
             </div>
             <div className="mt-1 text-sm font-extrabold text-muted-brand">{vi.tdee_targets.calories}</div>
           </div>

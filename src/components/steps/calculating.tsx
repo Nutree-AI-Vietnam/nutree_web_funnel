@@ -130,7 +130,12 @@ export function CalculatingStep() {
   // succeeds. The local calculation is only a fallback while that response
   // is still pending or unavailable.
   const displayPreview = resolvedPreview ?? preview;
-  const calories = displayPreview ? Math.round((displayPreview.calories * frac) / 5) * 5 : null;
+  // Steps of 5 keep the count-up readable; the final value must match the plan screen exactly.
+  const calories = displayPreview
+    ? frac >= 1
+      ? Math.round(displayPreview.calories)
+      : Math.round((displayPreview.calories * frac) / 5) * 5
+    : null;
   const calorieLocale = locale === 'vi' ? 'vi-VN' : 'en-US';
 
   const macroTotal = displayPreview ? displayPreview.protein_g + displayPreview.carbs_g + displayPreview.fat_g : 1;
