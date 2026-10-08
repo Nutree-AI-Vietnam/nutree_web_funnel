@@ -9,12 +9,11 @@ import { ScratchTicketCover } from '@/components/scratch-ticket-cover';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { activatePaywallExitOffer, expirePaywallOfferState, EXIT_DISCOUNT_CODE, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markExitOfferClaimed, readSelectedPaywallPlan, saveSelectedPaywallPlan } from '@/lib/revenuecat/web';
-import { createRevenueCatPaywallPlans, type RevenueCatPaywallPlanId } from '@/lib/revenuecat/paywall-plans';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { useLocale } from '@/lib/copy/use-copy';
 
 interface ExitOfferPageClientProps {
-  initialPlanId: RevenueCatPaywallPlanId;
+  initialPlanId?: string | null;
   onClaim?: () => void;
   onDismiss?: () => void;
   onMissingLead?: () => void;
@@ -28,9 +27,7 @@ export function ExitOfferPageClient({ initialPlanId, onClaim, onDismiss, onMissi
   const hydrated = useHydrated();
   const lead = useQuizStore((state) => state.lead);
   const purchased = useQuizStore((state) => state.purchased);
-  const plans = createRevenueCatPaywallPlans();
-  const selectedPlanId = readSelectedPaywallPlan() ?? initialPlanId;
-  const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) ?? plans[2];
+  const selectedPlanId = readSelectedPaywallPlan() ?? initialPlanId ?? null;
   const revealTriggered = useRef(false);
   const [revealed, setRevealed] = useState(false);
 
@@ -72,14 +69,14 @@ export function ExitOfferPageClient({ initialPlanId, onClaim, onDismiss, onMissi
     }
     markExitOfferClaimed();
     activatePaywallExitOffer();
-    saveSelectedPaywallPlan(selectedPlan.id);
-    trackEvent('exit_offer_claimed', { discount_percent: EXIT_DISCOUNT_PERCENT, discount_code: EXIT_DISCOUNT_CODE, plan: selectedPlan.id });
+    if (selectedPlanId) saveSelectedPaywallPlan(selectedPlanId);
+    trackEvent('exit_offer_claimed', { discount_percent: EXIT_DISCOUNT_PERCENT, discount_code: EXIT_DISCOUNT_CODE, plan: selectedPlanId });
     onClaim?.();
   };
 
   const returnToPlan = () => {
     expirePaywallOfferState('exit');
-    saveSelectedPaywallPlan(selectedPlan.id);
+    if (selectedPlanId) saveSelectedPaywallPlan(selectedPlanId);
     onDismiss?.();
   };
 

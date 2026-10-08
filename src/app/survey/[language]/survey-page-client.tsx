@@ -10,7 +10,6 @@ import { LandingPage } from '@/components/landing-page';
 import { QuizShell } from '@/components/quiz-shell';
 import { WelcomeGiftScreen } from '@/components/welcome-gift-screen';
 import { captureAttribution } from '@/lib/analytics/attribution';
-import { isOneWeekPlanEnabled, type RevenueCatPaywallPlanId } from '@/lib/revenuecat/paywall-plans';
 import { clearPaywallCheckoutPending, hasExitOfferBeenClaimed, hasPaywallCheckoutPending, readSelectedPaywallPlan } from '@/lib/revenuecat/web';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import type { FunnelScreen } from '@/lib/quiz/store';
@@ -76,11 +75,10 @@ export function SurveyPageClient({ language }: { language: Locale }) {
         router.replace('/postcheckout');
         return null;
       }
-      const planId = (readSelectedPaywallPlan() ?? '12-week') as RevenueCatPaywallPlanId;
-      return <ExitOfferPageClient initialPlanId={planId} onClaim={() => goToScreen('paywall')} onDismiss={() => goToScreen('paywall')} onMissingLead={() => goToScreen('email')} onAlreadyClaimed={() => goToScreen('paywall')} />;
+      return <ExitOfferPageClient initialPlanId={readSelectedPaywallPlan()} onClaim={() => goToScreen('paywall')} onDismiss={() => goToScreen('paywall')} onMissingLead={() => goToScreen('email')} onAlreadyClaimed={() => goToScreen('paywall')} />;
     }
     case 'paywall':
-      return <PaywallPageClient initialCountryCode={language === 'vi' ? 'VN' : 'US'} exitOfferMode={false} oneWeekPlanEnabled={isOneWeekPlanEnabled()} onMissingLead={() => goToScreen('email')} onCheckoutCancelled={() => {
+      return <PaywallPageClient initialCountryCode={language === 'vi' ? 'VN' : 'US'} exitOfferMode={false} onMissingLead={() => goToScreen('email')} onCheckoutCancelled={() => {
         if (!isUserPurchased({ purchased, lead })) {
           goToScreen('exit-offer');
         }

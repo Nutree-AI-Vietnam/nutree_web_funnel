@@ -1,6 +1,6 @@
 'use client';
 
-import { ErrorCode, Purchases, PurchasesError, type Package, type Purchases as PurchasesInstance } from '@revenuecat/purchases-js';
+import { ErrorCode, Purchases, PurchasesError, type Purchases as PurchasesInstance } from '@revenuecat/purchases-js';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -11,25 +11,23 @@ import { identifyMetaUser } from '@/lib/analytics/meta-identity';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
-import { createRevenueCatPaywallPlans, type RevenueCatPaywallPlan } from '@/lib/revenuecat/paywall-plans';
+import { buildRevenueCatPaywall, defaultPaywallPlan, type RevenueCatPaywall } from '@/lib/revenuecat/paywall-plans';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, redemptionUrlFromCheckoutOperation, savePendingRedemptionCorrelation, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
-import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, discountedAmount, discountedFormattedPrice, EXIT_DISCOUNT_CODE, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markPaywallCheckoutPending, packagesByPlan, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_CODE, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
+import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, discountedAmount, discountedFormattedPrice, EXIT_DISCOUNT_CODE, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markPaywallCheckoutPending, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_CODE, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
 import { clearCheckoutEmail, readCheckoutEmail } from '@/lib/revenuecat/checkout-email';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 
 interface PaywallPageClientProps {
   initialCountryCode?: string;
-  initialPlanId?: RevenueCatPaywallPlan['id'];
+  initialPlanId?: string;
   exitOfferMode: boolean;
-  oneWeekPlanEnabled: boolean;
   onMissingLead?: () => void;
   onCheckoutCancelled?: () => void;
 }
 
 type LoadState = 'loading' | 'ready' | 'error';
-type PlanPackages = Partial<Record<RevenueCatPaywallPlan['id'], Package>>;
 type CheckoutDiscount = 'welcome' | 'exit' | 'none';
 type PaywallOfferKind = 'welcome' | 'exit';
 
@@ -79,7 +77,7 @@ function isUserCancelledPurchase(error: unknown): boolean {
     || (typeof error === 'object' && error !== null && 'errorCode' in error && (error as { errorCode?: unknown }).errorCode === ErrorCode.UserCancelledError);
 }
 
-export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOfferMode, oneWeekPlanEnabled, onMissingLead, onCheckoutCancelled }: PaywallPageClientProps) {
+export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOfferMode, onMissingLead, onCheckoutCancelled }: PaywallPageClientProps) {
   const router = useRouter();
   const copy = useCopy();
   const hydrated = useHydrated();
@@ -93,12 +91,12 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const setLead = useQuizStore((state) => state.setLead);
   const setLocale = useQuizStore((state) => state.setLocale);
   const setTdee = useQuizStore((state) => state.setTdee);
-  const [selectedId, setSelectedId] = useState<RevenueCatPaywallPlan['id']>(() => initialPlanId ?? readSelectedPaywallPlan() ?? '12-week');
+  const [selectedId, setSelectedId] = useState<string | null>(() => initialPlanId ?? readSelectedPaywallPlan());
   const [offerStateReady, setOfferStateReady] = useState(false);
   const [offerKind, setOfferKind] = useState<PaywallOfferKind>(exitOfferMode ? 'exit' : 'welcome');
   const [offerExpiresAt, setOfferExpiresAt] = useState<number | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
-  const [planPackages, setPlanPackages] = useState<PlanPackages>({});
+  const [paywall, setPaywall] = useState<RevenueCatPaywall>({ plans: [], recommendationNote: null });
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -110,12 +108,12 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const checkoutInFlightRef = useRef(false);
   const purchaseLeadIdRef = useRef<string | null>(null);
   const redemptionLinkHashRef = useRef<string | null>(null);
-  const revenueCatPaywallPlans = useMemo(() => createRevenueCatPaywallPlans(oneWeekPlanEnabled), [oneWeekPlanEnabled]);
+  const plans = paywall.plans;
 
   const countryCode = initialCountryCode ?? (isLocalPreviewHost() ? getLocalPreviewCountry() : undefined);
   const selected = useMemo(
-    () => revenueCatPaywallPlans.find((plan) => plan.id === selectedId) ?? revenueCatPaywallPlans[1],
-    [revenueCatPaywallPlans, selectedId],
+    () => plans.find((plan) => plan.id === selectedId) ?? defaultPaywallPlan(plans),
+    [plans, selectedId],
   );
 
   useEffect(() => {
@@ -170,7 +168,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
 
     async function loadRevenueCatOffering() {
       try {
-        const config = readRevenueCatWebConfig(undefined, oneWeekPlanEnabled);
+        const config = readRevenueCatWebConfig();
         if (!lead) throw new Error('Your checkout draft is unavailable. Return to email capture to continue.');
         const pendingCorrelation = readPendingRedemptionCorrelation();
         const pendingAppUserId = pendingCorrelation?.leadId === lead.lead_id ? pendingCorrelation.appUserId : null;
@@ -192,13 +190,11 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         });
         const offering = offerings.all[config.offeringIdentifier];
         if (!offering) throw new Error('RevenueCat could not find the configured web offering.');
-        const nextPackages = packagesByPlan(offering.availablePackages, config.plans);
-        if (config.plans.some((plan) => !nextPackages[plan.id])) {
-          throw new Error('RevenueCat offering is missing one or more configured Nutree packages.');
-        }
+        const nextPaywall = buildRevenueCatPaywall(offering);
+        if (!nextPaywall.plans.length) throw new Error('RevenueCat offering has no packages to show.');
         if (!cancelled) {
           setError(null);
-          setPlanPackages(nextPackages);
+          setPaywall(nextPaywall);
           setLoadState('ready');
         }
       } catch (loadError) {
@@ -211,7 +207,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
 
     void loadRevenueCatOffering();
     return () => { cancelled = true; };
-  }, [countryCode, lead, oneWeekPlanEnabled]);
+  }, [countryCode, lead]);
 
   const correlatePurchasedCustomer = useCallback(async () => {
     if (loadState !== 'ready' || !lead || !anonymousAppUserIdRef.current || !redemptionLinkHashRef.current) return;
@@ -243,9 +239,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   }, [correlatePurchasedCustomer, lead, redemption]);
 
   const openCheckout = useCallback(async (discount: CheckoutDiscount) => {
-    const rcPackage = planPackages[selected.id];
+    const plan = selected;
     if (checkoutInFlightRef.current || purchaseLeadIdRef.current === lead?.lead_id) return;
-    if (!purchasesRef.current || !lead || !rcPackage || !anonymousAppUserIdRef.current) {
+    if (!purchasesRef.current || !lead || !plan || !anonymousAppUserIdRef.current) {
       setError('RevenueCat checkout is still loading. Please try again in a moment.');
       return;
     }
@@ -266,18 +262,19 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       clearPaywallCheckoutPending();
       if (isExitOffer || hasExitOfferBeenClaimed() || isUserPurchased({ purchased, lead })) return;
       setError(null);
-      saveSelectedPaywallPlan(selected.id);
-      trackEvent('revenuecat_checkout_cancelled', { plan: selected.id });
-      trackEvent('exit_offer_shown', { plan: selected.id, discount_code: EXIT_DISCOUNT_CODE });
+      saveSelectedPaywallPlan(plan.id);
+      trackEvent('revenuecat_checkout_cancelled', { plan: plan.id });
+      trackEvent('exit_offer_shown', { plan: plan.id, discount_code: EXIT_DISCOUNT_CODE });
       onCheckoutCancelled?.();
     };
+    const { rcPackage } = plan;
     const offerPercent = isExitOffer ? EXIT_DISCOUNT_PERCENT : isWelcomeOffer ? WELCOME_DISCOUNT_PERCENT : 0;
     const billedPrice = rcPackage.webBillingProduct?.introPricePhase?.price ?? rcPackage.webBillingProduct?.price;
     const billedValue = discountedAmount(billedPrice, offerPercent);
     const checkoutCommerce = billedValue != null && billedPrice
       ? { value: billedValue, currency: billedPrice.currency }
       : {};
-    trackEvent('revenuecat_checkout_started', { plan: selected.id, package_id: rcPackage.identifier, country_code: countryCode ?? 'auto', ...checkoutCommerce });
+    trackEvent('revenuecat_checkout_started', { plan: plan.id, package_id: rcPackage.identifier, country_code: countryCode ?? 'auto', ...checkoutCommerce });
 
     try {
       markPaywallCheckoutPending();
@@ -296,10 +293,10 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       const purchaseResult = await purchasesRef.current.purchase(purchaseParameters);
       clearPaywallCheckoutPending();
       setPurchased(true);
-      trackEvent('revenuecat_checkout_completed', { plan: selected.id, ...checkoutCommerce });
+      trackEvent('revenuecat_checkout_completed', { plan: plan.id, ...checkoutCommerce });
       purchaseLeadIdRef.current = lead.lead_id;
       const redeemUrl = purchaseResult.redemptionInfo?.redeemUrl
-        ?? await redemptionUrlFromCheckoutOperation(readRevenueCatWebConfig(undefined, oneWeekPlanEnabled).apiKey, purchaseResult.operationSessionId);
+        ?? await redemptionUrlFromCheckoutOperation(readRevenueCatWebConfig().apiKey, purchaseResult.operationSessionId);
       redemptionLinkHashRef.current = await redemptionLinkHash(redeemUrl);
       if (!redemptionLinkHashRef.current) {
         setRedemption({ kind: 'recovery' });
@@ -320,7 +317,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       checkoutInFlightRef.current = false;
       setBusy(false);
     }
-  }, [activeLocale, countryCode, correlatePurchasedCustomer, data.name, lead, onCheckoutCancelled, oneWeekPlanEnabled, planPackages, purchased, router, selected, setPurchased]);
+  }, [activeLocale, countryCode, correlatePurchasedCustomer, data.name, lead, onCheckoutCancelled, purchased, router, selected, setPurchased]);
 
   const requestCheckout = () => {
     if (lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id) {
@@ -351,7 +348,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     { icon: '🥦', label: copy.paywall.calorieLabel, value: tdee ? `${Math.round(tdee.calories).toLocaleString(activeLocale === 'vi' ? 'vi-VN' : 'en-US')} kcal` : copy.paywall.calorieFallback },
     { icon: '🚶', label: copy.paywall.activityLabel, value: copy.paywall.activityValue(data.training_days_per_week ?? 0) },
   ];
-  const selectedProduct = planPackages[selected.id]?.webBillingProduct;
+  const selectedProduct = selected?.rcPackage.webBillingProduct;
+  const selectedLabel = selected?.label[activeLocale] ?? '';
+  const renewalCadence = selected?.billingLabel[activeLocale].toLowerCase() ?? '';
   const selectedOriginalPrice = selectedProduct?.introPricePhase?.price ?? selectedProduct?.price;
   const originalTotal = selectedOriginalPrice?.formattedPrice ?? '…';
   const isExitOfferMode = offerKind === 'exit';
@@ -368,7 +367,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       : welcomeOfferActive
         ? copy.paywall.planResearchNote
         : (activeLocale === 'vi' ? 'Ưu đãi đã hết hạn. Giá đã trở về giá gốc cho tất cả gói.' : 'The offer has expired. Prices have returned to the original amount for every plan.');
-  const renewalCadence = activeLocale === 'vi' ? `mỗi ${selected.label.vi}` : `every ${selected.label.en.replace('-week', ' weeks')}`;
   const priceSummary = exitOfferActive
     ? (activeLocale === 'vi'
       ? `Ưu đãi giảm ${EXIT_DISCOUNT_PERCENT}% áp dụng cho mọi gói. Bạn thanh toán ${introTotal} hôm nay, sau đó gói tự gia hạn theo giá đầy đủ ${renewalTotal} ${renewalCadence} cho đến khi bạn hủy.`
@@ -378,7 +376,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         ? `Ưu đãi đã hết hạn. Bạn thanh toán ${originalTotal} hôm nay, sau đó gói tự gia hạn theo giá đầy đủ ${renewalTotal} ${renewalCadence} cho đến khi bạn hủy.`
         : `The offer has expired. You pay ${originalTotal} today, then ${renewalTotal} ${renewalCadence} until you cancel.`)
       : welcomeOfferActive
-        ? copy.paywall.exactPriceSummary(originalTotal, introTotal, renewalTotal, selected.label[activeLocale])
+        ? copy.paywall.exactPriceSummary(introTotal, renewalTotal, selectedLabel, renewalCadence)
         : (activeLocale === 'vi'
           ? `Ưu đãi đã hết hạn. Bạn thanh toán ${originalTotal} hôm nay, sau đó gói tự gia hạn theo giá đầy đủ ${renewalTotal} ${renewalCadence} cho đến khi bạn hủy.`
           : `The offer has expired. You pay ${originalTotal} today, then ${renewalTotal} ${renewalCadence} until you cancel.`);
@@ -400,11 +398,11 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const confirmPriceCopy = activeLocale === 'vi'
     ? {
         first: offerDiscountPercent > 0 ? `Giảm ${offerDiscountPercent}% cho lần thanh toán đầu tiên.` : 'Lần thanh toán đầu theo giá đầy đủ.',
-        renewal: `Sau đó, gói tự động gia hạn theo giá đầy đủ ${selected.billingLabel.vi.toLowerCase()}. Bạn có thể hủy bất cứ lúc nào.`,
+        renewal: `Sau đó, gói tự động gia hạn theo giá đầy đủ ${renewalCadence}. Bạn có thể hủy bất cứ lúc nào.`,
       }
     : {
         first: offerDiscountPercent > 0 ? `${offerDiscountPercent}% off your first payment.` : 'The first payment is at full price.',
-        renewal: `After that, the plan renews at full price ${selected.billingLabel.en.toLowerCase()}. Cancel anytime.`,
+        renewal: `After that, the plan renews at full price ${renewalCadence}. Cancel anytime.`,
       };
 
   if (!hydrated || !lead || !offerStateReady) return null;
@@ -435,20 +433,21 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
           <h2 className="text-center text-[1.08rem] font-extrabold tracking-[-0.02em] text-forest sm:text-[1.18rem]">{copy.paywall.planTitle}</h2>
           <p className={cn('mt-4 rounded-[1.15rem] px-3 py-2.5 text-center text-[0.84rem] font-extrabold tabular-nums', exitOfferActive ? 'bg-[#FFF7ED] text-[#9A3412] ring-1 ring-[#FDBA74]' : 'bg-[#e8f4ef] text-forest')}>{timerLabel}</p>
           <div role="radiogroup" aria-label={copy.paywall.selectPlanAria} className="mt-5 grid gap-3">
-            {revenueCatPaywallPlans.map((plan) => {
-              const active = plan.id === selected.id;
-              const product = planPackages[plan.id]?.webBillingProduct;
+            {!plans.length && loadState === 'loading' && [0, 1, 2].map((index) => <div key={index} aria-hidden="true" className="min-h-[5.25rem] animate-pulse rounded-[1.4rem] border-2 border-[#dfe7e3] bg-[#f6f8f7]" />)}
+            {plans.map((plan) => {
+              const active = plan.id === selected?.id;
+              const product = plan.rcPackage.webBillingProduct;
               const originalPrice = product?.introPricePhase?.price ?? product?.price;
               const original = originalPrice?.formattedPrice ?? '…';
               const intro = discountedFormattedPrice(originalPrice, activeLocale === 'vi' ? 'vi-VN' : 'en-US', offerDiscountPercent) ?? original;
               const renewal = product?.price.formattedPrice ?? '…';
               return <button key={plan.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(plan.id); saveSelectedPaywallPlan(plan.id); trackEvent('offer_selected', { offer_id: plan.id, provider: 'revenuecat' }); }} className={cn('overflow-hidden rounded-[1.4rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-[#ff5b1f] shadow-[0_12px_26px_rgb(255_106_31_/_0.10)]' : 'border-[#dfe7e3] hover:border-teal-brand/60')}>
                 {plan.recommended && <span className="block bg-gradient-to-r from-[#ef4d59] to-[#ff781f] px-3 py-1.5 text-center text-[0.62rem] font-extrabold uppercase tracking-[0.18em] text-white">{copy.paywall.recommendedTag}</span>}
-                <span className={cn('grid min-h-[5.25rem] grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-3', active && 'bg-[#fffafa]')}><span className={cn('grid h-6 w-6 place-items-center rounded-full border-2', active ? 'border-[#111418]' : 'border-[#c8cfcc]')}>{active && <span className="h-3 w-3 rounded-full bg-forest" />}</span><span><span className={cn('block text-[0.98rem] font-extrabold', active ? 'text-[#111418]' : 'text-[#5f6764]')}>{plan.label[activeLocale]}</span><span className="mt-1 block text-[0.76rem] font-semibold text-muted-brand">{plan.description[activeLocale]}</span>{offerDiscountPercent > 0 && <span className="mt-2 block text-[0.78rem] font-bold text-muted-brand line-through">{renewal}</span>}</span><span className="min-w-[5.2rem] rounded-[0.9rem] bg-[#f2f2f1] px-2 py-2 text-center text-[#111418]">{offerDiscountPercent > 0 && <span className="block text-[0.68rem] font-bold leading-none text-muted-brand line-through">{original}</span>}<span className={cn('block text-[1.38rem] font-extrabold leading-none tracking-[-0.04em]', offerDiscountPercent > 0 && 'mt-1')}>{intro}</span><span className="mt-1 block text-[0.58rem] font-extrabold leading-none text-muted-brand">{plan.billingLabel[activeLocale]}</span></span></span>
+                <span className={cn('grid min-h-[5.25rem] grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-3', active && 'bg-[#fffafa]')}><span className={cn('grid h-6 w-6 place-items-center rounded-full border-2', active ? 'border-[#111418]' : 'border-[#c8cfcc]')}>{active && <span className="h-3 w-3 rounded-full bg-forest" />}</span><span><span className={cn('block text-[0.98rem] font-extrabold', active ? 'text-[#111418]' : 'text-[#5f6764]')}>{plan.label[activeLocale]}</span>{plan.description[activeLocale] && <span className="mt-1 block text-[0.76rem] font-semibold text-muted-brand">{plan.description[activeLocale]}</span>}{offerDiscountPercent > 0 && <span className="mt-2 block text-[0.78rem] font-bold text-muted-brand line-through">{renewal}</span>}</span><span className="min-w-[5.2rem] rounded-[0.9rem] bg-[#f2f2f1] px-2 py-2 text-center text-[#111418]">{offerDiscountPercent > 0 && <span className="block text-[0.68rem] font-bold leading-none text-muted-brand line-through">{original}</span>}<span className={cn('block text-[1.38rem] font-extrabold leading-none tracking-[-0.04em]', offerDiscountPercent > 0 && 'mt-1')}>{intro}</span><span className="mt-1 block text-[0.58rem] font-extrabold leading-none text-muted-brand">{plan.billingLabel[activeLocale]}</span></span></span>
               </button>;
             })}
           </div>
-          <p className="mt-5 text-[0.94rem] leading-relaxed text-slate-brand">{copy.paywall.planRecommendation}</p>
+          <p className="mt-5 text-[0.94rem] leading-relaxed text-slate-brand">{paywall.recommendationNote?.[activeLocale] ?? copy.paywall.planRecommendation}</p>
           <p className="mt-1.5 text-sm font-medium text-muted-brand">{offerNote}</p>
           <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta()}</button>
           <p className="mt-4 text-center text-sm leading-relaxed text-muted-brand">{priceSummary}</p>
@@ -470,7 +469,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
           <section className="w-full max-w-sm rounded-[2rem] bg-white p-7 text-center shadow-[0_28px_80px_rgb(10_18_16_/_0.34)]">
             <h2 id="checkout-confirm-title" className="text-2xl font-extrabold tracking-[-0.04em] text-forest">{confirmCopy.title}</h2>
             <p className="mt-3 text-sm font-medium leading-relaxed text-muted-brand">{confirmCopy.body}</p>
-            <div className="mt-5 rounded-2xl bg-mist px-4 py-3 text-left"><p className="font-extrabold text-forest">{selected.label[activeLocale]}</p><p className="mt-1 text-sm font-extrabold text-forest">{confirmPriceCopy.first}</p><p className="mt-1 text-xs font-semibold leading-relaxed text-muted-brand">{confirmPriceCopy.renewal}</p></div>
+            <div className="mt-5 rounded-2xl bg-mist px-4 py-3 text-left"><p className="font-extrabold text-forest">{selectedLabel}</p><p className="mt-1 text-sm font-extrabold text-forest">{confirmPriceCopy.first}</p><p className="mt-1 text-xs font-semibold leading-relaxed text-muted-brand">{confirmPriceCopy.renewal}</p></div>
             <button autoFocus type="button" onClick={() => { setShowCheckoutConfirm(false); void openCheckout(exitOfferActive ? 'exit' : welcomeOfferActive ? 'welcome' : 'none'); }} className="mt-6 min-h-13 w-full rounded-2xl bg-forest px-5 font-extrabold text-white transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">{confirmCopy.continue}</button>
             <button type="button" onClick={() => setShowCheckoutConfirm(false)} className="mt-3 min-h-11 w-full text-sm font-bold text-muted-brand underline underline-offset-4">{confirmCopy.dismiss}</button>
           </section>
