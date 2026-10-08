@@ -104,7 +104,7 @@ export const vi = {
     options: [
       { key: 'cut', label: 'Giảm cân' },
       { key: 'bulk', label: 'Tăng cơ' },
-      { key: 'recomp', label: 'Cải thiện vóc dáng' },
+      { key: 'recomp', label: 'Tăng cơ giảm mỡ' },
       { key: 'maintain', label: 'Giữ cân và ăn rõ ràng hơn' },
     ],
   },
@@ -126,7 +126,7 @@ export const vi = {
     goalBadge: {
       cut: 'Giảm cân',
       bulk: 'Tăng cân',
-      recomp: 'Cải thiện vóc dáng',
+      recomp: 'Tăng cơ giảm mỡ',
       maintain: 'Giữ cân',
       aligned: 'Phù hợp mục tiêu',
       changed: 'Đã cập nhật mục tiêu',
@@ -631,7 +631,7 @@ export const vi = {
     goalCut: 'Giảm cân bền vững',
     goalBulk: 'Tăng cân có kiểm soát',
     goalMaintain: 'Giữ dáng và khỏe hơn',
-    goalRecomp: 'Cải thiện vóc dáng',
+    goalRecomp: 'Tăng cơ giảm mỡ',
     personalizedFor: 'Cá nhân hóa cho:',
     genderMale: 'Nam',
     genderFemale: 'Nữ',

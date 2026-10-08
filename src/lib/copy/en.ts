@@ -107,7 +107,7 @@ export const en: Copy = {
     options: [
       { key: 'cut', label: 'Lose fat' },
       { key: 'bulk', label: 'Build muscle' },
-      { key: 'recomp', label: 'Get more toned' },
+      { key: 'recomp', label: 'Build muscle, lose fat' },
       { key: 'maintain', label: 'Maintain and eat with clarity' },
     ],
   },
@@ -129,7 +129,7 @@ export const en: Copy = {
     goalBadge: {
       cut: 'Lose weight',
       bulk: 'Gain weight',
-      recomp: 'Improve body shape',
+      recomp: 'Build muscle, lose fat',
       maintain: 'Maintain weight',
       aligned: 'Fits your goal',
       changed: 'Goal updated',

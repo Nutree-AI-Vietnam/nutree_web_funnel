@@ -174,7 +174,7 @@ export function TargetWeightStep() {
         ? copy.target_weight.goalBadge.changedBody
         : copy.target_weight.goalBadge.alignedBody,
       bmiInsight,
-      aligned: !goalChanged && bmiAligned,
+      healthy: targetBmiCategory === 'normal' || (targetBmiCategory == null && !goalChanged),
     };
   })();
 
@@ -213,17 +213,17 @@ export function TargetWeightStep() {
           aria-label={`${goalBadge.label} ${goalBadge.status}`}
           className={cn(
             'quiz-goal-badge flex items-start gap-3 rounded-2xl px-4 py-3 shadow-sm',
-            goalBadge.aligned ? 'bg-emerald-50 text-emerald-900' : 'bg-amber-50 text-amber-900',
+            goalBadge.healthy ? 'bg-emerald-50 text-emerald-900' : 'bg-amber-50 text-amber-900',
           )}
         >
           <span
             aria-hidden="true"
             className={cn(
               'mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-sm font-black text-white',
-              goalBadge.aligned ? 'bg-emerald-500' : 'bg-amber-500',
+              goalBadge.healthy ? 'bg-emerald-500' : 'bg-amber-500',
             )}
           >
-            {goalBadge.aligned ? '✓' : '!'}
+            {goalBadge.healthy ? '✓' : '!'}
           </span>
           <div className="min-w-0">
             <p className="text-sm font-extrabold leading-snug">
