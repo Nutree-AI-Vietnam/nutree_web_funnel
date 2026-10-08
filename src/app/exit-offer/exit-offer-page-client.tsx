@@ -89,11 +89,11 @@ export function ExitOfferPageClient({ initialPlanId, onClaim, onDismiss, onMissi
       </div>
 
       <section className="flex flex-1 flex-col justify-center text-center">
-        <p className="text-[0.78rem] font-extrabold uppercase tracking-[0.28em] text-teal-brand">{copy.paywall.exitOfferEyebrow}</p>
+        <p className="text-[0.78rem] font-extrabold uppercase tracking-[0.28em] text-rose-600">{copy.paywall.exitOfferEyebrow}</p>
         <h1 className="mx-auto mt-3 max-w-[22rem] text-[1.78rem] font-extrabold leading-[1.08] tracking-[-0.035em] text-forest sm:text-[2.08rem]">{copy.paywall.exitOfferTitle}</h1>
         <p className="mx-auto mt-3 max-w-[21rem] text-[1rem] font-semibold leading-relaxed text-slate-brand">{revealed ? copy.paywall.exitOfferRevealedHeadline : copy.paywall.exitOfferBody}</p>
 
-        <div className="relative mx-auto mt-8 flex min-h-[9.5rem] w-[75%] max-w-[19rem] flex-col items-center justify-center overflow-hidden rounded-[1.4rem] bg-[linear-gradient(135deg,#12473d_0%,#23a890_52%,#63dbc9_100%)] px-6 py-6 text-center text-white shadow-[0_24px_64px_rgb(23_69_58_/_0.20),0_0_0_14px_rgb(229_247_241_/_0.76)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99] sm:min-h-[10.5rem] sm:rounded-[1.6rem]" aria-label={revealed ? copy.paywall.exitOfferTicketAria : copy.paywall.exitOfferScratchAria} role="img">
+        <div className="relative mx-auto mt-8 flex min-h-[9.5rem] w-[75%] max-w-[19rem] flex-col items-center justify-center overflow-hidden rounded-[1.4rem] bg-[linear-gradient(135deg,#9f1239_0%,#e11d48_52%,#fb7185_100%)] px-6 py-6 text-center text-white shadow-[0_24px_64px_rgb(159_18_57_/_0.22),0_0_0_14px_rgb(255_228_230_/_0.76)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99] sm:min-h-[10.5rem] sm:rounded-[1.6rem]" aria-label={revealed ? copy.paywall.exitOfferTicketAria : copy.paywall.exitOfferScratchAria} role="img">
           <span className="absolute left-0 top-1/2 h-12 w-6 -translate-x-1/2 -translate-y-1/2 rounded-r-full bg-mist/95" />
           <span className="absolute right-0 top-1/2 h-12 w-6 -translate-y-1/2 translate-x-1/2 rounded-l-full bg-mist/95" />
           <span className="absolute inset-0 bg-[radial-gradient(circle_at_35%_35%,rgb(255_255_255_/_0.14),transparent_28%),radial-gradient(circle_at_82%_76%,rgb(255_255_255_/_0.12),transparent_32%)]" />
@@ -111,7 +111,7 @@ export function ExitOfferPageClient({ initialPlanId, onClaim, onDismiss, onMissi
       </section>
 
       <div className="grid gap-3">
-      <button type="button" onClick={claimExitOffer} className="min-h-14 w-full rounded-2xl bg-forest px-6 text-base font-extrabold tracking-[-0.01em] text-white shadow-[0_16px_34px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99]">{revealed ? copy.paywall.exitOfferCta : copy.paywall.exitOfferLockedCta}</button>
+      <button type="button" onClick={claimExitOffer} className="min-h-14 w-full rounded-2xl bg-rose-600 px-6 text-base font-extrabold tracking-[-0.01em] text-white shadow-[0_16px_34px_rgb(159_18_57_/_0.28)] transition hover:bg-rose-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-rose-500/25 active:scale-[0.99]">{revealed ? copy.paywall.exitOfferCta : copy.paywall.exitOfferLockedCta}</button>
         <button type="button" onClick={returnToPlan} className="min-h-11 w-full text-sm font-bold text-muted-brand underline underline-offset-4">{copy.paywall.exitOfferDismiss}</button>
       </div>
     </ConversionShell>
