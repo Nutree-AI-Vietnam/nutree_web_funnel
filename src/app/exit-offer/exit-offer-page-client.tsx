@@ -89,16 +89,17 @@ export function ExitOfferPageClient({ initialPlanId, onClaim, onDismiss, onMissi
       </div>
 
       <section className="flex flex-1 flex-col justify-center text-center">
-        <h1 className="mx-auto mt-3 max-w-[23rem] text-[1.78rem] font-extrabold leading-[1.08] tracking-[-0.035em] text-forest sm:text-[2.08rem]">{copy.paywall.exitOfferTitle}</h1>
-        <p className="mx-auto mt-3 max-w-[22rem] text-[1rem] font-semibold leading-relaxed text-slate-brand">{revealed ? copy.paywall.exitOfferRevealedHeadline : copy.paywall.exitOfferBody}</p>
+        <p className="text-[0.78rem] font-extrabold uppercase tracking-[0.28em] text-teal-brand">{copy.paywall.exitOfferEyebrow}</p>
+        <h1 className="mx-auto mt-3 max-w-[22rem] text-[1.78rem] font-extrabold leading-[1.08] tracking-[-0.035em] text-forest sm:text-[2.08rem]">{copy.paywall.exitOfferTitle}</h1>
+        <p className="mx-auto mt-3 max-w-[21rem] text-[1rem] font-semibold leading-relaxed text-slate-brand">{revealed ? copy.paywall.exitOfferRevealedHeadline : copy.paywall.exitOfferBody}</p>
 
-        <div className="relative mx-auto mt-8 aspect-[2.18/1] w-[calc(100%+1rem)] max-w-[27rem] overflow-hidden rounded-[1.55rem] bg-[linear-gradient(135deg,#8b1e3f_0%,#ef4d59_52%,#ff8a1f_100%)] px-6 py-8 text-center text-white shadow-[0_30px_82px_rgb(239_77_89_/_0.24),0_0_0_24px_rgb(255_240_235_/_0.82)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-orange-300/25 active:scale-[0.99] sm:rounded-[1.75rem]" aria-label={revealed ? copy.paywall.exitOfferTicketAria : copy.paywall.exitOfferScratchAria} role="img">
-          <span className="absolute left-0 top-1/2 h-14 w-7 -translate-x-1/2 -translate-y-1/2 rounded-r-full bg-mist/95" />
-          <span className="absolute right-0 top-1/2 h-14 w-7 -translate-y-1/2 translate-x-1/2 rounded-l-full bg-mist/95" />
-          <span className="absolute inset-0 bg-[radial-gradient(circle_at_35%_35%,rgb(255_255_255_/_0.18),transparent_28%),radial-gradient(circle_at_82%_76%,rgb(255_255_255_/_0.14),transparent_32%)]" />
-          <span className="relative mt-2 block text-[0.72rem] font-extrabold uppercase tracking-[0.36em] text-white/88">✨ {copy.paywall.exitOfferEyebrow} ✨</span>
-          <span className="relative mt-3 block text-[4.05rem] font-extrabold leading-[0.88] tracking-[-0.055em] text-white/92 sm:text-[4.9rem]">{EXIT_DISCOUNT_PERCENT}%</span>
-          <span className="relative mt-3 block text-[1.02rem] font-extrabold tracking-[-0.01em] text-white/90">{revealed ? copy.paywall.exitOfferRevealedHeadline : copy.paywall.exitOfferScratchSubhead}</span>
+        <div className="relative mx-auto mt-8 flex min-h-[9.5rem] w-[75%] max-w-[19rem] flex-col items-center justify-center overflow-hidden rounded-[1.4rem] bg-[linear-gradient(135deg,#12473d_0%,#23a890_52%,#63dbc9_100%)] px-6 py-6 text-center text-white shadow-[0_24px_64px_rgb(23_69_58_/_0.20),0_0_0_14px_rgb(229_247_241_/_0.76)] transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.99] sm:min-h-[10.5rem] sm:rounded-[1.6rem]" aria-label={revealed ? copy.paywall.exitOfferTicketAria : copy.paywall.exitOfferScratchAria} role="img">
+          <span className="absolute left-0 top-1/2 h-12 w-6 -translate-x-1/2 -translate-y-1/2 rounded-r-full bg-mist/95" />
+          <span className="absolute right-0 top-1/2 h-12 w-6 -translate-y-1/2 translate-x-1/2 rounded-l-full bg-mist/95" />
+          <span className="absolute inset-0 bg-[radial-gradient(circle_at_35%_35%,rgb(255_255_255_/_0.14),transparent_28%),radial-gradient(circle_at_82%_76%,rgb(255_255_255_/_0.12),transparent_32%)]" />
+          <span className="relative block whitespace-nowrap text-[0.62rem] font-extrabold uppercase tracking-[0.22em] text-white/88 sm:text-[0.66rem] sm:tracking-[0.32em]">✨ {copy.paywall.exitOfferEyebrow} ✨</span>
+          <span className="relative mt-2.5 block whitespace-nowrap text-[clamp(2rem,10vw,2.75rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.05em] text-white/92 sm:text-[3.5rem]">{copy.paywall.discountTag(EXIT_DISCOUNT_PERCENT)}</span>
+          <span className="relative mt-2.5 block text-[0.82rem] font-extrabold leading-snug tracking-[-0.01em] text-white/90 sm:text-[0.92rem]">{revealed ? copy.paywall.exitOfferRevealedHeadline : copy.paywall.exitOfferScratchSubhead}</span>
           <ScratchTicketCover
             revealed={revealed}
             hint={copy.paywall.exitOfferScratchHint}
