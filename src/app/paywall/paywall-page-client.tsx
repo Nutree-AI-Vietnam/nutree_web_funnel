@@ -15,7 +15,7 @@ import { buildRevenueCatPaywall, checkoutPackage, defaultPaywallPlan, type Paywa
 import { formatPerDay, planPerDay, savingsVersusPriciest } from '@/lib/revenuecat/plan-pricing';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, redemptionUrlFromCheckoutOperation, savePendingRedemptionCorrelation, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
-import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markPaywallCheckoutPending, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan } from '@/lib/revenuecat/web';
+import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markPaywallCheckoutPending, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
 import { clearCheckoutEmail, readCheckoutEmail } from '@/lib/revenuecat/checkout-email';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
@@ -355,8 +355,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const originalTotal = selectedOriginalPrice?.formattedPrice ?? '…';
   const introTotal = selectedOfferPrice?.formattedPrice ?? originalTotal;
   const renewalTotal = selectedOfferProduct?.price.formattedPrice ?? '…';
-  const offerDiscountPercent = selectedOriginalPrice && selectedOfferPrice && selectedOriginalPrice.amountMicros > 0
-    ? Math.max(0, Math.round((1 - selectedOfferPrice.amountMicros / selectedOriginalPrice.amountMicros) * 100))
+  const offerDiscountPercent = selectedOfferProduct !== selected?.rcPackage.webBillingProduct
+    ? (activeOffer === 'exit' ? EXIT_DISCOUNT_PERCENT : WELCOME_DISCOUNT_PERCENT)
     : 0;
   const priceLocale = activeLocale === 'vi' ? 'vi-VN' : 'en-US';
   const perDayByPlan = Object.fromEntries(plans.map((plan) => [plan.id, planPerDay(checkoutPackage(plan, activeOffer).webBillingProduct)]));
