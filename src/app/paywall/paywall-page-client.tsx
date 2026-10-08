@@ -456,6 +456,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
                       {savings !== undefined && <span className="rounded-full bg-[#e3f5ec] px-2 py-0.5 text-[0.64rem] font-extrabold leading-tight text-[#0f6b4a]">{copy.paywall.savePerDay(savings)}</span>}
                     </span>
                     {plan.description[activeLocale] && <span className="mt-1 block text-[0.76rem] font-semibold leading-snug text-muted-brand">{plan.description[activeLocale]}</span>}
+                    <span className="mt-1.5 block text-[0.74rem] font-bold leading-snug text-muted-brand">{offerDiscountPercent > 0 && <s className="mr-1 font-semibold opacity-70">{original}</s>}<span className="text-slate-brand">{intro}</span> · {plan.billingLabel[activeLocale]}</span>
                   </span>
                   <span className={cn('min-w-[5.6rem] rounded-[1rem] px-2.5 py-2.5 text-center', active ? 'bg-[#fff1e8] text-[#c2410c]' : 'bg-[#f2f2f1] text-[#111418]')}>
                     <span className="block text-[1.42rem] font-extrabold leading-none tracking-[-0.04em] tabular-nums">{perDayLabel ? `~${perDayLabel}` : intro}</span>
