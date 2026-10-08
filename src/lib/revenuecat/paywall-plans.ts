@@ -2,6 +2,7 @@ import type { Offering, Package, Period } from '@revenuecat/purchases-js';
 
 export type PaywallLocale = 'en' | 'vi';
 export type LocalizedText = Record<PaywallLocale, string>;
+export type PaywallOfferKind = 'welcome' | 'exit';
 
 /** A paywall plan built from one package of the RevenueCat offering. `id` is the package identifier. */
 export interface RevenueCatPaywallPlan {
@@ -11,6 +12,8 @@ export interface RevenueCatPaywallPlan {
   description: LocalizedText;
   billingLabel: LocalizedText;
   recommended: boolean;
+  /** Discounted packages bought instead of `rcPackage` while an offer is active. */
+  offerPackages: Record<PaywallOfferKind, Package | null>;
 }
 
 export interface RevenueCatPaywall {
@@ -29,16 +32,29 @@ export interface RevenueCatPaywall {
  *     "$rc_three_month": {
  *       "label": { "en": "12-week", "vi": "12 tuần" },
  *       "description": { "en": "...", "vi": "..." },
- *       "billing_label": { "en": "Every 12 weeks", "vi": "Mỗi 12 tuần" }
+ *       "billing_label": { "en": "Every 12 weeks", "vi": "Mỗi 12 tuần" },
+ *       "welcome_package": "rc_threemonthly50",
+ *       "exit_package": "rc_threemonthly75"
  *     }
  *   }
  * }
+ *
+ * When `packages` is set, only the packages listed there are shown as plans.
  */
 interface PackageMetadata {
   label?: unknown;
   description?: unknown;
   billing_label?: unknown;
+  welcome_package?: unknown;
+  exit_package?: unknown;
 }
+
+/** Discount packages used when the offering metadata does not name them. */
+const DEFAULT_OFFER_PACKAGES: Record<string, Record<PaywallOfferKind, string>> = {
+  $rc_weekly: { welcome: 'rc_weekly50', exit: 'rc_weekly75' },
+  $rc_monthly: { welcome: 'rc_monthly50', exit: 'rc_monthly75' },
+  $rc_six_month: { welcome: 'rc_6monthly50', exit: 'rc_6monthly75' },
+};
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
@@ -79,15 +95,29 @@ export function billingLabelFromPeriod(period: Period | null | undefined): Local
 export function buildRevenueCatPaywall(offering: Offering): RevenueCatPaywall {
   const metadata = asRecord(offering.metadata);
   const packagesMetadata = asRecord(metadata?.packages);
-  const availableIds = offering.availablePackages.map((rcPackage) => rcPackage.identifier);
+  const packageById = new Map(offering.availablePackages.map((rcPackage) => [rcPackage.identifier, rcPackage]));
+  const offerPackageIds = (id: string): Record<PaywallOfferKind, string | null> => {
+    const packageMetadata = asRecord(packagesMetadata?.[id]);
+    return {
+      welcome: nonEmptyString(packageMetadata?.welcome_package) ?? DEFAULT_OFFER_PACKAGES[id]?.welcome ?? null,
+      exit: nonEmptyString(packageMetadata?.exit_package) ?? DEFAULT_OFFER_PACKAGES[id]?.exit ?? null,
+    };
+  };
+  const discountIds = new Set(offering.availablePackages.flatMap((rcPackage) => Object.values(offerPackageIds(rcPackage.identifier))));
+  const configuredIds = packagesMetadata ? Object.keys(packagesMetadata) : null;
+  const basePackages = offering.availablePackages.filter((rcPackage) => (configuredIds
+    ? configuredIds.includes(rcPackage.identifier)
+    : !discountIds.has(rcPackage.identifier)));
+  const baseIds = basePackages.map((rcPackage) => rcPackage.identifier);
   const configuredRecommended = nonEmptyString(metadata?.recommended_package);
-  const recommendedId = configuredRecommended && availableIds.includes(configuredRecommended) ? configuredRecommended : null;
+  const recommendedId = configuredRecommended && baseIds.includes(configuredRecommended) ? configuredRecommended : null;
 
-  const plans = offering.availablePackages.map((rcPackage): RevenueCatPaywallPlan => {
+  const plans = basePackages.map((rcPackage): RevenueCatPaywallPlan => {
     const product = rcPackage.webBillingProduct;
     const packageMetadata = (asRecord(packagesMetadata?.[rcPackage.identifier]) ?? {}) as PackageMetadata;
     const productTitle = nonEmptyString(product.title) ?? rcPackage.identifier;
     const productDescription = nonEmptyString(product.description) ?? '';
+    const offerIds = offerPackageIds(rcPackage.identifier);
     return {
       id: rcPackage.identifier,
       rcPackage,
@@ -95,10 +125,19 @@ export function buildRevenueCatPaywall(offering: Offering): RevenueCatPaywall {
       description: localizedText(packageMetadata.description) ?? { en: productDescription, vi: productDescription },
       billingLabel: localizedText(packageMetadata.billing_label) ?? billingLabelFromPeriod(product.period),
       recommended: rcPackage.identifier === recommendedId,
+      offerPackages: {
+        welcome: (offerIds.welcome && packageById.get(offerIds.welcome)) || null,
+        exit: (offerIds.exit && packageById.get(offerIds.exit)) || null,
+      },
     };
   });
 
   return { plans, recommendationNote: localizedText(metadata?.recommendation_note) };
+}
+
+/** The package to buy for a plan: the offer's discounted package when it exists, otherwise the base package. */
+export function checkoutPackage(plan: RevenueCatPaywallPlan, offer: PaywallOfferKind | null): Package {
+  return (offer && plan.offerPackages[offer]) || plan.rcPackage;
 }
 
 export function defaultPaywallPlan(plans: RevenueCatPaywallPlan[]): RevenueCatPaywallPlan | undefined {

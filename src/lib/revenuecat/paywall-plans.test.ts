@@ -1,6 +1,6 @@
 import type { Offering, Package } from '@revenuecat/purchases-js';
 import { describe, expect, it } from 'vitest';
-import { billingLabelFromPeriod, buildRevenueCatPaywall, defaultPaywallPlan } from './paywall-plans';
+import { billingLabelFromPeriod, buildRevenueCatPaywall, checkoutPackage, defaultPaywallPlan } from './paywall-plans';
 
 function rcPackage(identifier: string, product: { title?: string; description?: string | null; period?: { number: number; unit: string } | null }): Package {
   return {
@@ -23,6 +23,8 @@ describe('buildRevenueCatPaywall', () => {
       recommended_package: '$rc_three_month',
       recommendation_note: { en: '12 weeks builds the habit.', vi: '12 tuần tạo thói quen.' },
       packages: {
+        $rc_weekly: {},
+        $rc_monthly: {},
         $rc_three_month: {
           label: { en: '12-week', vi: '12 tuần' },
           description: { en: 'Full rhythm', vi: 'Đủ nhịp' },
@@ -68,6 +70,38 @@ describe('buildRevenueCatPaywall', () => {
       description: { en: 'Flexible', vi: 'Flexible' },
       recommended: false,
     });
+  });
+});
+
+describe('offer packages', () => {
+  const weekly50 = rcPackage('rc_weekly50', { title: 'Weekly discount 50', period: { number: 1, unit: 'week' } });
+  const weekly75 = rcPackage('rc_weekly75', { title: 'Weekly discount 75', period: { number: 1, unit: 'week' } });
+  const annual = rcPackage('$rc_annual', { title: 'Annual', period: { number: 1, unit: 'year' } });
+
+  it('hides discount packages and attaches them to their base plan by convention', () => {
+    const paywall = buildRevenueCatPaywall(offering([weekly50, weekly75, weekly, monthly]));
+
+    expect(paywall.plans.map((plan) => plan.id)).toEqual(['$rc_weekly', '$rc_monthly']);
+    expect(paywall.plans[0]?.offerPackages).toEqual({ welcome: weekly50, exit: weekly75 });
+    expect(paywall.plans[1]?.offerPackages).toEqual({ welcome: null, exit: null });
+  });
+
+  it('shows only packages listed in metadata and reads offer package ids from it', () => {
+    const paywall = buildRevenueCatPaywall(offering([weekly50, weekly75, weekly, annual], {
+      packages: { $rc_weekly: { welcome_package: 'rc_weekly75', exit_package: 'rc_weekly50' } },
+    }));
+
+    expect(paywall.plans.map((plan) => plan.id)).toEqual(['$rc_weekly']);
+    expect(paywall.plans[0]?.offerPackages).toEqual({ welcome: weekly75, exit: weekly50 });
+  });
+
+  it('buys the offer package when present and the base package otherwise', () => {
+    const [withOffers, withoutOffers] = buildRevenueCatPaywall(offering([weekly50, weekly, monthly])).plans;
+
+    expect(checkoutPackage(withOffers!, 'welcome')).toBe(weekly50);
+    expect(checkoutPackage(withOffers!, 'exit')).toBe(weekly);
+    expect(checkoutPackage(withOffers!, null)).toBe(weekly);
+    expect(checkoutPackage(withoutOffers!, 'welcome')).toBe(monthly);
   });
 });
 

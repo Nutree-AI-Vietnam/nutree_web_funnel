@@ -1,4 +1,4 @@
-import { Purchases, type Price } from '@revenuecat/purchases-js';
+import { Purchases } from '@revenuecat/purchases-js';
 
 type PublicEnvironment = Record<string, string | undefined>;
 
@@ -7,9 +7,7 @@ export interface RevenueCatWebConfig {
   offeringIdentifier: string;
 }
 
-export const WELCOME_DISCOUNT_CODE = 'WELCOME50';
-export const WELCOME_DISCOUNT_PERCENT = 50;
-export const EXIT_DISCOUNT_CODE = 'LASTCHANCE75';
+/** Shown in exit-offer headlines; checkout prices come from the discounted RevenueCat packages. */
 export const EXIT_DISCOUNT_PERCENT = 75;
 export const PAYWALL_OFFER_STATE_STORAGE_KEY = 'nutree.paywall.offer-state.v1';
 export const PAYWALL_EXIT_OFFER_CLAIMED_STORAGE_KEY = 'nutree.paywall.exit-offer-claimed.v1';
@@ -94,18 +92,6 @@ export function clearPaywallOfferState() {
   } catch {
     // Ignore unavailable session storage; the next paywall visit starts fresh.
   }
-}
-
-export function discountedAmount(price: Price | null | undefined, percent = 0): number | null {
-  if (!price || !Number.isFinite(price.amountMicros) || percent < 0 || percent > 100) return null;
-  return (price.amountMicros / 1_000_000) * (1 - percent / 100);
-}
-
-export function discountedFormattedPrice(price: Price | null | undefined, locale: string, percent = WELCOME_DISCOUNT_PERCENT): string | null {
-  if (!price || !Number.isFinite(price.amountMicros) || percent < 0 || percent > 100) return null;
-  const currency = /^[A-Z]{3}$/.test(price.currency) ? price.currency : null;
-  if (!currency) return null;
-  return new Intl.NumberFormat(locale, { style: 'currency', currency }).format((price.amountMicros / 1_000_000) * (1 - percent / 100));
 }
 
 function publicEnvironment(): PublicEnvironment {

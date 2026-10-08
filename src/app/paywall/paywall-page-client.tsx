@@ -1,6 +1,6 @@
 'use client';
 
-import { ErrorCode, Purchases, PurchasesError, type Purchases as PurchasesInstance } from '@revenuecat/purchases-js';
+import { ErrorCode, Purchases, PurchasesError, type Product, type Purchases as PurchasesInstance } from '@revenuecat/purchases-js';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -11,11 +11,11 @@ import { identifyMetaUser } from '@/lib/analytics/meta-identity';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
-import { buildRevenueCatPaywall, defaultPaywallPlan, type RevenueCatPaywall } from '@/lib/revenuecat/paywall-plans';
+import { buildRevenueCatPaywall, checkoutPackage, defaultPaywallPlan, type PaywallOfferKind, type RevenueCatPaywall } from '@/lib/revenuecat/paywall-plans';
 import { formatPerDay, planPerDay, savingsVersusPriciest } from '@/lib/revenuecat/plan-pricing';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, redemptionUrlFromCheckoutOperation, savePendingRedemptionCorrelation, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
-import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, discountedAmount, discountedFormattedPrice, EXIT_DISCOUNT_CODE, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markPaywallCheckoutPending, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_CODE, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
+import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markPaywallCheckoutPending, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan } from '@/lib/revenuecat/web';
 import { clearCheckoutEmail, readCheckoutEmail } from '@/lib/revenuecat/checkout-email';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
@@ -29,8 +29,6 @@ interface PaywallPageClientProps {
 }
 
 type LoadState = 'loading' | 'ready' | 'error';
-type CheckoutDiscount = 'welcome' | 'exit' | 'none';
-type PaywallOfferKind = 'welcome' | 'exit';
 
 interface StoredPaywallOffer {
   kind: PaywallOfferKind;
@@ -65,6 +63,10 @@ function storePaywallOffer(offer: StoredPaywallOffer) {
   } catch {
     // The in-memory timer still keeps the current page consistent.
   }
+}
+
+function firstPaymentPrice(product: Product | null | undefined) {
+  return product?.introPricePhase?.price ?? product?.price ?? null;
 }
 
 function goalDate(locale: 'vi' | 'en') {
@@ -239,7 +241,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     return () => window.clearTimeout(retry);
   }, [correlatePurchasedCustomer, lead, redemption]);
 
-  const openCheckout = useCallback(async (discount: CheckoutDiscount) => {
+  const openCheckout = useCallback(async (offer: PaywallOfferKind | null) => {
     const plan = selected;
     if (checkoutInFlightRef.current || purchaseLeadIdRef.current === lead?.lead_id) return;
     if (!purchasesRef.current || !lead || !plan || !anonymousAppUserIdRef.current) {
@@ -255,8 +257,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     checkoutInFlightRef.current = true;
     setBusy(true);
     setError(null);
-    const isExitOffer = discount === 'exit';
-    const isWelcomeOffer = discount === 'welcome';
+    const isExitOffer = offer === 'exit';
     const applyCheckoutCancellation = () => {
       checkoutInFlightRef.current = false;
       setBusy(false);
@@ -265,15 +266,13 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       setError(null);
       saveSelectedPaywallPlan(plan.id);
       trackEvent('revenuecat_checkout_cancelled', { plan: plan.id });
-      trackEvent('exit_offer_shown', { plan: plan.id, discount_code: EXIT_DISCOUNT_CODE });
+      trackEvent('exit_offer_shown', { plan: plan.id, offer_package: plan.offerPackages.exit?.identifier ?? null });
       onCheckoutCancelled?.();
     };
-    const { rcPackage } = plan;
-    const offerPercent = isExitOffer ? EXIT_DISCOUNT_PERCENT : isWelcomeOffer ? WELCOME_DISCOUNT_PERCENT : 0;
-    const billedPrice = rcPackage.webBillingProduct?.introPricePhase?.price ?? rcPackage.webBillingProduct?.price;
-    const billedValue = discountedAmount(billedPrice, offerPercent);
-    const checkoutCommerce = billedValue != null && billedPrice
-      ? { value: billedValue, currency: billedPrice.currency }
+    const rcPackage = checkoutPackage(plan, offer);
+    const billedPrice = firstPaymentPrice(rcPackage.webBillingProduct);
+    const checkoutCommerce = billedPrice && Number.isFinite(billedPrice.amountMicros)
+      ? { value: billedPrice.amountMicros / 1_000_000, currency: billedPrice.currency }
       : {};
     trackEvent('revenuecat_checkout_started', { plan: plan.id, package_id: rcPackage.identifier, country_code: countryCode ?? 'auto', ...checkoutCommerce });
 
@@ -285,11 +284,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         selectedLocale: activeLocale,
         defaultLocale: 'en',
         skipSuccessPage: true,
-        ...(isExitOffer
-          ? { discountCode: EXIT_DISCOUNT_CODE }
-          : isWelcomeOffer
-            ? { discountCode: WELCOME_DISCOUNT_CODE }
-            : {}),
       } as Parameters<PurchasesInstance['purchase']>[0];
       const purchaseResult = await purchasesRef.current.purchase(purchaseParameters);
       clearPaywallCheckoutPending();
@@ -349,19 +343,23 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     { icon: '🥦', label: copy.paywall.calorieLabel, value: tdee ? `${Math.round(tdee.calories).toLocaleString(activeLocale === 'vi' ? 'vi-VN' : 'en-US')} kcal` : copy.paywall.calorieFallback },
     { icon: '🚶', label: copy.paywall.activityLabel, value: copy.paywall.activityValue(data.training_days_per_week ?? 0) },
   ];
-  const selectedProduct = selected?.rcPackage.webBillingProduct;
   const selectedLabel = selected?.label[activeLocale] ?? '';
   const renewalCadence = selected?.billingLabel[activeLocale].toLowerCase() ?? '';
-  const selectedOriginalPrice = selectedProduct?.introPricePhase?.price ?? selectedProduct?.price;
-  const originalTotal = selectedOriginalPrice?.formattedPrice ?? '…';
   const isExitOfferMode = offerKind === 'exit';
   const exitOfferActive = isExitOfferMode && secondsLeft > 0;
   const welcomeOfferActive = !isExitOfferMode && secondsLeft > 0;
-  const offerDiscountPercent = isExitOfferMode ? (exitOfferActive ? EXIT_DISCOUNT_PERCENT : 0) : (welcomeOfferActive ? WELCOME_DISCOUNT_PERCENT : 0);
-  const introTotal = discountedFormattedPrice(selectedOriginalPrice, activeLocale === 'vi' ? 'vi-VN' : 'en-US', offerDiscountPercent) ?? originalTotal;
-  const renewalTotal = selectedProduct?.price.formattedPrice ?? '…';
+  const activeOffer: PaywallOfferKind | null = exitOfferActive ? 'exit' : welcomeOfferActive ? 'welcome' : null;
+  const selectedOriginalPrice = firstPaymentPrice(selected?.rcPackage.webBillingProduct);
+  const selectedOfferProduct = selected ? checkoutPackage(selected, activeOffer).webBillingProduct : null;
+  const selectedOfferPrice = firstPaymentPrice(selectedOfferProduct);
+  const originalTotal = selectedOriginalPrice?.formattedPrice ?? '…';
+  const introTotal = selectedOfferPrice?.formattedPrice ?? originalTotal;
+  const renewalTotal = selectedOfferProduct?.price.formattedPrice ?? '…';
+  const offerDiscountPercent = selectedOriginalPrice && selectedOfferPrice && selectedOriginalPrice.amountMicros > 0
+    ? Math.max(0, Math.round((1 - selectedOfferPrice.amountMicros / selectedOriginalPrice.amountMicros) * 100))
+    : 0;
   const priceLocale = activeLocale === 'vi' ? 'vi-VN' : 'en-US';
-  const perDayByPlan = Object.fromEntries(plans.map((plan) => [plan.id, planPerDay(plan.rcPackage.webBillingProduct, offerDiscountPercent)]));
+  const perDayByPlan = Object.fromEntries(plans.map((plan) => [plan.id, planPerDay(checkoutPackage(plan, activeOffer).webBillingProduct)]));
   const savingsByPlan = savingsVersusPriciest(perDayByPlan);
   const pricesReady = loadState === 'ready';
   const offerNote = exitOfferActive
@@ -373,7 +371,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         : (activeLocale === 'vi' ? 'Ưu đãi đã hết hạn. Giá đã trở về giá gốc cho tất cả gói.' : 'The offer has expired. Prices have returned to the original amount for every plan.');
   const priceSummary = exitOfferActive
     ? (activeLocale === 'vi'
-      ? `Ưu đãi giảm ${EXIT_DISCOUNT_PERCENT}% áp dụng cho mọi gói. Bạn thanh toán ${introTotal} hôm nay, sau đó gói tự gia hạn theo giá đầy đủ ${renewalTotal} ${renewalCadence} cho đến khi bạn hủy.`
+      ? `Ưu đãi giảm ${EXIT_DISCOUNT_PERCENT}% áp dụng cho mọi gói. Bạn thanh toán ${introTotal} hôm nay, sau đó gói tự gia hạn ${renewalTotal} ${renewalCadence} cho đến khi bạn hủy.`
       : `Your ${EXIT_DISCOUNT_PERCENT}% offer applies to every plan. You pay ${introTotal} today, then ${renewalTotal} ${renewalCadence} until you cancel.`)
     : isExitOfferMode
       ? (activeLocale === 'vi'
@@ -401,12 +399,12 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     : { title: 'Confirm your subscription', body: 'Checkout is securely processed by Paddle. We’ll email you instructions to activate your plan.', continue: 'Continue to payment', dismiss: 'Go back' };
   const confirmPriceCopy = activeLocale === 'vi'
     ? {
-        first: offerDiscountPercent > 0 ? `Giảm ${offerDiscountPercent}% cho lần thanh toán đầu tiên.` : 'Lần thanh toán đầu theo giá đầy đủ.',
-        renewal: `Sau đó, gói tự động gia hạn theo giá đầy đủ ${renewalCadence}. Bạn có thể hủy bất cứ lúc nào.`,
+        first: offerDiscountPercent > 0 ? `Giá ưu đãi ${introTotal} (giảm ${offerDiscountPercent}%).` : `Thanh toán ${introTotal} hôm nay.`,
+        renewal: `Sau đó, gói tự động gia hạn ${renewalTotal} ${renewalCadence}. Bạn có thể hủy bất cứ lúc nào.`,
       }
     : {
-        first: offerDiscountPercent > 0 ? `${offerDiscountPercent}% off your first payment.` : 'The first payment is at full price.',
-        renewal: `After that, the plan renews at full price ${renewalCadence}. Cancel anytime.`,
+        first: offerDiscountPercent > 0 ? `Offer price ${introTotal} (${offerDiscountPercent}% off).` : `You pay ${introTotal} today.`,
+        renewal: `After that, the plan renews at ${renewalTotal} ${renewalCadence}. Cancel anytime.`,
       };
 
   if (!hydrated || !lead || !offerStateReady) return null;
@@ -440,10 +438,10 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
             {!plans.length && loadState === 'loading' && [0, 1, 2].map((index) => <div key={index} aria-hidden="true" className="min-h-[5.25rem] animate-pulse rounded-[1.4rem] border-2 border-[#dfe7e3] bg-[#f6f8f7]" />)}
             {plans.map((plan) => {
               const active = plan.id === selected?.id;
-              const product = plan.rcPackage.webBillingProduct;
-              const originalPrice = product?.introPricePhase?.price ?? product?.price;
-              const original = originalPrice?.formattedPrice ?? '…';
-              const intro = discountedFormattedPrice(originalPrice, priceLocale, offerDiscountPercent) ?? original;
+              const offerPackage = checkoutPackage(plan, activeOffer);
+              const hasOffer = offerPackage !== plan.rcPackage;
+              const original = firstPaymentPrice(plan.rcPackage.webBillingProduct)?.formattedPrice ?? '…';
+              const intro = firstPaymentPrice(offerPackage.webBillingProduct)?.formattedPrice ?? original;
               const perDayLabel = formatPerDay(perDayByPlan[plan.id] ?? null, priceLocale);
               const savings = savingsByPlan[plan.id];
               return <button key={plan.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(plan.id); saveSelectedPaywallPlan(plan.id); trackEvent('offer_selected', { offer_id: plan.id, provider: 'revenuecat' }); }} className={cn('overflow-hidden rounded-[1.4rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-[#ff5b1f] shadow-[0_12px_26px_rgb(255_106_31_/_0.10)]' : 'border-[#dfe7e3] hover:border-teal-brand/60')}>
@@ -456,7 +454,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
                       {savings !== undefined && <span className="rounded-full bg-[#e3f5ec] px-2 py-0.5 text-[0.64rem] font-extrabold leading-tight text-[#0f6b4a]">{copy.paywall.savePerDay(savings)}</span>}
                     </span>
                     {plan.description[activeLocale] && <span className="mt-1 block text-[0.76rem] font-semibold leading-snug text-muted-brand">{plan.description[activeLocale]}</span>}
-                    <span className="mt-1.5 block text-[0.74rem] font-bold leading-snug text-muted-brand">{offerDiscountPercent > 0 && <s className="mr-1 font-semibold opacity-70">{original}</s>}<span className="text-slate-brand">{intro}</span> · {plan.billingLabel[activeLocale]}</span>
+                    <span className="mt-1.5 block text-[0.74rem] font-bold leading-snug text-muted-brand">{hasOffer && <s className="mr-1 font-semibold opacity-70">{original}</s>}<span className="text-slate-brand">{intro}</span> · {plan.billingLabel[activeLocale]}</span>
                   </span>
                   <span className={cn('min-w-[5.6rem] rounded-[1rem] px-2.5 py-2.5 text-center', active ? 'bg-[#fff1e8] text-[#c2410c]' : 'bg-[#f2f2f1] text-[#111418]')}>
                     <span className="block text-[1.42rem] font-extrabold leading-none tracking-[-0.04em] tabular-nums">{perDayLabel ? `~${perDayLabel}` : intro}</span>
@@ -490,7 +488,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
             <h2 id="checkout-confirm-title" className="text-2xl font-extrabold tracking-[-0.04em] text-forest">{confirmCopy.title}</h2>
             <p className="mt-3 text-sm font-medium leading-relaxed text-muted-brand">{confirmCopy.body}</p>
             <div className="mt-5 rounded-2xl bg-mist px-4 py-3 text-left"><p className="font-extrabold text-forest">{selectedLabel}</p><p className="mt-1 text-sm font-extrabold text-forest">{confirmPriceCopy.first}</p><p className="mt-1 text-xs font-semibold leading-relaxed text-muted-brand">{confirmPriceCopy.renewal}</p></div>
-            <button autoFocus type="button" onClick={() => { setShowCheckoutConfirm(false); void openCheckout(exitOfferActive ? 'exit' : welcomeOfferActive ? 'welcome' : 'none'); }} className="mt-6 min-h-13 w-full rounded-2xl bg-forest px-5 font-extrabold text-white transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">{confirmCopy.continue}</button>
+            <button autoFocus type="button" onClick={() => { setShowCheckoutConfirm(false); void openCheckout(activeOffer); }} className="mt-6 min-h-13 w-full rounded-2xl bg-forest px-5 font-extrabold text-white transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">{confirmCopy.continue}</button>
             <button type="button" onClick={() => setShowCheckoutConfirm(false)} className="mt-3 min-h-11 w-full text-sm font-bold text-muted-brand underline underline-offset-4">{confirmCopy.dismiss}</button>
           </section>
         </div>

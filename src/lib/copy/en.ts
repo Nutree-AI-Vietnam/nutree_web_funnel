@@ -608,7 +608,7 @@ export const en: Copy = {
     discountTag: (percent: number) => `${percent}% OFF`,
     perDay: 'per day',
     savePerDay: (percent: number) => `Save ${percent}%`,
-    perDayFootnote: 'Daily price is an estimate based on your first payment. Later periods renew at the full price.',
+    perDayFootnote: 'Daily price is an estimate based on your first payment.',
     appStoreTitle: 'Loved by iOS users',
     appStoreRating: '4.7/5',
     appStoreReviews: '4k+ App Store reviews',
@@ -657,7 +657,7 @@ export const en: Copy = {
     paypalSummary: (amount: string, renewal: string) => `${amount} today and ${renewal} while active`,
     paypalPlaceholder: 'PayPal buttons render here after the backend returns provider configuration.',
     exactPriceSummary: (today: string, renewal: string, planLabel: string, cadence: string) =>
-      `We've applied the discount to your first ${planLabel} plan. You pay ${today} today, then it auto-renews at the full price of ${renewal} ${cadence} until you cancel. Cancel at least 1 day before renewal in the app's Subscription Page or live chat.`,
+      `We've applied the discount to your ${planLabel} plan. You pay ${today} today, then it auto-renews at ${renewal} ${cadence} until you cancel. Cancel at least 1 day before renewal in the app's Subscription Page or live chat.`,
     loading: 'Starting checkout...',
     error: 'Couldn’t start checkout. Please try again.',
     paymentError: 'Payment is being checked. You do not need to pay again.',

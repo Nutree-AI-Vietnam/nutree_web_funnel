@@ -605,7 +605,7 @@ export const vi = {
     discountTag: (percent: number) => `Giảm ${percent}%`,
     perDay: 'mỗi ngày',
     savePerDay: (percent: number) => `Tiết kiệm ${percent}%`,
-    perDayFootnote: 'Giá mỗi ngày là ước tính, tính từ số tiền thanh toán kỳ đầu. Các kỳ sau gia hạn theo giá đầy đủ.',
+    perDayFootnote: 'Giá mỗi ngày là ước tính, tính từ số tiền thanh toán kỳ đầu.',
     appStoreTitle: 'Được người dùng iOS đánh giá cao',
     appStoreRating: '4.7/5',
     appStoreReviews: '4k+ đánh giá App Store',
@@ -654,7 +654,7 @@ export const vi = {
     paypalSummary: (amount: string, renewal: string) => `${amount} hôm nay và ${renewal} khi gói còn hoạt động`,
     paypalPlaceholder: 'Nút PayPal sẽ hiển thị tại đây sau khi backend trả cấu hình nhà cung cấp.',
     exactPriceSummary: (today: string, renewal: string, planLabel: string, cadence: string) =>
-      `Ưu đãi đã được áp dụng cho gói ${planLabel} đầu tiên. Bạn thanh toán ${today} hôm nay, sau đó gói tự gia hạn theo giá đầy đủ ${renewal} ${cadence} cho đến khi bạn hủy. Hủy trước ngày gia hạn ít nhất 1 ngày trong trang Subscription của app hoặc qua live chat.`,
+      `Ưu đãi đã được áp dụng cho gói ${planLabel}. Bạn thanh toán ${today} hôm nay, sau đó gói tự gia hạn ${renewal} ${cadence} cho đến khi bạn hủy. Hủy trước ngày gia hạn ít nhất 1 ngày trong trang Subscription của app hoặc qua live chat.`,
     loading: 'Đang tạo thanh toán...',
     error: 'Không tạo được thanh toán. Vui lòng thử lại.',
     paymentError: 'Thanh toán đang được kiểm tra. Không cần thanh toán lại.',

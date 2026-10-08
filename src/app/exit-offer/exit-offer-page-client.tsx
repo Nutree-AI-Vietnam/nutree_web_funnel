@@ -8,7 +8,7 @@ import { ConversionShell } from '@/components/conversion-shell';
 import { ScratchTicketCover } from '@/components/scratch-ticket-cover';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
-import { activatePaywallExitOffer, expirePaywallOfferState, EXIT_DISCOUNT_CODE, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markExitOfferClaimed, readSelectedPaywallPlan, saveSelectedPaywallPlan } from '@/lib/revenuecat/web';
+import { activatePaywallExitOffer, expirePaywallOfferState, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markExitOfferClaimed, readSelectedPaywallPlan, saveSelectedPaywallPlan } from '@/lib/revenuecat/web';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { useLocale } from '@/lib/copy/use-copy';
 
@@ -70,7 +70,7 @@ export function ExitOfferPageClient({ initialPlanId, onClaim, onDismiss, onMissi
     markExitOfferClaimed();
     activatePaywallExitOffer();
     if (selectedPlanId) saveSelectedPaywallPlan(selectedPlanId);
-    trackEvent('exit_offer_claimed', { discount_percent: EXIT_DISCOUNT_PERCENT, discount_code: EXIT_DISCOUNT_CODE, plan: selectedPlanId });
+    trackEvent('exit_offer_claimed', { discount_percent: EXIT_DISCOUNT_PERCENT, plan: selectedPlanId });
     onClaim?.();
   };
 
