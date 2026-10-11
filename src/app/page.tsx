@@ -1,7 +1,5 @@
-import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
-import { localeFromCountryCode } from '@/lib/market/country';
+import { redirectToSurvey, type SurveyRedirectProps } from '@/lib/funnel/redirect-to-survey';
 
-export default async function RootPage() {
-  redirect(`/survey/${localeFromCountryCode((await headers()).get('x-vercel-ip-country'))}`);
+export default async function RootPage({ searchParams }: SurveyRedirectProps) {
+  await redirectToSurvey(searchParams);
 }

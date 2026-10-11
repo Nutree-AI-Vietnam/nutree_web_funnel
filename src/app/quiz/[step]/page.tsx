@@ -1,8 +1,6 @@
-import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
-import { localeFromCountryCode } from '@/lib/market/country';
+import { redirectToSurvey, type SurveyRedirectProps } from '@/lib/funnel/redirect-to-survey';
 
 /** Keeps old step links inside the single canonical survey route. */
-export default async function LegacyQuizStepPage() {
-  redirect(`/survey/${localeFromCountryCode((await headers()).get('x-vercel-ip-country'))}`);
+export default async function LegacyQuizStepPage({ searchParams }: SurveyRedirectProps) {
+  await redirectToSurvey(searchParams);
 }

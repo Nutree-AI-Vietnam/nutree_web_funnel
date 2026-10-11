@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { ConversionShell } from '@/components/conversion-shell';
 import { ScratchTicketCover } from '@/components/scratch-ticket-cover';
+import { stripNonAttributionParams } from '@/lib/analytics/attribution';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { activatePaywallExitOffer, expirePaywallOfferState, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markExitOfferClaimed, readSelectedPaywallPlan, saveSelectedPaywallPlan } from '@/lib/revenuecat/web';
@@ -43,7 +44,7 @@ export function ExitOfferPageClient({ initialPlanId, onClaim, onDismiss, onMissi
       onMissingLead?.();
       return;
     }
-    if (window.location.search) window.history.replaceState(window.history.state, '', window.location.pathname + window.location.hash);
+    stripNonAttributionParams();
     if (hasExitOfferBeenClaimed()) onAlreadyClaimed?.();
   }, [hydrated, lead, onAlreadyClaimed, onMissingLead, purchased, router]);
 

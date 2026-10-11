@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ConversionShell } from '@/components/conversion-shell';
+import { stripNonAttributionParams } from '@/lib/analytics/attribution';
 import { identifyMetaUser } from '@/lib/analytics/meta-identity';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
@@ -14,6 +15,7 @@ import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPrev
 import { buildRevenueCatPaywall, checkoutPackage, defaultPaywallPlan, type PaywallOfferKind, type RevenueCatPaywall } from '@/lib/revenuecat/paywall-plans';
 import { formatPerDay, planPerDay, savingsVersusPriciest } from '@/lib/revenuecat/plan-pricing';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
+import { syncRevenueCatAttribution } from '@/lib/revenuecat/attribution-attributes';
 import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, redemptionUrlFromCheckoutOperation, savePendingRedemptionCorrelation, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
 import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markPaywallCheckoutPending, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
 import { clearCheckoutEmail, readCheckoutEmail } from '@/lib/revenuecat/checkout-email';
@@ -135,8 +137,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   useEffect(() => trackStepViewed('paywall'), []);
 
   useEffect(() => {
-    if (!exitOfferMode || !window.location.search) return;
-    window.history.replaceState(window.history.state, '', window.location.pathname + window.location.hash);
+    if (exitOfferMode) stripNonAttributionParams();
   }, [exitOfferMode]);
 
   useEffect(() => {
@@ -278,6 +279,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     const rcPackage = checkoutPackage(plan, offer);
     const checkoutCommerce = firstPaymentCommerce(rcPackage.webBillingProduct);
     trackEvent('revenuecat_checkout_started', { plan: plan.id, package_id: rcPackage.identifier, country_code: countryCode ?? 'auto', ...checkoutCommerce });
+    void syncRevenueCatAttribution(purchasesRef.current);
 
     try {
       markPaywallCheckoutPending();
