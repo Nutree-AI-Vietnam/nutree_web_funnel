@@ -69,6 +69,17 @@ describe('attribution', () => {
     stubWindow({ search: '?utm_source=nutree_website&utm_medium=owned' });
     expect(captureAttribution()).toEqual({ utm_source: 'nutree_website', utm_medium: 'owned' });
   });
+
+  it('cuts long UTMs but keeps click IDs whole up to 1,000 characters', () => {
+    const ttclid = 'E.C.P.'.padEnd(1000, 'x');
+    const expected = { utm_campaign: 'c'.repeat(180), ttclid };
+    expect(captureAttribution(`?utm_campaign=${'c'.repeat(300)}&ttclid=${ttclid}`)).toEqual(expected);
+    expect(getAttribution()).toEqual(expected);
+  });
+
+  it('drops a click ID longer than 1,000 characters instead of cutting it', () => {
+    expect(captureAttribution(`?utm_source=tiktok&ttclid=${'x'.repeat(1001)}`)).toEqual({ utm_source: 'tiktok' });
+  });
 });
 
 describe('stripNonAttributionParams', () => {

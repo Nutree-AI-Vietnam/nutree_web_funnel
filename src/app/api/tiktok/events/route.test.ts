@@ -122,6 +122,15 @@ describe('TikTok Events API route', () => {
     expect(data.properties).toEqual({ content_type: 'product', contents: properties.contents });
   });
 
+  it('keeps click IDs up to 1,000 characters whole and drops longer ones', async () => {
+    const ttclid = 'E.C.P.'.padEnd(1000, 'x');
+    await POST(request({ ...browserEvent, user: { ttclid } }));
+    await POST(request({ ...browserEvent, user: { ttclid: `${ttclid}x` } }));
+    const [kept, dropped] = (fetch as ReturnType<typeof vi.fn>).mock.calls.map(([, init]) => JSON.parse(init.body).data[0].user);
+    expect(kept.ttclid).toBe(ttclid);
+    expect(dropped).not.toHaveProperty('ttclid');
+  });
+
   it('returns 204 and logs only the TikTok error when the event is rejected', async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(Response.json({ code: 40002, message: 'Invalid parameter' }));
     const response = await POST(request(browserEvent));

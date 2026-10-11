@@ -1,5 +1,8 @@
 const STORAGE_KEY = 'nutree_attribution_v1';
-const MAX_VALUE_LENGTH = 180;
+/** Campaign tags longer than this are cut. */
+const MAX_CAMPAIGN_LENGTH = 180;
+/** TikTok click IDs run up to 1,000 characters. */
+const MAX_CLICK_ID_LENGTH = 1000;
 
 /** Campaign tags: the first touch in this tab wins. */
 const CAMPAIGN_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'utm_id'] as const;
@@ -20,6 +23,14 @@ function isClickId(key: AttributionKey): boolean {
   return (CLICK_ID_KEYS as readonly string[]).includes(key);
 }
 
+/** Cuts long campaign tags; keeps click IDs whole or drops them, since a cut click ID matches no ad. */
+function storableValue(key: AttributionKey, value: string): string | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (!isClickId(key)) return trimmed.slice(0, MAX_CAMPAIGN_LENGTH);
+  return trimmed.length <= MAX_CLICK_ID_LENGTH ? trimmed : undefined;
+}
+
 function readStored(): Attribution {
   if (typeof window === 'undefined') return {};
   try {
@@ -30,7 +41,8 @@ function readStored(): Attribution {
     const next: Attribution = {};
     for (const key of ATTRIBUTION_KEYS) {
       const value = (parsed as Record<string, unknown>)[key];
-      if (typeof value === 'string' && value.trim()) next[key] = value.trim().slice(0, MAX_VALUE_LENGTH);
+      const stored = typeof value === 'string' ? storableValue(key, value) : undefined;
+      if (stored) next[key] = stored;
     }
     return next;
   } catch {
@@ -51,8 +63,9 @@ function fromSearch(search: string): Attribution {
   const params = new URLSearchParams(search);
   const next: Attribution = {};
   for (const key of ATTRIBUTION_KEYS) {
-    const value = params.get(key)?.trim();
-    if (value) next[key] = value.slice(0, MAX_VALUE_LENGTH);
+    const value = params.get(key);
+    const incoming = value === null ? undefined : storableValue(key, value);
+    if (incoming) next[key] = incoming;
   }
   return next;
 }

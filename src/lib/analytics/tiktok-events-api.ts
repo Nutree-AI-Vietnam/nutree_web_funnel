@@ -112,7 +112,8 @@ export function parseTiktokBrowserEvent(input: unknown): TiktokBrowserEvent | nu
   const page = isRecord(input.page) ? input.page : {};
   const email = text(user.email, 64, SHA256_HEX);
   const externalId = text(user.external_id, 64, SHA256_HEX);
-  const ttclid = text(user.ttclid, 512, OPAQUE);
+  // TikTok click IDs run up to 1,000 characters; a cut one no longer matches its ad.
+  const ttclid = text(user.ttclid, 1000, OPAQUE);
   const url = tiktokPageUrl(page.url);
   const referrer = tiktokPageUrl(page.referrer);
   return {

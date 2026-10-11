@@ -28,6 +28,14 @@ describe('revenueCatAttributionAttributes', () => {
     });
   });
 
+  it('leaves out values over the 500-character limit', () => {
+    expect(revenueCatAttributionAttributes({ utm_source: 'tiktok', fbclid: 'f'.repeat(500), ttclid: 't'.repeat(501) })).toEqual({
+      $mediaSource: 'tiktok',
+      utm_source: 'tiktok',
+      fbclid: 'f'.repeat(500),
+    });
+  });
+
   it('returns nothing for an empty attribution', () => {
     expect(revenueCatAttributionAttributes({})).toEqual({});
   });

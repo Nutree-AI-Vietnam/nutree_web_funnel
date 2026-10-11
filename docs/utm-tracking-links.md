@@ -37,11 +37,13 @@ Rules:
   analytics tool, so `Home_Hero` and `home_hero` would report as two placements.
 - Keep one meaning per parameter: source says where, medium says what kind of channel,
   content says which placement or creative.
-- Values longer than 180 characters are truncated before storage.
+- UTM values longer than 180 characters are cut before storage.
 - Never put personal data in a link.
 
 Ad platforms append their own click IDs (`fbclid`, `gclid`, `gbraid`, `wbraid`, `ttclid`).
-The funnel captures them automatically; nothing to add by hand.
+The funnel captures them automatically; nothing to add by hand. Click IDs are kept whole up
+to 1,000 characters (TikTok's maximum for `ttclid`) and dropped if longer, because a cut click
+ID no longer matches its ad. RevenueCat only receives values up to its 500-character limit.
 
 ## Ready-made links for the marketing site
 
