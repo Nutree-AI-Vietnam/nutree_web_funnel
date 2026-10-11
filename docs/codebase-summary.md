@@ -95,6 +95,9 @@ a quick orientation for developers and documentation updates.
 - `src/lib/copy/` stores localized funnel copy in English and Vietnamese.
 - `src/lib/analytics/track.ts` and `src/components/analytics-scripts.tsx`
   handle event tracking integrations.
+- `src/lib/analytics/attribution.ts` captures UTM and click-ID parameters per tab, and
+  `src/lib/funnel/survey-path.ts` keeps them through the server redirects. Link format and
+  conventions: `docs/utm-tracking-links.md`.
 - `src/lib/local-preview.ts` provides local preview fixtures for development.
 
 ## External Dependencies

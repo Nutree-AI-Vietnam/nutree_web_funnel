@@ -9,7 +9,7 @@ import { EmailCaptureScreen } from '@/components/email-capture-screen';
 import { LandingPage } from '@/components/landing-page';
 import { QuizShell } from '@/components/quiz-shell';
 import { WelcomeGiftScreen } from '@/components/welcome-gift-screen';
-import { captureAttribution } from '@/lib/analytics/attribution';
+import { captureAttribution, stripNonAttributionParams } from '@/lib/analytics/attribution';
 import { clearPaywallCheckoutPending, hasExitOfferBeenClaimed, hasPaywallCheckoutPending, readSelectedPaywallPlan } from '@/lib/revenuecat/web';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import type { FunnelScreen } from '@/lib/quiz/store';
@@ -32,7 +32,7 @@ export function SurveyPageClient({ language }: { language: Locale }) {
 
   useEffect(() => {
     captureAttribution();
-    if (window.location.search) window.history.replaceState(window.history.state, '', window.location.pathname + window.location.hash);
+    stripNonAttributionParams();
   }, []);
 
   useEffect(() => {

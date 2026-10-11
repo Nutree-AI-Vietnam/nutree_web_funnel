@@ -103,3 +103,5 @@ Preview must use RevenueCat's sandbox web key/config; Production uses the live w
   For live checkout, use an approved production domain. Sandbox supports localhost.
 - **Airbridge**: tracking link created in dashboard (goes in
   `NEXT_PUBLIC_AIRBRIDGE_TRACKING_LINK`).
+- **Campaign links**: UTM link format, naming rules, and where attribution lands are in
+  `docs/utm-tracking-links.md`.
