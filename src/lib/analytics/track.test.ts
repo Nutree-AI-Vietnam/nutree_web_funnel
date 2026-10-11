@@ -79,4 +79,38 @@ describe('analytics', () => {
     vi.stubGlobal('window', {});
     expect(() => trackEvent('x', {})).not.toThrow();
   });
+
+  it('sends the paywall view and plan selection to TikTok as standard events', () => {
+    trackStepViewed('paywall');
+    trackEvent('offer_selected', { offer_id: 'vn_monthly_welcome50', provider: 'revenuecat' });
+    const w = window as unknown as { ttq: { track: ReturnType<typeof vi.fn> } };
+    expect(w.ttq.track).toHaveBeenCalledWith('ViewContent', { content_type: 'product' });
+    expect(w.ttq.track).toHaveBeenCalledWith('AddToCart', {
+      content_type: 'product',
+      quantity: 1,
+      content_ids: ['vn_monthly_welcome50'],
+    });
+  });
+
+  it('sends checkout start and completion to TikTok with value, currency and plan', () => {
+    trackEvent('revenuecat_checkout_started', { plan: '12-week', value: 249000, currency: 'VND' });
+    trackEvent('revenuecat_checkout_completed', { plan: '12-week', value: 249000, currency: 'VND' });
+    const w = window as unknown as { ttq: { track: ReturnType<typeof vi.fn> } };
+    const commerce = {
+      content_type: 'product',
+      quantity: 1,
+      content_ids: ['12-week'],
+      value: 249000,
+      currency: 'VND',
+    };
+    expect(w.ttq.track).toHaveBeenCalledWith('InitiateCheckout', commerce);
+    expect(w.ttq.track).toHaveBeenCalledWith('Purchase', commerce);
+  });
+
+  it('keeps quiz steps custom-only on TikTok', () => {
+    trackStepViewed('height');
+    const w = window as unknown as { ttq: { track: ReturnType<typeof vi.fn> } };
+    expect(w.ttq.track).toHaveBeenCalledTimes(1);
+    expect(w.ttq.track).toHaveBeenCalledWith('funnel_step_viewed', { step: 'height' });
+  });
 });
