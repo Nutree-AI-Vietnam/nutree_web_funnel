@@ -4,16 +4,21 @@
  * analytics taxonomy.
  *
  * Meta Ads optimization uses four standard events only (ViewContent / Lead /
- * InitiateCheckout / Purchase). Quiz-step custom names stay on GA4/TikTok so
- * they cannot occupy Aggregated Event Measurement slots. Do not name Meta
- * custom conversions after health conditions.
+ * InitiateCheckout / Purchase). Quiz-step custom names stay on GA4 so they
+ * cannot occupy Aggregated Event Measurement slots. Do not name Meta custom
+ * conversions after health conditions.
  *
  * TikTok gets the same commercial steps as standard events (ViewContent on the
- * paywall, AddToCart on plan selection, InitiateCheckout, Purchase) next to its
+ * paywall, AddToCart once per plan, InitiateCheckout, Purchase) next to its
  * custom names. Only standard events feed optimization; custom names are kept
- * for reporting.
+ * for reporting. Quiz screens (age, height, weight, ...) never reach TikTok,
+ * not even as custom names.
  */
+import { isQuizStep } from '@/lib/quiz/steps';
 import { getAttribution } from './attribution';
+
+/** Plans already sent to TikTok as AddToCart in this tab. */
+const TIKTOK_CART_KEY = 'nutree_tiktok_cart_v1';
 
 type AnyWindow = Window & {
   gtag?: (...args: unknown[]) => void;
@@ -61,23 +66,47 @@ function metaStandardEvent(
   return null;
 }
 
-function tiktokStandardEvent(
+/** Quiz screens collect body and health details, so their names stay off TikTok. */
+function isQuizStepView(name: string, params: Record<string, unknown>): boolean {
+  return name === 'funnel_step_viewed' && typeof params.step === 'string' && isQuizStep(params.step);
+}
+
+function tiktokStandardEvents(
   name: string,
   params: Record<string, unknown>,
-): { event: string; params: Record<string, unknown> } | null {
+): { event: string; params: Record<string, unknown> }[] {
   if (name === 'funnel_step_viewed' && params.step === 'paywall') {
-    return { event: 'ViewContent', params: { content_type: 'product' } };
+    return [{ event: 'ViewContent', params: { content_type: 'product' } }];
   }
   if (name === 'offer_selected') {
-    return { event: 'AddToCart', params: tiktokProductParams(params, params.offer_id) };
+    return addToTiktokCart(params.offer_id)
+      ? [{ event: 'AddToCart', params: tiktokProductParams(params, params.offer_id) }]
+      : [];
   }
   if (name === 'revenuecat_checkout_started') {
-    return { event: 'InitiateCheckout', params: tiktokProductParams(params, params.plan) };
+    const product = tiktokProductParams(params, params.plan);
+    const checkout = { event: 'InitiateCheckout', params: product };
+    // Keeping the preselected plan never fires offer_selected, so its AddToCart is sent here.
+    return addToTiktokCart(params.plan) ? [{ event: 'AddToCart', params: product }, checkout] : [checkout];
   }
   if (name === 'revenuecat_checkout_completed') {
-    return { event: 'Purchase', params: tiktokProductParams(params, params.plan) };
+    return [{ event: 'Purchase', params: tiktokProductParams(params, params.plan) }];
   }
-  return null;
+  return [];
+}
+
+/** Records the plan and returns true the first time it reaches the cart in this tab. */
+function addToTiktokCart(productId: unknown): boolean {
+  if (typeof productId !== 'string' || !productId) return true;
+  try {
+    const stored = JSON.parse(window.sessionStorage.getItem(TIKTOK_CART_KEY) ?? '[]') as unknown;
+    const cart = Array.isArray(stored) ? stored : [];
+    if (cart.includes(productId)) return false;
+    window.sessionStorage.setItem(TIKTOK_CART_KEY, JSON.stringify([...cart, productId]));
+  } catch {
+    // Without session storage every selection is sent, as before.
+  }
+  return true;
 }
 
 function tiktokProductParams(params: Record<string, unknown>, productId: unknown): Record<string, unknown> {
@@ -108,9 +137,10 @@ export function trackEvent(name: string, params: Record<string, unknown> = {}): 
     w.gtag?.('event', name, payload);
     const standard = metaStandardEvent(name, payload);
     if (standard) w.fbq?.('track', standard.event, standard.params, { eventID: eventID(standard.event) });
-    w.ttq?.track(name, payload);
-    const tiktok = tiktokStandardEvent(name, payload);
-    if (tiktok) w.ttq?.track(tiktok.event, tiktok.params);
+    if (w.ttq) {
+      if (!isQuizStepView(name, payload)) w.ttq.track(name, payload);
+      for (const tiktok of tiktokStandardEvents(name, payload)) w.ttq.track(tiktok.event, tiktok.params);
+    }
   } catch {
     // Analytics must never break the funnel.
   }

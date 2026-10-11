@@ -19,14 +19,14 @@ describe('analytics', () => {
   });
 
   it('fans out custom funnel events to gtag and TikTok only', () => {
-    trackEvent('funnel_step_viewed', { step: 'goal' });
+    trackEvent('funnel_step_viewed', { step: 'email_capture' });
     const w = window as unknown as {
       gtag: ReturnType<typeof vi.fn>;
       fbq: ReturnType<typeof vi.fn>;
       ttq: { track: ReturnType<typeof vi.fn> };
     };
-    expect(w.gtag).toHaveBeenCalledWith('event', 'funnel_step_viewed', { step: 'goal' });
-    expect(w.ttq.track).toHaveBeenCalledWith('funnel_step_viewed', { step: 'goal' });
+    expect(w.gtag).toHaveBeenCalledWith('event', 'funnel_step_viewed', { step: 'email_capture' });
+    expect(w.ttq.track).toHaveBeenCalledWith('funnel_step_viewed', { step: 'email_capture' });
     expect(w.fbq).not.toHaveBeenCalled();
   });
 
@@ -107,10 +107,54 @@ describe('analytics', () => {
     expect(w.ttq.track).toHaveBeenCalledWith('Purchase', commerce);
   });
 
-  it('keeps quiz steps custom-only on TikTok', () => {
-    trackStepViewed('height');
+  it('sends AddToCart once per plan however often it is clicked', () => {
+    trackEvent('offer_selected', { offer_id: 'vn_monthly_welcome50', provider: 'revenuecat' });
+    trackEvent('offer_selected', { offer_id: 'vn_monthly_welcome50', provider: 'revenuecat' });
+    trackEvent('offer_selected', { offer_id: 'vn_semiannual_welcome50', provider: 'revenuecat' });
+    trackEvent('offer_selected', { offer_id: 'vn_monthly_welcome50', provider: 'revenuecat' });
     const w = window as unknown as { ttq: { track: ReturnType<typeof vi.fn> } };
-    expect(w.ttq.track).toHaveBeenCalledTimes(1);
-    expect(w.ttq.track).toHaveBeenCalledWith('funnel_step_viewed', { step: 'height' });
+    const addToCart = w.ttq.track.mock.calls.filter(([event]) => event === 'AddToCart');
+    expect(addToCart.map(([, params]) => params.content_ids)).toEqual([
+      ['vn_monthly_welcome50'],
+      ['vn_semiannual_welcome50'],
+    ]);
+  });
+
+  it('sends AddToCart at checkout when the preselected plan was kept', () => {
+    trackStepViewed('paywall');
+    trackEvent('revenuecat_checkout_started', { plan: '12-week', value: 249000, currency: 'VND' });
+    const w = window as unknown as { ttq: { track: ReturnType<typeof vi.fn> } };
+    expect(w.ttq.track.mock.calls.map(([event]) => event)).toEqual([
+      'funnel_step_viewed',
+      'ViewContent',
+      'revenuecat_checkout_started',
+      'AddToCart',
+      'InitiateCheckout',
+    ]);
+    expect(w.ttq.track).toHaveBeenCalledWith('AddToCart', {
+      value: 249000,
+      currency: 'VND',
+      content_type: 'product',
+      quantity: 1,
+      content_ids: ['12-week'],
+    });
+  });
+
+  it('does not repeat AddToCart at checkout for a plan already in the cart', () => {
+    trackEvent('offer_selected', { offer_id: '12-week', provider: 'revenuecat' });
+    trackEvent('revenuecat_checkout_started', { plan: '12-week', value: 249000, currency: 'VND' });
+    trackEvent('revenuecat_checkout_started', { plan: '12-week', value: 62250, currency: 'VND' });
+    const w = window as unknown as { ttq: { track: ReturnType<typeof vi.fn> } };
+    const events = w.ttq.track.mock.calls.map(([event]) => event);
+    expect(events.filter((event) => event === 'AddToCart')).toHaveLength(1);
+    expect(events.filter((event) => event === 'InitiateCheckout')).toHaveLength(2);
+  });
+
+  it('keeps quiz screens off TikTok but on GA4', () => {
+    trackStepViewed('height');
+    trackStepViewed('target_weight');
+    const w = window as unknown as { gtag: ReturnType<typeof vi.fn>; ttq: { track: ReturnType<typeof vi.fn> } };
+    expect(w.gtag).toHaveBeenCalledWith('event', 'funnel_step_viewed', { step: 'target_weight' });
+    expect(w.ttq.track).not.toHaveBeenCalled();
   });
 });
