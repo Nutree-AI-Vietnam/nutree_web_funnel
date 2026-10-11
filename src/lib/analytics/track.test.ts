@@ -84,11 +84,13 @@ describe('analytics', () => {
     trackStepViewed('paywall');
     trackEvent('offer_selected', { offer_id: 'vn_monthly_welcome50', provider: 'revenuecat' });
     const w = window as unknown as { ttq: { track: ReturnType<typeof vi.fn> } };
-    expect(w.ttq.track).toHaveBeenCalledWith('ViewContent', { content_type: 'product' });
+    expect(w.ttq.track).toHaveBeenCalledWith('ViewContent', {
+      content_type: 'product_group',
+      contents: [{ content_id: 'nutree_premium' }],
+    });
     expect(w.ttq.track).toHaveBeenCalledWith('AddToCart', {
       content_type: 'product',
-      quantity: 1,
-      content_ids: ['vn_monthly_welcome50'],
+      contents: [{ content_id: 'vn_monthly_welcome50', quantity: 1 }],
     });
   });
 
@@ -97,11 +99,10 @@ describe('analytics', () => {
     trackEvent('revenuecat_checkout_completed', { plan: '12-week', value: 249000, currency: 'VND' });
     const w = window as unknown as { ttq: { track: ReturnType<typeof vi.fn> } };
     const commerce = {
-      content_type: 'product',
-      quantity: 1,
-      content_ids: ['12-week'],
       value: 249000,
       currency: 'VND',
+      content_type: 'product',
+      contents: [{ content_id: '12-week', quantity: 1, price: 249000 }],
     };
     expect(w.ttq.track).toHaveBeenCalledWith('InitiateCheckout', commerce);
     expect(w.ttq.track).toHaveBeenCalledWith('Purchase', commerce);
@@ -114,9 +115,9 @@ describe('analytics', () => {
     trackEvent('offer_selected', { offer_id: 'vn_monthly_welcome50', provider: 'revenuecat' });
     const w = window as unknown as { ttq: { track: ReturnType<typeof vi.fn> } };
     const addToCart = w.ttq.track.mock.calls.filter(([event]) => event === 'AddToCart');
-    expect(addToCart.map(([, params]) => params.content_ids)).toEqual([
-      ['vn_monthly_welcome50'],
-      ['vn_semiannual_welcome50'],
+    expect(addToCart.map(([, params]) => params.contents)).toEqual([
+      [{ content_id: 'vn_monthly_welcome50', quantity: 1 }],
+      [{ content_id: 'vn_semiannual_welcome50', quantity: 1 }],
     ]);
   });
 
@@ -135,8 +136,7 @@ describe('analytics', () => {
       value: 249000,
       currency: 'VND',
       content_type: 'product',
-      quantity: 1,
-      content_ids: ['12-week'],
+      contents: [{ content_id: '12-week', quantity: 1, price: 249000 }],
     });
   });
 
@@ -148,6 +148,20 @@ describe('analytics', () => {
     const events = w.ttq.track.mock.calls.map(([event]) => event);
     expect(events.filter((event) => event === 'AddToCart')).toHaveLength(1);
     expect(events.filter((event) => event === 'InitiateCheckout')).toHaveLength(2);
+  });
+
+  it('gives every TikTok standard event a content_id', () => {
+    trackStepViewed('paywall');
+    trackEvent('offer_selected', { offer_id: '$rc_monthly', provider: 'revenuecat' });
+    trackEvent('revenuecat_checkout_started', { plan: '$rc_six_month', value: 990000, currency: 'VND' });
+    trackEvent('revenuecat_checkout_completed', { plan: '$rc_six_month', value: 990000, currency: 'VND' });
+    const w = window as unknown as { ttq: { track: ReturnType<typeof vi.fn> } };
+    const standard = w.ttq.track.mock.calls.filter(([event]) => /^[A-Z]/.test(event));
+    expect(standard.map(([event]) => event)).toEqual(['ViewContent', 'AddToCart', 'AddToCart', 'InitiateCheckout', 'Purchase']);
+    for (const [, params] of standard) {
+      expect(params.contents).toEqual([expect.objectContaining({ content_id: expect.any(String) })]);
+      expect(params).not.toHaveProperty('content_ids');
+    }
   });
 
   it('keeps quiz screens off TikTok but on GA4', () => {

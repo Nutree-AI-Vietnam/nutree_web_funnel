@@ -12,13 +12,16 @@
  * paywall, AddToCart once per plan, InitiateCheckout, Purchase) next to its
  * custom names. Only standard events feed optimization; custom names are kept
  * for reporting. Quiz screens (age, height, weight, ...) never reach TikTok,
- * not even as custom names.
+ * not even as custom names. TikTok reads product ids from contents[].content_id;
+ * Meta's content_ids is ignored there.
  */
 import { isQuizStep } from '@/lib/quiz/steps';
 import { getAttribution } from './attribution';
 
 /** Plans already sent to TikTok as AddToCart in this tab. */
 const TIKTOK_CART_KEY = 'nutree_tiktok_cart_v1';
+/** TikTok item group for the paywall view, where no plan is chosen yet. Plans are its SKUs (package ids). */
+const TIKTOK_PRODUCT_GROUP_ID = 'nutree_premium';
 
 type AnyWindow = Window & {
   gtag?: (...args: unknown[]) => void;
@@ -76,7 +79,10 @@ function tiktokStandardEvents(
   params: Record<string, unknown>,
 ): { event: string; params: Record<string, unknown> }[] {
   if (name === 'funnel_step_viewed' && params.step === 'paywall') {
-    return [{ event: 'ViewContent', params: { content_type: 'product' } }];
+    return [{
+      event: 'ViewContent',
+      params: { content_type: 'product_group', contents: [{ content_id: TIKTOK_PRODUCT_GROUP_ID }] },
+    }];
   }
   if (name === 'offer_selected') {
     return addToTiktokCart(params.offer_id)
@@ -117,8 +123,7 @@ function tiktokProductParams(params: Record<string, unknown>, productId: unknown
     ...(value != null ? { value } : {}),
     ...(currency ? { currency } : {}),
     content_type: 'product',
-    quantity: 1,
-    ...(id ? { content_ids: [id] } : {}),
+    ...(id ? { contents: [{ content_id: id, quantity: 1, ...(value != null ? { price: value } : {}) }] } : {}),
   };
 }
 
