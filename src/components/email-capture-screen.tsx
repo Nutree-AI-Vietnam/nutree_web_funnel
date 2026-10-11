@@ -6,6 +6,7 @@ import { ConversionShell } from '@/components/conversion-shell';
 import { PrimaryButton } from '@/components/primary-button';
 import { createLead } from '@/lib/api/client';
 import { identifyMetaUser } from '@/lib/analytics/meta-identity';
+import { identifyTiktokUser } from '@/lib/analytics/tiktok-identity';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { isValidEmail } from '@/lib/quiz/email';
@@ -46,6 +47,8 @@ export function EmailCaptureScreen({ onComplete }: { onComplete: () => void }) {
       const secureCookie = window.location.protocol === 'https:' ? '; Secure' : '';
       document.cookie = `nutree_locale=${locale}; Max-Age=31536000; Path=/; SameSite=Lax${secureCookie}`;
       identifyMetaUser({ email: email.trim(), externalId: lead.lead_id, firstName: data.name });
+      // Hashing is async; the CompleteRegistration sent with email_captured needs the result.
+      await identifyTiktokUser({ email: email.trim(), externalId: lead.lead_id }).catch(() => null);
       trackEvent('email_captured', {});
       onComplete();
     } catch (submitError) {

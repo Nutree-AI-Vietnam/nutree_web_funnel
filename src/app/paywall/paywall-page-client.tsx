@@ -69,6 +69,12 @@ function firstPaymentPrice(product: Product | null | undefined) {
   return product?.introPricePhase?.price ?? product?.price ?? null;
 }
 
+/** First charge as analytics value + currency; empty when the product has no usable price. */
+function firstPaymentCommerce(product: Product | null | undefined): { value?: number; currency?: string } {
+  const price = firstPaymentPrice(product);
+  return price && Number.isFinite(price.amountMicros) ? { value: price.amountMicros / 1_000_000, currency: price.currency } : {};
+}
+
 function goalDate(locale: 'vi' | 'en') {
   const date = new Date();
   date.setDate(date.getDate() + 182);
@@ -270,10 +276,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       onCheckoutCancelled?.();
     };
     const rcPackage = checkoutPackage(plan, offer);
-    const billedPrice = firstPaymentPrice(rcPackage.webBillingProduct);
-    const checkoutCommerce = billedPrice && Number.isFinite(billedPrice.amountMicros)
-      ? { value: billedPrice.amountMicros / 1_000_000, currency: billedPrice.currency }
-      : {};
+    const checkoutCommerce = firstPaymentCommerce(rcPackage.webBillingProduct);
     trackEvent('revenuecat_checkout_started', { plan: plan.id, package_id: rcPackage.identifier, country_code: countryCode ?? 'auto', ...checkoutCommerce });
 
     try {
@@ -444,7 +447,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
               const intro = firstPaymentPrice(offerPackage.webBillingProduct)?.formattedPrice ?? original;
               const perDayLabel = formatPerDay(perDayByPlan[plan.id] ?? null, priceLocale);
               const savings = savingsByPlan[plan.id];
-              return <button key={plan.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(plan.id); saveSelectedPaywallPlan(plan.id); trackEvent('offer_selected', { offer_id: plan.id, provider: 'revenuecat' }); }} className={cn('overflow-hidden rounded-[1.4rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-[#ff5b1f] shadow-[0_12px_26px_rgb(255_106_31_/_0.10)]' : 'border-[#dfe7e3] hover:border-teal-brand/60')}>
+              return <button key={plan.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(plan.id); saveSelectedPaywallPlan(plan.id); trackEvent('offer_selected', { offer_id: plan.id, provider: 'revenuecat', ...firstPaymentCommerce(offerPackage.webBillingProduct) }); }} className={cn('overflow-hidden rounded-[1.4rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-[#ff5b1f] shadow-[0_12px_26px_rgb(255_106_31_/_0.10)]' : 'border-[#dfe7e3] hover:border-teal-brand/60')}>
                 {plan.recommended && <span className="block bg-gradient-to-r from-[#ef4d59] to-[#ff781f] px-3 py-1.5 text-center text-[0.62rem] font-extrabold uppercase tracking-[0.18em] text-white">{copy.paywall.recommendedTag}</span>}
                 <span className={cn('grid min-h-[5.6rem] grid-cols-[auto_1fr_auto] items-center gap-3 px-3.5 py-3.5', active && 'bg-[#fffafa]')}>
                   <span className={cn('grid h-6 w-6 place-items-center rounded-full border-2', active ? 'border-[#111418]' : 'border-[#c8cfcc]')}>{active && <span className="h-3 w-3 rounded-full bg-forest" />}</span>
