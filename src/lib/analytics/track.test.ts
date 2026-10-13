@@ -1,9 +1,20 @@
+import { createHash, webcrypto } from 'node:crypto';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { META_IDENTITY_STORAGE_KEY } from './meta-identity';
 import { trackEvent, trackStepViewed } from './track';
 import { TIKTOK_IDENTITY_STORAGE_KEY } from './tiktok-identity';
 
 const emailHash = 'a'.repeat(64);
 const leadHash = 'b'.repeat(64);
+const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
+const planProduct = {
+  content_type: 'product',
+  num_items: 1,
+  content_ids: ['12-week'],
+  content_name: '12-week',
+  contents: [{ id: '12-week', quantity: 1 }],
+};
+const planCommerce = { value: 249000, currency: 'VND', ...planProduct };
 
 type TestWindow = {
   gtag: ReturnType<typeof vi.fn>;
@@ -17,10 +28,15 @@ function serverEvents() {
   return (fetch as ReturnType<typeof vi.fn>).mock.calls.map(([url, init]) => ({ url, init, body: JSON.parse(init.body) }));
 }
 
+function metaServerEvents() {
+  return serverEvents().filter(({ url }) => url === '/api/meta/events');
+}
+
 describe('analytics', () => {
   beforeEach(() => {
     const store = new Map<string, string>();
     vi.stubEnv('NEXT_PUBLIC_TIKTOK_PIXEL_ID', '');
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '');
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(null, { status: 204 }))));
     vi.stubGlobal('crypto', { randomUUID: () => 'test-event-id' });
     vi.stubGlobal('window', {
@@ -39,6 +55,7 @@ describe('analytics', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it('fans out custom funnel events to gtag and TikTok only', () => {
@@ -78,6 +95,85 @@ describe('analytics', () => {
       contents: [{ id: '12-week', quantity: 1 }],
     }, { eventID: 'Purchase.test-event-id' });
     expect(w.fbq).not.toHaveBeenCalledWith('trackCustom', expect.anything(), expect.anything());
+  });
+
+  it('copies Meta standard events to the server with the pixel eventID and hashed identity', async () => {
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
+    vi.stubGlobal('crypto', { randomUUID: () => 'test-event-id', subtle: webcrypto.subtle });
+    vi.spyOn(Date, 'now').mockReturnValue(1_760_000_000_000);
+    const w = window as unknown as TestWindow;
+    w.location = { href: 'https://quiz.test/paywall?fbclid=IwAR-click#plan' };
+    w.sessionStorage.setItem(META_IDENTITY_STORAGE_KEY, JSON.stringify({ em: 'jane@example.com', external_id: 'lead-1', fn: 'jane' }));
+    trackEvent('revenuecat_checkout_completed', { plan: '12-week', value: 249000, currency: 'VND', fbclid: 'IwAR-click' });
+    expect(w.fbq).toHaveBeenCalledWith('track', 'Purchase', planCommerce, { eventID: 'Purchase.test-event-id' });
+    await vi.waitFor(() => expect(metaServerEvents()).toHaveLength(1));
+    const [sent] = metaServerEvents();
+    expect(sent.init).toMatchObject({ method: 'POST', keepalive: true });
+    expect(sent.body).toEqual({
+      event_name: 'Purchase',
+      event_id: 'Purchase.test-event-id',
+      event_source_url: 'https://quiz.test/paywall',
+      custom_data: planCommerce,
+      user_data: {
+        em: sha256('jane@example.com'),
+        external_id: sha256('lead-1'),
+        fn: sha256('jane'),
+        fbc: 'fb.1.1760000000000.IwAR-click',
+      },
+    });
+  });
+
+  it('dates fbc by when the tab first saw the click', async () => {
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
+    const now = vi.spyOn(Date, 'now');
+    const w = window as unknown as TestWindow;
+    w.sessionStorage.setItem('nutree_attribution_v1', JSON.stringify({ fbclid: 'click-1' }));
+    now.mockReturnValue(1_760_000_000_000);
+    trackStepViewed('landing');
+    now.mockReturnValue(1_760_000_600_000);
+    trackEvent('email_captured', {});
+    w.sessionStorage.setItem('nutree_attribution_v1', JSON.stringify({ fbclid: 'click-2' }));
+    now.mockReturnValue(1_760_001_200_000);
+    trackEvent('revenuecat_checkout_started', { plan: '12-week', value: 249000, currency: 'VND' });
+    await vi.waitFor(() => expect(metaServerEvents()).toHaveLength(3));
+    expect(metaServerEvents().map(({ body }) => [body.event_name, body.user_data.fbc])).toEqual([
+      ['ViewContent', 'fb.1.1760000000000.click-1'],
+      ['Lead', 'fb.1.1760000000000.click-1'],
+      ['InitiateCheckout', 'fb.1.1760001200000.click-2'],
+    ]);
+  });
+
+  it('copies Meta standard events to the server when the pixel is blocked', async () => {
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
+    vi.stubGlobal('window', { sessionStorage: (window as unknown as TestWindow).sessionStorage });
+    trackStepViewed('landing');
+    await vi.waitFor(() => expect(metaServerEvents().map(({ body }) => body.event_name)).toEqual(['ViewContent']));
+  });
+
+  it('sends no Meta server copy without a pixel id or for other events', async () => {
+    trackEvent('email_captured', {});
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
+    trackStepViewed('height');
+    trackEvent('offer_selected', { offer_id: '12-week', provider: 'revenuecat', value: 249000, currency: 'VND' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('drops a value Meta and TikTok would reject, with its currency', () => {
+    trackEvent('revenuecat_checkout_completed', { plan: '12-week', value: 0, currency: 'VND' });
+    trackEvent('revenuecat_checkout_completed', { plan: '12-week', value: 249000 });
+    trackEvent('revenuecat_checkout_completed', { plan: '12-week', value: 249000, currency: 'đ' });
+    const w = window as unknown as TestWindow;
+    expect(w.fbq.mock.calls.map(([, event, params]) => [event, params])).toEqual([
+      ['Purchase', planProduct],
+      ['Purchase', planProduct],
+      ['Purchase', planProduct],
+    ]);
+    const purchases = w.ttq.track.mock.calls.filter(([event]) => event === 'Purchase');
+    expect(purchases.map(([, params]) => params)).toEqual(Array(3).fill({
+      content_type: 'product',
+      contents: [{ content_id: '12-week', quantity: 1 }],
+    }));
   });
 
   it('fires ViewContent once on the funnel landing step', () => {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginMutation } from '@/lib/handoff/lead-access-session';
-import { clientIp, parseTiktokBrowserEvent, TIKTOK_EVENTS_API_URL, tiktokEventsApiBody } from '@/lib/analytics/tiktok-events-api';
+import { clientIp } from '@/lib/analytics/events-api';
+import { parseTiktokBrowserEvent, TIKTOK_EVENTS_API_URL, tiktokEventsApiBody } from '@/lib/analytics/tiktok-events-api';
 
 export const dynamic = 'force-dynamic';
 

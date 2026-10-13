@@ -1,6 +1,6 @@
 import type { Product } from '@revenuecat/purchases-js';
 import { describe, expect, it } from 'vitest';
-import { formatPerDay, periodInDays, planPerDay, savingsVersusPriciest } from './plan-pricing';
+import { firstPaymentCommerce, formatPerDay, periodInDays, planPerDay, savingsVersusPriciest } from './plan-pricing';
 
 function product(amount: number, period: { number: number; unit: string }, currency = 'VND', intro?: { amount: number; period: { number: number; unit: string } }): Product {
   return {
@@ -40,6 +40,22 @@ describe('planPerDay', () => {
     expect(planPerDay(product(100, { number: 1, unit: 'week' }, 'đ'))).toBeNull();
     expect(planPerDay(null)).toBeNull();
     expect(planPerDay(product(100, { number: 1, unit: 'week' }), 120)).toBeNull();
+  });
+});
+
+describe('firstPaymentCommerce', () => {
+  it('reports the paid intro price, else the regular price, in major units', () => {
+    const withIntro = product(399_000, { number: 1, unit: 'month' }, 'VND', { amount: 70_000, period: { number: 1, unit: 'week' } });
+    expect(firstPaymentCommerce(withIntro)).toEqual({ value: 70_000, currency: 'VND' });
+    expect(firstPaymentCommerce(product(9.99, { number: 1, unit: 'month' }, 'USD'))).toEqual({ value: 9.99, currency: 'USD' });
+  });
+
+  it('skips a free intro phase and returns nothing without a usable price', () => {
+    const freeIntro = product(399_000, { number: 1, unit: 'month' }, 'VND', { amount: 0, period: { number: 1, unit: 'week' } });
+    expect(firstPaymentCommerce(freeIntro)).toEqual({ value: 399_000, currency: 'VND' });
+    expect(firstPaymentCommerce(product(0, { number: 1, unit: 'month' }))).toEqual({});
+    expect(firstPaymentCommerce(product(100, { number: 1, unit: 'month' }, 'đ'))).toEqual({});
+    expect(firstPaymentCommerce(null)).toEqual({});
   });
 });
 

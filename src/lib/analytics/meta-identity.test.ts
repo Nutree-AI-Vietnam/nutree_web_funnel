@@ -1,5 +1,8 @@
+import { createHash } from 'node:crypto';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { identifyMetaUser, META_IDENTITY_STORAGE_KEY, normalizeMetaFirstName, readMetaIdentity } from './meta-identity';
+import { hashMetaIdentity, identifyMetaUser, META_IDENTITY_STORAGE_KEY, normalizeMetaFirstName, readMetaIdentity } from './meta-identity';
+
+const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
 
 describe('meta identity', () => {
   beforeEach(() => {
@@ -33,5 +36,15 @@ describe('meta identity', () => {
     expect(identifyMetaUser({ email: 'not-an-email' })).toBeNull();
     expect(normalizeMetaFirstName('A')).toBeNull();
     expect(normalizeMetaFirstName('Pixel QA')).toBe('pixel');
+  });
+
+  it('hashes the stored identity for the Conversions API', async () => {
+    await expect(hashMetaIdentity({ em: 'pixel.qa@nutreeai.com', external_id: 'lead_abc-123', fn: 'anh' })).resolves.toEqual({
+      em: sha256('pixel.qa@nutreeai.com'),
+      external_id: sha256('lead_abc-123'),
+      fn: sha256('anh'),
+    });
+    await expect(hashMetaIdentity({ em: 'pixel.qa@nutreeai.com' })).resolves.toEqual({ em: sha256('pixel.qa@nutreeai.com') });
+    await expect(hashMetaIdentity(null)).resolves.toBeNull();
   });
 });
