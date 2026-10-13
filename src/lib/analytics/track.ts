@@ -6,7 +6,10 @@
  * Meta Ads optimization uses four standard events only (ViewContent / Lead /
  * InitiateCheckout / Purchase). Quiz-step custom names stay on GA4 so they
  * cannot occupy Aggregated Event Measurement slots. Do not name Meta custom
- * conversions after health conditions.
+ * conversions after health conditions. Each of the four also goes to the
+ * Conversions API through our server with the pixel's eventID, so Meta keeps
+ * one copy; it carries the hashed email, first name and lead id saved at email
+ * capture, and an fbc built from the landing fbclid.
  *
  * TikTok gets the same commercial steps as standard events (CompleteRegistration
  * at email capture, ViewContent on the paywall, AddToCart once per plan,
@@ -20,15 +23,14 @@
  */
 import { isQuizStep } from '@/lib/quiz/steps';
 import { getAttribution } from './attribution';
-import {
-  TIKTOK_EVENTS_PATH,
-  tiktokPageUrl,
-  type TiktokBrowserEvent,
-  type TiktokProperties,
-  type TiktokStandardEvent,
-} from './tiktok-events-api';
+import { pageUrl } from './events-api';
+import { META_EVENTS_PATH, type MetaBrowserEvent, type MetaCustomData, type MetaStandardEvent } from './meta-events-api';
+import { hashMetaIdentity, metaPixelId, readMetaIdentity } from './meta-identity';
+import { TIKTOK_EVENTS_PATH, type TiktokBrowserEvent, type TiktokProperties, type TiktokStandardEvent } from './tiktok-events-api';
 import { applyTiktokIdentity, readTiktokIdentity, type TiktokIdentity, type TiktokPixel } from './tiktok-identity';
 
+/** The landing fbclid and when this tab first saw it. */
+const META_CLICK_KEY = 'nutree_meta_click_v1';
 /** Plans already sent to TikTok as AddToCart in this tab. */
 const TIKTOK_CART_KEY = 'nutree_tiktok_cart_v1';
 /** TikTok item group for the paywall view, where no plan is chosen yet. Plans are its SKUs (package ids). */
@@ -40,19 +42,25 @@ type AnyWindow = Window & {
   ttq?: TiktokPixel;
 };
 
+type MetaStandard = { event: MetaStandardEvent; params: MetaCustomData };
 type TiktokStandard = { event: TiktokStandardEvent; params: TiktokProperties };
 
 function withAttribution(params: Record<string, unknown>): Record<string, unknown> {
   return { ...getAttribution(), ...params };
 }
 
-function commerceParams(params: Record<string, unknown>): Record<string, unknown> {
+/** Value with its currency, or neither: Meta and TikTok take only a value above 0 with an ISO 4217 code. */
+function commerceValue(params: Record<string, unknown>): { value: number; currency: string } | null {
+  const { value, currency } = params;
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 && typeof currency === 'string' && /^[A-Z]{3}$/.test(currency)
+    ? { value, currency }
+    : null;
+}
+
+function commerceParams(params: Record<string, unknown>): MetaCustomData {
   const plan = typeof params.plan === 'string' ? params.plan : null;
-  const value = typeof params.value === 'number' ? params.value : null;
-  const currency = typeof params.currency === 'string' ? params.currency : null;
   return {
-    ...(value != null ? { value } : {}),
-    ...(currency ? { currency } : {}),
+    ...commerceValue(params),
     content_type: 'product',
     num_items: 1,
     ...(plan
@@ -65,10 +73,7 @@ function commerceParams(params: Record<string, unknown>): Record<string, unknown
   };
 }
 
-function metaStandardEvent(
-  name: string,
-  params: Record<string, unknown>,
-): { event: string; params: Record<string, unknown> } | null {
+function metaStandardEvent(name: string, params: Record<string, unknown>): MetaStandard | null {
   if (name === 'email_captured') return { event: 'Lead', params: { content_name: 'email_capture' } };
   if (name === 'funnel_step_viewed' && params.step === 'landing') {
     return { event: 'ViewContent', params: { content_name: 'funnel_landing', content_category: 'onboarding' } };
@@ -129,14 +134,59 @@ function tiktokProductGroupParams(): TiktokProperties {
 
 function tiktokProductParams(params: Record<string, unknown>, productId: unknown): TiktokProperties {
   const id = typeof productId === 'string' && productId ? productId : null;
-  const value = typeof params.value === 'number' ? params.value : null;
-  const currency = typeof params.currency === 'string' ? params.currency : null;
+  const commerce = commerceValue(params);
   return {
-    ...(value != null ? { value } : {}),
-    ...(currency ? { currency } : {}),
+    ...commerce,
     content_type: 'product' as const,
-    ...(id ? { contents: [{ content_id: id, quantity: 1, ...(value != null ? { price: value } : {}) }] } : {}),
+    ...(id ? { contents: [{ content_id: id, quantity: 1, ...(commerce ? { price: commerce.value } : {}) }] } : {}),
   };
+}
+
+/**
+ * fbc for the landing fbclid, kept whole: Meta matches the click id exactly.
+ * The creation time is when this tab first saw that click.
+ */
+function metaFbc(fbclid: unknown): string | null {
+  if (typeof fbclid !== 'string' || !fbclid) return null;
+  let seenAt = Date.now();
+  try {
+    const stored = JSON.parse(window.sessionStorage.getItem(META_CLICK_KEY) ?? 'null') as { fbclid?: unknown; seen_at?: unknown } | null;
+    if (stored?.fbclid === fbclid && typeof stored.seen_at === 'number') seenAt = stored.seen_at;
+    else window.sessionStorage.setItem(META_CLICK_KEY, JSON.stringify({ fbclid, seen_at: seenAt }));
+  } catch {
+    // Without session storage each event dates the click itself.
+  }
+  return `fb.1.${seenAt}.${fbclid}`;
+}
+
+/** Server copy of a pixel event; the shared event_id lets Meta keep only one. */
+function sendMetaServerEvent(event: Omit<MetaBrowserEvent, 'user_data'>, fbc: string | null): void {
+  try {
+    void hashMetaIdentity(readMetaIdentity())
+      .then((identity) => fetch(META_EVENTS_PATH, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...event, user_data: { ...identity, ...(fbc ? { fbc } : {}) } }),
+        keepalive: true,
+      }))
+      .catch(() => undefined);
+  } catch {
+    // The pixel already has the event.
+  }
+}
+
+function trackMeta(fbq: AnyWindow['fbq'], name: string, payload: Record<string, unknown>): void {
+  const standard = metaStandardEvent(name, payload);
+  if (!standard) return;
+  const id = eventID(standard.event);
+  fbq?.('track', standard.event, standard.params, { eventID: id });
+  // The server copy also covers pixels that have not loaded yet or are blocked.
+  if (!metaPixelId() || typeof fetch !== 'function') return;
+  const url = pageUrl(window.location?.href);
+  sendMetaServerEvent(
+    { event_name: standard.event, event_id: id, ...(url ? { event_source_url: url } : {}), custom_data: standard.params },
+    metaFbc(payload.fbclid),
+  );
 }
 
 /** Server copy of a pixel event; the shared event_id lets TikTok keep only one. */
@@ -159,8 +209,8 @@ function tiktokUser(identity: TiktokIdentity | null, payload: Record<string, unk
 }
 
 function tiktokPage(): TiktokBrowserEvent['page'] {
-  const url = tiktokPageUrl(window.location?.href);
-  const referrer = tiktokPageUrl(typeof document === 'undefined' ? undefined : document.referrer);
+  const url = pageUrl(window.location?.href);
+  const referrer = pageUrl(typeof document === 'undefined' ? undefined : document.referrer);
   return { ...(url ? { url } : {}), ...(referrer ? { referrer } : {}) };
 }
 
@@ -195,8 +245,7 @@ export function trackEvent(name: string, params: Record<string, unknown> = {}): 
   const payload = withAttribution(params);
   try {
     w.gtag?.('event', name, payload);
-    const standard = metaStandardEvent(name, payload);
-    if (standard) w.fbq?.('track', standard.event, standard.params, { eventID: eventID(standard.event) });
+    trackMeta(w.fbq, name, payload);
     trackTiktok(w.ttq, name, payload);
   } catch {
     // Analytics must never break the funnel.

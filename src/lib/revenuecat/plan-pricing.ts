@@ -33,6 +33,21 @@ export function planPerDay(product: Product | null | undefined, discountPercent 
   return { amount, currency: price.currency };
 }
 
+/**
+ * First charge as analytics value + currency: the paid intro price, else the
+ * regular price. Ad platforms take only a value above 0 with an ISO 4217 code,
+ * so a free intro phase counts the charge that follows it; empty when neither
+ * price is usable.
+ */
+export function firstPaymentCommerce(product: Product | null | undefined): { value?: number; currency?: string } {
+  for (const price of [product?.introPricePhase?.price, product?.price]) {
+    if (price && Number.isFinite(price.amountMicros) && price.amountMicros > 0 && /^[A-Z]{3}$/.test(price.currency)) {
+      return { value: price.amountMicros / 1_000_000, currency: price.currency };
+    }
+  }
+  return {};
+}
+
 export function formatPerDay(perDay: PlanPerDay | null, locale: string): string | null {
   if (!perDay) return null;
   const isVnd = perDay.currency === 'VND';

@@ -7,6 +7,7 @@
  * reliably: IP, user agent and the _ttp cookie. Email and lead id arrive as
  * SHA-256 hashes only, and page URLs are cut to origin + path.
  */
+import { IP, isRecord, OPAQUE, pageUrl, SHA256_HEX, text, TOKEN } from './events-api';
 
 export const TIKTOK_EVENTS_PATH = '/api/tiktok/events';
 export const TIKTOK_EVENTS_API_URL = 'https://business-api.tiktok.com/open_api/v1.3/event/track/';
@@ -40,38 +41,8 @@ export type TiktokRequestContext = {
   ttp?: string | null;
 };
 
-const SHA256_HEX = /^[0-9a-f]{64}$/;
-/** Event ids we generate. */
-const TOKEN = /^[\w.~-]+$/;
-/** Click ids and cookie values are opaque; any visible ASCII, no spaces. */
-const OPAQUE = /^[!-~]+$/;
-const IP = /^[0-9a-fA-F:.]{3,45}$/;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function text(value: unknown, maxLength: number, pattern?: RegExp): string | undefined {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  if (!trimmed || trimmed.length > maxLength) return undefined;
-  return !pattern || pattern.test(trimmed) ? trimmed : undefined;
-}
-
 function amount(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined;
-}
-
-/** Origin + path only: query strings and fragments can carry tokens. */
-export function tiktokPageUrl(value: unknown): string | undefined {
-  const url = text(value, 2048);
-  if (!url) return undefined;
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? `${parsed.origin}${parsed.pathname}` : undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 function contents(value: unknown): TiktokContent[] | undefined {
@@ -114,8 +85,8 @@ export function parseTiktokBrowserEvent(input: unknown): TiktokBrowserEvent | nu
   const externalId = text(user.external_id, 64, SHA256_HEX);
   // TikTok click IDs run up to 1,000 characters; a cut one no longer matches its ad.
   const ttclid = text(user.ttclid, 1000, OPAQUE);
-  const url = tiktokPageUrl(page.url);
-  const referrer = tiktokPageUrl(page.referrer);
+  const url = pageUrl(page.url);
+  const referrer = pageUrl(page.referrer);
   return {
     event,
     event_id: eventId,
@@ -130,12 +101,6 @@ export function parseTiktokBrowserEvent(input: unknown): TiktokBrowserEvent | nu
       ...(referrer ? { referrer } : {}),
     },
   };
-}
-
-/** First hop of x-forwarded-for, which Vercel sets to the client address. */
-export function clientIp(headers: Headers): string | null {
-  const ip = headers.get('x-forwarded-for')?.split(',')[0]?.trim() || headers.get('x-real-ip')?.trim();
-  return ip && IP.test(ip) ? ip : null;
 }
 
 export function tiktokEventsApiBody(pixelId: string, event: TiktokBrowserEvent, context: TiktokRequestContext, testEventCode?: string) {

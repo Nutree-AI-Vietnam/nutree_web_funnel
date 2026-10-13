@@ -1,4 +1,5 @@
 import { isValidEmail } from '@/lib/quiz/email';
+import { SHA256_HEX, sha256Hex } from './events-api';
 
 /**
  * TikTok manual Advanced Matching: SHA-256 of the email and of the lead id,
@@ -19,8 +20,6 @@ export type TiktokPixel = {
   identify?: (identity: TiktokIdentity) => void;
 };
 
-const SHA256_HEX = /^[0-9a-f]{64}$/;
-
 /** Identity last sent to each pixel instance; a page reload creates a new one. */
 const identified = new WeakMap<object, string>();
 
@@ -28,15 +27,6 @@ function storage() {
   if (typeof window === 'undefined') return null;
   try {
     return window.sessionStorage;
-  } catch {
-    return null;
-  }
-}
-
-async function sha256Hex(value: string): Promise<string | null> {
-  try {
-    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
   } catch {
     return null;
   }

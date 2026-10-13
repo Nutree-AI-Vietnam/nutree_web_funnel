@@ -1,4 +1,5 @@
 import { isValidEmail } from '@/lib/quiz/email';
+import { sha256Hex } from './events-api';
 
 export const META_IDENTITY_STORAGE_KEY = 'nutree_meta_identity_v1';
 
@@ -7,6 +8,9 @@ export interface MetaIdentity {
   external_id?: string;
   fn?: string;
 }
+
+/** The same fields as SHA-256 hex, the form the Conversions API takes. */
+export type HashedMetaIdentity = MetaIdentity;
 
 type AnyWindow = Window & {
   fbq?: (...args: unknown[]) => void;
@@ -87,4 +91,16 @@ export function identifyMetaUser(input: { email: string; externalId?: string; fi
     }
   }
   return identity;
+}
+
+/** Hashes the stored identity for the Conversions API; null without an email hash. */
+export async function hashMetaIdentity(identity: MetaIdentity | null): Promise<HashedMetaIdentity | null> {
+  if (!identity) return null;
+  const [em, externalId, fn] = await Promise.all([
+    sha256Hex(identity.em),
+    identity.external_id ? sha256Hex(identity.external_id) : null,
+    identity.fn ? sha256Hex(identity.fn) : null,
+  ]);
+  if (!em) return null;
+  return { em, ...(externalId ? { external_id: externalId } : {}), ...(fn ? { fn } : {}) };
 }

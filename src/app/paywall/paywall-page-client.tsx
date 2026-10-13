@@ -13,7 +13,7 @@ import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
 import { buildRevenueCatPaywall, checkoutPackage, defaultPaywallPlan, type PaywallOfferKind, type RevenueCatPaywall } from '@/lib/revenuecat/paywall-plans';
-import { formatPerDay, planPerDay, savingsVersusPriciest } from '@/lib/revenuecat/plan-pricing';
+import { firstPaymentCommerce, formatPerDay, planPerDay, savingsVersusPriciest } from '@/lib/revenuecat/plan-pricing';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { syncRevenueCatAttribution } from '@/lib/revenuecat/attribution-attributes';
 import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, redemptionUrlFromCheckoutOperation, savePendingRedemptionCorrelation, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
@@ -69,12 +69,6 @@ function storePaywallOffer(offer: StoredPaywallOffer) {
 
 function firstPaymentPrice(product: Product | null | undefined) {
   return product?.introPricePhase?.price ?? product?.price ?? null;
-}
-
-/** First charge as analytics value + currency; empty when the product has no usable price. */
-function firstPaymentCommerce(product: Product | null | undefined): { value?: number; currency?: string } {
-  const price = firstPaymentPrice(product);
-  return price && Number.isFinite(price.amountMicros) ? { value: price.amountMicros / 1_000_000, currency: price.currency } : {};
 }
 
 function goalDate(locale: 'vi' | 'en') {
