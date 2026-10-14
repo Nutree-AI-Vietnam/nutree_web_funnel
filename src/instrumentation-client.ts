@@ -10,6 +10,10 @@ if (projectToken) {
     defaults: '2026-05-30',
     persistence: 'localStorage',
     person_profiles: 'identified_only',
+    capture_pageview: 'history_change',
+    capture_pageleave: true,
+    autocapture: true,
+    capture_performance: true,
     disable_surveys: true,
     advanced_disable_feature_flags: true,
     session_recording: {
