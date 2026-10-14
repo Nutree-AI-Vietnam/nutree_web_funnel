@@ -13,7 +13,7 @@ export function ResultPromisingStep() {
     <div className="flex flex-1 flex-col gap-2.5">
       <div className="rounded-[1.7rem] border border-white/80 bg-white/78 p-3.5 shadow-[0_20px_64px_rgb(26_71_57_/_0.12)] backdrop-blur">
         <p className="mb-1 text-sm font-bold text-emerald-brand">{vi.result_promising.eyebrow}</p>
-        <h1 className="text-[1.45rem] font-extrabold leading-tight text-forest">
+        <h1 className="ph-mask text-[1.45rem] font-extrabold leading-tight text-forest">
           {vi.result_promising.headline.replace('[name]', name || vi.reflection.fallbackName)}
         </h1>
         <p className="mt-1.5 text-xs leading-relaxed text-slate-brand">{vi.result_promising.body}</p>

@@ -30,7 +30,7 @@ export function NameAskStep({ step }: { step: QuizStep }) {
         onKeyDown={(e) => e.key === 'Enter' && value.trim() && submit()}
         placeholder={vi.name_ask.placeholder}
         autoFocus
-        className="rounded-2xl border border-white/80 bg-white/90 px-5 py-4 text-lg font-semibold text-forest shadow-inner outline-none transition placeholder:text-muted-brand/65 focus:border-teal-brand focus:ring-4 focus:ring-teal-brand/10"
+        className="ph-no-capture rounded-2xl border border-white/80 bg-white/90 px-5 py-4 text-lg font-semibold text-forest shadow-inner outline-none transition placeholder:text-muted-brand/65 focus:border-teal-brand focus:ring-4 focus:ring-teal-brand/10"
       />
       <div className="mt-auto flex flex-col gap-3 pt-6">
         <PrimaryButton disabled={!value.trim()} onClick={submit}>

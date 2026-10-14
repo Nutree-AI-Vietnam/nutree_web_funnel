@@ -40,6 +40,7 @@ npm run build                # production build check
 | `NEXT_PUBLIC_REVENUECAT_WEB_API_KEY` | RevenueCat Web public API key for the web checkout config |
 | `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID` | Offering identifier; the paywall shows every package in that offering, in dashboard order |
 | `NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID` / `NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME` | Matching Nutree app bundle/package IDs for the phone handoff flow |
+| `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` | PostHog project token for session replay (optional; omitted if unset). Use DEV locally, STAGING on preview, PROD on production |
 | `NEXT_PUBLIC_GA4_ID` | GA4 measurement id (optional; script omitted if unset) |
 | `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel id (optional) |
 | `NEXT_PUBLIC_TIKTOK_PIXEL_ID` | TikTok Pixel id (optional) |

@@ -51,7 +51,7 @@ export function WelcomeStep() {
         transition={{ delay: 0.15, duration: 0.4 }}
         className="text-center"
       >
-        <h1 className="text-[2rem] font-extrabold leading-tight text-forest">
+        <h1 className="ph-mask text-[2rem] font-extrabold leading-tight text-forest">
           {copy.welcome.headline.replace('[name]', greetingName)}
         </h1>
         <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-brand">

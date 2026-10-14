@@ -156,7 +156,7 @@ export function CalculatingStep() {
   return (
     <div className="flex flex-1 flex-col">
       <header className="text-center">
-        <h1 className="mx-auto max-w-[20rem] text-[1.6rem] font-extrabold leading-[1.12] tracking-tight text-forest [text-wrap:balance]">
+        <h1 className="ph-mask mx-auto max-w-[20rem] text-[1.6rem] font-extrabold leading-[1.12] tracking-tight text-forest [text-wrap:balance]">
           {vi.calculating.text.replace('[name]', data.name || vi.reflection.fallbackName)}
         </h1>
         <p

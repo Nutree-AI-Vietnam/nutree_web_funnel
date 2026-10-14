@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // PostHog capture endpoints use a trailing slash. Redirecting those breaks ingestion.
+  skipTrailingSlashRedirect: true,
   async headers() {
     const headers = [
       { key: 'Cache-Control', value: 'no-store' },

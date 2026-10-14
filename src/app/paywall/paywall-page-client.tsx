@@ -9,6 +9,7 @@ import { createPortal } from 'react-dom';
 import { ConversionShell } from '@/components/conversion-shell';
 import { stripNonAttributionParams } from '@/lib/analytics/attribution';
 import { identifyMetaUser } from '@/lib/analytics/meta-identity';
+import { identifyFunnelLead } from '@/lib/analytics/posthog';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
@@ -129,6 +130,11 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   }, [hydrated, lead, purchased, router]);
 
   useEffect(() => trackStepViewed('paywall'), []);
+
+  useEffect(() => {
+    if (!hydrated || !lead?.lead_id) return;
+    identifyFunnelLead(lead.lead_id, readCheckoutEmail());
+  }, [hydrated, lead]);
 
   useEffect(() => {
     if (exitOfferMode) stripNonAttributionParams();
