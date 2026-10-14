@@ -1,18 +1,5 @@
 import posthog from 'posthog-js';
 
-/** Records a screen as its own page so the web analytics paths table can list it. */
-export function captureWebPage(path: string, kind: 'view' | 'leave'): void {
-  if (typeof window === 'undefined' || !path) return;
-  try {
-    posthog.capture(kind === 'view' ? '$pageview' : '$pageleave', {
-      $current_url: `${window.location.origin}${path}`,
-      $pathname: path,
-    });
-  } catch {
-    // Analytics must never block the quiz.
-  }
-}
-
 /** Mirror a funnel event into PostHog so the quiz and checkout show up on the session. */
 export function captureFunnelEvent(name: string, properties: Record<string, unknown> = {}): void {
   try {

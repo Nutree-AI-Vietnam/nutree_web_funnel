@@ -6,7 +6,7 @@ vi.mock('posthog-js', () => ({
   default: { capture, identify },
 }));
 
-import { captureFunnelEvent, captureWebPage, identifyFunnelLead } from './posthog';
+import { captureFunnelEvent, identifyFunnelLead } from './posthog';
 
 describe('captureFunnelEvent', () => {
   beforeEach(() => {
@@ -16,16 +16,6 @@ describe('captureFunnelEvent', () => {
   it('sends the funnel event to PostHog', () => {
     captureFunnelEvent('revenuecat_checkout_started', { plan: '24-week' });
     expect(capture).toHaveBeenCalledWith('revenuecat_checkout_started', { plan: '24-week' });
-  });
-
-  it('records a screen as a page view on the web analytics path', () => {
-    vi.stubGlobal('window', { location: { origin: 'https://quiz.nutreeai.com' } });
-    captureWebPage('/survey/vi/paywall', 'view');
-    expect(capture).toHaveBeenCalledWith('$pageview', {
-      $current_url: 'https://quiz.nutreeai.com/survey/vi/paywall',
-      $pathname: '/survey/vi/paywall',
-    });
-    vi.unstubAllGlobals();
   });
 });
 
