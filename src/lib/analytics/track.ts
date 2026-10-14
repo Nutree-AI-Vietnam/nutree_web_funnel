@@ -27,6 +27,7 @@ import { pageUrl } from './events-api';
 import { META_EVENTS_PATH, type MetaBrowserEvent, type MetaCustomData, type MetaStandardEvent } from './meta-events-api';
 import { hashMetaIdentity, metaPixelId, readMetaIdentity } from './meta-identity';
 import { TIKTOK_EVENTS_PATH, type TiktokBrowserEvent, type TiktokProperties, type TiktokStandardEvent } from './tiktok-events-api';
+import { captureFunnelEvent } from './posthog';
 import { applyTiktokIdentity, readTiktokIdentity, type TiktokIdentity, type TiktokPixel } from './tiktok-identity';
 
 /** The landing fbclid and when this tab first saw it. */
@@ -247,6 +248,7 @@ export function trackEvent(name: string, params: Record<string, unknown> = {}): 
     w.gtag?.('event', name, payload);
     trackMeta(w.fbq, name, payload);
     trackTiktok(w.ttq, name, payload);
+    captureFunnelEvent(name, payload);
   } catch {
     // Analytics must never break the funnel.
   }

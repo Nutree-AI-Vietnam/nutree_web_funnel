@@ -1,12 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { identify } = vi.hoisted(() => ({ identify: vi.fn() }));
+const { capture, identify } = vi.hoisted(() => ({ capture: vi.fn(), identify: vi.fn() }));
 
 vi.mock('posthog-js', () => ({
-  default: { identify },
+  default: { capture, identify },
 }));
 
-import { identifyFunnelLead } from './posthog';
+import { captureFunnelEvent, identifyFunnelLead } from './posthog';
+
+describe('captureFunnelEvent', () => {
+  beforeEach(() => {
+    capture.mockClear();
+  });
+
+  it('sends the funnel event to PostHog', () => {
+    captureFunnelEvent('revenuecat_checkout_started', { plan: '24-week' });
+    expect(capture).toHaveBeenCalledWith('revenuecat_checkout_started', { plan: '24-week' });
+  });
+});
 
 describe('identifyFunnelLead', () => {
   beforeEach(() => {
