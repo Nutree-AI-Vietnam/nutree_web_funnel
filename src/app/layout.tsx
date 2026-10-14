@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Be_Vietnam_Pro } from 'next/font/google';
 import Script from 'next/script';
 import { AnalyticsScripts } from '@/components/analytics-scripts';
+import { FunnelWebAnalytics } from '@/components/funnel-web-analytics';
 import { LocalPreviewTools } from '@/components/local-preview-tools';
 import { metaPixelId } from '@/lib/analytics/meta-identity';
 import { metaPixelBootstrapScript } from '@/lib/analytics/meta-pixel-snippet';
@@ -83,6 +84,7 @@ export default function RootLayout({
       </head>
       <body className={`${beVietnam.variable} flex min-h-full flex-col font-sans antialiased`}>
         <AnalyticsScripts />
+        <FunnelWebAnalytics />
         {children}
         <LocalPreviewTools />
       </body>
