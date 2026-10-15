@@ -14,7 +14,7 @@ import { identifyFunnelLead } from '@/lib/analytics/posthog';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
-import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, hasPaywallCheckoutPending, markExitOfferClaimed, markPaywallCheckoutPending, paddleCheckoutIsOpen, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, PAYWALL_WELCOME_OFFER_SECONDS, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
+import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, hasPaywallCheckoutPending, markExitOfferClaimed, markPaywallCheckoutPending, paddleCheckoutClosedWithoutPayment, paddleCheckoutIsOpen, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, PAYWALL_WELCOME_OFFER_SECONDS, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
 import { firstPaymentCommerce, formatPerDay, planPerDay, savingsVersusPriciest } from '@/lib/revenuecat/plan-pricing';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { syncRevenueCatAttribution } from '@/lib/revenuecat/attribution-attributes';
@@ -293,15 +293,15 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       checkoutInFlightRef.current = false;
       setBusy(false);
       clearPaywallCheckoutPending();
-      if (isExitOffer || hasExitOfferBeenClaimed() || isUserPurchased({ purchased, lead })) return;
+      if (isExitOffer || isUserPurchased({ purchased, lead })) return;
       saveSelectedPaywallPlan(SIX_MONTH_PLAN_ID);
       setSelectedId(SIX_MONTH_PLAN_ID);
       markExitOfferClaimed();
-      const exitOffer = createPaywallOffer('exit');
-      storePaywallOffer(exitOffer);
+      const expiresAt = Date.now() + PAYWALL_WELCOME_OFFER_SECONDS * 1000;
+      storePaywallOffer({ kind: 'exit', expiresAt });
       setOfferKind('exit');
-      setOfferExpiresAt(exitOffer.expiresAt);
-      setSecondsLeft(PAYWALL_EXIT_OFFER_SECONDS);
+      setOfferExpiresAt(expiresAt);
+      setSecondsLeft(PAYWALL_WELCOME_OFFER_SECONDS);
       setShowCheckoutConfirm(false);
       setError(null);
       trackEvent('revenuecat_checkout_cancelled', { plan: plan.id, paddle_opened: true });
@@ -315,6 +315,13 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     const watchPaddle = window.setInterval(() => {
       if (paddleCheckoutIsOpen(document)) paddleOpenedRef.current = true;
     }, 200);
+    const onPaddleMessage = (event: MessageEvent) => {
+      if (typeof event.origin === 'string' && event.origin && !event.origin.includes('paddle.com')) return;
+      if (!paddleCheckoutClosedWithoutPayment(event.data)) return;
+      paddleOpenedRef.current = true;
+      applyUnfinishedPaddleDiscount();
+    };
+    window.addEventListener('message', onPaddleMessage);
     try {
       markPaywallCheckoutPending();
       const purchaseParameters = {
@@ -341,7 +348,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       await correlatePurchasedCustomer();
       router.push('/postcheckout');
     } catch (purchaseError) {
-      if (paddleOpenedRef.current && !isAlreadyPurchased(purchaseError)) {
+      const leftPaddleOpen = paddleOpenedRef.current || isUserCancelledPurchase(purchaseError);
+      if (leftPaddleOpen && !isAlreadyPurchased(purchaseError)) {
         applyUnfinishedPaddleDiscount();
         return;
       }
@@ -351,6 +359,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       }
     } finally {
       window.clearInterval(watchPaddle);
+      window.removeEventListener('message', onPaddleMessage);
       checkoutInFlightRef.current = false;
       setBusy(false);
     }

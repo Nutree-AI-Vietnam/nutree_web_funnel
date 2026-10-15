@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { configureRevenueCatForAnonymousCheckout, paddleCheckoutIsOpen, readRevenueCatWebConfig } from './web';
+import { configureRevenueCatForAnonymousCheckout, paddleCheckoutClosedWithoutPayment, paddleCheckoutIsOpen, readRevenueCatWebConfig } from './web';
 import { Purchases } from '@revenuecat/purchases-js';
 import { vi } from 'vitest';
 
@@ -35,5 +35,14 @@ describe('paddleCheckoutIsOpen', () => {
     expect(paddleCheckoutIsOpen(closed)).toBe(false);
     expect(paddleCheckoutIsOpen(open)).toBe(true);
     expect(paddleCheckoutIsOpen(null)).toBe(false);
+  });
+});
+
+describe('paddleCheckoutClosedWithoutPayment', () => {
+  it('treats a closed checkout as unfinished unless the payment completed', () => {
+    expect(paddleCheckoutClosedWithoutPayment({ name: 'checkout.closed', data: { status: 'abandoned' } })).toBe(true);
+    expect(paddleCheckoutClosedWithoutPayment({ event_name: 'checkout.closed' })).toBe(true);
+    expect(paddleCheckoutClosedWithoutPayment({ name: 'checkout.closed', data: { status: 'completed' } })).toBe(false);
+    expect(paddleCheckoutClosedWithoutPayment({ name: 'checkout.loaded' })).toBe(false);
   });
 });

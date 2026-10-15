@@ -118,9 +118,34 @@ export function readRevenueCatWebConfig(source?: PublicEnvironment): RevenueCatW
   };
 }
 
-/** True once Paddle's checkout frame is on the page. Closing the sheet before this does not count as an unfinished payment. */
+/** True once Paddle's checkout frame is on the page. */
 export function paddleCheckoutIsOpen(root: ParentNode | null | undefined): boolean {
-  return Boolean(root?.querySelector('iframe[src*="paddle.com"]'));
+  return Boolean(
+    root?.querySelector(
+      '#paddle-checkout-container, iframe[src*="paddle.com"], iframe[name*="paddle" i], iframe[class*="paddle" i]',
+    ),
+  );
+}
+
+function messageRecord(data: unknown): Record<string, unknown> | null {
+  if (typeof data === 'string') {
+    try {
+      return messageRecord(JSON.parse(data) as unknown);
+    } catch {
+      return null;
+    }
+  }
+  return typeof data === 'object' && data !== null && !Array.isArray(data) ? (data as Record<string, unknown>) : null;
+}
+
+/** Paddle tells the page the checkout closed. A completed payment is not an abandoned checkout. */
+export function paddleCheckoutClosedWithoutPayment(data: unknown): boolean {
+  const message = messageRecord(data);
+  if (!message) return false;
+  const name = [message.name, message.event, message.event_name, message.type].find((value) => typeof value === 'string');
+  if (typeof name !== 'string' || !name.includes('checkout.closed')) return false;
+  const payload = messageRecord(message.data) ?? messageRecord(message.callback_data) ?? message;
+  return payload.status !== 'completed';
 }
 
 /** Configure one generated anonymous customer; backend later verifies and binds it to the lead. */
