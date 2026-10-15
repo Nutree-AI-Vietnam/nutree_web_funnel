@@ -138,14 +138,29 @@ function messageRecord(data: unknown): Record<string, unknown> | null {
   return typeof data === 'object' && data !== null && !Array.isArray(data) ? (data as Record<string, unknown>) : null;
 }
 
+function paddleEventName(data: unknown): string | null {
+  const message = messageRecord(data);
+  if (!message) return null;
+  const name = [message.name, message.event, message.event_name, message.type].find((value) => typeof value === 'string');
+  return typeof name === 'string' ? name : null;
+}
+
 /** Paddle tells the page the checkout closed. A completed payment is not an abandoned checkout. */
 export function paddleCheckoutClosedWithoutPayment(data: unknown): boolean {
+  const name = paddleEventName(data);
+  if (!name?.includes('checkout.closed')) return false;
   const message = messageRecord(data);
-  if (!message) return false;
-  const name = [message.name, message.event, message.event_name, message.type].find((value) => typeof value === 'string');
-  if (typeof name !== 'string' || !name.includes('checkout.closed')) return false;
-  const payload = messageRecord(message.data) ?? messageRecord(message.callback_data) ?? message;
-  return payload.status !== 'completed';
+  const payload = messageRecord(message?.data) ?? messageRecord(message?.callback_data) ?? message;
+  return payload?.status !== 'completed';
+}
+
+export function paddleCheckoutCompleted(data: unknown): boolean {
+  return paddleEventName(data)?.includes('checkout.completed') ?? false;
+}
+
+/** Removes RevenueCat's checkout layer so the updated price page is visible. */
+export function dismissCheckoutOverlay(root: ParentNode | null | undefined): void {
+  root?.querySelectorAll('.rcb-ui-root').forEach((node) => node.remove());
 }
 
 /** Configure one generated anonymous customer; backend later verifies and binds it to the lead. */

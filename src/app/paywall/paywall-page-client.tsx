@@ -14,7 +14,7 @@ import { identifyFunnelLead } from '@/lib/analytics/posthog';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
-import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, hasPaywallCheckoutPending, markExitOfferClaimed, markPaywallCheckoutPending, paddleCheckoutClosedWithoutPayment, paddleCheckoutIsOpen, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, PAYWALL_WELCOME_OFFER_SECONDS, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
+import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, dismissCheckoutOverlay, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, hasPaywallCheckoutPending, markExitOfferClaimed, markPaywallCheckoutPending, paddleCheckoutClosedWithoutPayment, paddleCheckoutCompleted, paddleCheckoutIsOpen, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, PAYWALL_WELCOME_OFFER_SECONDS, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
 import { firstPaymentCommerce, formatPerDay, planPerDay, savingsVersusPriciest } from '@/lib/revenuecat/plan-pricing';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { syncRevenueCatAttribution } from '@/lib/revenuecat/attribution-attributes';
@@ -123,6 +123,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const checkoutRef = useRef<{ leadId: string; purchases: PurchasesInstance; appUserId: string | null } | null>(null);
   const checkoutInFlightRef = useRef(false);
   const paddleOpenedRef = useRef(false);
+  const purchaseSucceededRef = useRef(false);
   const purchaseLeadIdRef = useRef<string | null>(null);
   const redemptionLinkHashRef = useRef<string | null>(null);
   const plans = paywall.plans;
@@ -157,7 +158,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     const unfinishedCheckout = hasPaywallCheckoutPending();
     if (unfinishedCheckout) clearPaywallCheckoutPending();
     const current = useQuizStore.getState();
-    const resumeUnfinishedPaddle = unfinishedCheckout && !hasExitOfferBeenClaimed() && !isUserPurchased({ purchased: current.purchased, lead: current.lead });
+    const resumeUnfinishedPaddle = unfinishedCheckout && !isUserPurchased({ purchased: current.purchased, lead: current.lead });
     const offer = resumeUnfinishedPaddle
       ? createPaywallOffer('exit', now)
       : exitOfferMode && !hasExitOfferBeenClaimed() ? createPaywallOffer('exit', now) : readStoredPaywallOffer() ?? createPaywallOffer('welcome', now);
@@ -286,14 +287,20 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     }
     checkoutInFlightRef.current = true;
     paddleOpenedRef.current = false;
+    purchaseSucceededRef.current = false;
     setBusy(true);
     setError(null);
     const isExitOffer = offer === 'exit';
+    let watchPaddle = 0;
+    let abandonTimer = 0;
+    let stopWatchingPaddle = () => {};
     const applyUnfinishedPaddleDiscount = () => {
+      stopWatchingPaddle();
       checkoutInFlightRef.current = false;
       setBusy(false);
       clearPaywallCheckoutPending();
       if (isExitOffer || isUserPurchased({ purchased, lead })) return;
+      dismissCheckoutOverlay(document);
       saveSelectedPaywallPlan(SIX_MONTH_PLAN_ID);
       setSelectedId(SIX_MONTH_PLAN_ID);
       markExitOfferClaimed();
@@ -312,16 +319,36 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     trackEvent('revenuecat_checkout_started', { plan: plan.id, package_id: rcPackage.identifier, country_code: countryCode ?? 'auto', ...checkoutCommerce });
     void syncRevenueCatAttribution(purchasesRef.current);
 
-    const watchPaddle = window.setInterval(() => {
-      if (paddleCheckoutIsOpen(document)) paddleOpenedRef.current = true;
+    watchPaddle = window.setInterval(() => {
+      if (purchaseSucceededRef.current) return;
+      if (paddleCheckoutIsOpen(document)) {
+        paddleOpenedRef.current = true;
+        window.clearTimeout(abandonTimer);
+        abandonTimer = 0;
+        return;
+      }
+      if (!paddleOpenedRef.current || abandonTimer) return;
+      abandonTimer = window.setTimeout(() => {
+        if (!purchaseSucceededRef.current) applyUnfinishedPaddleDiscount();
+      }, 1200);
     }, 200);
     const onPaddleMessage = (event: MessageEvent) => {
-      if (typeof event.origin === 'string' && event.origin && !event.origin.includes('paddle.com')) return;
+      if (paddleCheckoutCompleted(event.data)) {
+        purchaseSucceededRef.current = true;
+        window.clearTimeout(abandonTimer);
+        return;
+      }
       if (!paddleCheckoutClosedWithoutPayment(event.data)) return;
       paddleOpenedRef.current = true;
+      window.clearTimeout(abandonTimer);
       applyUnfinishedPaddleDiscount();
     };
     window.addEventListener('message', onPaddleMessage);
+    stopWatchingPaddle = () => {
+      window.clearInterval(watchPaddle);
+      window.clearTimeout(abandonTimer);
+      window.removeEventListener('message', onPaddleMessage);
+    };
     try {
       markPaywallCheckoutPending();
       const purchaseParameters = {
@@ -332,6 +359,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         skipSuccessPage: true,
       } as Parameters<PurchasesInstance['purchase']>[0];
       const purchaseResult = await purchasesRef.current.purchase(purchaseParameters);
+      purchaseSucceededRef.current = true;
+      window.clearTimeout(abandonTimer);
       clearPaywallCheckoutPending();
       setPurchased(true);
       trackEvent('revenuecat_checkout_completed', { plan: plan.id, ...checkoutCommerce });
@@ -358,8 +387,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         setError(purchaseError instanceof Error ? purchaseError.message : 'RevenueCat could not complete checkout. Please try again.');
       }
     } finally {
-      window.clearInterval(watchPaddle);
-      window.removeEventListener('message', onPaddleMessage);
+      stopWatchingPaddle();
       checkoutInFlightRef.current = false;
       setBusy(false);
     }

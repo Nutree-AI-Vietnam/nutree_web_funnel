@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { configureRevenueCatForAnonymousCheckout, paddleCheckoutClosedWithoutPayment, paddleCheckoutIsOpen, readRevenueCatWebConfig } from './web';
+import { configureRevenueCatForAnonymousCheckout, dismissCheckoutOverlay, paddleCheckoutClosedWithoutPayment, paddleCheckoutCompleted, paddleCheckoutIsOpen, readRevenueCatWebConfig } from './web';
 import { Purchases } from '@revenuecat/purchases-js';
 import { vi } from 'vitest';
 
@@ -44,5 +44,14 @@ describe('paddleCheckoutClosedWithoutPayment', () => {
     expect(paddleCheckoutClosedWithoutPayment({ event_name: 'checkout.closed' })).toBe(true);
     expect(paddleCheckoutClosedWithoutPayment({ name: 'checkout.closed', data: { status: 'completed' } })).toBe(false);
     expect(paddleCheckoutClosedWithoutPayment({ name: 'checkout.loaded' })).toBe(false);
+    expect(paddleCheckoutCompleted({ name: 'checkout.completed' })).toBe(true);
+    expect(paddleCheckoutCompleted({ name: 'checkout.closed' })).toBe(false);
+  });
+
+  it('removes the checkout layer', () => {
+    const overlay = { remove: vi.fn() };
+    const root = { querySelectorAll: () => [overlay] } as unknown as ParentNode;
+    dismissCheckoutOverlay(root);
+    expect(overlay.remove).toHaveBeenCalledOnce();
   });
 });
