@@ -9,26 +9,26 @@ import { ScratchTicketCover } from '@/components/scratch-ticket-cover';
 import { stripNonAttributionParams } from '@/lib/analytics/attribution';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
-import { activatePaywallExitOffer, expirePaywallOfferState, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markExitOfferClaimed, readSelectedPaywallPlan, saveSelectedPaywallPlan } from '@/lib/revenuecat/web';
+import { SIX_MONTH_PLAN_ID } from '@/lib/revenuecat/paywall-plans';
+import { activatePaywallExitOffer, expirePaywallOfferState, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markExitOfferClaimed, saveSelectedPaywallPlan } from '@/lib/revenuecat/web';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { useLocale } from '@/lib/copy/use-copy';
 
 interface ExitOfferPageClientProps {
-  initialPlanId?: string | null;
   onClaim?: () => void;
   onDismiss?: () => void;
   onMissingLead?: () => void;
   onAlreadyClaimed?: () => void;
 }
 
-export function ExitOfferPageClient({ initialPlanId, onClaim, onDismiss, onMissingLead, onAlreadyClaimed }: ExitOfferPageClientProps) {
+export function ExitOfferPageClient({ onClaim, onDismiss, onMissingLead, onAlreadyClaimed }: ExitOfferPageClientProps) {
   const router = useRouter();
   const copy = useCopy();
   const locale = useLocale();
   const hydrated = useHydrated();
   const lead = useQuizStore((state) => state.lead);
   const purchased = useQuizStore((state) => state.purchased);
-  const selectedPlanId = readSelectedPaywallPlan() ?? initialPlanId ?? null;
+  const selectedPlanId = SIX_MONTH_PLAN_ID;
   const revealTriggered = useRef(false);
   const [revealed, setRevealed] = useState(false);
 
@@ -100,7 +100,7 @@ export function ExitOfferPageClient({ initialPlanId, onClaim, onDismiss, onMissi
           <span className="absolute inset-0 bg-[radial-gradient(circle_at_35%_35%,rgb(255_255_255_/_0.14),transparent_28%),radial-gradient(circle_at_82%_76%,rgb(255_255_255_/_0.12),transparent_32%)]" />
           <span className="relative block whitespace-nowrap text-[0.62rem] font-extrabold uppercase tracking-[0.22em] text-white/88 sm:text-[0.66rem] sm:tracking-[0.32em]">✨ {copy.paywall.exitOfferEyebrow} ✨</span>
           <span className="relative mt-2.5 block whitespace-nowrap text-[clamp(2rem,10vw,2.75rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.05em] text-white/92 sm:text-[3.5rem]">{copy.paywall.discountTag(EXIT_DISCOUNT_PERCENT)}</span>
-          <span className="relative mt-2.5 block text-[0.82rem] font-extrabold leading-snug tracking-[-0.01em] text-white/90 sm:text-[0.92rem]">{revealed ? copy.paywall.exitOfferRevealedHeadline : copy.paywall.exitOfferScratchSubhead}</span>
+          <span className="relative mt-2.5 block text-[0.82rem] font-extrabold leading-snug tracking-[-0.01em] text-white/90 sm:text-[0.92rem]">{revealed ? copy.paywall.exitOfferPrice : copy.paywall.exitOfferScratchSubhead}</span>
           <ScratchTicketCover
             revealed={revealed}
             hint={copy.paywall.exitOfferScratchHint}

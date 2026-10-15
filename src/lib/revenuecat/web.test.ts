@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { configureRevenueCatForAnonymousCheckout, readRevenueCatWebConfig } from './web';
+import { configureRevenueCatForAnonymousCheckout, paddleCheckoutIsOpen, readRevenueCatWebConfig } from './web';
 import { Purchases } from '@revenuecat/purchases-js';
 import { vi } from 'vitest';
 
@@ -25,5 +25,15 @@ describe('RevenueCat Web configuration', () => {
     configureRevenueCatForAnonymousCheckout(config);
 
     expect(Purchases.configure).toHaveBeenCalledWith({ apiKey: 'rcb_test_key', appUserId: '$RCAnonymousID:customer-1' });
+  });
+});
+
+describe('paddleCheckoutIsOpen', () => {
+  it('is true only after the Paddle checkout frame is present', () => {
+    const closed = { querySelector: () => null } as unknown as ParentNode;
+    const open = { querySelector: (selector: string) => (selector.includes('paddle.com') ? {} : null) } as unknown as ParentNode;
+    expect(paddleCheckoutIsOpen(closed)).toBe(false);
+    expect(paddleCheckoutIsOpen(open)).toBe(true);
+    expect(paddleCheckoutIsOpen(null)).toBe(false);
   });
 });

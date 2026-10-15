@@ -49,6 +49,9 @@ interface PackageMetadata {
   exit_package?: unknown;
 }
 
+/** Base plan whose 75% package is the 6-month 399.000đ Paddle price. */
+export const SIX_MONTH_PLAN_ID = '$rc_six_month';
+
 /** Discount packages used when the offering metadata does not name them. */
 const DEFAULT_OFFER_PACKAGES: Record<string, Record<PaywallOfferKind, string>> = {
   $rc_weekly: { welcome: 'rc_weekly50', exit: 'rc_weekly75' },

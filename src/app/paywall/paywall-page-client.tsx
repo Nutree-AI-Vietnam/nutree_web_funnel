@@ -1,11 +1,12 @@
 'use client';
 
-import { ErrorCode, Purchases, PurchasesError, type Product, type Purchases as PurchasesInstance } from '@revenuecat/purchases-js';
+import { ErrorCode, Purchases, type Product, type Purchases as PurchasesInstance } from '@revenuecat/purchases-js';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { BoCongThuongBadge } from '@/components/bo-cong-thuong-badge';
 import { ConversionShell } from '@/components/conversion-shell';
 import { stripNonAttributionParams } from '@/lib/analytics/attribution';
 import { identifyMetaUser } from '@/lib/analytics/meta-identity';
@@ -13,12 +14,12 @@ import { identifyFunnelLead } from '@/lib/analytics/posthog';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
-import { buildRevenueCatPaywall, checkoutPackage, defaultPaywallPlan, type PaywallOfferKind, type RevenueCatPaywall } from '@/lib/revenuecat/paywall-plans';
+import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, hasPaywallCheckoutPending, markExitOfferClaimed, markPaywallCheckoutPending, paddleCheckoutIsOpen, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, PAYWALL_WELCOME_OFFER_SECONDS, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
 import { firstPaymentCommerce, formatPerDay, planPerDay, savingsVersusPriciest } from '@/lib/revenuecat/plan-pricing';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { syncRevenueCatAttribution } from '@/lib/revenuecat/attribution-attributes';
 import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, redemptionUrlFromCheckoutOperation, savePendingRedemptionCorrelation, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
-import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markPaywallCheckoutPending, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
+import { buildRevenueCatPaywall, checkoutPackage, defaultPaywallPlan, SIX_MONTH_PLAN_ID, type PaywallOfferKind, type RevenueCatPaywall } from '@/lib/revenuecat/paywall-plans';
 import { clearCheckoutEmail, readCheckoutEmail } from '@/lib/revenuecat/checkout-email';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
@@ -38,7 +39,7 @@ interface StoredPaywallOffer {
   expiresAt: number;
 }
 
-const OFFER_SECONDS = 600;
+const OFFER_SECONDS = PAYWALL_WELCOME_OFFER_SECONDS;
 const benefitEmoji = ['📋', '📸', '🍽️', '🔥', '💬'];
 
 function formatCountdown(seconds: number) {
@@ -78,12 +79,21 @@ function goalDate(locale: 'vi' | 'en') {
   return new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
 }
 
-function isUserCancelledPurchase(error: unknown): boolean {
-  return (error instanceof PurchasesError && error.errorCode === ErrorCode.UserCancelledError)
-    || (typeof error === 'object' && error !== null && 'errorCode' in error && (error as { errorCode?: unknown }).errorCode === ErrorCode.UserCancelledError);
+function purchaseErrorCode(error: unknown): number | null {
+  if (typeof error !== 'object' || error === null || !('errorCode' in error)) return null;
+  const code = (error as { errorCode?: unknown }).errorCode;
+  return typeof code === 'number' ? code : null;
 }
 
-export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOfferMode, onMissingLead, onCheckoutCancelled }: PaywallPageClientProps) {
+function isUserCancelledPurchase(error: unknown): boolean {
+  return purchaseErrorCode(error) === ErrorCode.UserCancelledError;
+}
+
+function isAlreadyPurchased(error: unknown): boolean {
+  return purchaseErrorCode(error) === ErrorCode.ProductAlreadyPurchasedError;
+}
+
+export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOfferMode, onMissingLead }: PaywallPageClientProps) {
   const router = useRouter();
   const copy = useCopy();
   const hydrated = useHydrated();
@@ -112,6 +122,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const anonymousAppUserIdRef = useRef<string | null>(null);
   const checkoutRef = useRef<{ leadId: string; purchases: PurchasesInstance; appUserId: string | null } | null>(null);
   const checkoutInFlightRef = useRef(false);
+  const paddleOpenedRef = useRef(false);
   const purchaseLeadIdRef = useRef<string | null>(null);
   const redemptionLinkHashRef = useRef<string | null>(null);
   const plans = paywall.plans;
@@ -141,8 +152,20 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   }, [exitOfferMode]);
 
   useEffect(() => {
+    if (!hydrated) return;
     const now = Date.now();
-    const offer = exitOfferMode && !hasExitOfferBeenClaimed() ? createPaywallOffer('exit', now) : readStoredPaywallOffer() ?? createPaywallOffer('welcome', now);
+    const unfinishedCheckout = hasPaywallCheckoutPending();
+    if (unfinishedCheckout) clearPaywallCheckoutPending();
+    const current = useQuizStore.getState();
+    const resumeUnfinishedPaddle = unfinishedCheckout && !hasExitOfferBeenClaimed() && !isUserPurchased({ purchased: current.purchased, lead: current.lead });
+    const offer = resumeUnfinishedPaddle
+      ? createPaywallOffer('exit', now)
+      : exitOfferMode && !hasExitOfferBeenClaimed() ? createPaywallOffer('exit', now) : readStoredPaywallOffer() ?? createPaywallOffer('welcome', now);
+    if (resumeUnfinishedPaddle) {
+      saveSelectedPaywallPlan(SIX_MONTH_PLAN_ID);
+      setSelectedId(SIX_MONTH_PLAN_ID);
+      markExitOfferClaimed();
+    }
     storePaywallOffer(offer);
     const readyTimer = window.setTimeout(() => {
       setOfferKind(offer.kind);
@@ -151,7 +174,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       setOfferStateReady(true);
     }, 0);
     return () => window.clearTimeout(readyTimer);
-  }, [exitOfferMode]);
+  }, [exitOfferMode, hydrated]);
 
   useEffect(() => {
     if (offerExpiresAt === null) return;
@@ -262,25 +285,36 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       return;
     }
     checkoutInFlightRef.current = true;
+    paddleOpenedRef.current = false;
     setBusy(true);
     setError(null);
     const isExitOffer = offer === 'exit';
-    const applyCheckoutCancellation = () => {
+    const applyUnfinishedPaddleDiscount = () => {
       checkoutInFlightRef.current = false;
       setBusy(false);
       clearPaywallCheckoutPending();
       if (isExitOffer || hasExitOfferBeenClaimed() || isUserPurchased({ purchased, lead })) return;
+      saveSelectedPaywallPlan(SIX_MONTH_PLAN_ID);
+      setSelectedId(SIX_MONTH_PLAN_ID);
+      markExitOfferClaimed();
+      const exitOffer = createPaywallOffer('exit');
+      storePaywallOffer(exitOffer);
+      setOfferKind('exit');
+      setOfferExpiresAt(exitOffer.expiresAt);
+      setSecondsLeft(PAYWALL_EXIT_OFFER_SECONDS);
+      setShowCheckoutConfirm(false);
       setError(null);
-      saveSelectedPaywallPlan(plan.id);
-      trackEvent('revenuecat_checkout_cancelled', { plan: plan.id });
-      trackEvent('exit_offer_shown', { plan: plan.id, offer_package: plan.offerPackages.exit?.identifier ?? null });
-      onCheckoutCancelled?.();
+      trackEvent('revenuecat_checkout_cancelled', { plan: plan.id, paddle_opened: true });
+      trackEvent('exit_offer_claimed', { discount_percent: EXIT_DISCOUNT_PERCENT, plan: SIX_MONTH_PLAN_ID });
     };
     const rcPackage = checkoutPackage(plan, offer);
     const checkoutCommerce = firstPaymentCommerce(rcPackage.webBillingProduct);
     trackEvent('revenuecat_checkout_started', { plan: plan.id, package_id: rcPackage.identifier, country_code: countryCode ?? 'auto', ...checkoutCommerce });
     void syncRevenueCatAttribution(purchasesRef.current);
 
+    const watchPaddle = window.setInterval(() => {
+      if (paddleCheckoutIsOpen(document)) paddleOpenedRef.current = true;
+    }, 200);
     try {
       markPaywallCheckoutPending();
       const purchaseParameters = {
@@ -307,17 +341,20 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       await correlatePurchasedCustomer();
       router.push('/postcheckout');
     } catch (purchaseError) {
-      if (isUserCancelledPurchase(purchaseError) && !isExitOffer) {
-        applyCheckoutCancellation();
+      if (paddleOpenedRef.current && !isAlreadyPurchased(purchaseError)) {
+        applyUnfinishedPaddleDiscount();
         return;
       }
       clearPaywallCheckoutPending();
-      setError(purchaseError instanceof Error ? purchaseError.message : 'RevenueCat could not complete checkout. Please try again.');
+      if (!isUserCancelledPurchase(purchaseError)) {
+        setError(purchaseError instanceof Error ? purchaseError.message : 'RevenueCat could not complete checkout. Please try again.');
+      }
     } finally {
+      window.clearInterval(watchPaddle);
       checkoutInFlightRef.current = false;
       setBusy(false);
     }
-  }, [activeLocale, countryCode, correlatePurchasedCustomer, data.name, lead, onCheckoutCancelled, purchased, router, selected, setPurchased]);
+  }, [activeLocale, countryCode, correlatePurchasedCustomer, data.name, lead, purchased, router, selected, setPurchased]);
 
   const requestCheckout = () => {
     if (lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id) {
@@ -483,7 +520,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         {displayedRedemption?.kind === 'pending' && <p role="status" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-brand">{activeLocale === 'vi' ? 'Đang xác minh thanh toán của bạn…' : 'Verifying your payment…'}</p>}
         {displayedRedemption?.kind === 'recovery' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Thanh toán đã được ghi nhận' : 'Payment received'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'Chúng tôi không thể xác minh liên kết kích hoạt. Vui lòng kiểm tra email thanh toán của bạn hoặc liên hệ hỗ trợ.' : 'We could not verify your activation link. Check your purchase email or contact support.'}</p></section>}
         {displayedRedemption?.kind === 'email_sent' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Kiểm tra email của bạn' : 'Check your email'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'RevenueCat đã gửi liên kết bảo mật đến email thanh toán. Mở liên kết đó trong Nutree để tự động kích hoạt gói.' : 'RevenueCat sent a secure link to your checkout email. Open it in Nutree to activate your plan automatically.'}</p></section>}
-        <p className="mx-auto mt-6 max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{copy.paywall.termsIntro} {copy.paywall.secure}</p>
+        <div className="mt-6 flex justify-center px-4"><BoCongThuongBadge alt={copy.common.bctBadgeAlt} /></div>
+        <p className="mx-auto mt-3 max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{copy.paywall.termsIntro} {copy.paywall.secure}</p>
       </div>
       {typeof document !== 'undefined' && createPortal(
         <>

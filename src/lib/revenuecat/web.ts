@@ -15,6 +15,7 @@ export const PAYWALL_EXIT_OFFER_CLAIMED_STORAGE_KEY = 'nutree.paywall.exit-offer
 export const PAYWALL_EXIT_OFFER_CLAIMED_COOKIE = 'nutree_paywall_exit_offer_claimed';
 export const PAYWALL_SELECTED_PLAN_STORAGE_KEY = 'nutree.paywall.selected-plan.v1';
 export const PAYWALL_CHECKOUT_PENDING_STORAGE_KEY = 'nutree.paywall.checkout-pending.v1';
+export const PAYWALL_WELCOME_OFFER_SECONDS = 300;
 export const PAYWALL_EXIT_OFFER_SECONDS = 120;
 
 function readSessionValue(key: string) {
@@ -115,6 +116,11 @@ export function readRevenueCatWebConfig(source?: PublicEnvironment): RevenueCatW
     apiKey: required(environment, 'NEXT_PUBLIC_REVENUECAT_WEB_API_KEY'),
     offeringIdentifier: required(environment, 'NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID'),
   };
+}
+
+/** True once Paddle's checkout frame is on the page. Closing the sheet before this does not count as an unfinished payment. */
+export function paddleCheckoutIsOpen(root: ParentNode | null | undefined): boolean {
+  return Boolean(root?.querySelector('iframe[src*="paddle.com"]'));
 }
 
 /** Configure one generated anonymous customer; backend later verifies and binds it to the lead. */

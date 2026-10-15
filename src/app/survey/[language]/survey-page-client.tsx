@@ -10,7 +10,6 @@ import { LandingPage } from '@/components/landing-page';
 import { QuizShell } from '@/components/quiz-shell';
 import { WelcomeGiftScreen } from '@/components/welcome-gift-screen';
 import { captureAttribution, stripNonAttributionParams } from '@/lib/analytics/attribution';
-import { clearPaywallCheckoutPending, hasExitOfferBeenClaimed, hasPaywallCheckoutPending, readSelectedPaywallPlan } from '@/lib/revenuecat/web';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import type { FunnelScreen } from '@/lib/quiz/store';
 import type { Locale } from '@/lib/copy';
@@ -34,14 +33,6 @@ export function SurveyPageClient({ language }: { language: Locale }) {
     captureAttribution();
     stripNonAttributionParams();
   }, []);
-
-  useEffect(() => {
-    if (!hydrated || screen !== 'paywall' || !hasPaywallCheckoutPending()) return;
-    clearPaywallCheckoutPending();
-    if (!hasExitOfferBeenClaimed() && !isUserPurchased({ purchased, lead })) {
-      setFunnelScreen('exit-offer');
-    }
-  }, [hydrated, lead, purchased, screen, setFunnelScreen]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -75,7 +66,7 @@ export function SurveyPageClient({ language }: { language: Locale }) {
         router.replace('/postcheckout');
         return null;
       }
-      return <ExitOfferPageClient initialPlanId={readSelectedPaywallPlan()} onClaim={() => goToScreen('paywall')} onDismiss={() => goToScreen('paywall')} onMissingLead={() => goToScreen('email')} onAlreadyClaimed={() => goToScreen('paywall')} />;
+      return <ExitOfferPageClient onClaim={() => goToScreen('paywall')} onDismiss={() => goToScreen('paywall')} onMissingLead={() => goToScreen('email')} onAlreadyClaimed={() => goToScreen('paywall')} />;
     }
     case 'paywall':
       return <PaywallPageClient initialCountryCode={language === 'vi' ? 'VN' : 'US'} exitOfferMode={false} onMissingLead={() => goToScreen('email')} onCheckoutCancelled={() => {
