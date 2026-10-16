@@ -7,6 +7,7 @@ import { PaywallPageClient } from '@/app/paywall/paywall-page-client';
 import { StepRenderer } from '@/app/quiz/step-renderer';
 import { EmailCaptureScreen } from '@/components/email-capture-screen';
 import { LandingPage } from '@/components/landing-page';
+import { SurveyLandingFallback } from '@/components/survey-landing-fallback';
 import { QuizShell } from '@/components/quiz-shell';
 import { WelcomeGiftScreen } from '@/components/welcome-gift-screen';
 import { captureAttribution, stripNonAttributionParams } from '@/lib/analytics/attribution';
@@ -50,7 +51,7 @@ export function SurveyPageClient({ language }: { language: Locale }) {
     router.replace(`/survey/${nextLocale}`);
   }, [router, setLocale]);
 
-  if (!hydrated || activeLocale !== language) return null;
+  if (!hydrated || activeLocale !== language) return <SurveyLandingFallback language={language} />;
 
   switch (screen) {
     case 'landing':

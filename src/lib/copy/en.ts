@@ -34,6 +34,8 @@ export const en: Copy = {
     headline: 'Your body, your goal, your plan',
     subheadline:
       'Answer a few questions in about 3 minutes. Nutree turns your body, goal and training into exact calories, macros and a plan you can actually follow.',
+    metaTitle: 'Nutree nutrition quiz',
+    metaDescription: 'Take the Nutree quiz for calorie and macro targets.',
     cta: 'Build my plan',
     legal: {
       prefix: 'By continuing, you agree to Nutree’s ',
@@ -46,8 +48,8 @@ export const en: Copy = {
     },
     language: 'EN',
     planBadge: 'Plan',
-    planTitle: 'Today’s plan',
-    planSubtitle: 'Calories, macros and how to spread them across the day',
+    planTitle: 'Example plan',
+    planSubtitle: 'A sample day, not your result. Your targets are calculated after the quiz.',
     planCalories: '1,470',
     planCaloriesUnit: 'cal / day',
     planMacros: [
@@ -67,8 +69,8 @@ export const en: Copy = {
       'Meal ideas that match your macros',
     ],
     proofStats: [
-      { value: '3 min', label: 'to your macro targets' },
-      { value: 'Free', label: 'to see your first result' },
+      { value: '3 min', label: 'to finish the quiz' },
+      { value: 'Paid', label: 'to unlock the plan in the app' },
     ],
     slides: [
       {
@@ -99,7 +101,7 @@ export const en: Copy = {
     stats: [
       { value: '3 min', label: 'to complete' },
       { value: '20 questions', label: 'short & simple' },
-      { value: 'Free', label: 'to see your results' },
+      { value: 'Paid', label: 'to unlock the plan in the app' },
     ],
     cta: 'Let’s start',
   },

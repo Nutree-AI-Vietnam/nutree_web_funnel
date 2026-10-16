@@ -35,17 +35,10 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
       }
     };
 
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      sessionStorage.setItem(STORAGE_KEY, '1');
-      e.preventDefault();
-    };
-
     document.addEventListener('mouseleave', handleMouseLeave);
-    window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
       document.removeEventListener('mouseleave', handleMouseLeave);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [currentStepIndex]);
 

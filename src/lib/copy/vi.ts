@@ -31,6 +31,8 @@ export const vi = {
     headline: 'Kế hoạch ăn uống riêng cho cơ thể và mục tiêu của bạn',
     subheadline:
       'Trả lời vài câu trong 3 phút. Nutree tính calo, macro và lộ trình khớp với cơ thể, mục tiêu và lịch tập của bạn, không phải con số chung chung.',
+    metaTitle: 'Quiz dinh dưỡng Nutree',
+    metaDescription: 'Làm bài quiz Nutree để tính calo và macro.',
     cta: 'Xây kế hoạch của tôi',
     legal: {
       prefix: 'Khi tiếp tục, bạn đồng ý với ',
@@ -43,8 +45,8 @@ export const vi = {
     },
     language: 'VI',
     planBadge: 'Plan',
-    planTitle: 'Kế hoạch hôm nay',
-    planSubtitle: 'Calo, macro và nhịp ăn trong ngày',
+    planTitle: 'Ví dụ kế hoạch',
+    planSubtitle: 'Một ngày mẫu, chưa phải kết quả của bạn. Mục tiêu được tính sau bài quiz.',
     planCalories: '1.470',
     planCaloriesUnit: 'calo / ngày',
     planMacros: [
@@ -64,8 +66,8 @@ export const vi = {
       'Gợi ý bữa ăn khớp macro',
     ],
     proofStats: [
-      { value: '3 phút', label: 'để có mục tiêu macro' },
-      { value: '0đ', label: 'để xem kết quả ban đầu' },
+      { value: '3 phút', label: 'để làm bài quiz' },
+      { value: 'Trả phí', label: 'để mở kế hoạch trong app' },
     ],
     slides: [
       {
@@ -96,7 +98,7 @@ export const vi = {
     stats: [
       { value: '3 phút', label: 'để hoàn thành' },
       { value: '20 câu', label: 'ngắn gọn' },
-      { value: '0đ', label: 'miễn phí xem kết quả' },
+      { value: 'Trả phí', label: 'để mở kế hoạch trong app' },
     ],
     cta: 'Bắt đầu ngay',
   },

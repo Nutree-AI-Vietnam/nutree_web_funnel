@@ -20,36 +20,33 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   applicationName: 'Nutree',
   title: {
-    default: 'Nutree - Kế hoạch dinh dưỡng cá nhân hóa',
+    default: 'Quiz dinh dưỡng Nutree',
     template: '%s | Nutree',
   },
   description:
-    'Trả lời vài câu hỏi để nhận kế hoạch calo & macro dựa trên khoa học, thiết kế riêng cho bạn.',
-  alternates: {
-    canonical: '/survey/vi',
-  },
+    'Làm bài quiz Nutree để tính calo và macro.',
   openGraph: {
-    title: 'Nutree - Kế hoạch dinh dưỡng cá nhân hóa',
+    title: 'Quiz dinh dưỡng Nutree',
     description:
-      'Trả lời vài câu hỏi để nhận kế hoạch calo & macro dựa trên khoa học, thiết kế riêng cho bạn.',
-    url: '/survey/vi',
+      'Làm bài quiz Nutree để tính calo và macro.',
+    url: '/',
     siteName: 'Nutree',
     locale: 'vi_VN',
     type: 'website',
     images: [
       {
         url: '/nutree-logo-simple.png',
-        width: 156,
-        height: 60,
+        width: 930,
+        height: 834,
         alt: 'Nutree',
       },
     ],
   },
   twitter: {
     card: 'summary',
-    title: 'Nutree - Kế hoạch dinh dưỡng cá nhân hóa',
+    title: 'Quiz dinh dưỡng Nutree',
     description:
-      'Trả lời vài câu hỏi để nhận kế hoạch calo & macro dựa trên khoa học, thiết kế riêng cho bạn.',
+      'Làm bài quiz Nutree để tính calo và macro.',
     images: ['/nutree-logo-simple.png'],
   },
   robots: {
