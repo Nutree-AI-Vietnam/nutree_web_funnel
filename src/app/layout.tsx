@@ -20,13 +20,13 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   applicationName: 'Nutree',
   title: {
-    default: 'Quiz dinh dưỡng Nutree',
+    default: 'Nutree',
     template: '%s | Nutree',
   },
   description:
     'Làm bài quiz Nutree để tính calo và macro.',
   openGraph: {
-    title: 'Quiz dinh dưỡng Nutree',
+    title: 'Nutree',
     description:
       'Làm bài quiz Nutree để tính calo và macro.',
     url: '/',
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary',
-    title: 'Quiz dinh dưỡng Nutree',
+    title: 'Nutree',
     description:
       'Làm bài quiz Nutree để tính calo và macro.',
     images: ['/nutree-logo-simple.png'],

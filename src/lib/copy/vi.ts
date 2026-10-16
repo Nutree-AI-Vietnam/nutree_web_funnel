@@ -31,7 +31,7 @@ export const vi = {
     headline: 'Kế hoạch ăn uống riêng cho cơ thể và mục tiêu của bạn',
     subheadline:
       'Trả lời vài câu trong 3 phút. Nutree tính calo, macro và lộ trình khớp với cơ thể, mục tiêu và lịch tập của bạn, không phải con số chung chung.',
-    metaTitle: 'Quiz dinh dưỡng Nutree',
+    metaTitle: 'Nutree',
     metaDescription: 'Làm bài quiz Nutree để tính calo và macro.',
     cta: 'Xây kế hoạch của tôi',
     legal: {

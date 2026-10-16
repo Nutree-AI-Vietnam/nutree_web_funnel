@@ -34,7 +34,7 @@ export const en: Copy = {
     headline: 'Your body, your goal, your plan',
     subheadline:
       'Answer a few questions in about 3 minutes. Nutree turns your body, goal and training into exact calories, macros and a plan you can actually follow.',
-    metaTitle: 'Nutree nutrition quiz',
+    metaTitle: 'Nutree',
     metaDescription: 'Take the Nutree quiz for calorie and macro targets.',
     cta: 'Build my plan',
     legal: {
