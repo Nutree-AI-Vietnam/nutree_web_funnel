@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useWheelAvailableHeight } from './use-wheel-available-height';
 import { WHEEL_MIN_HEIGHT, wheelSize, type WheelVariant } from './wheel-size';
@@ -19,12 +19,63 @@ function buildOptions(min: number, max: number, step: number): number[] {
 }
 
 // iOS-style depth: uniform base size, scaled + faded by distance from the center.
+// Rows past the window share one style so a flick does not restyle the whole list.
 function depth(distance: number) {
-  if (distance === 0) return { scale: 1, opacity: 1 };
-  const scale = Math.max(0.42, 1 - distance * 0.26);
-  const opacity = Math.max(0.14, 0.5 - (distance - 1) * 0.19);
+  const clamped = Math.min(distance, 4);
+  if (clamped === 0) return { scale: 1, opacity: 1 };
+  const scale = Math.max(0.42, 1 - clamped * 0.26);
+  const opacity = Math.max(0.14, 0.5 - (clamped - 1) * 0.19);
   return { scale, opacity };
 }
+
+const WheelOption = memo(function WheelOption({
+  id,
+  option,
+  label,
+  unit,
+  itemHeight,
+  scale,
+  opacity,
+  selected,
+  centered,
+  blankCenter,
+  hero,
+  onSelect,
+}: {
+  id: string;
+  option: number;
+  label: string;
+  unit: string;
+  itemHeight: number;
+  scale: number;
+  opacity: number;
+  selected: boolean;
+  centered: boolean;
+  blankCenter: boolean;
+  hero: boolean;
+  onSelect: (option: number) => void;
+}) {
+  return (
+    <div
+      id={id}
+      role="option"
+      aria-selected={selected}
+      onClick={() => onSelect(option)}
+      className={cn(
+        'flex w-full snap-center items-baseline justify-center gap-2 text-center font-extrabold tabular-nums',
+        selected ? (hero ? 'text-[#0d0d0f]' : 'text-forest') : 'text-charcoal',
+      )}
+      style={{
+        height: itemHeight,
+        transform: `scale(${scale})`,
+        opacity: blankCenter && centered ? 0 : selected ? 1 : opacity,
+      }}
+    >
+      <span className={cn('leading-none', hero ? 'text-[3.2rem]' : 'text-[2.5rem]')}>{label}</span>
+      {selected && <span className="text-lg font-bold text-muted-brand">{unit}</span>}
+    </div>
+  );
+});
 
 export function MetricWheelPicker({
   id,
@@ -97,131 +148,58 @@ export function MetricWheelPicker({
     const list = listRef.current;
     if (!list) return;
 
-    let pointerId: number | null = null;
-    let lastY = 0;
-    let lastTime = 0;
-    let velocity = 0;
-    let dragDistance = 0;
-    let frame = 0;
     let settleTimer = 0;
+    let frame = 0;
 
-    const stopMomentum = () => {
-      if (frame) cancelAnimationFrame(frame);
-      frame = 0;
-    };
-
-    const publishIndex = (index: number) => {
+    const publish = () => {
+      const row = itemHeightRef.current;
+      const last = optionsRef.current.length - 1;
+      const index = Math.min(last, Math.max(0, Math.round(list.scrollTop / row)));
       const next = optionsRef.current[index];
       if (next != null && next !== valueRef.current) onChangeRef.current(next);
     };
 
-    const settle = () => {
-      const row = itemHeightRef.current;
-      const last = optionsRef.current.length - 1;
-      const index = Math.min(last, Math.max(0, Math.round(list.scrollTop / row)));
-      list.scrollTop = index * row;
-      publishIndex(index);
-      settleTimer = window.setTimeout(() => {
-        scrollingRef.current = false;
-      }, 40);
-    };
-
-    const coast = () => {
-      const row = itemHeightRef.current;
-      const max = Math.max(0, (optionsRef.current.length - 1) * row);
-      velocity *= 0.92;
-      if (Math.abs(velocity) < 0.02) {
-        settle();
-        return;
-      }
-      list.scrollTop = Math.min(max, Math.max(0, list.scrollTop - velocity * 16));
-      frame = requestAnimationFrame(coast);
-    };
-
-    const onPointerDown = (event: PointerEvent) => {
-      if (event.button !== 0) return;
-      stopMomentum();
-      window.clearTimeout(settleTimer);
-      suppressClickRef.current = false;
-      pointerId = event.pointerId;
-      lastY = event.clientY;
-      lastTime = event.timeStamp;
-      velocity = 0;
-      dragDistance = 0;
+    // The browser owns the gesture. Writing scrollTop here would fight momentum and snap.
+    const onScroll = () => {
+      if (!initializedRef.current) return;
       scrollingRef.current = true;
-      try {
-        list.setPointerCapture(event.pointerId);
-      } catch {
-        // Synthetic events and some browsers refuse capture; the list still receives the move.
-      }
-    };
-
-    const onPointerMove = (event: PointerEvent) => {
-      if (pointerId !== event.pointerId) return;
-      const dy = event.clientY - lastY;
-      const dt = Math.max(event.timeStamp - lastTime, 8);
-      lastY = event.clientY;
-      lastTime = event.timeStamp;
-      dragDistance += Math.abs(dy);
-      velocity = Math.max(-2.2, Math.min(2.2, dy / dt));
-      const row = itemHeightRef.current;
-      const max = Math.max(0, (optionsRef.current.length - 1) * row);
-      list.scrollTop = Math.min(max, Math.max(0, list.scrollTop - dy));
-    };
-
-    const onPointerUp = (event: PointerEvent) => {
-      if (pointerId !== event.pointerId) return;
-      pointerId = null;
-      if (dragDistance < 6) {
-        scrollingRef.current = false;
-        return;
-      }
       suppressClickRef.current = true;
-      window.setTimeout(() => {
-        suppressClickRef.current = false;
-      }, 350);
-      frame = requestAnimationFrame(coast);
+      if (!frame) {
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          publish();
+        });
+      }
+      window.clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(() => {
+        publish();
+        scrollingRef.current = false;
+        window.setTimeout(() => {
+          suppressClickRef.current = false;
+        }, 80);
+      }, 140);
     };
 
-    const onWheel = (event: WheelEvent) => {
+    const swallowClickAfterDrag = (event: Event) => {
+      if (!suppressClickRef.current) return;
       event.preventDefault();
-      stopMomentum();
-      window.clearTimeout(settleTimer);
-      scrollingRef.current = true;
-      const row = itemHeightRef.current;
-      const delta = event.deltaMode === 1 ? event.deltaY * row : event.deltaMode === 2 ? event.deltaY * list.clientHeight : event.deltaY;
-      const max = Math.max(0, (optionsRef.current.length - 1) * row);
-      list.scrollTop = Math.min(max, Math.max(0, list.scrollTop + delta));
-      settleTimer = window.setTimeout(settle, 120);
+      event.stopPropagation();
     };
 
-    list.addEventListener('pointerdown', onPointerDown);
-    list.addEventListener('pointermove', onPointerMove);
-    list.addEventListener('pointerup', onPointerUp);
-    list.addEventListener('pointercancel', onPointerUp);
-    list.addEventListener('wheel', onWheel, { passive: false });
+    list.addEventListener('scroll', onScroll, { passive: true });
+    list.addEventListener('click', swallowClickAfterDrag, true);
     return () => {
-      stopMomentum();
+      if (frame) cancelAnimationFrame(frame);
       window.clearTimeout(settleTimer);
-      list.removeEventListener('pointerdown', onPointerDown);
-      list.removeEventListener('pointermove', onPointerMove);
-      list.removeEventListener('pointerup', onPointerUp);
-      list.removeEventListener('pointercancel', onPointerUp);
-      list.removeEventListener('wheel', onWheel);
+      list.removeEventListener('scroll', onScroll);
+      list.removeEventListener('click', swallowClickAfterDrag, true);
     };
   }, []);
 
-  const selectFromScroll = () => {
-    if (!initializedRef.current || !scrollingRef.current) return;
-    const list = listRef.current;
-    if (!list) return;
-    const index = Math.min(
-      options.length - 1,
-      Math.max(0, Math.round(list.scrollTop / itemHeight)),
-    );
-    const next = options[index];
-    if (next !== value) onChange(next);
-  };
+  const selectOption = useCallback((option: number) => {
+    if (suppressClickRef.current) return;
+    onChangeRef.current(option);
+  }, []);
 
   return (
     // The frame takes whatever height the step leaves free; the wheel is absolutely
@@ -255,53 +233,37 @@ export function MetricWheelPicker({
           />
         )}
         <div
-          ref={listRef}
-          tabIndex={-1}
-          className="wheel-picker-scroll relative z-20 h-full cursor-grab snap-y snap-mandatory overflow-y-auto overscroll-contain outline-none [overflow-anchor:none] active:cursor-grabbing"
-          style={{
-            paddingBlock: padding,
-            WebkitMaskImage: FADE_MASK[variant],
-            maskImage: FADE_MASK[variant],
-          }}
-          onScroll={selectFromScroll}
+          className="relative z-20 h-full overflow-hidden"
+          style={{ WebkitMaskImage: FADE_MASK[variant], maskImage: FADE_MASK[variant] }}
         >
-          {options.map((option, index) => {
-            const distance = Math.abs(index - centerIndex);
-            const centered = distance === 0;
-            const selected = activeIndex >= 0 && index === activeIndex;
-            const { scale, opacity } = depth(distance);
-            return (
-              <div
-                id={`${id}-option-${index}`}
-                key={option}
-                role="option"
-                aria-selected={selected}
-                onClick={() => {
-                  if (suppressClickRef.current) {
-                    suppressClickRef.current = false;
-                    return;
-                  }
-                  onChange(option);
-                }}
-                className={cn(
-                  'flex w-full snap-center items-baseline justify-center gap-2 text-center font-extrabold tabular-nums transition-[transform,opacity,color] duration-200 ease-out will-change-transform',
-                  selected
-                    ? variant === 'hero' ? 'text-[#0d0d0f]' : 'text-forest'
-                    : 'text-charcoal',
-                )}
-                style={{
-                  height: itemHeight,
-                  transform: `scale(${scale})`,
-                  opacity: selected ? 1 : activeIndex < 0 && centered ? 0 : opacity,
-                }}
-              >
-                <span className={cn('leading-none', variant === 'hero' ? selected ? 'text-[3.2rem]' : 'text-[2.4rem]' : 'text-[2.5rem]')}>
-                  {formatValue(option)}
-                </span>
-                {selected && <span className="text-lg font-bold text-muted-brand">{unit}</span>}
-              </div>
-            );
-          })}
+          <div
+            ref={listRef}
+            tabIndex={-1}
+            className="wheel-picker-scroll h-full snap-y snap-mandatory overflow-y-auto overscroll-contain outline-none [overflow-anchor:none]"
+            style={{ paddingBlock: padding }}
+          >
+            {options.map((option, index) => {
+              const distance = Math.abs(index - centerIndex);
+              const { scale, opacity } = depth(distance);
+              return (
+                <WheelOption
+                  key={option}
+                  id={`${id}-option-${index}`}
+                  option={option}
+                  label={formatValue(option)}
+                  unit={unit}
+                  itemHeight={itemHeight}
+                  scale={scale}
+                  opacity={opacity}
+                  selected={activeIndex >= 0 && index === activeIndex}
+                  centered={distance === 0}
+                  blankCenter={activeIndex < 0}
+                  hero={variant === 'hero'}
+                  onSelect={selectOption}
+                />
+              );
+            })}
+          </div>
         </div>
         {activeIndex < 0 && (
           <span

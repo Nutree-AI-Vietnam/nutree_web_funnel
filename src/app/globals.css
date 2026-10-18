@@ -305,7 +305,10 @@ h2 {
 
 .wheel-picker-scroll {
   scrollbar-width: none;
-  touch-action: none;
+  /* Let the phone scroll this list. touch-action: none forced a JS drag that
+     stuttered against scroll-snap and dropped frames on device. */
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   user-select: none;
   -webkit-user-select: none;
 }
