@@ -13,11 +13,13 @@ export function SingleChoiceStep<K extends keyof OnboardingPayload>({
   step,
   field,
   question,
+  description,
   options,
 }: {
   step: QuizStep;
   field: K;
   question: string;
+  description?: string;
   options: ReadonlyArray<{ readonly key: string; readonly label: string; readonly icon?: string }>;
 }) {
   const router = useRouter();
@@ -39,16 +41,18 @@ export function SingleChoiceStep<K extends keyof OnboardingPayload>({
   };
 
   return (
-    <QuizStepFrame title={question} className="gap-3">
-      {options.map((o) => (
-        <OptionCard
-          key={o.key}
-          label={o.label}
-          icon={o.icon}
-          selected={pending ? pending === o.key : value === o.key}
-          onClick={() => choose(o.key)}
-        />
-      ))}
+    <QuizStepFrame title={question} description={description} className="gap-3">
+      <div className="flex flex-col gap-2.5">
+        {options.map((o) => (
+          <OptionCard
+            key={o.key}
+            label={o.label}
+            icon={o.icon}
+            selected={pending ? pending === o.key : value === o.key}
+            onClick={() => choose(o.key)}
+          />
+        ))}
+      </div>
     </QuizStepFrame>
   );
 }

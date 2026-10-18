@@ -8,11 +8,13 @@ import { isQuizStep, type QuizStep } from './steps';
 import type { CheckoutResponse, Lead, OnboardingPayload, TdeeResult } from './types';
 
 export type PayPalCheckout = CheckoutResponse & { offerLabel: string };
-const FUNNEL_SCREENS = ['landing', 'quiz', 'email', 'welcome-gift', 'paywall', 'exit-offer'] as const;
+const FUNNEL_SCREENS = ['landing', 'quiz', 'email', 'value', 'paywall', 'exit-offer'] as const;
 export type FunnelScreen = (typeof FUNNEL_SCREENS)[number];
 
 export const STORAGE_KEY = 'nutree_funnel_v1';
-const STORE_VERSION = 9;
+const STORE_VERSION = 12;
+
+const REMOVED_QUIZ_STEPS = new Set(['science', 'science_sources', 'preview', 'support_style']);
 
 interface QuizState {
   funnelScreen: FunnelScreen;
@@ -98,8 +100,11 @@ function withGoalForTargetWeight(data: OnboardingPayload): OnboardingPayload {
 export function migratePersistedQuizState(persistedState: unknown): PersistedQuizState {
   const state = (persistedState && typeof persistedState === 'object' ? persistedState : {}) as
     Partial<Omit<QuizState, 'funnelScreen' | 'currentStep'>> & { funnelScreen?: unknown; currentStep?: unknown; resumeAfterOS?: unknown };
-  const savedScreen = FUNNEL_SCREENS.find((screen) => screen === state.funnelScreen);
-  const storedStep = typeof state.currentStep === 'string' && isQuizStep(state.currentStep) ? state.currentStep : initial.currentStep;
+  const requestedScreen = state.funnelScreen === 'welcome-gift' ? 'value' : state.funnelScreen;
+  const savedScreen = FUNNEL_SCREENS.find((screen) => screen === requestedScreen);
+  const rawStep = typeof state.currentStep === 'string' ? state.currentStep : '';
+  const normalizedStep = REMOVED_QUIZ_STEPS.has(rawStep) ? 'care_pause' : rawStep;
+  const storedStep = isQuizStep(normalizedStep) ? normalizedStep : initial.currentStep;
   const resume = legacyResume(state.resumeAfterOS);
   const atPhoneQuestion = state.funnelScreen === 'android-filter' || (state.currentStep === 'operating_system' && savedScreen === 'quiz');
   const currentStep = resume?.screen === 'quiz' ? resume.step : storedStep;

@@ -3,82 +3,121 @@
 import { motion, useReducedMotion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
-import { useCopy } from '@/lib/copy/use-copy';
+import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
+import { buildProgressProjection, type ProgressDirection } from '@/lib/quiz/progress-projection';
 import { useQuizStore } from '@/lib/quiz/store';
+import { computeTdeeResult } from '@/lib/tdee/calculator';
 import { QuizStepFrame } from './quiz-step-frame';
+
+const CHARTS: Record<ProgressDirection, { line: string; area: string; startY: number; endY: number }> = {
+  down: {
+    line: 'M24 34 C 92 42, 145 78, 194 113 C 232 137, 263 146, 296 148',
+    area: 'M24 34 C 92 42, 145 78, 194 113 C 232 137, 263 146, 296 148 L296 158 L24 158 Z',
+    startY: 34,
+    endY: 148,
+  },
+  up: {
+    line: 'M24 148 C 92 140, 145 105, 194 72 C 232 48, 263 37, 296 34',
+    area: 'M24 148 C 92 140, 145 105, 194 72 C 232 48, 263 37, 296 34 L296 158 L24 158 Z',
+    startY: 148,
+    endY: 34,
+  },
+  steady: {
+    line: 'M24 92 C 90 84, 150 100, 210 92 C 250 86, 274 98, 296 92',
+    area: 'M24 92 C 90 84, 150 100, 210 92 C 250 86, 274 98, 296 92 L296 158 L24 158 Z',
+    startY: 92,
+    endY: 92,
+  },
+};
 
 export function ProgressStep() {
   const router = useRouter();
   const copy = useCopy();
+  const locale = useLocale();
   const reduce = useReducedMotion();
   const data = useQuizStore((state) => state.data);
-  const current = data.weight_kg;
-  const target = data.target_weight_kg;
-  const hasProjection = current != null && target != null && Math.abs(current - target) > 0.5;
-  const weeks = hasProjection ? Math.max(4, Math.ceil((Math.abs(current - target) / 0.5) * 7)) : 0;
-  const reducing = hasProjection && target < current;
+  const storedTdee = useQuizStore((state) => state.tdee);
+  const projection = buildProgressProjection(data, storedTdee ?? computeTdeeResult(data));
+  const direction: ProgressDirection = projection.kind === 'weight' ? (projection.reducing ? 'down' : 'up') : projection.direction;
+  const chart = CHARTS[direction];
+  const numberLocale = locale === 'vi' ? 'vi-VN' : 'en-US';
+  const chartLabel = projection.kind === 'weight'
+    ? copy.progress.chartLabel
+    : copy.progress.chartLabelByDirection[direction];
+  const pace = projection.kind === 'weight'
+    ? copy.progress.pace(projection.days)
+    : projection.calories != null && projection.proteinG != null
+      ? copy.progress.planPace(projection.calories.toLocaleString(numberLocale), `${projection.proteinG}g`)
+      : copy.progress.planPaceFallback;
 
   return (
     <QuizStepFrame title={copy.progress.question} hint={copy.progress.hint} eyebrow={copy.progress.eyebrow}>
-      {hasProjection ? (
-        <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/86 p-4 shadow-[0_18px_50px_rgb(26_71_57_/_0.11)]">
-          <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-teal-brand/15 blur-2xl" />
-          <svg viewBox="0 0 320 170" className="relative h-44 w-full" role="img" aria-label={copy.progress.chartLabel}>
-            <defs>
-              <linearGradient id="progress-fill" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0" stopColor="#1fa892" stopOpacity="0.24" />
-                <stop offset="1" stopColor="#1fa892" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            {[34, 72, 110, 148].map((y) => (
-              <path key={y} d={`M24 ${y}H296`} stroke="#d9e7e1" strokeWidth="1.5" strokeDasharray="4 5" />
-            ))}
-            <path
-              d={reducing ? 'M24 34 C 92 42, 145 78, 194 113 C 232 137, 263 146, 296 148 L296 158 L24 158 Z' : 'M24 148 C 92 140, 145 105, 194 72 C 232 48, 263 37, 296 34 L296 158 L24 158 Z'}
-              fill="url(#progress-fill)"
-            />
-            <motion.path
-              d={reducing ? 'M24 34 C 92 42, 145 78, 194 113 C 232 137, 263 146, 296 148' : 'M24 148 C 92 140, 145 105, 194 72 C 232 48, 263 37, 296 34'}
-              fill="none"
-              stroke="#238d78"
-              strokeWidth="5"
-              strokeLinecap="round"
-              initial={reduce ? false : { pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={reduce ? { duration: 0 } : { duration: 1.1, ease: 'easeOut' }}
-            />
-            <circle cx="24" cy={reducing ? 34 : 148} r="7" fill="#238d78" stroke="white" strokeWidth="3" />
-            <circle cx="296" cy={reducing ? 148 : 34} r="7" fill="#238d78" stroke="white" strokeWidth="3" />
-            <text x="24" y="169" textAnchor="middle" className="fill-slate-brand text-[11px]">{copy.progress.startLabel}</text>
-            <text x="160" y="169" textAnchor="middle" className="fill-slate-brand text-[11px]">{copy.progress.monthLabel}</text>
-            <text x="296" y="169" textAnchor="middle" className="fill-slate-brand text-[11px]">{copy.progress.goalLabel}</text>
-          </svg>
+      <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/86 p-4 shadow-[0_18px_50px_rgb(26_71_57_/_0.11)]">
+        <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-teal-brand/15 blur-2xl" />
+        {projection.kind === 'plan' && (
+          <p className="relative text-base font-extrabold leading-snug text-forest">{copy.progress.planHeadline[projection.goal]}</p>
+        )}
+        <svg viewBox="0 0 320 170" className="relative h-44 w-full" role="img" aria-label={chartLabel}>
+          <defs>
+            <linearGradient id="progress-fill" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stopColor="#1fa892" stopOpacity="0.24" />
+              <stop offset="1" stopColor="#1fa892" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {[34, 72, 110, 148].map((y) => (
+            <path key={y} d={`M24 ${y}H296`} stroke="#d9e7e1" strokeWidth="1.5" strokeDasharray="4 5" />
+          ))}
+          <path d={chart.area} fill="url(#progress-fill)" />
+          <motion.path
+            d={chart.line}
+            fill="none"
+            stroke="#238d78"
+            strokeWidth="5"
+            strokeLinecap="round"
+            initial={reduce ? false : { pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={reduce ? { duration: 0 } : { duration: 1.1, ease: 'easeOut' }}
+          />
+          <circle cx="24" cy={chart.startY} r="7" fill="#238d78" stroke="white" strokeWidth="3" />
+          <circle cx="296" cy={chart.endY} r="7" fill="#238d78" stroke="white" strokeWidth="3" />
+          <text x="24" y="169" textAnchor="middle" className="fill-slate-brand text-[11px]">{copy.progress.startLabel}</text>
+          <text x="160" y="169" textAnchor="middle" className="fill-slate-brand text-[11px]">{projection.kind === 'weight' ? copy.progress.monthLabel : copy.progress.habitLabel}</text>
+          <text x="296" y="169" textAnchor="middle" className="fill-slate-brand text-[11px]">{projection.kind === 'weight' ? copy.progress.goalLabel : copy.progress.nextLabel}</text>
+        </svg>
+        {projection.kind === 'weight' ? (
           <div className="mt-2 grid grid-cols-3 gap-2 text-center">
             <div>
-              <div className="text-lg font-extrabold text-forest">{current} kg</div>
+              <div className="text-lg font-extrabold text-forest">{projection.current} kg</div>
               <div className="text-xs font-semibold text-muted-brand">{copy.progress.startLabel}</div>
             </div>
             <div>
-              <div className="text-lg font-extrabold text-slate-brand">{(current + (target - current) / 2).toFixed(1)} kg</div>
+              <div className="text-lg font-extrabold text-slate-brand">{projection.midpoint} kg</div>
               <div className="text-xs font-semibold text-muted-brand">{copy.progress.monthNumber(2)}</div>
             </div>
             <div>
-              <div className="text-lg font-extrabold text-teal-brand">{target} kg</div>
+              <div className="text-lg font-extrabold text-teal-brand">{projection.target} kg</div>
               <div className="text-xs font-semibold text-muted-brand">{copy.progress.goalLabel}</div>
             </div>
           </div>
-          <p className="mt-4 text-center text-sm font-semibold leading-relaxed text-muted-brand">
-            {copy.progress.weeks(weeks)}
-          </p>
-        </section>
-      ) : (
-        <section className="flex flex-1 flex-col items-center justify-center rounded-[1.7rem] bg-white/82 px-5 py-8 text-center shadow-[0_18px_50px_rgb(26_71_57_/_0.10)]">
-          <div className="grid h-20 w-20 place-items-center rounded-full bg-teal-brand/12 text-4xl text-teal-brand">↗</div>
-          <p className="mt-5 max-w-sm text-lg font-extrabold leading-tight text-forest">{copy.progress.noTarget}</p>
-          <p className="mt-2 max-w-sm text-sm font-semibold leading-relaxed text-muted-brand">{copy.progress.noTargetHint}</p>
-        </section>
-      )}
+        ) : (
+          <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+            <div>
+              <div className="text-lg font-extrabold text-forest">{projection.currentKg != null ? `${projection.currentKg} kg` : copy.progress.missingStat}</div>
+              <div className="text-xs font-semibold text-muted-brand">{copy.progress.currentStat}</div>
+            </div>
+            <div>
+              <div className="text-lg font-extrabold text-slate-brand">{projection.calories != null ? projection.calories.toLocaleString(numberLocale) : copy.progress.missingStat}</div>
+              <div className="text-xs font-semibold text-muted-brand">{copy.progress.caloriesStat}</div>
+            </div>
+            <div>
+              <div className="text-lg font-extrabold text-teal-brand">{projection.trainingDays != null ? projection.trainingDays : copy.progress.missingStat}</div>
+              <div className="text-xs font-semibold text-muted-brand">{copy.progress.trainingStat}</div>
+            </div>
+          </div>
+        )}
+        <p className="mt-4 text-center text-sm font-semibold leading-relaxed text-muted-brand">{pace}</p>
+      </section>
       <p className="text-xs italic leading-relaxed text-muted-brand">{copy.progress.disclaimer}</p>
       <div className="mt-auto pt-2">
         <PrimaryButton onClick={() => goToNextQuizStep(router, 'progress')}>{copy.progress.cta}</PrimaryButton>

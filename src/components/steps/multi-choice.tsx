@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { NutreeLogo } from '@/components/nutree-logo';
 import { OptionCard } from '@/components/option-card';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
@@ -18,12 +19,14 @@ export function MultiChoiceStep({
   step,
   field,
   question,
+  description,
   hint,
   options,
 }: {
   step: QuizStep;
   field: ArrayField;
   question: string;
+  description?: string;
   hint?: string;
   options: ReadonlyArray<{ readonly key: string; readonly label: string; readonly icon?: string }>;
 }) {
@@ -93,11 +96,12 @@ export function MultiChoiceStep({
   return (
     <QuizStepFrame
       title={question}
+      description={description}
       hint={hint}
       className={cn(compact ? 'gap-2' : 'gap-3')}
-      titleClassName={compact ? 'text-[1.65rem]' : undefined}
+      titleClassName={compact ? 'text-[1.7rem]' : undefined}
     >
-      <div className={cn(twoColumn ? 'grid grid-cols-2 gap-2' : 'flex flex-col', compact ? 'gap-2' : 'gap-3')}>
+      <div className={cn(twoColumn ? 'grid grid-cols-2 gap-2' : 'flex flex-col', compact ? 'gap-2' : 'gap-2.5')}>
         {options.map((o) => (
           <OptionCard
             key={o.key}
@@ -123,10 +127,8 @@ export function MultiChoiceStep({
             aria-labelledby="care-modal-title"
             className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-[0_28px_90px_rgb(16_39_32_/_0.25)]"
           >
-            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-teal-brand/12">
-              <span aria-hidden="true" className="block h-8 w-5 -rotate-45 rounded-[100%_0_100%_0] bg-teal-brand" />
-            </div>
-            <p className="mt-5 text-center text-xs font-extrabold uppercase tracking-[0.14em] text-teal-brand">{vi.careModal.eyebrow}</p>
+            <NutreeLogo className="mx-auto h-16 w-16" />
+            <p className="mt-5 text-center text-xs font-extrabold tracking-[0.02em] text-teal-brand">{vi.careModal.eyebrow}</p>
             <h2 id="care-modal-title" className="mt-3 text-center text-2xl font-extrabold leading-tight text-forest">{vi.careModal.title}</h2>
             <p className="mt-4 text-center text-base font-semibold leading-relaxed text-muted-brand">{vi.careModal.body}</p>
             <p className="mt-4 text-center text-sm font-medium leading-relaxed text-muted-brand">{vi.careModal.disclaimer}</p>

@@ -33,7 +33,7 @@ export function RedemptionEmailPreview({
 export function RedemptionEmailGuide({ copy }: { copy: RedemptionEmailGuideCopy }) {
   return (
     <section className="w-full max-w-md rounded-[2rem] border border-border-brand bg-white p-7 text-center shadow-[0_24px_70px_rgb(23_69_58_/_0.10)] sm:p-9">
-      <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-teal-brand">Nutree</p>
+      <p className="text-xs font-extrabold tracking-[0.02em] text-teal-brand">Nutree</p>
       <h1 className="mt-4 text-3xl font-extrabold tracking-[-0.045em] text-forest">{copy.headline}</h1>
       <p className="mt-4 text-base font-semibold leading-relaxed text-slate-brand">{copy.body}</p>
       <RedemptionEmailPreview alt={copy.imageAlt} caption={copy.imageCaption} />

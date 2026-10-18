@@ -49,6 +49,12 @@ html {
   scroll-behavior: smooth;
 }
 
+@media (max-width: 1023px) {
+  html {
+    font-size: 18.5px;
+  }
+}
+
 h1,
 h2,
 h3,
@@ -163,6 +169,46 @@ h2 {
   animation: soft-enter 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Landing and quiz arrival. Fill is `backwards` only: `both` would keep `translate: 0 0`
+   after the animation, and a transformed ancestor makes iOS ignore swipes on the wheel. */
+@media (prefers-reduced-motion: no-preference) {
+  .enter-item {
+    animation: enter-from-top 560ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(var(--enter, 0) * 60ms);
+  }
+
+  /* Quiz body follows the logo and progress bar, one block after another. */
+  .quiz-shell-content > .quiz-step-frame > * {
+    animation: enter-from-top 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(120ms + (var(--enter-n, 0) * 55ms));
+  }
+
+  .quiz-shell-content > .quiz-step-frame > :nth-child(1) { --enter-n: 0; }
+  .quiz-shell-content > .quiz-step-frame > :nth-child(2) { --enter-n: 1; }
+  .quiz-shell-content > .quiz-step-frame > :nth-child(3) { --enter-n: 2; }
+  .quiz-shell-content > .quiz-step-frame > :nth-child(4) { --enter-n: 3; }
+  .quiz-shell-content > .quiz-step-frame > :nth-child(5) { --enter-n: 4; }
+  .quiz-shell-content > .quiz-step-frame > :nth-child(6) { --enter-n: 5; }
+  .quiz-shell-content > .quiz-step-frame > :nth-child(7) { --enter-n: 6; }
+  .quiz-shell-content > .quiz-step-frame > :nth-child(8) { --enter-n: 7; }
+
+  .quiz-shell-content > :not(.quiz-step-frame) {
+    animation: enter-from-top 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: 120ms;
+  }
+}
+
+@keyframes enter-from-top {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
 /* Premium CTA: subtle top sheen + shine sweep on hover */
 .cta-premium {
   position: relative;
@@ -259,15 +305,94 @@ h2 {
 
 .wheel-picker-scroll {
   scrollbar-width: none;
+  /* Let the phone scroll this list. touch-action: none forced a JS drag that
+     stuttered against scroll-snap and dropped frames on device. */
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Short lists sit in the middle. Tall lists start at the top and scroll. */
+.quiz-step-stack {
+  justify-content: safe center;
+}
+
+/* Keep the question and the action inside the screen; the body scrolls. */
+.quiz-step-body {
+  height: 0;
+}
+
+/* Landscape phones: the question block has to shrink so the action stays on screen. */
+@media (max-height: 500px) {
+  .quiz-shell {
+    padding-top: 0.3rem;
+    padding-bottom: 0.35rem;
+  }
+
+  .quiz-shell-header {
+    margin-bottom: 0.25rem;
+  }
+
+  .quiz-shell-progress {
+    margin-bottom: 0.35rem;
+  }
+
+  .quiz-step-frame {
+    gap: 0.35rem;
+  }
+
+  .quiz-step-frame h1 {
+    font-size: 1.2rem;
+    line-height: 1.15;
+  }
+
+  .quiz-step-frame header p {
+    margin-top: 0.15rem;
+    font-size: 0.85rem;
+    line-height: 1.3;
+  }
+
+  .quiz-step-cta {
+    padding-top: 0.35rem;
+  }
+
+  .quiz-step-cta .pt-6,
+  .quiz-step-cta .pt-5,
+  .quiz-step-cta .pt-4 {
+    padding-top: 0;
+  }
+
+  .quiz-step-frame .welcome-photo {
+    height: 72px;
+  }
+}
+
+/* The page must not compete with the wheel for a vertical swipe. */
+.quiz-shell[data-fit-viewport] .quiz-shell-content,
+.quiz-shell[data-fit-viewport] .quiz-step-body {
+  overflow: hidden;
+}
+
+/* A zero base height lets the wheel step shrink to the free space instead of its content. */
+.quiz-shell[data-fit-viewport] .quiz-step-body {
+  height: 0;
 }
 
 .wheel-picker-scroll::-webkit-scrollbar {
   display: none;
 }
 
-/* Wheel steps fill the viewport. If even their minimum layout is taller, the shell scrolls instead of clipping. */
+/* Wheel steps fill the viewport and stay inside it, so Continue is never clipped. */
 .quiz-shell[data-fit-viewport] .quiz-step-frame {
-  min-height: auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.quiz-shell[data-fit-viewport] .quiz-step-stack {
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
 }
 
 /* Short phones: tighten the chrome and the steps built around a wheel so it keeps room. */
@@ -306,9 +431,9 @@ h2 {
   }
 }
 
-/* Very short phones: drop the badge's explanatory note so the wheel and Continue both fit. */
-@media (max-height: 600px) {
-  .quiz-goal-badge-note {
+/* Very short phones: the badge would sit under the actions, so leave the wheel and both buttons clear. */
+@media (max-height: 640px) {
+  .quiz-goal-badge {
     display: none;
   }
 }

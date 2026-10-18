@@ -18,10 +18,6 @@ export const QUIZ_STEPS = [
   'training_duration',
   'eating_pattern',
   'diet',
-  'support_style',
-  'science',
-  'science_sources',
-  'preview',
   'care_pause',
   'calculating',
   'result',
@@ -29,6 +25,20 @@ export const QUIZ_STEPS = [
 ] as const;
 
 export type QuizStep = (typeof QUIZ_STEPS)[number];
+
+/** Product tour after email. Same onboarding bar as the quiz, not a second timeline. */
+export const VALUE_TOUR_STEPS = ['guide', 'snap', 'activity', 'macros', 'works', 'sources', 'meals'] as const;
+
+export type ValueTourStep = (typeof VALUE_TOUR_STEPS)[number];
+
+export function onboardingStepCount(): number {
+  return QUIZ_STEPS.length + VALUE_TOUR_STEPS.length;
+}
+
+/** 1-based position of a value screen on the shared onboarding bar. */
+export function valueProgressIndex(step: ValueTourStep): number {
+  return QUIZ_STEPS.length + VALUE_TOUR_STEPS.indexOf(step) + 1;
+}
 export type QuizChapter = 'intent' | 'body' | 'routine' | 'plan';
 
 export const STEP_CHAPTERS: Record<QuizStep, QuizChapter> = {
@@ -50,10 +60,6 @@ export const STEP_CHAPTERS: Record<QuizStep, QuizChapter> = {
   training_duration: 'routine',
   eating_pattern: 'routine',
   diet: 'routine',
-  support_style: 'routine',
-  science: 'plan',
-  science_sources: 'plan',
-  preview: 'plan',
   care_pause: 'plan',
   calculating: 'plan',
   result: 'plan',

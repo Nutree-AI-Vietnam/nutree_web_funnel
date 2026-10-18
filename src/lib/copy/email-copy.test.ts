@@ -9,6 +9,7 @@ describe('email capture copy', () => {
       expect(copy.email.body).not.toMatch(/google/i);
       expect(copy.email.helper).not.toMatch(/google/i);
       expect(copy.email.cta).not.toMatch(/google/i);
+      expect(copy.email.headline + copy.email.body).not.toMatch(/welcome reward|welcome price|quà chào mừng|giá chào mừng/i);
     }
   });
 

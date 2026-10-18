@@ -182,6 +182,28 @@ describe('quiz store', () => {
     expect([paywall.funnelScreen, paywall.currentStep]).toEqual(['paywall', 'goal']);
   });
 
+  it('sends a saved removed quiz step to the pause before calculating', () => {
+    for (const currentStep of ['science', 'science_sources', 'preview', 'support_style']) {
+      const migrated = migratePersistedQuizState({
+        funnelScreen: 'quiz',
+        currentStep,
+        data: { measurement_unit: 'metric' },
+      });
+      expect(migrated.currentStep).toBe('care_pause');
+      expect(migrated.funnelScreen).toBe('quiz');
+    }
+  });
+
+  it('moves a saved welcome-gift screen into the value tour', () => {
+    const migrated = migratePersistedQuizState({
+      funnelScreen: 'welcome-gift',
+      currentStep: 'progress',
+      data: { measurement_unit: 'metric' },
+      lead: { lead_id: 'lead-1', masked_email: 'a***@b.c', status: 'payment_pending' },
+    });
+    expect(migrated.funnelScreen).toBe('value');
+  });
+
   it('keeps ordinary saved quiz progress unchanged', () => {
     const migrated = migratePersistedQuizState({
       funnelScreen: 'quiz',
