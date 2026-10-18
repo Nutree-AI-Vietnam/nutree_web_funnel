@@ -30,7 +30,7 @@ export default async function FirebaseEmailLinkFallbackPage({
   return (
     <main className="grid min-h-dvh place-items-center bg-[#f6faf7] px-5 text-charcoal">
       <section className="w-full max-w-md rounded-[2rem] border border-border-brand bg-white p-7 text-center shadow-[0_24px_70px_rgb(23_69_58_/_0.10)] sm:p-9">
-        <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-teal-brand">Nutree</p>
+        <p className="text-xs font-extrabold tracking-[0.02em] text-teal-brand">Nutree</p>
         <h1 className="mt-4 text-3xl font-extrabold tracking-[-0.045em] text-forest">Open this link in Nutree.</h1>
         <p className="mt-4 text-base font-semibold leading-relaxed text-slate-brand">
           Open Nutree on your phone to finish signing in securely. If the app is not installed, install it first and then open the email link again.

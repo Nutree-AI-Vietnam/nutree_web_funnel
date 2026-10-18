@@ -22,10 +22,6 @@ describe('quiz steps', () => {
       'training_duration',
       'eating_pattern',
       'diet',
-      'support_style',
-      'science',
-      'science_sources',
-      'preview',
       'care_pause',
       'calculating',
       'result',
@@ -42,11 +38,9 @@ describe('quiz steps', () => {
   it('navigates forward through quiz screens without creating subroutes', () => {
     expect(nextStep('goal')).toBe('name_ask');
     expect(nextStep('name_ask')).toBe('welcome');
-    expect(nextStep('diet')).toBe('support_style');
+    expect(nextStep('diet')).toBe('care_pause');
     expect(nextStep('body_review')).toBe('activity_level');
-    expect(nextStep('support_style')).toBe('science');
-    expect(nextStep('science')).toBe('science_sources');
-    expect(nextStep('science_sources')).toBe('preview');
+    expect(nextStep('care_pause')).toBe('calculating');
   });
 
   it('continues from result through progress before email capture', () => {
@@ -62,7 +56,7 @@ describe('quiz steps', () => {
   it('exposes 1-based progress index', () => {
     expect(stepIndex('goal')).toBe(1);
     expect(stepIndex('height')).toBe(10);
-    expect(stepIndex('result')).toBe(25);
+    expect(stepIndex('result')).toBe(21);
     expect(chapterLabel('training_days')).toBe('Thói quen');
   });
 });

@@ -136,7 +136,7 @@ export function OptionCard({
         aria-pressed={selected}
         className={cn(
           'flex w-full items-center justify-between gap-3 text-left font-semibold transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-teal-brand/20 active:scale-[0.99] group-hover:translate-x-0.5',
-          compact ? 'min-h-11 px-4 py-2.5 text-sm' : 'min-h-[3.25rem] px-5 py-4 text-base',
+          compact ? 'min-h-10 px-3.5 py-2 text-[13px]' : 'min-h-11 px-4 py-2.5 text-[15px]',
           selected ? 'text-forest' : 'text-charcoal hover:text-forest',
         )}
       >

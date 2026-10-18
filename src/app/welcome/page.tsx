@@ -20,7 +20,7 @@ export default function WelcomePage() {
   return (
     <main className="grid min-h-dvh place-items-center bg-[#f6faf7] px-5 text-charcoal">
       <section className="mx-auto max-w-xl rounded-[2rem] border border-border-brand bg-white p-8 text-center shadow-[0_24px_70px_rgb(23_69_58_/_0.10)]">
-        <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-teal-brand">
+        <p className="text-sm font-extrabold tracking-[0.02em] text-teal-brand">
           Continue on your phone
         </p>
         <h1 className="mt-4 text-[clamp(2.4rem,8vw,4.4rem)] font-extrabold leading-[0.98] tracking-[-0.06em] text-forest">

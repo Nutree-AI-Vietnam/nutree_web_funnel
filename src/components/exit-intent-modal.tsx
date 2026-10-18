@@ -101,7 +101,7 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.15 }}
-                    className="ph-mask text-xs font-extrabold uppercase tracking-wider text-teal-brand"
+                    className="ph-mask text-xs font-extrabold tracking-[0.02em] text-teal-brand"
                   >
                     {name ? `${name} ơi` : 'Bạn ơi'}
                   </motion.p>

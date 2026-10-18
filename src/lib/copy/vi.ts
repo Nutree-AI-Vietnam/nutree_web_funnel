@@ -16,7 +16,7 @@ export const vi = {
     skip: 'Bỏ qua',
     retry: 'Thử lại',
     bctBadgeAlt: 'Đã thông báo Bộ Công Thương — xem hồ sơ trên online.gov.vn',
-    progress: 'Tiến độ bài quiz',
+    progress: 'Tiến độ của bạn',
     stepCount: (current: number, total: number) => `Câu ${current}/${total}`,
   },
   metric: {
@@ -28,11 +28,11 @@ export const vi = {
   },
   landing: {
     eyebrow: '',
-    headline: 'Kế hoạch ăn uống riêng cho cơ thể và mục tiêu của bạn',
+    headline: 'Chào bạn, cảm ơn bạn đã quan tâm, Nutree sẽ tiến hành tạo chế độ ăn miễn phí cho bạn ngay bây giờ',
     subheadline:
-      'Trả lời vài câu trong 3 phút. Nutree tính calo, macro và lộ trình khớp với cơ thể, mục tiêu và lịch tập của bạn, không phải con số chung chung.',
+      'Trả lời vài câu trong 3 phút. Nutree tính calo, dinh dưỡng đa lượng và lộ trình khớp với cơ thể, mục tiêu và lịch tập của bạn, không phải con số chung chung.',
     metaTitle: 'Nutree',
-    metaDescription: 'Làm bài quiz Nutree để tính calo và macro.',
+    metaDescription: 'Trả lời vài câu để Nutree tính calo và dinh dưỡng đa lượng cho bạn.',
     cta: 'Xây kế hoạch của tôi',
     legal: {
       prefix: 'Khi tiếp tục, bạn đồng ý với ',
@@ -46,27 +46,27 @@ export const vi = {
     language: 'VI',
     planBadge: 'Plan',
     planTitle: 'Ví dụ kế hoạch',
-    planSubtitle: 'Một ngày mẫu, chưa phải kết quả của bạn. Mục tiêu được tính sau bài quiz.',
+    planSubtitle: 'Một ngày mẫu, chưa phải kết quả cuối cùng của bạn. Mục tiêu được tính sau khi hoàn tất.',
     planCalories: '1.470',
     planCaloriesUnit: 'calo / ngày',
     planMacros: [
-      { label: 'Protein', value: '132g' },
-      { label: 'Carbs', value: '127g' },
+      { label: 'Đạm', value: '132g' },
+      { label: 'Tinh bột', value: '127g' },
       { label: 'Chất béo', value: '48g' },
     ],
     planMeals: [
-      { label: 'Sáng', calories: 420, note: 'nhiều protein' },
-      { label: 'Trưa', calories: 560, note: 'đủ năng lượng' },
-      { label: 'Tối', calories: 490, note: 'nhẹ bụng' },
+      { label: 'Sáng', dish: 'Trứng ốp la', note: 'nhiều đạm' },
+      { label: 'Trưa', dish: 'Cơm gà nướng', note: 'đủ năng lượng' },
+      { label: 'Tối', dish: 'Canh rau củ', note: 'nhẹ bụng' },
     ],
-    signals: ['TDEE', 'BMI', 'Protein', 'Carbs', 'Fat', 'Bữa ăn', 'Cân nặng'],
+    signals: ['TDEE', 'BMI', 'Đạm', 'Tinh bột', 'Chất béo', 'Bữa ăn', 'Cân nặng'],
     bullets: [
       'TDEE và BMI rõ ràng',
-      'Macro chia thành mục tiêu mỗi ngày',
+      'Dinh dưỡng đa lượng chia thành mục tiêu mỗi ngày',
       'Gợi ý bữa ăn khớp macro',
     ],
     proofStats: [
-      { value: '3 phút', label: 'để làm bài quiz' },
+      { value: '3 phút', label: 'để có kế hoạch' },
       { value: 'Trả phí', label: 'để mở kế hoạch trong app' },
     ],
     slides: [
@@ -89,6 +89,7 @@ export const vi = {
   },
   name_ask: {
     question: 'Tên bạn là gì?',
+    description: 'Để Nutree và bạn làm quen với nhau.',
     placeholder: 'Nhập tên của bạn',
   },
   welcome: {
@@ -104,6 +105,7 @@ export const vi = {
   },
   goal: {
     question: 'Mục tiêu chính của bạn là gì?',
+    description: 'Mục tiêu này quyết định calo và cách chia bữa.',
     options: [
       { key: 'cut', label: 'Giảm cân' },
       { key: 'bulk', label: 'Tăng cơ' },
@@ -142,6 +144,7 @@ export const vi = {
   },
   challenges: {
     question: 'Bạn đã gặp khó khăn nào?',
+    description: 'Nutree muốn hiểu chỗ bạn hay vướng để kế hoạch tránh đúng đó.',
     hint: 'Chọn tất cả mục phù hợp với bạn.',
     options: [
       { key: 'no_time', label: 'Không có thời gian' },
@@ -169,6 +172,7 @@ export const vi = {
   },
   duration: {
     question: 'Bạn đã cố gắng đạt mục tiêu trong bao lâu?',
+    description: 'Thời gian bạn đã cố gắng giúp kế hoạch vừa sức hơn.',
     options: [
       { key: 'just_starting', label: 'Mới bắt đầu' },
       { key: 'few_months', label: 'Vài tháng' },
@@ -178,6 +182,7 @@ export const vi = {
   },
   motivation: {
     question: 'Điều gì khiến bạn muốn bắt đầu lúc này?',
+    description: 'Lý do này giúp Nutree nói đúng điều bạn đang cần.',
     options: [
       { key: 'confidence', label: 'Tự tin hơn với cơ thể' },
       { key: 'energy', label: 'Có nhiều năng lượng hơn' },
@@ -198,9 +203,11 @@ export const vi = {
     todayLabel: 'Hôm nay',
     chartLabel: 'Lộ trình tiến bộ của bạn',
     caption: 'Với kế hoạch đúng, tiến độ trở nên ổn định thay vì thất thường.',
+    description: 'Đây là những gì Nutree đã hiểu về bạn.',
   },
   sex: {
     question: 'Giới tính sinh học của bạn?',
+    description: 'Giới tính sinh học giúp ước năng lượng cơ thể đốt mỗi ngày.',
     options: [
       { key: 'male', label: 'Nam' },
       { key: 'female', label: 'Nữ' },
@@ -222,12 +229,14 @@ export const vi = {
   },
   height: {
     question: 'Chiều cao hiện tại của bạn?',
+    description: 'Chiều cao giúp ước năng lượng cơ thể cần mỗi ngày.',
     heightLabel: 'Chiều cao',
     heightHint: 'Dùng chiều cao hiện tại của bạn.',
     heightUnit: 'cm',
   },
   weight: {
     question: 'Cân nặng hiện tại của bạn?',
+    description: 'Cân gần nhất giúp kế hoạch bám đúng điểm bạn đang đứng.',
     weightLabel: 'Cân nặng hiện tại',
     weightHint: 'Dùng cân nặng gần nhất để tính TDEE.',
     weightUnit: 'kg',
@@ -309,10 +318,12 @@ export const vi = {
   },
   training_days: {
     question: 'Bạn tập mấy ngày mỗi tuần?',
+    description: 'Số ngày tập giúp ngày nghỉ và ngày tập không dùng cùng một mức calo.',
     unit: 'ngày/tuần',
   },
   training_duration: {
     question: 'Mỗi buổi tập của bạn kéo dài bao lâu?',
+    description: 'Độ dài buổi tập giúp ước phần năng lượng bạn đốt khi vận động.',
     options: [
       { key: '30', label: '~30 phút' },
       { key: '45', label: '~45 phút' },
@@ -347,6 +358,7 @@ export const vi = {
   },
   activity_level: {
     question: 'Mức độ hoạt động hàng ngày của bạn?',
+    description: 'Nhịp một ngày thường ảnh hưởng đến lượng calo bạn cần.',
     options: [
       { key: 'desk', label: 'Văn phòng / ngồi nhiều' },
       { key: 'on_feet', label: 'Đứng / di chuyển cả ngày' },
@@ -362,6 +374,7 @@ export const vi = {
   },
   eating_pattern: {
     question: 'Khoảnh khắc ăn uống nào hay lệch kế hoạch nhất?',
+    description: 'Nutree sẽ chú ý hơn vào khoảnh khắc này khi gợi ý bữa.',
     options: [
       { key: 'morning', label: 'Buổi sáng vội' },
       { key: 'lunch', label: 'Bữa trưa khó kiểm soát' },
@@ -373,6 +386,7 @@ export const vi = {
   },
   diet: {
     question: 'Bạn có yêu cầu dinh dưỡng đặc biệt không?',
+    description: 'Những lựa chọn này giúp gợi ý món phù hợp hơn với bạn.',
     hint: 'Chọn tối đa 2 mục. “Không có yêu cầu” sẽ bỏ chọn các mục khác.',
     options: [
       { key: 'vegan', label: 'Thuần chay' },
@@ -392,15 +406,6 @@ export const vi = {
     disclaimer: 'Nutree không thay thế bác sĩ hoặc chuyên gia y tế. Nếu bạn có dị ứng nghiêm trọng hoặc bệnh nền, hãy hỏi chuyên gia trước khi thay đổi chế độ ăn.',
     cta: 'Tôi đã hiểu',
     editCta: 'Kiểm tra lại lựa chọn',
-  },
-  support_style: {
-    question: 'Bạn muốn Nutree hỗ trợ theo kiểu nào?',
-    options: [
-      { key: 'simple', label: 'Đơn giản, chỉ cần mục tiêu chính' },
-      { key: 'flexible', label: 'Linh hoạt theo ngày bận' },
-      { key: 'detailed', label: 'Chi tiết macro và bữa ăn' },
-      { key: 'gentle', label: 'Nhắc nhẹ, không áp lực' },
-    ],
   },
   preview: {
     eyebrow: 'Nutree đã sẵn sàng',
@@ -457,6 +462,7 @@ export const vi = {
   },
   calculating: {
     text: 'Đang tính kế hoạch cho [name]',
+    description: 'Nutree đang ghép cơ thể, mục tiêu và lịch tập thành một kế hoạch riêng.',
     orbits: ['TDEE', 'BMI', 'Macro'],
     unit: 'kcal mỗi ngày',
     macroCaption: 'Phân bổ dinh dưỡng',
@@ -467,13 +473,51 @@ export const vi = {
       'Đọc chỉ số cơ thể',
       'Tính năng lượng duy trì',
       'Chia macro theo mục tiêu',
+      'Ước tiến độ theo mục tiêu',
       'Gói lại thành kế hoạch',
     ],
-    slides: [
-      { title: 'Bạn không cần làm điều này một mình', body: 'Nutree đang biến những câu trả lời của bạn thành một kế hoạch dễ bắt đầu.' },
-      { title: 'Một con số có lý do phía sau', body: 'Chúng tôi đối chiếu cơ thể, mục tiêu và thói quen trước khi đưa ra mục tiêu calo.' },
-      { title: 'Tiến độ ổn định quan trọng hơn hoàn hảo', body: 'Kế hoạch này được thiết kế để bạn có thể theo dõi và điều chỉnh theo thời gian.' },
-      { title: 'Sắp xong rồi', body: 'Chỉ còn một bước nữa để xem bản kế hoạch đầu tiên của bạn.' },
+    testimonialsLabel: 'Người dùng Nutree',
+    testimonials: [
+      {
+        name: 'Linh',
+        flag: '🇻🇳',
+        quote: 'App này tiện ghê á, gợi ý tui nấu món hợp khẩu vị, nấu theo là coi như bữa đó khỏi cần track gì thêm.',
+        result: '-6kg / 2 tháng',
+        goal: 'Giảm cân',
+        avatar: '/images/trust-female.webp',
+      },
+      {
+        name: 'Quang',
+        flag: '🇻🇳',
+        quote: 'Tui nhập 1 pax Haidilao cũng track được nữa. App này đỉnh thật sự =))',
+        result: '+4kg cơ / 4 tháng',
+        goal: 'Tăng cân',
+        avatar: '/images/trust-ali.webp',
+      },
+      {
+        name: 'Minh',
+        flag: '🇻🇳',
+        quote: 'Lỡ ăn lố bữa trước, hôm nay nó tự chỉnh cho mình ăn ít lại luôn. Haha. Nói chung là vui.',
+        result: '-3% mỡ / 3 tháng',
+        goal: 'Tăng cơ giảm mỡ',
+        avatar: '/images/trust-jurica.webp',
+      },
+      {
+        name: 'Sarah',
+        flag: '🇺🇸',
+        quote: 'Cuối cùng cũng có app tính macros đúng. Thay đổi cuộc chơi!',
+        result: '-8kg / 3 tháng',
+        goal: 'Giảm cân',
+        avatar: '/images/trust-aiony.webp',
+      },
+      {
+        name: 'Hana',
+        flag: '🇯🇵',
+        quote: 'Đơn giản, chính xác, và thực sự giúp tôi đạt mục tiêu.',
+        result: '-4kg / 6 tuần',
+        goal: 'Giảm cân',
+        avatar: '/images/trust-good-faces.webp',
+      },
     ],
   },
   tdee_targets: {
@@ -518,11 +562,96 @@ export const vi = {
     monthNumber: (month: number) => `Tháng ${month}`,
     goalLabel: 'Mục tiêu',
     chartLabel: 'Biểu đồ lộ trình từ cân nặng hiện tại đến mục tiêu',
-    weeks: (weeks: number) => `Dự kiến khoảng ${weeks} ngày với nhịp độ ổn định.`,
+    chartLabelByDirection: {
+      down: 'Biểu đồ hướng giảm theo mục tiêu calo của bạn',
+      up: 'Biểu đồ hướng tăng theo mục tiêu calo của bạn',
+      steady: 'Biểu đồ giữ nhịp theo mục tiêu calo của bạn',
+    },
+    pace: (days: number) => `Dự kiến khoảng ${days} ngày với nhịp độ ổn định.`,
+    planHeadline: {
+      cut: 'Nhịp giảm cân của bạn bắt đầu từ mục tiêu calo này',
+      bulk: 'Nhịp tăng cân của bạn bắt đầu từ mục tiêu calo này',
+      maintain: 'Bạn có thể giữ cân nặng này với nhịp calo và thói quen bên dưới',
+      recomp: 'Bạn có thể đổi thành phần cơ thể với nhịp calo và thói quen bên dưới',
+      fallback: 'Kế hoạch tiếp theo bám theo những gì bạn vừa chọn',
+    },
+    planPace: (calories: string, protein: string) => `Mỗi ngày khoảng ${calories} kcal và ${protein} protein, rồi chỉnh theo tiến độ.`,
+    planPaceFallback: 'Nutree giữ nhịp theo mục tiêu và lịch tập bạn đã chọn.',
+    habitLabel: 'Thói quen',
+    nextLabel: 'Tiếp theo',
+    currentStat: 'Hiện tại',
+    caloriesStat: 'Calo mỗi ngày',
+    trainingStat: 'Ngày tập',
+    missingStat: '—',
     disclaimer: 'Kết quả có thể khác nhau. Đây là ước tính để định hướng, không phải lời hứa về kết quả.',
-    noTarget: 'Bạn chưa cần chốt một con số hôm nay.',
-    noTargetHint: 'Nutree vẫn có thể bắt đầu bằng mục tiêu calo và thói quen phù hợp với bạn.',
     cta: 'Tiếp tục',
+  },
+  valueTour: {
+    stepLabel: (current: number, total: number) => `Bước ${current}/${total}`,
+    guide: {
+      eyebrow: 'Nutree sẽ đồng hành',
+      title: 'Cảm ơn — chúng tôi sẽ dẫn bạn tới mục tiêu',
+      body: 'Kế hoạch của bạn đã sẵn sàng. Tiếp theo là tour ngắn về cách Nutree đồng hành mỗi ngày.',
+      cta: 'Cho tôi xem',
+      points: [
+        'Chụp ảnh bữa ăn để ước lượng calo',
+        'Lịch tập nằm trong cùng một kế hoạch',
+        'Macro tự chỉnh theo ngày bạn đã ăn',
+        'Mục tiêu calo dựa trên công thức đã kiểm chứng',
+      ],
+    },
+    snap: {
+      eyebrow: 'Ghi bữa bằng ảnh',
+      title: 'Ước lượng bữa ăn bằng hình ảnh',
+      body: 'Không cần cân từng món. Một ảnh thành nhật ký dinh dưỡng trong app.',
+      cta: 'Nghe ổn',
+      videoLabel: 'Video chụp bữa ăn và ước lượng calo',
+    },
+    activity: {
+      eyebrow: 'Tập và vận động',
+      title: 'Ghi lại tập luyện',
+      body: 'Ngày tập và ngày nghỉ đều được tính vào mục tiêu calo.',
+      cta: 'Đã hiểu',
+      imageAlt: 'Màn hình chọn bài tập trong Nutree',
+      personalized: (days: number) => `Bạn đã chọn ${days} ngày tập mỗi tuần. Nutree giữ mục tiêu ăn khớp với lịch đó.`,
+    },
+    macros: {
+      eyebrow: 'Macro mỗi ngày',
+      title: 'Macros tự động điều chỉnh theo thói quen',
+      body: 'Chỉ tiêu chất đạm, tinh bột và chất béo sẽ được tính lại mỗi ngày.',
+      cta: 'Mục tiêu dựa vào đâu?',
+      personalized: (calories: string, protein: number) => `Với số bạn vừa nhập, điểm bắt đầu là ${calories} kcal và ${protein}g protein mỗi ngày.`,
+      labels: { protein: 'Protein', carbs: 'Carb', fat: 'Chất béo' },
+    },
+    science: {
+      eyebrow: 'Cách Nutree hoạt động',
+      title: 'Xây dựng dựa trên nghiên cứu khoa học',
+      body: 'Chúng tôi dùng phép tính TDEE dựa trên bằng chứng để cung cấp ước tính ban đầu cá nhân hóa cho mục tiêu calo của bạn.',
+      cta: 'Tỉ mỉ quá vậy!',
+      collageLabel: 'Minh họa công thức TDEE, biểu đồ năng lượng và nghiên cứu ISSN',
+      sourcesLabel: 'Nguồn dữ liệu dinh dưỡng',
+      disclaimer: 'Đây là nguồn dữ liệu Nutree tham khảo, không phải sự chứng thực của các tổ chức này.',
+      sources: [
+        { name: 'USDA FoodData Central', image: '/value-tour/sources/usda.png' },
+        { name: 'fatsecret Platform API', image: '/value-tour/sources/fatsecret.png' },
+        { name: 'Viện Dinh dưỡng Quốc gia Việt Nam', image: '/value-tour/sources/nin.png' },
+        { name: 'Viện Nghiên cứu Dinh dưỡng TP.HCM', image: '/value-tour/sources/nri.png' },
+      ],
+    },
+    meals: {
+      eyebrow: 'Gợi ý bữa ăn',
+      title: 'Không cần ăn ức gà để thay đổi bản thân',
+      body: 'Gợi ý bữa ăn theo khẩu vị của mỗi người, đảm bảo dinh dưỡng mà vẫn phù hợp với cuộc sống hàng ngày của bạn.',
+      cta: 'Xem giá kế hoạch',
+      cue: 'Vuốt để xem thêm gợi ý',
+      cards: [
+        { title: 'Bánh mì bơ và trứng', meta: '410 kcal', image: '/value-tour/meals/avocado-egg-toast.png' },
+        { title: 'Set cuốn gà Bulgogi', meta: '354 kcal', image: '/value-tour/meals/chicken-bulgogi.png' },
+        { title: 'Sinh tố chuối yến mạch', meta: '962 kcal', image: '/value-tour/meals/banana-oat-shake.jpg' },
+        { title: 'Sandwich gà Club', meta: '792 kcal', image: '/value-tour/meals/chicken-club.jpg' },
+        { title: 'Pizza pepperoni nhỏ kèm salad', meta: '679 kcal', image: '/value-tour/meals/pepperoni-pizza.jpg' },
+      ],
+    },
   },
   result_promising: {
     eyebrow: 'Sẵn sàng lưu kế hoạch',
@@ -556,8 +685,8 @@ export const vi = {
     cta: 'Nhận kế hoạch của tôi',
   },
   email: {
-    headline: 'Lưu kế hoạch và nhận quà chào mừng',
-    body: 'Nhập email để lưu kế hoạch và mở giá chào mừng.',
+    headline: 'Lưu kế hoạch của bạn',
+    body: 'Nhập email để lưu kế hoạch. Tiếp theo bạn sẽ xem Nutree đồng hành mỗi ngày, rồi mới chọn gói.',
     helper: 'Nutree dùng email này để lưu kế hoạch và điền sẵn thanh toán an toàn. Sau khi thanh toán được xác nhận, chúng tôi sẽ gửi link bảo mật để mở kế hoạch trong app.',
     placeholder: 'ban@vidu.com',
     cta: 'Lưu kế hoạch của tôi',
@@ -570,6 +699,8 @@ export const vi = {
     trustBody: 'Lưu kế hoạch để có thể quay lại bất cứ lúc nào. Email của bạn chỉ được dùng cho hành trình Nutree này.',
     privacyPrefix: 'Riêng tư',
     privacyLine: 'Thông tin của bạn được giữ riêng tư và không bán cho bên thứ ba.',
+    socialCount: '+5.000',
+    socialLabel: 'người dùng',
     avatars: ['A', 'M', 'L', 'N'],
   },
   welcomeGift: {
@@ -587,6 +718,10 @@ export const vi = {
     priceLine: (amount: string, plan: string) => `${amount} cho gói ${plan}.`,
     cta: 'Nhận ưu đãi',
     lockedCta: 'Mở giá trước',
+    exitHeadline: 'Khoan đã — đừng bỏ kế hoạch',
+    exitSubhead: 'Cào để mở giá chào mừng, rồi tiếp tục chọn gói.',
+    exitContinue: 'Tiếp tục với ưu đãi',
+    exitContinueHint: 'Giá chào mừng sẽ được áp dụng cho các gói ngay bên dưới.',
   },
   paywall: {
     offerReserved: 'ưu đãi dành riêng cho bạn còn:',
@@ -617,6 +752,11 @@ export const vi = {
     guaranteeBody: 'Nếu bạn làm theo kế hoạch trong 4 tuần và vẫn không thấy tiến triển rõ ràng, chúng tôi sẽ hoàn tiền cho bạn.',
     planRecommendation: 'Gói 12 tuần tạo đủ thời gian để xây dựng nhịp theo dõi đều đặn.',
     planResearchNote: 'Ưu đãi WELCOME50 đã được áp dụng.',
+    standardHeader: 'Nutree Premium',
+    standardTimer: 'Giá gốc cho kế hoạch của bạn',
+    standardPriceNote: 'Giá hiển thị là giá gốc của từng gói.',
+    standardPriceSummary: (today: string, renewal: string, planLabel: string, cadence: string) =>
+      `Bạn thanh toán ${today} hôm nay cho gói ${planLabel}, sau đó gói tự gia hạn ${renewal} ${cadence} cho đến khi bạn hủy.`,
     exitOfferTitle: 'Khoan rời đi — nhận ưu đãi giảm 75%',
     exitOfferBody: 'Giữ kế hoạch cá nhân với mức giá đặc biệt một lần khi bạn quay lại.',
     exitOfferEyebrow: 'Ưu đãi rời đi',
@@ -686,7 +826,7 @@ export const vi = {
   },
   success: {
     headline: 'Kế hoạch của bạn đã được mở khóa',
-    body: 'Sau khi thanh toán được xác minh, RevenueCat sẽ gửi liên kết bảo mật qua email. Mở liên kết trong Nutree, sau đó đăng nhập Google hoặc Apple bằng email đã thanh toán. Bạn không cần làm lại quiz.',
+    body: 'Sau khi thanh toán được xác minh, RevenueCat sẽ gửi liên kết bảo mật qua email. Mở liên kết trong Nutree, sau đó đăng nhập Google hoặc Apple bằng email đã thanh toán. Bạn không cần trả lời lại từ đầu.',
   },
 } as const;
 

@@ -99,6 +99,7 @@ export function NumberInputStep({
           submit();
         }}
       >
+        <div className="my-auto">
         <MetricInput
           id={`${step}-${field}`}
           label={config.label}
@@ -113,7 +114,8 @@ export function NumberInputStep({
           onChange={setValue}
           onBlur={() => setTouched(true)}
         />
-        <div className="quiz-number-actions mt-auto flex flex-col gap-3 pt-6">
+        </div>
+        <div className="quiz-number-actions flex flex-col gap-3 pt-4">
           <PrimaryButton type="submit">{copy.common.continue}</PrimaryButton>
           {optional && (
             <button

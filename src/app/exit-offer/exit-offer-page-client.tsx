@@ -1,7 +1,7 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
+import { NutreeLogo } from '@/components/nutree-logo';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { ConversionShell } from '@/components/conversion-shell';
@@ -84,13 +84,13 @@ export function ExitOfferPageClient({ onClaim, onDismiss, onMissingLead, onAlrea
   return (
     <ConversionShell hideLogo className="min-h-[calc(100dvh-3rem)] justify-between gap-8">
       <div className="flex justify-center pt-1">
-        <Link href={`/survey/${locale}`} aria-label="Nutree" className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/70 bg-white/75 shadow-[inset_0_0_0_1px_rgb(255_255_255_/_0.55),0_8px_24px_rgb(16_39_32_/_0.08)] backdrop-blur">
-          <Image src="/nutree-logo-simple.png" alt="" width={72} height={64} priority className="h-8 w-8 object-contain" />
+        <Link href={`/survey/${locale}`} aria-label="Nutree" className="block h-12 w-12">
+          <NutreeLogo priority className="h-12 w-12 shadow-[0_8px_24px_rgb(16_39_32_/_0.08)]" />
         </Link>
       </div>
 
       <section className="flex flex-1 flex-col justify-center text-center">
-        <p className="text-[0.78rem] font-extrabold uppercase tracking-[0.28em] text-rose-600">{copy.paywall.exitOfferEyebrow}</p>
+        <p className="text-[0.78rem] font-extrabold tracking-[0.02em] text-rose-600">{copy.paywall.exitOfferEyebrow}</p>
         <h1 className="mx-auto mt-3 max-w-[22rem] text-[1.78rem] font-extrabold leading-[1.08] tracking-[-0.035em] text-forest sm:text-[2.08rem]">{copy.paywall.exitOfferTitle}</h1>
         <p className="mx-auto mt-3 max-w-[21rem] text-[1rem] font-semibold leading-relaxed text-slate-brand">{revealed ? copy.paywall.exitOfferRevealedHeadline : copy.paywall.exitOfferBody}</p>
 
@@ -98,8 +98,8 @@ export function ExitOfferPageClient({ onClaim, onDismiss, onMissingLead, onAlrea
           <span className="absolute left-0 top-1/2 h-12 w-6 -translate-x-1/2 -translate-y-1/2 rounded-r-full bg-mist/95" />
           <span className="absolute right-0 top-1/2 h-12 w-6 -translate-y-1/2 translate-x-1/2 rounded-l-full bg-mist/95" />
           <span className="absolute inset-0 bg-[radial-gradient(circle_at_35%_35%,rgb(255_255_255_/_0.14),transparent_28%),radial-gradient(circle_at_82%_76%,rgb(255_255_255_/_0.12),transparent_32%)]" />
-          <span className="relative block whitespace-nowrap text-[0.62rem] font-extrabold uppercase tracking-[0.22em] text-white/88 sm:text-[0.66rem] sm:tracking-[0.32em]">✨ {copy.paywall.exitOfferEyebrow} ✨</span>
-          <span className="relative mt-2.5 block whitespace-nowrap text-[clamp(2rem,10vw,2.75rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.05em] text-white/92 sm:text-[3.5rem]">{copy.paywall.discountTag(EXIT_DISCOUNT_PERCENT)}</span>
+          <span className="relative block whitespace-nowrap text-[0.62rem] font-extrabold tracking-[0.02em] text-white/88 sm:text-[0.66rem] sm:tracking-[0.02em]">✨ {copy.paywall.exitOfferEyebrow} ✨</span>
+          <span className="relative mt-2.5 block whitespace-nowrap text-[clamp(2rem,10vw,2.75rem)] font-extrabold leading-[0.9] tracking-[-0.05em] text-white/92 sm:text-[3.5rem]">{copy.paywall.discountTag(EXIT_DISCOUNT_PERCENT)}</span>
           <span className="relative mt-2.5 block text-[0.82rem] font-extrabold leading-snug tracking-[-0.01em] text-white/90 sm:text-[0.92rem]">{revealed ? copy.paywall.exitOfferPrice : copy.paywall.exitOfferScratchSubhead}</span>
           <ScratchTicketCover
             revealed={revealed}

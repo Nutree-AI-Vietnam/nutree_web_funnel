@@ -64,7 +64,9 @@ export function PromoStep({
   const vi = useCopy();
   const router = useRouter();
   return (
-    <div className="relative flex flex-1 flex-col justify-center gap-5 overflow-hidden">
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <div className="quiz-step-body min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain">
+      <div className="quiz-step-stack flex min-h-full flex-col justify-center gap-5">
       <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/86 p-5 shadow-[0_26px_80px_rgb(26_71_57_/_0.14)] backdrop-blur">
         <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-teal-brand/15 blur-2xl" />
         <div className="relative h-1 w-16 rounded-full bg-teal-brand" />
@@ -84,7 +86,9 @@ export function PromoStep({
         ))}
       </div>
 
-      <div className="mt-auto pt-2">
+      </div>
+      </div>
+      <div className="quiz-step-cta relative z-20 shrink-0 bg-[linear-gradient(180deg,rgb(244_250_247_/_0),#f3faf7_32%)] pt-3">
         <PrimaryButton onClick={() => goToNextQuizStep(router, step)}>{vi.common.continue}</PrimaryButton>
       </div>
     </div>

@@ -7,9 +7,8 @@ import { PaywallPageClient } from '@/app/paywall/paywall-page-client';
 import { StepRenderer } from '@/app/quiz/step-renderer';
 import { EmailCaptureScreen } from '@/components/email-capture-screen';
 import { LandingPage } from '@/components/landing-page';
-import { SurveyLandingFallback } from '@/components/survey-landing-fallback';
 import { QuizShell } from '@/components/quiz-shell';
-import { WelcomeGiftScreen } from '@/components/welcome-gift-screen';
+import { ValueTourScreen } from '@/components/value-tour-screen';
 import { captureAttribution, stripNonAttributionParams } from '@/lib/analytics/attribution';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import type { FunnelScreen } from '@/lib/quiz/store';
@@ -51,17 +50,24 @@ export function SurveyPageClient({ language }: { language: Locale }) {
     router.replace(`/survey/${nextLocale}`);
   }, [router, setLocale]);
 
-  if (!hydrated || activeLocale !== language) return <SurveyLandingFallback language={language} />;
+  if (!hydrated || screen === 'landing') {
+    return (
+      <LandingPage
+        language={language}
+        surveyPath={`/survey/${language}`}
+        onStart={() => goToScreen('quiz')}
+        onLocaleChange={changeLocale}
+      />
+    );
+  }
 
   switch (screen) {
-    case 'landing':
-      return <LandingPage surveyPath={`/survey/${language}`} onStart={() => goToScreen('quiz')} onLocaleChange={changeLocale} />;
     case 'quiz':
       return <QuizShell step={currentStep}><StepRenderer step={currentStep} /></QuizShell>;
     case 'email':
-      return <EmailCaptureScreen onComplete={() => goToScreen('welcome-gift')} />;
-    case 'welcome-gift':
-      return <WelcomeGiftScreen onComplete={() => goToScreen('paywall')} onMissingLead={() => goToScreen('email')} />;
+      return <EmailCaptureScreen onComplete={() => goToScreen('value')} />;
+    case 'value':
+      return <ValueTourScreen onComplete={() => goToScreen('paywall')} onMissingLead={() => goToScreen('email')} />;
     case 'exit-offer': {
       if (isUserPurchased({ purchased, lead })) {
         router.replace('/postcheckout');

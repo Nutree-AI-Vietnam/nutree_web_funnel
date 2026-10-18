@@ -55,12 +55,20 @@ export function MetricWheelPicker({
   const listRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
   const scrollingRef = useRef(false);
+  const suppressClickRef = useRef(false);
   const syncedItemHeightRef = useRef(0);
-  const scrollEndRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const valueRef = useRef(value);
+  const onChangeRef = useRef(onChange);
+  valueRef.current = value;
+  onChangeRef.current = onChange;
 
   const available = useWheelAvailableHeight(frameRef);
   const { itemHeight, height, padding } = wheelSize(available, variant);
   const options = useMemo(() => buildOptions(min, max, step), [min, max, step]);
+  const itemHeightRef = useRef(itemHeight);
+  const optionsRef = useRef(options);
+  itemHeightRef.current = itemHeight;
+  optionsRef.current = options;
   const activeIndex = value == null
     ? -1
     : Math.max(0, options.findIndex((option) => Math.abs(option - value) < step / 2 + 0.001));
@@ -69,35 +77,144 @@ export function MetricWheelPicker({
   const centerIndex = activeIndex >= 0 ? activeIndex : 0;
 
   // Runs before paint so a row-height change never shows a stale scroll offset.
+  // A drag owns scrollTop until it settles; snapping here would cancel the gesture.
   useLayoutEffect(() => {
     const list = listRef.current;
     if (!list) return;
-    // Row height changes remap every scroll offset, so they resync even mid-scroll.
     const resized = syncedItemHeightRef.current !== itemHeight;
-    if (resized || !scrollingRef.current) list.scrollTop = centerIndex * itemHeight;
+    if (!scrollingRef.current && (resized || Math.abs(list.scrollTop - centerIndex * itemHeight) > 1)) {
+      list.scrollTop = centerIndex * itemHeight;
+    }
     syncedItemHeightRef.current = itemHeight;
     initializedRef.current = true;
   }, [activeIndex, centerIndex, itemHeight]);
 
   useEffect(() => {
-    return () => {
-      if (scrollEndRef.current) clearTimeout(scrollEndRef.current);
-    };
-  }, []);
-
-  useEffect(() => {
     if (autoFocus) listRef.current?.focus();
   }, [autoFocus]);
 
-  const selectFromScroll = () => {
-    if (!initializedRef.current) return;
+  useEffect(() => {
     const list = listRef.current;
     if (!list) return;
-    scrollingRef.current = true;
-    if (scrollEndRef.current) clearTimeout(scrollEndRef.current);
-    scrollEndRef.current = setTimeout(() => {
-      scrollingRef.current = false;
-    }, 140);
+
+    let pointerId: number | null = null;
+    let lastY = 0;
+    let lastTime = 0;
+    let velocity = 0;
+    let dragDistance = 0;
+    let frame = 0;
+    let settleTimer = 0;
+
+    const stopMomentum = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
+    };
+
+    const publishIndex = (index: number) => {
+      const next = optionsRef.current[index];
+      if (next != null && next !== valueRef.current) onChangeRef.current(next);
+    };
+
+    const settle = () => {
+      const row = itemHeightRef.current;
+      const last = optionsRef.current.length - 1;
+      const index = Math.min(last, Math.max(0, Math.round(list.scrollTop / row)));
+      list.scrollTop = index * row;
+      publishIndex(index);
+      settleTimer = window.setTimeout(() => {
+        scrollingRef.current = false;
+      }, 40);
+    };
+
+    const coast = () => {
+      const row = itemHeightRef.current;
+      const max = Math.max(0, (optionsRef.current.length - 1) * row);
+      velocity *= 0.92;
+      if (Math.abs(velocity) < 0.02) {
+        settle();
+        return;
+      }
+      list.scrollTop = Math.min(max, Math.max(0, list.scrollTop - velocity * 16));
+      frame = requestAnimationFrame(coast);
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) return;
+      stopMomentum();
+      window.clearTimeout(settleTimer);
+      suppressClickRef.current = false;
+      pointerId = event.pointerId;
+      lastY = event.clientY;
+      lastTime = event.timeStamp;
+      velocity = 0;
+      dragDistance = 0;
+      scrollingRef.current = true;
+      try {
+        list.setPointerCapture(event.pointerId);
+      } catch {
+        // Synthetic events and some browsers refuse capture; the list still receives the move.
+      }
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (pointerId !== event.pointerId) return;
+      const dy = event.clientY - lastY;
+      const dt = Math.max(event.timeStamp - lastTime, 8);
+      lastY = event.clientY;
+      lastTime = event.timeStamp;
+      dragDistance += Math.abs(dy);
+      velocity = Math.max(-2.2, Math.min(2.2, dy / dt));
+      const row = itemHeightRef.current;
+      const max = Math.max(0, (optionsRef.current.length - 1) * row);
+      list.scrollTop = Math.min(max, Math.max(0, list.scrollTop - dy));
+    };
+
+    const onPointerUp = (event: PointerEvent) => {
+      if (pointerId !== event.pointerId) return;
+      pointerId = null;
+      if (dragDistance < 6) {
+        scrollingRef.current = false;
+        return;
+      }
+      suppressClickRef.current = true;
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 350);
+      frame = requestAnimationFrame(coast);
+    };
+
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      stopMomentum();
+      window.clearTimeout(settleTimer);
+      scrollingRef.current = true;
+      const row = itemHeightRef.current;
+      const delta = event.deltaMode === 1 ? event.deltaY * row : event.deltaMode === 2 ? event.deltaY * list.clientHeight : event.deltaY;
+      const max = Math.max(0, (optionsRef.current.length - 1) * row);
+      list.scrollTop = Math.min(max, Math.max(0, list.scrollTop + delta));
+      settleTimer = window.setTimeout(settle, 120);
+    };
+
+    list.addEventListener('pointerdown', onPointerDown);
+    list.addEventListener('pointermove', onPointerMove);
+    list.addEventListener('pointerup', onPointerUp);
+    list.addEventListener('pointercancel', onPointerUp);
+    list.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      stopMomentum();
+      window.clearTimeout(settleTimer);
+      list.removeEventListener('pointerdown', onPointerDown);
+      list.removeEventListener('pointermove', onPointerMove);
+      list.removeEventListener('pointerup', onPointerUp);
+      list.removeEventListener('pointercancel', onPointerUp);
+      list.removeEventListener('wheel', onWheel);
+    };
+  }, []);
+
+  const selectFromScroll = () => {
+    if (!initializedRef.current || !scrollingRef.current) return;
+    const list = listRef.current;
+    if (!list) return;
     const index = Math.min(
       options.length - 1,
       Math.max(0, Math.round(list.scrollTop / itemHeight)),
@@ -140,7 +257,7 @@ export function MetricWheelPicker({
         <div
           ref={listRef}
           tabIndex={-1}
-          className="wheel-picker-scroll relative z-20 h-full snap-y snap-mandatory overflow-y-auto overscroll-contain outline-none [overflow-anchor:none] [touch-action:pan-y]"
+          className="wheel-picker-scroll relative z-20 h-full cursor-grab snap-y snap-mandatory overflow-y-auto overscroll-contain outline-none [overflow-anchor:none] active:cursor-grabbing"
           style={{
             paddingBlock: padding,
             WebkitMaskImage: FADE_MASK[variant],
@@ -154,13 +271,18 @@ export function MetricWheelPicker({
             const selected = activeIndex >= 0 && index === activeIndex;
             const { scale, opacity } = depth(distance);
             return (
-              <button
+              <div
                 id={`${id}-option-${index}`}
                 key={option}
-                type="button"
                 role="option"
                 aria-selected={selected}
-                onClick={() => onChange(option)}
+                onClick={() => {
+                  if (suppressClickRef.current) {
+                    suppressClickRef.current = false;
+                    return;
+                  }
+                  onChange(option);
+                }}
                 className={cn(
                   'flex w-full snap-center items-baseline justify-center gap-2 text-center font-extrabold tabular-nums transition-[transform,opacity,color] duration-200 ease-out will-change-transform',
                   selected
@@ -177,7 +299,7 @@ export function MetricWheelPicker({
                   {formatValue(option)}
                 </span>
                 {selected && <span className="text-lg font-bold text-muted-brand">{unit}</span>}
-              </button>
+              </div>
             );
           })}
         </div>

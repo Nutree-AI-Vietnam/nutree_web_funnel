@@ -58,7 +58,7 @@ export function PostcheckoutPageClient() {
   return (
     <main className="grid min-h-dvh place-items-center bg-[#f6faf7] px-5 text-charcoal">
       <section className="w-full max-w-xl rounded-[2rem] border border-border-brand bg-white p-8 text-center shadow-[0_24px_70px_rgb(23_69_58_/_0.10)] sm:p-10">
-        <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-teal-brand">{vi ? 'Thanh toán hoàn tất' : 'Payment complete'}</p>
+        <p className="text-sm font-extrabold tracking-[0.02em] text-teal-brand">{vi ? 'Thanh toán hoàn tất' : 'Payment complete'}</p>
         <h1 className="mt-4 text-4xl font-extrabold tracking-[-0.055em] text-forest">{vi ? 'Kiểm tra email của bạn' : 'Check your email'}</h1>
         <p className="mt-5 text-base font-semibold leading-relaxed text-slate-brand" role="status">{statusMessage}</p>
         <RedemptionEmailPreview alt={redeemCopy.imageAlt} caption={redeemCopy.imageCaption} />

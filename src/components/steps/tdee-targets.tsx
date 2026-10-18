@@ -52,10 +52,12 @@ export function TdeeTargetsStep() {
   ];
 
   return (
-    <div className="flex flex-1 flex-col gap-3">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="quiz-step-body min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain">
+      <div className="quiz-step-stack flex min-h-full flex-col gap-3">
       <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/88 p-3.5 shadow-[0_24px_72px_rgb(26_71_57_/_0.15),inset_0_1px_0_rgb(255_255_255_/_0.82)] backdrop-blur animate-soft-enter">
         <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-teal-brand/20 blur-2xl" />
-        <p className="relative text-xs font-extrabold uppercase tracking-[0.16em] text-teal-brand">{vi.tdee_targets.eyebrow}</p>
+        <p className="relative text-xs font-extrabold tracking-[0.02em] text-teal-brand">{vi.tdee_targets.eyebrow}</p>
         <h1 className="relative mt-1 text-[1.45rem] font-extrabold leading-tight text-forest">{vi.tdee_targets.headline}</h1>
         <p className="relative mt-1.5 text-xs font-semibold leading-relaxed text-slate-brand">{vi.tdee_targets.aha}</p>
 
@@ -130,7 +132,9 @@ export function TdeeTargetsStep() {
         </div>
       </section>
 
-      <div className="mt-auto pt-1">
+      </div>
+      </div>
+      <div className="quiz-step-cta relative z-20 shrink-0 bg-[linear-gradient(180deg,rgb(244_250_247_/_0),#f3faf7_32%)] pt-3">
         <PrimaryButton onClick={() => goToNextQuizStep(router, 'result')}>
           {vi.common.continue}
         </PrimaryButton>

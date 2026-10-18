@@ -179,7 +179,7 @@ export function TargetWeightStep() {
   })();
 
   return (
-    <QuizStepFrame title={copy.target_weight.question} className="gap-2">
+    <QuizStepFrame title={copy.target_weight.question} description={copy.target_weight.hint} className="gap-2">
       <div className="flex flex-1 flex-col items-center">
         <div className="relative flex w-56 max-w-[58vw] flex-1 flex-col">
           <div className="mb-2 flex items-center justify-center gap-2 sm:pointer-events-none sm:absolute sm:right-full sm:top-1/2 sm:mb-0 sm:mr-3 sm:-translate-y-1/2 sm:justify-start sm:whitespace-nowrap">
@@ -318,7 +318,7 @@ export function RoutineStep() {
   return (
     <QuizStepFrame title={copy.routine.question} hint={copy.routine.hint} titleClassName="text-[1.65rem]">
       <div className="grid gap-3">
-        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-teal-brand">{copy.routine.dailyActivityLabel}</p>
+        <p className="text-xs font-extrabold tracking-[0.02em] text-teal-brand">{copy.routine.dailyActivityLabel}</p>
         {copy.activity_level.options.map((option) => (
           <OptionCard
             key={option.key}
@@ -330,7 +330,7 @@ export function RoutineStep() {
         ))}
       </div>
       <div className="grid gap-3">
-        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-teal-brand">{copy.routine.trainingLabel}</p>
+        <p className="text-xs font-extrabold tracking-[0.02em] text-teal-brand">{copy.routine.trainingLabel}</p>
         <div className="grid grid-cols-6 gap-2">
           {[0, 1, 2, 3, 4, 5].map((days) => (
             <button

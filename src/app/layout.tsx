@@ -24,11 +24,11 @@ export const metadata: Metadata = {
     template: '%s | Nutree',
   },
   description:
-    'Làm bài quiz Nutree để tính calo và macro.',
+    'Trả lời vài câu để Nutree tính calo và macro cho bạn.',
   openGraph: {
     title: 'Nutree',
     description:
-      'Làm bài quiz Nutree để tính calo và macro.',
+      'Trả lời vài câu để Nutree tính calo và macro cho bạn.',
     url: '/',
     siteName: 'Nutree',
     locale: 'vi_VN',
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     card: 'summary',
     title: 'Nutree',
     description:
-      'Làm bài quiz Nutree để tính calo và macro.',
+      'Trả lời vài câu để Nutree tính calo và macro cho bạn.',
     images: ['/nutree-logo-simple.png'],
   },
   robots: {

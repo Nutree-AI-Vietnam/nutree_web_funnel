@@ -34,14 +34,15 @@ export function ReflectionStep() {
 
   return (
     <QuizStepFrame className="gap-5">
-      <p className="max-w-[22rem] text-[1.5rem] font-extrabold leading-[1.2] tracking-tight text-forest [text-wrap:balance]">
+      <p className="max-w-[22rem] text-[1.7rem] font-extrabold leading-[1.2] tracking-tight text-forest [text-wrap:balance]">
         {buildReflection(data, copy)}
       </p>
+      <p className="max-w-[24rem] text-base font-semibold leading-snug text-slate-brand">{copy.reflection.description}</p>
 
       {/* Aha moment: a personalised trajectory that draws itself in */}
       <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/82 p-4 shadow-[0_16px_46px_rgb(16_39_32_/_0.10),inset_0_1px_0_rgb(255_255_255_/_0.82)] backdrop-blur">
         <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-teal-brand/15 blur-2xl" />
-        <div className="relative mb-1 flex items-center justify-between text-[0.72rem] font-extrabold uppercase tracking-[0.12em]">
+        <div className="relative mb-1 flex items-center justify-between text-[0.72rem] font-extrabold tracking-[0.02em]">
           <span className="text-muted-brand">{copy.reflection.todayLabel}</span>
           <span className="text-teal-brand">{goalLabel}</span>
         </div>
@@ -90,7 +91,7 @@ export function ReflectionStep() {
             key={chip.caption}
             className="flex min-h-[4.25rem] flex-col rounded-2xl bg-white/72 px-2.5 py-2.5 text-center shadow-[inset_0_0_0_1px_rgb(255_255_255_/_0.5),0_2px_8px_rgb(16_39_32_/_0.05)] backdrop-blur"
           >
-            <div className="text-[0.58rem] font-bold uppercase tracking-wide text-muted-brand">{chip.caption}</div>
+            <div className="text-[0.58rem] font-bold tracking-[0.02em] text-muted-brand">{chip.caption}</div>
             <div className="mt-1 flex flex-1 items-center justify-center text-[0.78rem] font-extrabold leading-tight text-forest [text-wrap:balance]">
               {chip.value}
             </div>

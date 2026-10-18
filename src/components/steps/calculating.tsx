@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import Image from 'next/image';
+import { AnimatePresence, motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { PrimaryButton } from '@/components/primary-button';
 import { previewTdee } from '@/lib/api/client';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { isLocalPreviewHost } from '@/lib/local-preview';
@@ -37,6 +38,8 @@ export function CalculatingStep() {
   const vi = useCopy();
   const locale = useLocale();
   const router = useRouter();
+  const routerRef = useRef(router);
+  routerRef.current = router;
   const data = useQuizStore((s) => s.data);
   const setTdee = useQuizStore((s) => s.setTdee);
   const reduce = usePrefersReducedMotion();
@@ -98,6 +101,7 @@ export function CalculatingStep() {
         setResolvedPreview(outcome.result);
         setTdee(outcome.result, outcome.source);
         setReady(true);
+        goToNextQuizStep(routerRef.current, 'calculating');
       } else {
         setError(true);
       }
@@ -111,7 +115,8 @@ export function CalculatingStep() {
   }, [attempt, data, reduce, setTdee]);
 
   const steps = vi.calculating.steps;
-  const slides = vi.calculating.slides ?? [];
+  const testimonials = vi.calculating.testimonials;
+  const [testimonialIndex, setTestimonialIndex] = useState(0);
   const stageMs = TOTAL_MS / steps.length;
   const rawT = elapsed / TOTAL_MS;
   // Under reduced motion, snap straight to the resolved state (no count-up / fill motion).
@@ -119,12 +124,16 @@ export function CalculatingStep() {
   const stage = reduce ? steps.length : Math.min(steps.length - 1, Math.floor(elapsed / stageMs));
   const stageFrac = reduce ? 1 : Math.min(1, (elapsed - stage * stageMs) / stageMs);
   const complete = rawT >= 1 || reduce;
-  const slideIndex = slides.length > 0
-    ? reduce
-      ? slides.length - 1
-      : Math.min(slides.length - 1, Math.floor(elapsed / (TOTAL_MS / slides.length)))
-    : 0;
-  const slide = slides[slideIndex] ?? { title: '', body: '' };
+
+  useEffect(() => {
+    if (reduce || testimonials.length < 2) return;
+    const id = window.setInterval(() => {
+      setTestimonialIndex((index) => (index + 1) % testimonials.length);
+    }, 2600);
+    return () => window.clearInterval(id);
+  }, [reduce, testimonials.length]);
+
+  const testimonial = testimonials[testimonialIndex] ?? testimonials[0];
 
   // Keep the animated preview aligned with the backend response whenever it
   // succeeds. The local calculation is only a fallback while that response
@@ -138,15 +147,6 @@ export function CalculatingStep() {
     : null;
   const calorieLocale = locale === 'vi' ? 'vi-VN' : 'en-US';
 
-  const macroTotal = displayPreview ? displayPreview.protein_g + displayPreview.carbs_g + displayPreview.fat_g : 1;
-  const macros = displayPreview
-    ? [
-        { label: vi.tdee_targets.protein, grams: displayPreview.protein_g, color: 'bg-protein' },
-        { label: vi.tdee_targets.carbs, grams: displayPreview.carbs_g, color: 'bg-carbs' },
-        { label: vi.tdee_targets.fat, grams: displayPreview.fat_g, color: 'bg-fat' },
-      ]
-    : [];
-
   const subtitle = ready
     ? vi.calculating.ready
     : complete
@@ -154,11 +154,12 @@ export function CalculatingStep() {
       : steps[Math.min(stage, steps.length - 1)];
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col overflow-x-clip overflow-y-auto overscroll-contain">
       <header className="text-center">
-        <h1 className="ph-mask mx-auto max-w-[20rem] text-[1.6rem] font-extrabold leading-[1.12] tracking-tight text-forest [text-wrap:balance]">
+        <h1 className="ph-mask mx-auto max-w-[20rem] text-[clamp(1.7rem,6vw,2rem)] font-extrabold leading-[1.12] tracking-tight text-forest [text-wrap:balance]">
           {vi.calculating.text.replace('[name]', data.name || vi.reflection.fallbackName)}
         </h1>
+        <p className="mx-auto mt-2 max-w-[22rem] text-base font-semibold leading-snug text-slate-brand">{vi.calculating.description}</p>
         <p
           className={cn(
             'mx-auto mt-2 inline-flex min-h-7 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-colors duration-500',
@@ -166,7 +167,11 @@ export function CalculatingStep() {
           )}
           aria-live="polite"
         >
-          {ready && <span aria-hidden="true">✓</span>}
+          {ready ? (
+            <span aria-hidden="true">✓</span>
+          ) : (
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-teal-brand/25 border-t-teal-brand" aria-hidden="true" />
+          )}
           {subtitle}
         </p>
       </header>
@@ -205,7 +210,7 @@ export function CalculatingStep() {
                   <div className="text-[clamp(1.9rem,5.2vh,2.6rem)] font-extrabold leading-none tracking-tight tabular-nums text-forest">
                     {calories.toLocaleString(calorieLocale)}
                   </div>
-                  <div className="mt-1.5 text-[0.62rem] font-extrabold uppercase tracking-[0.14em] text-muted-brand">
+                  <div className="mt-1.5 text-[0.62rem] font-extrabold tracking-[0.02em] text-muted-brand">
                     {vi.calculating.unit}
                   </div>
                 </div>
@@ -217,7 +222,7 @@ export function CalculatingStep() {
             </div>
           </div>
 
-          {/* Four-stage progress track */}
+          {/* One bar per plan-building stage */}
           <ol className="mt-3 flex w-full max-w-[16rem] gap-1.5" aria-label={steps.join(', ')}>
             {steps.map((item, index) => {
               const done = complete || index < stage;
@@ -233,59 +238,54 @@ export function CalculatingStep() {
               );
             })}
           </ol>
-          <p className="mt-2 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-muted-brand">
+          <p className="mt-2 text-[0.68rem] font-bold tracking-[0.02em] text-muted-brand">
             {Math.min(stage + 1, steps.length)}/{steps.length} · {steps[Math.min(stage, steps.length - 1)]}
           </p>
         </div>
 
-        {/* Macro split grows toward the real allocation */}
-        {displayPreview && (
-          <section
-            aria-label={vi.calculating.macroCaption}
-            className="rounded-[1.4rem] bg-white/80 p-3.5 shadow-[0_14px_40px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.8)] backdrop-blur"
-          >
-            <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.14em] text-muted-brand">
-              {vi.calculating.macroCaption}
-            </p>
-            <div className="mt-2.5 flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-forest/6">
-              {macros.map((m) => (
-                <span
-                  key={m.label}
-                  className={cn('h-full rounded-full transition-[width] duration-150 ease-linear', m.color)}
-                  style={{ width: `${(m.grams / macroTotal) * 100 * frac}%` }}
-                />
-              ))}
-            </div>
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {macros.map((m) => (
-                <div key={m.label}>
-                  <div className="flex items-center gap-1.5">
-                    <span className={cn('h-2 w-2 shrink-0 rounded-full', m.color)} aria-hidden="true" />
-                    <span className="truncate text-[0.68rem] font-bold text-muted-brand">{m.label}</span>
+        {testimonial && (
+          <div>
+            <AnimatePresence mode="wait">
+              <motion.figure
+                key={testimonial.name}
+                initial={reduce ? false : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduce ? undefined : { opacity: 0, y: -10 }}
+                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                aria-label={vi.calculating.testimonialsLabel}
+                className="rounded-[1.4rem] bg-white/85 px-4 py-3.5 shadow-[0_14px_40px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.8)]"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <Image src={testimonial.avatar} alt="" width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
+                    <div>
+                      <figcaption className="text-sm font-extrabold text-forest">
+                        {testimonial.name} <span aria-hidden="true">{testimonial.flag}</span>
+                      </figcaption>
+                      <p className="text-[0.68rem] font-bold text-muted-brand">{testimonial.goal}</p>
+                    </div>
                   </div>
-                  <div className="mt-0.5 text-lg font-extrabold leading-none tabular-nums text-forest">
-                    {Math.round(m.grams * frac)}g
-                  </div>
+                  <span className="shrink-0 rounded-full bg-teal-brand/12 px-2.5 py-1 text-[0.68rem] font-extrabold text-teal-brand">{testimonial.result}</span>
                 </div>
+                <div className="mt-2.5 flex gap-0.5 text-[#e7a23a]" aria-label="5">
+                  {Array.from({ length: 5 }, (_, index) => (
+                    <span key={index} aria-hidden="true">★</span>
+                  ))}
+                </div>
+                <blockquote className="mt-1.5 min-h-[3.6rem] text-sm font-semibold leading-relaxed text-slate-brand">“{testimonial.quote}”</blockquote>
+              </motion.figure>
+            </AnimatePresence>
+            <div className="mt-2.5 flex justify-center gap-1.5" aria-hidden="true">
+              {testimonials.map((item, index) => (
+                <span key={item.name} className={cn('h-1.5 rounded-full transition-all duration-300', index === testimonialIndex ? 'w-5 bg-teal-brand' : 'w-1.5 bg-forest/15')} />
               ))}
             </div>
-          </section>
+          </div>
         )}
-
-        {/* Rotating reassurance while the user waits */}
-        <div key={slideIndex} className="animate-soft-enter min-h-[3.25rem] text-center" aria-live="polite">
-          <p className="text-sm font-extrabold text-forest">{slide.title}</p>
-          <p className="mx-auto mt-1 max-w-[19rem] text-xs font-semibold leading-relaxed text-muted-brand">{slide.body}</p>
-        </div>
       </div>
 
-      {/* Wait for user confirmation instead of auto-advancing */}
-      <div className="mt-auto pt-2">
-        {ready ? (
-          <PrimaryButton onClick={() => goToNextQuizStep(router, 'calculating')}>
-            {vi.calculating.cta}
-          </PrimaryButton>
-        ) : error ? (
+      {error && (
+        <div className="mt-auto pt-2">
           <button
             type="button"
             onClick={() => setAttempt((value) => value + 1)}
@@ -293,10 +293,8 @@ export function CalculatingStep() {
           >
             {vi.common.retry}
           </button>
-        ) : (
-          <div className="min-h-12" />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
