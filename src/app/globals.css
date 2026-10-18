@@ -315,19 +315,81 @@ h2 {
   justify-content: safe center;
 }
 
+/* Keep the question and the action inside the screen; the body scrolls. */
+.quiz-step-body {
+  height: 0;
+}
+
+/* Landscape phones: the question block has to shrink so the action stays on screen. */
+@media (max-height: 500px) {
+  .quiz-shell {
+    padding-top: 0.3rem;
+    padding-bottom: 0.35rem;
+  }
+
+  .quiz-shell-header {
+    margin-bottom: 0.25rem;
+  }
+
+  .quiz-shell-progress {
+    margin-bottom: 0.35rem;
+  }
+
+  .quiz-step-frame {
+    gap: 0.35rem;
+  }
+
+  .quiz-step-frame h1 {
+    font-size: 1.2rem;
+    line-height: 1.15;
+  }
+
+  .quiz-step-frame header p {
+    margin-top: 0.15rem;
+    font-size: 0.85rem;
+    line-height: 1.3;
+  }
+
+  .quiz-step-cta {
+    padding-top: 0.35rem;
+  }
+
+  .quiz-step-cta .pt-6,
+  .quiz-step-cta .pt-5,
+  .quiz-step-cta .pt-4 {
+    padding-top: 0;
+  }
+
+  .quiz-step-frame .welcome-photo {
+    height: 72px;
+  }
+}
+
 /* The page must not compete with the wheel for a vertical swipe. */
 .quiz-shell[data-fit-viewport] .quiz-shell-content,
 .quiz-shell[data-fit-viewport] .quiz-step-body {
   overflow: hidden;
 }
 
+/* A zero base height lets the wheel step shrink to the free space instead of its content. */
+.quiz-shell[data-fit-viewport] .quiz-step-body {
+  height: 0;
+}
+
 .wheel-picker-scroll::-webkit-scrollbar {
   display: none;
 }
 
-/* Wheel steps fill the viewport. The shell stays fixed so a swipe moves the wheel. */
+/* Wheel steps fill the viewport and stay inside it, so Continue is never clipped. */
 .quiz-shell[data-fit-viewport] .quiz-step-frame {
-  min-height: auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.quiz-shell[data-fit-viewport] .quiz-step-stack {
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
 }
 
 /* Short phones: tighten the chrome and the steps built around a wheel so it keeps room. */
@@ -366,9 +428,9 @@ h2 {
   }
 }
 
-/* Very short phones: drop the badge's explanatory note so the wheel and Continue both fit. */
-@media (max-height: 600px) {
-  .quiz-goal-badge-note {
+/* Very short phones: the badge would sit under the actions, so leave the wheel and both buttons clear. */
+@media (max-height: 640px) {
+  .quiz-goal-badge {
     display: none;
   }
 }

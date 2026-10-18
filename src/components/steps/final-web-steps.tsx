@@ -238,17 +238,17 @@ export function TargetWeightStep() {
           </div>
         </section>
       )}
-      <button
-        type="button"
-        onClick={() => {
-          setData({ target_weight_kg: undefined, target_weight_unsure: true });
-          goToNextQuizStep(router, 'target_weight');
-        }}
-        className="rounded-2xl border border-border-brand bg-white/78 px-4 py-3 text-left text-sm font-extrabold text-forest shadow-sm"
-      >
-        {copy.target_weight.unsure}
-      </button>
-      <div className="quiz-number-actions mt-auto pt-4">
+      <div className="quiz-number-actions mt-auto flex flex-col gap-2 pt-3">
+        <button
+          type="button"
+          onClick={() => {
+            setData({ target_weight_kg: undefined, target_weight_unsure: true });
+            goToNextQuizStep(router, 'target_weight');
+          }}
+          className="rounded-2xl border border-border-brand bg-white/78 px-4 py-2.5 text-left text-sm font-extrabold text-forest shadow-sm"
+        >
+          {copy.target_weight.unsure}
+        </button>
         <PrimaryButton
           disabled={!valid}
           onClick={() => {

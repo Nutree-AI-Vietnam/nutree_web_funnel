@@ -71,7 +71,7 @@ export function QuizStepFrame({
   }, [title, description]);
 
   return (
-    <div ref={frameRef} className={cn('quiz-step-frame relative flex min-h-0 flex-1 flex-col', className)}>
+    <div ref={frameRef} className={cn('quiz-step-frame relative flex min-h-0 flex-1 flex-col gap-3', className)}>
       {(eyebrow || title) && (
         <header ref={headerRef} className="shrink-0">
           {eyebrow && (
@@ -88,7 +88,7 @@ export function QuizStepFrame({
           {hint && <p className="mt-2 text-base font-semibold leading-relaxed text-muted-brand">{hint}</p>}
         </header>
       )}
-      <div ref={bodyRef} className="quiz-step-body mt-3 min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain">
+      <div ref={bodyRef} className="quiz-step-body min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain">
         <div className="quiz-step-stack flex min-h-full flex-col gap-3" style={lift > 0 ? { translate: `0 -${lift}px` } : undefined}>
           {body}
         </div>

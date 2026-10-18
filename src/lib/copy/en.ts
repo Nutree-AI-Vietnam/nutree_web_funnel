@@ -624,6 +624,8 @@ export const en: Copy = {
       body: 'Your protein, carb, and fat targets are recalculated every day.',
       cta: 'What shapes it?',
       personalized: (calories: string, protein: number) => `From the numbers you entered, the starting point is ${calories} kcal and ${protein}g of protein a day.`,
+      imageAlt: 'Calories across the week, easing from 1,880 early on to 1,730 later',
+      days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
       labels: { protein: 'Protein', carbs: 'Carbs', fat: 'Fat' },
     },
     science: {
@@ -645,7 +647,7 @@ export const en: Copy = {
       eyebrow: 'Meal ideas',
       title: 'AI-powered meals you’ll actually enjoy',
       body: 'Get personalised meal suggestions tailored to your taste and macro targets.',
-      cta: 'See plan prices',
+      cta: 'See Plan Tailored Just for You',
       cue: 'Swipe for more ideas',
       cards: [
         { title: 'Avocado and Egg Toast', meta: '410 kcal', image: '/value-tour/meals/avocado-egg-toast.png' },

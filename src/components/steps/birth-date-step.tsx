@@ -30,7 +30,8 @@ export function BirthDateStep() {
 
   return (
     <QuizStepFrame title={copy.age.question} hint={copy.age.hint} className="gap-2">
-      <form className="quiz-number-form flex min-h-0 flex-1 flex-col gap-4" onSubmit={(event) => { event.preventDefault(); submit(); }}>
+      <form className="quiz-number-form flex h-full min-h-0 flex-1 flex-col gap-4" onSubmit={(event) => { event.preventDefault(); submit(); }}>
+        <div className="flex min-h-0 flex-1 flex-col">
         <MetricInput
           id="age-input"
           label={copy.age.label}
@@ -45,7 +46,8 @@ export function BirthDateStep() {
           onChange={setAge}
           onBlur={() => null}
         />
-        <div className="quiz-number-actions mt-auto pt-6">
+        </div>
+        <div className="quiz-number-actions mt-auto shrink-0 pt-6">
           <PrimaryButton type="submit" disabled={!valid}>{copy.common.continue}</PrimaryButton>
         </div>
       </form>

@@ -67,7 +67,7 @@ export function SurveyPageClient({ language }: { language: Locale }) {
     case 'email':
       return <EmailCaptureScreen onComplete={() => goToScreen('value')} />;
     case 'value':
-      return <ValueTourScreen onComplete={() => goToScreen('paywall')} onMissingLead={() => goToScreen('email')} />;
+      return <ValueTourScreen onComplete={() => goToScreen('paywall')} onBack={() => goToScreen('email')} onMissingLead={() => goToScreen('email')} />;
     case 'exit-offer': {
       if (isUserPurchased({ purchased, lead })) {
         router.replace('/postcheckout');

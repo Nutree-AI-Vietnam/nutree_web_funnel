@@ -23,7 +23,7 @@ export function WelcomeStep() {
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: 'spring', damping: 18, stiffness: 200 }}
-        className="relative mx-auto h-56 w-full max-w-[25rem] overflow-hidden rounded-[2rem] border border-white/80 bg-white/80 shadow-[0_22px_60px_rgb(26_71_57_/_0.14)] sm:h-64"
+        className="welcome-photo relative mx-auto h-[clamp(88px,28dvh,16rem)] w-full max-w-[25rem] overflow-hidden rounded-[2rem] border border-white/80 bg-white/80 shadow-[0_22px_60px_rgb(26_71_57_/_0.14)]"
       >
         <Image
           src="/images/welcome-meal.webp"

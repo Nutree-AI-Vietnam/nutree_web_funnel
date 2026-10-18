@@ -9,7 +9,7 @@ import { ExitIntentModal } from '@/components/exit-intent-modal';
 import { trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { goToPreviousQuizStep } from '@/lib/quiz/navigation';
-import { QUIZ_STEPS, stepIndex, type QuizStep } from '@/lib/quiz/steps';
+import { QUIZ_STEPS, VALUE_TOUR_STEPS, stepIndex, type QuizStep } from '@/lib/quiz/steps';
 import { useHydrated } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 
@@ -20,15 +20,29 @@ function enterStyle(order: number): CSSProperties {
 /** Steps built around a wheel picker; they fill the viewport instead of growing past it. */
 const FIT_VIEWPORT_STEPS: readonly QuizStep[] = ['age', 'height', 'weight', 'target_weight'];
 
-export function QuizShell({ step, children }: { step: QuizStep; children: React.ReactNode }) {
+export function QuizShell({
+  step,
+  children,
+  progressIndex,
+  onBack,
+  showExitIntent = true,
+}: {
+  step: QuizStep;
+  children: React.ReactNode;
+  /** 1-based position on the shared quiz + value-tour bar. */
+  progressIndex?: number;
+  onBack?: () => void;
+  showExitIntent?: boolean;
+}) {
   const router = useRouter();
   const copy = useCopy();
   const hydrated = useHydrated();
-  const currentStep = stepIndex(step);
+  const totalSteps = QUIZ_STEPS.length + VALUE_TOUR_STEPS.length;
+  const currentStep = progressIndex ?? stepIndex(step);
 
   useEffect(() => {
-    trackStepViewed(step);
-  }, [step]);
+    if (progressIndex == null) trackStepViewed(step);
+  }, [progressIndex, step]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -36,7 +50,7 @@ export function QuizShell({ step, children }: { step: QuizStep; children: React.
 
   if (!hydrated) return null;
 
-  const progress = (currentStep / QUIZ_STEPS.length) * 100;
+  const progress = (currentStep / totalSteps) * 100;
   const fitViewport = FIT_VIEWPORT_STEPS.includes(step);
 
   return (
@@ -53,7 +67,7 @@ export function QuizShell({ step, children }: { step: QuizStep; children: React.
         ) : (
           <button
             type="button"
-            onClick={() => goToPreviousQuizStep(router, step)}
+            onClick={() => (onBack ? onBack() : goToPreviousQuizStep(router, step))}
             aria-label={copy.common.back}
             className="-ml-5 grid h-11 w-11 place-items-center text-xl font-bold text-slate-brand transition active:scale-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25"
           >
@@ -67,7 +81,7 @@ export function QuizShell({ step, children }: { step: QuizStep; children: React.
         role="progressbar"
         aria-label={copy.common.progress}
         aria-valuemin={1}
-        aria-valuemax={QUIZ_STEPS.length}
+        aria-valuemax={totalSteps}
         aria-valuenow={currentStep}
         className="quiz-shell-progress enter-item relative z-10 mb-4 h-1 shrink-0 overflow-hidden rounded-full bg-forest/10"
         style={enterStyle(1)}
@@ -78,14 +92,14 @@ export function QuizShell({ step, children }: { step: QuizStep; children: React.
         />
       </div>
       <div
-        key={step}
+        key={progressIndex ?? step}
         className={cn(
           'quiz-shell-content relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden',
         )}
       >
         {children}
       </div>
-      <ExitIntentModal currentStepIndex={currentStep} />
+      {showExitIntent && <ExitIntentModal currentStepIndex={stepIndex(step)} />}
     </main>
   );
 }

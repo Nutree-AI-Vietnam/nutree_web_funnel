@@ -22,10 +22,15 @@ describe('wheelSize', () => {
     expect(wheelSize(250.7, 'default')).toEqual({ itemHeight: 56, height: 250, padding: 97 });
   });
 
-  it('never shows fewer than three rows', () => {
-    expect(WHEEL_MIN_HEIGHT).toBe(168);
-    expect(wheelSize(100, 'default')).toEqual({ itemHeight: 56, height: 168, padding: 56 });
-    expect(wheelSize(100, 'hero')).toEqual({ itemHeight: 56, height: 168, padding: 56 });
+  it('keeps three rows until the container is shorter than that', () => {
+    expect(wheelSize(168, 'default')).toEqual({ itemHeight: 56, height: 168, padding: 56 });
+    expect(wheelSize(167, 'default')).toEqual({ itemHeight: 56, height: 167, padding: 55.5 });
+  });
+
+  it('never shows fewer than two rows', () => {
+    expect(WHEEL_MIN_HEIGHT).toBe(112);
+    expect(wheelSize(100, 'default')).toEqual({ itemHeight: 56, height: 112, padding: 28 });
+    expect(wheelSize(100, 'hero')).toEqual({ itemHeight: 56, height: 112, padding: 28 });
   });
 
   it('centers the middle row for every size', () => {

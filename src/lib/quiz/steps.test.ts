@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { chapterLabel, QUIZ_STEPS, isQuizStep, nextStep, previousStep, stepIndex } from './steps';
+import { chapterLabel, QUIZ_STEPS, VALUE_TOUR_STEPS, isQuizStep, nextStep, onboardingStepCount, previousStep, stepIndex, valueProgressIndex } from './steps';
 
 describe('quiz steps', () => {
   it('keeps one input or decision per quiz screen', () => {
@@ -58,5 +58,11 @@ describe('quiz steps', () => {
     expect(stepIndex('height')).toBe(10);
     expect(stepIndex('result')).toBe(21);
     expect(chapterLabel('training_days')).toBe('Thói quen');
+  });
+
+  it('continues the same progress bar through the value tour', () => {
+    expect(valueProgressIndex('guide')).toBe(QUIZ_STEPS.length + 1);
+    expect(valueProgressIndex('meals')).toBe(onboardingStepCount());
+    expect(VALUE_TOUR_STEPS).toHaveLength(7);
   });
 });

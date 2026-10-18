@@ -93,13 +93,13 @@ export function NumberInputStep({
   return (
     <QuizStepFrame title={question} hint={hint}>
       <form
-        className="quiz-number-form flex min-h-0 flex-1 flex-col gap-4"
+        className="quiz-number-form flex h-full min-h-0 flex-1 flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
           submit();
         }}
       >
-        <div className="my-auto">
+        <div className="flex min-h-0 flex-1 flex-col">
         <MetricInput
           id={`${step}-${field}`}
           label={config.label}
@@ -115,7 +115,7 @@ export function NumberInputStep({
           onBlur={() => setTouched(true)}
         />
         </div>
-        <div className="quiz-number-actions flex flex-col gap-3 pt-4">
+        <div className="quiz-number-actions flex shrink-0 flex-col gap-3 pt-4">
           <PrimaryButton type="submit">{copy.common.continue}</PrimaryButton>
           {optional && (
             <button
