@@ -45,8 +45,9 @@ export function QuizShell({
   const currentStep = progressIndex ?? stepIndex(step);
 
   useEffect(() => {
-    if (progressIndex == null) trackStepViewed(step);
-  }, [progressIndex, step]);
+    // Saved progress is applied before `hydrated` flips, so this is the restored step.
+    if (hydrated && progressIndex == null) trackStepViewed(step);
+  }, [hydrated, progressIndex, step]);
 
   useEffect(() => {
     window.scrollTo(0, 0);

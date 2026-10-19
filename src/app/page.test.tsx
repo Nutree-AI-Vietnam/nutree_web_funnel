@@ -37,6 +37,38 @@ function metaServerEvents() {
     .map(([, init]) => JSON.parse(init.body as string));
 }
 
+function viewedSteps() {
+  const gtag = (window as unknown as { gtag: ReturnType<typeof vi.fn> }).gtag;
+  return gtag.mock.calls
+    .filter(([method, event]) => method === 'event' && event === 'funnel_step_viewed')
+    .map(([, , params]) => params?.step as string);
+}
+
+async function hydrateHome(html: string) {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  container.innerHTML = html;
+  const recoverable: unknown[] = [];
+  let root: ReturnType<typeof hydrateRoot> | undefined;
+  await act(async () => {
+    root = hydrateRoot(container, <HomePage />, {
+      onRecoverableError(error) {
+        recoverable.push(error);
+      },
+    });
+  });
+  return {
+    container,
+    recoverable,
+    async unmount() {
+      await act(async () => {
+        root?.unmount();
+      });
+      container.remove();
+    },
+  };
+}
+
 describe('home quiz entry', () => {
   beforeEach(async () => {
     if (!('ResizeObserver' in globalThis)) {
@@ -167,26 +199,53 @@ describe('home quiz entry', () => {
     useQuizStore.getState().setFunnelScreen('quiz');
     useQuizStore.getState().setCurrentStep('activity_level');
     const html = renderToString(<HomePage />);
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    container.innerHTML = html;
-    const recoverable: unknown[] = [];
+    const hydrated = await hydrateHome(html);
 
-    let root: ReturnType<typeof hydrateRoot> | undefined;
-    await act(async () => {
-      root = hydrateRoot(container, <HomePage />, {
-        onRecoverableError(error) {
-          recoverable.push(error);
-        },
-      });
-    });
+    expect(hydrated.recoverable).toEqual([]);
+    expect(hydrated.container.textContent).toContain('Mức độ hoạt động hàng ngày của bạn?');
+    await hydrated.unmount();
+  });
 
-    expect(recoverable).toEqual([]);
-    expect(container.textContent).toContain('Mức độ hoạt động hàng ngày của bạn?');
-    await act(async () => {
-      root?.unmount();
-    });
-    container.remove();
+  it('fires the goal view once after a fresh session hydrates', async () => {
+    const html = renderToString(<HomePage />);
+    const hydrated = await hydrateHome(html);
+
+    expect(hydrated.recoverable).toEqual([]);
+    expect(hydrated.container.textContent).toContain('Mục tiêu chính của bạn là gì?');
+    expect(viewedSteps()).toEqual(['goal']);
+    expect(viewContentCalls()).toHaveLength(1);
+    expect(viewContentCalls()[0]).toEqual([
+      'track',
+      'ViewContent',
+      { content_name: 'funnel_quiz_start', content_category: 'onboarding' },
+      { eventID: 'ViewContent.test-event-id' },
+    ]);
+    expect(metaServerEvents()).toHaveLength(1);
+
+    await act(async () => {});
+    expect(viewedSteps()).toEqual(['goal']);
+    expect(viewContentCalls()).toHaveLength(1);
+    await hydrated.unmount();
+  });
+
+  it('fires only the restored step when a later session hydrates', async () => {
+    useQuizStore.getState().setFunnelScreen('quiz');
+    useQuizStore.getState().setCurrentStep('activity_level');
+    useQuizStore.getState().setData({ fitness_goal: 'cut' });
+    const html = renderToString(<HomePage />);
+    expect(html).toContain('Mục tiêu chính của bạn là gì?');
+
+    const hydrated = await hydrateHome(html);
+
+    expect(hydrated.recoverable).toEqual([]);
+    expect(hydrated.container.textContent).toContain('Mức độ hoạt động hàng ngày của bạn?');
+    expect(hydrated.container.textContent).not.toContain('Mục tiêu chính của bạn là gì?');
+    expect(viewedSteps()).toEqual(['activity_level']);
+    expect(viewedSteps()).not.toContain('goal');
+    expect(viewContentCalls()).toHaveLength(0);
+    expect(metaServerEvents()).toHaveLength(0);
+    expect(useQuizStore.getState().data.fitness_goal).toBe('cut');
+    await hydrated.unmount();
   });
 
   it('keeps an in-progress quiz instead of returning to the landing page', async () => {
