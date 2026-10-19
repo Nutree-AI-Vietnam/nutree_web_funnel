@@ -6,9 +6,6 @@
 export const FUNNEL_LOCALES = ['vi', 'en'] as const;
 export type FunnelLocale = (typeof FUNNEL_LOCALES)[number];
 
-/** Request header set by src/proxy.ts from the real URL, never from the browser body. */
-export const FUNNEL_PATH_HEADER = 'x-nutree-pathname';
-
 const SURVEY_LOCALE = /^\/survey\/(en|vi)(?:\/|$)/;
 
 export function isFunnelLocale(value: unknown): value is FunnelLocale {
@@ -32,7 +29,7 @@ export function funnelName(locale: FunnelLocale): 'web_funnel_vi' | 'web_funnel_
 
 /**
  * Locale of the pixel chosen for this document load.
- * The root layout sets `data-funnel-locale` and it does not follow client navigations,
+ * The route's root layout sets `data-funnel-locale` and it does not follow client navigations,
  * so the browser pixel and the Conversions API copy stay on the same dataset.
  */
 export function readLockedFunnelLocale(): FunnelLocale {

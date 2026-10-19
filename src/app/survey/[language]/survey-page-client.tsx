@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useLayoutEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ExitOfferPageClient } from '@/app/exit-offer/exit-offer-page-client';
-import { PaywallPageClient } from '@/app/paywall/paywall-page-client';
-import { StepRenderer } from '@/app/quiz/step-renderer';
+import { ExitOfferPageClient } from '@/app/(default)/exit-offer/exit-offer-page-client';
+import { PaywallPageClient } from '@/app/(default)/paywall/paywall-page-client';
+import { StepRenderer } from '@/app/(default)/quiz/step-renderer';
 import { EmailCaptureScreen } from '@/components/email-capture-screen';
 import { LandingPage } from '@/components/landing-page';
 import { QuizShell } from '@/components/quiz-shell';

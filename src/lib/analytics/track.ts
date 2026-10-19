@@ -29,7 +29,7 @@ import { getAttribution } from './attribution';
 import { pageUrl } from './events-api';
 import { META_EVENTS_PATH, type MetaBrowserEvent, type MetaCustomData, type MetaStandardEvent } from './meta-events-api';
 import { readLockedFunnelLocale } from './funnel-locale';
-import { hashMetaIdentity, metaPixelIdForLocale, readMetaIdentity } from './meta-identity';
+import { activeMetaPixelId, hashMetaIdentity, readMetaIdentity } from './meta-identity';
 import { TIKTOK_EVENTS_PATH, type TiktokBrowserEvent, type TiktokProperties, type TiktokStandardEvent } from './tiktok-events-api';
 import { captureFunnelEvent } from './posthog';
 import { applyTiktokIdentity, readTiktokIdentity, type TiktokIdentity, type TiktokPixel } from './tiktok-identity';
@@ -186,7 +186,7 @@ function metaFbc(fbclid: unknown): string | null {
   return `fb.1.${seenAt}.${fbclid}`;
 }
 
-/** Server copy of a pixel event; the shared event_id lets Meta keep only one. Locale picks the dataset. */
+/** Server copy of a pixel event; the shared event_id lets Meta keep only one. Locale picks the paired dataset. */
 function sendMetaServerEvent(event: Omit<MetaBrowserEvent, 'user_data'>, fbc: string | null): void {
   const locale = readLockedFunnelLocale();
   try {
@@ -209,7 +209,7 @@ function trackMeta(fbq: AnyWindow['fbq'], name: string, payload: Record<string, 
   const id = eventID(standard.event);
   fbq?.('track', standard.event, standard.params, { eventID: id });
   // The server copy also covers pixels that have not loaded yet or are blocked.
-  if (!metaPixelIdForLocale(readLockedFunnelLocale()) || typeof fetch !== 'function') return;
+  if (!activeMetaPixelId() || typeof fetch !== 'function') return;
   const url = pageUrl(window.location?.href);
   sendMetaServerEvent(
     { event_name: standard.event, event_id: id, ...(url ? { event_source_url: url } : {}), custom_data: standard.params },

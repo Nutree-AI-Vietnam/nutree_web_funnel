@@ -231,15 +231,42 @@ describe('Meta Conversions API route', () => {
     expect(sentBodies()[0].test_event_code).toBe('VI_TEST');
   });
 
-  it('uses the English pixel with the default token when only the English token is unset', async () => {
+  it('defaults a missing locale to the Vietnamese dataset', async () => {
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID_EN', '2222222222');
+    vi.stubEnv('META_CONVERSIONS_API_ACCESS_TOKEN_EN', 'en-token');
+    const { locale: _locale, ...event } = browserEvent;
+    const response = await POST(request(event));
+    expect(response.status).toBe(204);
+    const [target, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(target).toBe('https://graph.facebook.com/v26.0/1234567890/events');
+    expect(init.headers.Authorization).toBe('Bearer capi-token');
+    expect(String(init.headers.Authorization)).not.toContain('en-token');
+  });
+
+  it('falls back to the Vietnamese pair when the English pixel has no token', async () => {
     vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID_EN', '2222222222');
     vi.stubEnv('META_CONVERSIONS_API_ACCESS_TOKEN_EN', '');
     vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE', 'VI_TEST');
+    vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE_EN', 'EN_TEST');
     await POST(request({ ...browserEvent, locale: 'en' }));
     const [target, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
-    expect(target).toBe('https://graph.facebook.com/v26.0/2222222222/events');
+    expect(target).toBe('https://graph.facebook.com/v26.0/1234567890/events');
+    expect(String(target)).not.toContain('2222222222');
     expect(init.headers.Authorization).toBe('Bearer capi-token');
-    expect(sentBodies()[0].test_event_code).toBeUndefined();
+    expect(sentBodies()[0].test_event_code).toBe('VI_TEST');
+  });
+
+  it('falls back to the Vietnamese pair when the English token has no pixel', async () => {
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID_EN', '');
+    vi.stubEnv('META_CONVERSIONS_API_ACCESS_TOKEN_EN', 'en-token');
+    vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE', 'VI_TEST');
+    vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE_EN', 'EN_TEST');
+    await POST(request({ ...browserEvent, locale: 'en' }));
+    const [target, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(target).toBe('https://graph.facebook.com/v26.0/1234567890/events');
+    expect(init.headers.Authorization).toBe('Bearer capi-token');
+    expect(String(init.headers.Authorization)).not.toContain('en-token');
+    expect(sentBodies()[0].test_event_code).toBe('VI_TEST');
   });
 
   it('rejects unknown locales and does not forward a client pixel id', async () => {

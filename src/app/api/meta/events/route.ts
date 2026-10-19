@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginMutation } from '@/lib/handoff/lead-access-session';
 import { clientIp, isRecord } from '@/lib/analytics/events-api';
-import { isFunnelLocale } from '@/lib/analytics/funnel-locale';
+import { isFunnelLocale, type FunnelLocale } from '@/lib/analytics/funnel-locale';
 import { metaDatasetForLocale } from '@/lib/analytics/meta-dataset';
 import { metaEventsApiBody, metaEventsApiUrl, parseMetaBrowserEvent } from '@/lib/analytics/meta-events-api';
 
@@ -14,12 +14,20 @@ function short(value: unknown): string | undefined {
   return typeof value === 'string' ? value.slice(0, 200) : undefined;
 }
 
+/** Old bundles omit locale. A value that is present but not allowed is rejected. */
+function funnelLocaleFromEvent(input: unknown): FunnelLocale | null {
+  if (!isRecord(input) || !Object.hasOwn(input, 'locale')) return 'vi';
+  return isFunnelLocale(input.locale) ? input.locale : null;
+}
+
 /**
  * Forwards the browser's Meta standard events to the Conversions API with the
  * pixel's eventID, adding IP, user agent and the _fbp / _fbc cookies. The
  * browser sends a locale (`vi` or `en`); the pixel id and token are chosen
- * here. English falls back to the default dataset when its env vars are unset.
- * Inert (204) until the chosen access token is set. Delivery failures are
+ * here. A missing locale is Vietnamese so a tab still on the previous bundle
+ * keeps its server events. English is used only when its pixel and token are
+ * both set; otherwise the Vietnamese pair is used. Inert (204) until the
+ * chosen access token is set. Delivery failures are
  * logged without user data and never surface to the funnel.
  */
 export async function POST(request: NextRequest) {
@@ -32,8 +40,8 @@ export async function POST(request: NextRequest) {
   } catch {
     // Rejected below.
   }
-  const locale = isRecord(input) ? input.locale : undefined;
-  if (!isFunnelLocale(locale)) return NextResponse.json({ detail: 'Invalid locale.' }, { status: 400 });
+  const locale = funnelLocaleFromEvent(input);
+  if (!locale) return NextResponse.json({ detail: 'Invalid locale.' }, { status: 400 });
   const event = parseMetaBrowserEvent(input);
   if (!event) return NextResponse.json({ detail: 'Invalid event.' }, { status: 400 });
   const dataset = metaDatasetForLocale(locale);

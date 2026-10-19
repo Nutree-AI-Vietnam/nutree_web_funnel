@@ -1,16 +1,12 @@
 import Script from 'next/script';
-import type { FunnelLocale } from '@/lib/analytics/funnel-locale';
-import { metaPixelIdForLocale } from '@/lib/analytics/meta-identity';
 import { metaPixelBootstrapScript } from '@/lib/analytics/meta-pixel-snippet';
 
 /**
- * The one Meta pixel for this page load. Rendered only from the root layout.
- * English uses the EN pixel when it is configured; otherwise the default pixel.
- * A page renders this once, so the other pixel is never initialized.
+ * The one Meta pixel for this document. The layout passes the id already chosen
+ * for the route, so a page never initializes a second pixel.
  */
-export function MetaPixel({ locale }: { locale: FunnelLocale }) {
-  const pixelId = metaPixelIdForLocale(locale);
-  if (!pixelId) return null;
+export function MetaPixel({ pixelId }: { pixelId: string }) {
+  if (!/^\d+$/.test(pixelId)) return null;
   const snippet = metaPixelBootstrapScript(pixelId);
   if (!snippet) return null;
   return (

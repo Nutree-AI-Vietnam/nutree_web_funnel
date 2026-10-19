@@ -52,6 +52,23 @@ describe('meta identity', () => {
     });
   });
 
+  it('re-inits the rendered pixel when it differs from the english env id', () => {
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID_EN', '2222222222');
+    vi.stubGlobal('document', {
+      documentElement: {
+        getAttribute: (name: string) => {
+          if (name === 'data-funnel-locale') return 'en';
+          if (name === 'data-meta-pixel-id') return '863565810110494';
+          return null;
+        },
+      },
+    });
+    identifyMetaUser({ email: 'pixel.qa@nutreeai.com' });
+    const w = window as unknown as { fbq: ReturnType<typeof vi.fn> };
+    expect(w.fbq).toHaveBeenCalledTimes(1);
+    expect(w.fbq).toHaveBeenCalledWith('init', '863565810110494', { em: 'pixel.qa@nutreeai.com' });
+  });
+
   it('re-inits the default pixel when the english id is unset', () => {
     vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID_EN', '');
     vi.stubGlobal('document', {
