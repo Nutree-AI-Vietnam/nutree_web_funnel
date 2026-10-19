@@ -1,6 +1,7 @@
 import posthog from 'posthog-js';
 import {
   analyticsLocale,
+  carriesStoredFunnelLocale,
   funnelName,
   isFunnelLocale,
   rememberFunnelLocale,
@@ -31,13 +32,15 @@ export function readRegisteredFunnelLocale(): FunnelLocale | null {
 }
 
 /**
- * Registers the survey locale, or the locale this tab already chose.
- * A non-survey document (the Vietnamese shell on /postcheckout) must not replace `en`.
+ * Registers the survey locale. Only the post-purchase pages reuse a stored English locale.
+ * `/` and other Vietnamese routes register `vi` and do not overwrite the stored survey locale.
  */
 export function registerDocumentFunnelLocale(pathname: string | null | undefined): FunnelLocale {
   const registered = readRegisteredFunnelLocale();
   const locale = analyticsLocale(pathname, registered);
-  if (surveyLocaleFromPath(pathname) || registered === locale) rememberFunnelLocale(locale);
+  if (surveyLocaleFromPath(pathname) || (carriesStoredFunnelLocale(pathname) && registered === locale)) {
+    rememberFunnelLocale(locale);
+  }
   registerFunnelSuperProperties(locale);
   return locale;
 }

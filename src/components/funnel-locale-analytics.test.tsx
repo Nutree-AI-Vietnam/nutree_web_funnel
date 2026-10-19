@@ -54,12 +54,23 @@ describe('FunnelLocaleAnalytics', () => {
     expect(document.documentElement.lang).toBe('en');
   });
 
-  it('does not replace an english super property when nothing is stored for this tab', () => {
+  it('does not replace an english super property on the post-purchase pages', () => {
     getProperty.mockReturnValue('en');
     document.documentElement.setAttribute('data-funnel-locale', 'vi');
     path.current = '/postcheckout';
     render(<FunnelLocaleAnalytics />);
     expect(register).toHaveBeenCalledWith({ funnel_locale: 'en', funnel: 'web_funnel_en' });
+    expect(document.documentElement.lang).toBe('en');
+  });
+
+  it('forces vietnamese on the home page after an english session', () => {
+    sessionStorage.setItem('nutree_funnel_locale_v1', 'en');
+    getProperty.mockReturnValue('en');
+    document.documentElement.setAttribute('data-funnel-locale', 'vi');
+    path.current = '/';
+    render(<FunnelLocaleAnalytics />);
+    expect(register).toHaveBeenCalledWith({ funnel_locale: 'vi', funnel: 'web_funnel_vi' });
+    expect(document.documentElement.lang).toBe('vi');
     expect(sessionStorage.getItem('nutree_funnel_locale_v1')).toBe('en');
   });
 });

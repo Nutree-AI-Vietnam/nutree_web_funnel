@@ -4,25 +4,76 @@ import {
   savePendingRedemptionCorrelation,
 } from './redemption-handoff';
 
+/** One RevenueCat lookup or correlation may stall this long before we give up on it. */
+export const PURCHASE_CALL_TIMEOUT_MS = 4_000;
+
+/** The whole handoff may stall this long before we leave for post-checkout. */
+export const PURCHASE_HANDOFF_TIMEOUT_MS = 10_000;
+
 let handoffInFlight = false;
+let postcheckoutRedirectHeld = false;
 
 /** True while the purchase handler still owns the redemption handoff. */
 export function isPurchaseHandoffInFlight(): boolean {
   return handoffInFlight;
 }
 
+/** Missing redemption hash keeps the paywall recovery state instead of leaving. */
+export function isPostcheckoutRedirectHeld(): boolean {
+  return postcheckoutRedirectHeld;
+}
+
 export function beginPurchaseHandoff(): void {
   handoffInFlight = true;
+  postcheckoutRedirectHeld = false;
 }
 
 export function endPurchaseHandoff(): void {
   handoffInFlight = false;
 }
 
+export function resetPurchaseHandoffState(): void {
+  handoffInFlight = false;
+  postcheckoutRedirectHeld = false;
+}
+
+class PurchaseHandoffTimeout extends Error {
+  constructor() {
+    super('purchase handoff timed out');
+    this.name = 'PurchaseHandoffTimeout';
+  }
+}
+
+function withTimeout<T>(work: Promise<T>, callTimeoutMs: number, deadline: number): Promise<T> {
+  const limit = Math.min(callTimeoutMs, deadline - Date.now());
+  if (limit <= 0) return Promise.reject(new PurchaseHandoffTimeout());
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new PurchaseHandoffTimeout());
+    }, limit);
+    work.then(
+      (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 /**
- * Hash the redemption link, store the pending correlation, then run the
- * RevenueCat correlation. Navigation belongs to the caller, after this
- * resolves or hits the existing failure path.
+ * Hash the redemption link and store the pending correlation before any
+ * correlation call. A timeout cannot skip that write once the hash exists.
  */
 export async function settlePurchaseRedemption(input: {
   redeemUrl: string | null | undefined;
@@ -30,10 +81,16 @@ export async function settlePurchaseRedemption(input: {
   apiKey: string;
   leadId: string;
   appUserId: string;
+  lookupRedeemUrl?: (apiKey: string, operationSessionId: string) => Promise<string | null>;
+  callTimeoutMs?: number;
+  deadline?: number;
 }): Promise<{ hash: string | null }> {
+  const callTimeoutMs = input.callTimeoutMs ?? PURCHASE_CALL_TIMEOUT_MS;
+  const deadline = input.deadline ?? Date.now() + PURCHASE_HANDOFF_TIMEOUT_MS;
+  const lookup = input.lookupRedeemUrl ?? redemptionUrlFromCheckoutOperation;
   const redeemUrl = input.redeemUrl
-    ?? await redemptionUrlFromCheckoutOperation(input.apiKey, input.operationSessionId ?? '');
-  const hash = await redemptionLinkHash(redeemUrl);
+    ?? await withTimeout(lookup(input.apiKey, input.operationSessionId ?? ''), callTimeoutMs, deadline);
+  const hash = await withTimeout(redemptionLinkHash(redeemUrl), callTimeoutMs, deadline);
   if (!hash) return { hash: null };
   savePendingRedemptionCorrelation({
     leadId: input.leadId,
@@ -44,7 +101,8 @@ export async function settlePurchaseRedemption(input: {
 }
 
 /**
- * Keeps the document alive until the handoff has finished or failed, then navigates.
+ * Keeps the document alive until the handoff has finished, failed, or timed out.
+ * A missing hash stays on the paywall recovery state. Every other path navigates.
  * `markPurchased` runs before any await so entitlement state updates immediately.
  */
 export async function completePurchasedCheckout(input: {
@@ -58,28 +116,40 @@ export async function completePurchasedCheckout(input: {
   onRecovery: () => void;
   onPending: (hash: string) => void;
   navigate: () => void;
+  lookupRedeemUrl?: (apiKey: string, operationSessionId: string) => Promise<string | null>;
+  callTimeoutMs?: number;
+  handoffTimeoutMs?: number;
 }): Promise<void> {
+  const callTimeoutMs = input.callTimeoutMs ?? PURCHASE_CALL_TIMEOUT_MS;
+  const deadline = Date.now() + (input.handoffTimeoutMs ?? PURCHASE_HANDOFF_TIMEOUT_MS);
   beginPurchaseHandoff();
+  let leaveForPostcheckout = true;
   try {
     input.markPurchased();
     try {
-      const { hash } = await settlePurchaseRedemption(input);
+      const { hash } = await settlePurchaseRedemption({ ...input, callTimeoutMs, deadline });
       if (!hash) {
+        postcheckoutRedirectHeld = true;
+        leaveForPostcheckout = false;
         input.onRecovery();
         return;
       }
       input.onPending(hash);
       try {
-        await input.correlate(hash);
+        await withTimeout(input.correlate(hash), callTimeoutMs, deadline);
       } catch {
         // A completed payment stays purchased. Post-checkout retries the correlation.
       }
-    } catch {
-      input.onRecovery();
+    } catch (error) {
+      if (!(error instanceof PurchaseHandoffTimeout)) {
+        postcheckoutRedirectHeld = true;
+        leaveForPostcheckout = false;
+        input.onRecovery();
+      }
     }
   } finally {
     try {
-      input.navigate();
+      if (leaveForPostcheckout) input.navigate();
     } finally {
       endPurchaseHandoff();
     }

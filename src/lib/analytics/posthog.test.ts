@@ -53,6 +53,9 @@ describe('registerDocumentFunnelLocale', () => {
     });
     expect(registerDocumentFunnelLocale('/postcheckout')).toBe('en');
     expect(register).toHaveBeenCalledWith({ funnel_locale: 'en', funnel: 'web_funnel_en' });
+    register.mockClear();
+    expect(registerDocumentFunnelLocale('/')).toBe('vi');
+    expect(register).toHaveBeenCalledWith({ funnel_locale: 'vi', funnel: 'web_funnel_vi' });
     vi.unstubAllGlobals();
   });
 });

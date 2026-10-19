@@ -7,12 +7,18 @@ export const FUNNEL_LOCALES = ['vi', 'en'] as const;
 export type FunnelLocale = (typeof FUNNEL_LOCALES)[number];
 
 const SURVEY_LOCALE = /^\/survey\/(en|vi)(?:\/|$)/;
+const CARRY_LOCALE = /^\/(?:postcheckout|success|welcome)(?:\/|$)/;
 
 /** Survives the full document load from the survey into /postcheckout in the same tab. */
 export const FUNNEL_LOCALE_STORAGE_KEY = 'nutree_funnel_locale_v1';
 
 export function isFunnelLocale(value: unknown): value is FunnelLocale {
   return value === 'vi' || value === 'en';
+}
+
+/** Post-purchase pages may keep the survey locale. Every other non-survey route is Vietnamese. */
+export function carriesStoredFunnelLocale(pathname: string | null | undefined): boolean {
+  return CARRY_LOCALE.test(pathname ?? '');
 }
 
 /** `en` or `vi` when the path is that survey, otherwise null. */
@@ -65,12 +71,13 @@ export function readRememberedFunnelLocale(): FunnelLocale | null {
 
 /**
  * PostHog locale. An explicit survey path wins so a language switch is visible.
- * Other routes keep the locale stored for this tab, then an already registered
- * super property, and only then the document default.
+ * Only /postcheckout, /success, and /welcome reuse the stored locale.
+ * `/` and every other route stay Vietnamese.
  */
 export function analyticsLocale(pathname: string | null | undefined, registered?: unknown): FunnelLocale {
   const survey = surveyLocaleFromPath(pathname);
   if (survey) return survey;
+  if (!carriesStoredFunnelLocale(pathname)) return 'vi';
   const remembered = readRememberedFunnelLocale();
   if (remembered) return remembered;
   if (isFunnelLocale(registered)) return registered;

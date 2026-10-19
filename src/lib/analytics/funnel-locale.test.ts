@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { analyticsLocale, FUNNEL_LOCALE_STORAGE_KEY, funnelLocaleFromPath, funnelName, isFunnelLocale, readLockedFunnelLocale, readRememberedFunnelLocale, surveyLocaleFromPath } from './funnel-locale';
+import { analyticsLocale, carriesStoredFunnelLocale, FUNNEL_LOCALE_STORAGE_KEY, funnelLocaleFromPath, funnelName, isFunnelLocale, readLockedFunnelLocale, readRememberedFunnelLocale, surveyLocaleFromPath } from './funnel-locale';
 
 describe('funnel locale', () => {
   afterEach(() => {
@@ -34,6 +34,9 @@ describe('funnel locale', () => {
     expect(analyticsLocale('/postcheckout')).toBe('en');
     expect(analyticsLocale('/survey/vi')).toBe('vi');
     expect(analyticsLocale('/survey/en')).toBe('en');
+    expect(analyticsLocale('/')).toBe('vi');
+    expect(carriesStoredFunnelLocale('/postcheckout')).toBe(true);
+    expect(carriesStoredFunnelLocale('/welcome-gift')).toBe(false);
   });
 
   it('keeps a remembered english locale when the reloaded document is vietnamese', () => {
@@ -48,6 +51,8 @@ describe('funnel locale', () => {
     expect(readRememberedFunnelLocale()).toBe('en');
     expect(analyticsLocale('/postcheckout')).toBe('en');
     expect(analyticsLocale('/success', 'vi')).toBe('en');
+    expect(analyticsLocale('/', 'en')).toBe('vi');
+    expect(analyticsLocale('/paywall', 'en')).toBe('vi');
     expect(analyticsLocale('/survey/vi')).toBe('vi');
   });
 
@@ -58,5 +63,7 @@ describe('funnel locale', () => {
     expect(analyticsLocale('/postcheckout', 'en')).toBe('en');
     expect(analyticsLocale('/welcome', 'vi')).toBe('vi');
     expect(analyticsLocale('/welcome', 'fr')).toBe('vi');
+    expect(analyticsLocale('/', 'en')).toBe('vi');
+    expect(analyticsLocale('/exit-offer', 'en')).toBe('vi');
   });
 });

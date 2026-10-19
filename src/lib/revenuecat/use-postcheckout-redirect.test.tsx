@@ -2,7 +2,7 @@
 
 import { cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { beginPurchaseHandoff, endPurchaseHandoff } from './purchase-handoff';
+import { beginPurchaseHandoff, completePurchasedCheckout, endPurchaseHandoff, resetPurchaseHandoffState } from './purchase-handoff';
 import { usePostcheckoutRedirect } from './use-postcheckout-redirect';
 
 const replace = vi.hoisted(() => vi.fn());
@@ -20,6 +20,7 @@ describe('post-checkout redirect', () => {
   afterEach(() => {
     cleanup();
     endPurchaseHandoff();
+    resetPurchaseHandoffState();
     replace.mockClear();
   });
 
@@ -36,6 +37,23 @@ describe('post-checkout redirect', () => {
 
   it('stays put before a purchase', () => {
     render(<RedirectHarness ready={false} />);
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it('stays on the paywall when the redemption hash is missing', async () => {
+    await completePurchasedCheckout({
+      markPurchased: () => undefined,
+      redeemUrl: null,
+      operationSessionId: undefined,
+      apiKey: '',
+      leadId: 'lead-1',
+      appUserId: '$RCAnonymousID:customer-1',
+      correlate: vi.fn(),
+      onRecovery: vi.fn(),
+      onPending: vi.fn(),
+      navigate: vi.fn(),
+    });
+    render(<RedirectHarness ready />);
     expect(replace).not.toHaveBeenCalled();
   });
 });
