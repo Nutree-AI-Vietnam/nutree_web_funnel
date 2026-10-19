@@ -81,7 +81,6 @@ export async function settlePurchaseRedemption(input: {
   apiKey: string;
   leadId: string;
   appUserId: string;
-  lookupRedeemUrl?: (apiKey: string, operationSessionId: string) => Promise<string | null>;
   checkoutFetcher?: typeof fetch;
   callTimeoutMs?: number;
   deadline?: number;
@@ -89,13 +88,11 @@ export async function settlePurchaseRedemption(input: {
   const callTimeoutMs = input.callTimeoutMs ?? PURCHASE_CALL_TIMEOUT_MS;
   const deadline = input.deadline ?? Date.now() + PURCHASE_HANDOFF_TIMEOUT_MS;
   const redeemUrl = input.redeemUrl
-    ?? (input.lookupRedeemUrl
-      ? await input.lookupRedeemUrl(input.apiKey, input.operationSessionId ?? '')
-      : await redemptionUrlFromCheckoutOperation(input.apiKey, input.operationSessionId ?? '', {
-        fetcher: input.checkoutFetcher,
-        requestTimeoutMs: callTimeoutMs,
-        deadline,
-      }));
+    ?? await redemptionUrlFromCheckoutOperation(input.apiKey, input.operationSessionId ?? '', {
+      fetcher: input.checkoutFetcher,
+      requestTimeoutMs: callTimeoutMs,
+      deadline,
+    });
   const hash = await withTimeout(redemptionLinkHash(redeemUrl), callTimeoutMs, deadline);
   if (!hash) return { hash: null };
   savePendingRedemptionCorrelation({
@@ -123,7 +120,6 @@ export async function completePurchasedCheckout(input: {
   onRecovery: () => void;
   onPending: (hash: string) => void;
   navigate: () => void;
-  lookupRedeemUrl?: (apiKey: string, operationSessionId: string) => Promise<string | null>;
   checkoutFetcher?: typeof fetch;
   callTimeoutMs?: number;
   handoffTimeoutMs?: number;

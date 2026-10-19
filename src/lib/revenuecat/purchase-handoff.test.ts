@@ -149,6 +149,44 @@ describe('purchase handoff navigation', () => {
     expect(isPurchaseHandoffInFlight()).toBe(false);
   });
 
+  it('stays on the recovery state when lookup headers arrive but the body never finishes', async () => {
+    useHandoffTimers();
+    let calls = 0;
+    const navigate = vi.fn();
+    const onRecovery = vi.fn();
+    const checkoutFetcher: typeof fetch = () => {
+      calls += 1;
+      return Promise.resolve({
+        ok: true,
+        json: () => new Promise(() => undefined),
+      } as unknown as Response);
+    };
+    const pending = completePurchasedCheckout({
+      markPurchased: () => undefined,
+      redeemUrl: null,
+      operationSessionId: 'op-1',
+      apiKey: 'rcb_test',
+      leadId: 'lead-1',
+      appUserId: '$RCAnonymousID:customer-1',
+      checkoutFetcher,
+      correlate: vi.fn(),
+      onRecovery,
+      onPending: vi.fn(),
+      navigate,
+    });
+
+    await vi.advanceTimersByTimeAsync(PURCHASE_HANDOFF_TIMEOUT_MS);
+    await pending;
+
+    expect(onRecovery).toHaveBeenCalledOnce();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(isPostcheckoutRedirectHeld()).toBe(true);
+    expect(readPendingRedemptionCorrelation()).toBeNull();
+    expect(calls).toBeGreaterThan(1);
+    expect(calls).toBeLessThan(8);
+    expect(isPurchaseHandoffInFlight()).toBe(false);
+  });
+
   it('keeps polling a slow lookup and navigates once a later try publishes the link', async () => {
     useHandoffTimers();
     let calls = 0;
