@@ -20,6 +20,12 @@ Vitest. Localized copy lives in `src/lib/copy/vi.ts` and
 - Market detection should stay automatic from browser/backend country context;
   do not add manual country switching to the funnel screens unless explicitly
   requested.
+- `/survey/en` loads the English Meta pixel only when its pixel id and
+  Conversions API token are both set. Otherwise that page uses the Vietnamese
+  pixel and token. Vietnamese pages, `/`, `/postcheckout`, `/success`, and
+  every other route load only the default pixel. A full page load after
+  checkout uses that default pixel. PostHog events include `funnel_locale`
+  (`vi` or `en`) and `funnel` (`web_funnel_vi` or `web_funnel_en`).
 
 ## Development
 
@@ -42,7 +48,11 @@ npm run build                # production build check
 | `NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID` / `NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME` | Matching Nutree app bundle/package IDs for the phone handoff flow |
 | `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` | PostHog project token for session replay (optional; omitted if unset). Use DEV locally, STAGING on preview, PROD on production |
 | `NEXT_PUBLIC_GA4_ID` | GA4 measurement id (optional; script omitted if unset) |
-| `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel id (optional) |
+| `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel id for Vietnamese pages and every non-English route (optional) |
+| `NEXT_PUBLIC_META_PIXEL_ID_EN` | Meta Pixel id for `/survey/en`. Used only together with the English token; otherwise the page uses the default pixel |
+| `META_CONVERSIONS_API_ACCESS_TOKEN` | Server-only Conversions API token for the default pixel. Empty keeps `/api/meta/events` inert |
+| `META_CONVERSIONS_API_ACCESS_TOKEN_EN` | Server-only token for the English pixel. Used only together with the English pixel id; otherwise events use the default token. Set in Vercel as a Sensitive variable |
+| `META_CONVERSIONS_API_TEST_EVENT_CODE` / `META_CONVERSIONS_API_TEST_EVENT_CODE_EN` | Optional Test Events codes. The English code is used only when the English pixel and token are both set |
 | `NEXT_PUBLIC_TIKTOK_PIXEL_ID` | TikTok Pixel id (optional) |
 | `NEXT_PUBLIC_AIRBRIDGE_APP_NAME` | Airbridge app name (optional) |
 | `NEXT_PUBLIC_AIRBRIDGE_WEB_TOKEN` | Airbridge web SDK token (optional) |

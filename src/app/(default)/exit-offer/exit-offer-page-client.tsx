@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { NutreeLogo } from '@/components/nutree-logo';
-import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { ConversionShell } from '@/components/conversion-shell';
 import { ScratchTicketCover } from '@/components/scratch-ticket-cover';
@@ -12,6 +11,7 @@ import { useCopy } from '@/lib/copy/use-copy';
 import { SIX_MONTH_PLAN_ID } from '@/lib/revenuecat/paywall-plans';
 import { activatePaywallExitOffer, expirePaywallOfferState, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, markExitOfferClaimed, saveSelectedPaywallPlan } from '@/lib/revenuecat/web';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
+import { usePostcheckoutRedirect } from '@/lib/revenuecat/use-postcheckout-redirect';
 import { useLocale } from '@/lib/copy/use-copy';
 
 interface ExitOfferPageClientProps {
@@ -22,7 +22,6 @@ interface ExitOfferPageClientProps {
 }
 
 export function ExitOfferPageClient({ onClaim, onDismiss, onMissingLead, onAlreadyClaimed }: ExitOfferPageClientProps) {
-  const router = useRouter();
   const copy = useCopy();
   const locale = useLocale();
   const hydrated = useHydrated();
@@ -34,19 +33,17 @@ export function ExitOfferPageClient({ onClaim, onDismiss, onMissingLead, onAlrea
 
   useEffect(() => trackStepViewed('exit_offer'), []);
 
+  usePostcheckoutRedirect(hydrated && isUserPurchased({ purchased, lead }));
+
   useEffect(() => {
-    if (!hydrated) return;
-    if (isUserPurchased({ purchased, lead })) {
-      router.replace('/postcheckout');
-      return;
-    }
+    if (!hydrated || isUserPurchased({ purchased, lead })) return;
     if (!lead) {
       onMissingLead?.();
       return;
     }
     stripNonAttributionParams();
     if (hasExitOfferBeenClaimed()) onAlreadyClaimed?.();
-  }, [hydrated, lead, onAlreadyClaimed, onMissingLead, purchased, router]);
+  }, [hydrated, lead, onAlreadyClaimed, onMissingLead, purchased]);
 
   if (!hydrated || !lead || isUserPurchased({ purchased, lead })) return null;
 

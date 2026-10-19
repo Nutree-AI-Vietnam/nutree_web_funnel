@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginMutation } from '@/lib/handoff/lead-access-session';
 import { clientIp, isRecord } from '@/lib/analytics/events-api';
+import { isFunnelLocale, type FunnelLocale } from '@/lib/analytics/funnel-locale';
+import { metaDatasetForLocale } from '@/lib/analytics/meta-dataset';
 import { metaEventsApiBody, metaEventsApiUrl, parseMetaBrowserEvent } from '@/lib/analytics/meta-events-api';
-import { metaPixelId } from '@/lib/analytics/meta-identity';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,17 +14,24 @@ function short(value: unknown): string | undefined {
   return typeof value === 'string' ? value.slice(0, 200) : undefined;
 }
 
+/** Old bundles omit locale. A value that is present but not allowed is rejected. */
+function funnelLocaleFromEvent(input: unknown): FunnelLocale | null {
+  if (!isRecord(input) || !Object.hasOwn(input, 'locale')) return 'vi';
+  return isFunnelLocale(input.locale) ? input.locale : null;
+}
+
 /**
  * Forwards the browser's Meta standard events to the Conversions API with the
- * pixel's eventID, adding IP, user agent and the _fbp / _fbc cookies. Inert
- * (204) until META_CONVERSIONS_API_ACCESS_TOKEN is set. Delivery failures are
+ * pixel's eventID, adding IP, user agent and the _fbp / _fbc cookies. The
+ * browser sends a locale (`vi` or `en`); the pixel id and token are chosen
+ * here. A missing locale is Vietnamese so a tab still on the previous bundle
+ * keeps its server events. English is used only when its pixel and token are
+ * both set; otherwise the Vietnamese pair is used. Inert (204) until the
+ * chosen access token is set. Delivery failures are
  * logged without user data and never surface to the funnel.
  */
 export async function POST(request: NextRequest) {
   if (!isSameOriginMutation(request.headers, request.nextUrl.origin)) return NextResponse.json({ detail: 'Cross-site mutation rejected.' }, { status: 403 });
-  const accessToken = process.env.META_CONVERSIONS_API_ACCESS_TOKEN?.trim();
-  const pixelId = metaPixelId();
-  if (!accessToken || !pixelId) return new NextResponse(null, { status: 204 });
   const raw = await request.text();
   if (raw.length > MAX_BODY_LENGTH) return NextResponse.json({ detail: 'Event too large.' }, { status: 413 });
   let input: unknown = null;
@@ -32,20 +40,24 @@ export async function POST(request: NextRequest) {
   } catch {
     // Rejected below.
   }
+  const locale = funnelLocaleFromEvent(input);
+  if (!locale) return NextResponse.json({ detail: 'Invalid locale.' }, { status: 400 });
   const event = parseMetaBrowserEvent(input);
   if (!event) return NextResponse.json({ detail: 'Invalid event.' }, { status: 400 });
+  const dataset = metaDatasetForLocale(locale);
+  if (!dataset.accessToken || !dataset.pixelId) return new NextResponse(null, { status: 204 });
   const body = metaEventsApiBody(event, {
     eventTime: Math.floor(Date.now() / 1000),
     ip: clientIp(request.headers),
     userAgent: request.headers.get('user-agent'),
     fbp: request.cookies.get('_fbp')?.value,
     fbc: request.cookies.get('_fbc')?.value,
-  }, process.env.META_CONVERSIONS_API_TEST_EVENT_CODE?.trim() || undefined);
+  }, dataset.testEventCode);
   try {
     // A header keeps the token out of URLs, which proxies and error traces record.
-    const response = await fetch(metaEventsApiUrl(pixelId), {
+    const response = await fetch(metaEventsApiUrl(dataset.pixelId), {
       method: 'POST',
-      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${dataset.accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       cache: 'no-store',
       signal: AbortSignal.timeout(5_000),

@@ -6,18 +6,17 @@ import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 're
 import { BoCongThuongBadge } from '@/components/bo-cong-thuong-badge';
 import { BackgroundBeams } from '@/components/ui/background-beams';
 import { MovingBorderLink } from '@/components/ui/moving-border-button';
+import { LanguageMenu } from '@/components/language-menu';
+import { LegalConsent } from '@/components/legal-consent';
 import { trackStepViewed } from '@/lib/analytics/track';
-import { copyFor, LOCALE_NAMES, LOCALE_ORDER, type Copy, type Locale } from '@/lib/copy';
-import { useQuizStore } from '@/lib/quiz/store';
-import { cn } from '@/lib/utils';
+import { copyFor, type Copy, type Locale } from '@/lib/copy';
+import { startQuizFromLanding } from '@/lib/quiz/navigation';
 
 const MACRO_BARS = [
   { width: 82, tone: 'bg-protein' },
   { width: 66, tone: 'bg-carbs' },
   { width: 46, tone: 'bg-fat' },
 ];
-
-const LOCALE_FLAGS: Record<Locale, string> = { vi: '🇻🇳', en: '🇺🇸' };
 
 function useViewportFit(frameRef: RefObject<HTMLElement | null>, contentRef: RefObject<HTMLElement | null>, key: string) {
   const [scale, setScale] = useState(1);
@@ -42,69 +41,6 @@ function useViewportFit(frameRef: RefObject<HTMLElement | null>, contentRef: Ref
   }, [frameRef, contentRef, key]);
 
   return scale;
-}
-
-function LanguageMenu({ active, onChange }: { active: Locale; onChange?: (locale: Locale) => void }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('pointerdown', close);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('pointerdown', close);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-
-  return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-label={LOCALE_NAMES[active]}
-        onClick={() => setOpen((value) => !value)}
-        className="flex h-8 items-center gap-0.5 rounded-full border border-white/80 bg-white/85 pl-2 pr-1 text-forest shadow-[0_6px_16px_rgb(16_39_32_/_0.08)] focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-brand"
-      >
-        <span aria-hidden="true" className="text-lg leading-none">{LOCALE_FLAGS[active]}</span>
-        <svg viewBox="0 0 24 24" className={cn('size-4 transition-transform duration-200', open && 'rotate-180')} aria-hidden="true">
-          <path d="M5.5 9.25 12 15.75 18.5 9.25" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-      {open && (
-        <ul role="listbox" aria-label="Language / Ngôn ngữ" className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-2xl border border-white/80 bg-white py-1 shadow-[0_18px_40px_rgb(16_39_32_/_0.16)]">
-          {LOCALE_ORDER.map((locale) => {
-            const selected = locale === active;
-            return (
-              <li key={locale}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={selected}
-                  onClick={() => {
-                    onChange?.(locale);
-                    setOpen(false);
-                  }}
-                  className={cn('flex min-h-12 w-full items-center gap-3 px-4 text-left text-base font-semibold', selected ? 'bg-mist text-forest' : 'text-slate-brand hover:bg-mist/70')}
-                >
-                  <span aria-hidden="true" className="text-xl leading-none">{LOCALE_FLAGS[locale]}</span>
-                  {LOCALE_NAMES[locale]}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
-  );
 }
 
 function PlanPreview({ copy }: { copy: Copy }) {
@@ -164,7 +100,6 @@ function SignalMarquee({ signals }: { signals: Copy['landing']['signals'] }) {
 
 export function LandingPage({ language, surveyPath, onStart, onLocaleChange }: { language: Locale; surveyPath: string; onStart: () => void; onLocaleChange?: (locale: Locale) => void }) {
   const copy = copyFor(language);
-  const resetQuiz = useQuizStore((state) => state.reset);
   const frameRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const scale = useViewportFit(frameRef, contentRef, language);
@@ -191,7 +126,7 @@ export function LandingPage({ language, surveyPath, onStart, onLocaleChange }: {
             <h1 className="max-w-[36rem] text-[clamp(18px,2.65vh,34px)] font-extrabold leading-[1.14] text-forest">{copy.landing.headline}</h1>
             <p className="mt-[clamp(12px,1.6vh,18px)] max-w-[29rem] text-[clamp(13px,1.55vh,17px)] font-semibold leading-snug text-slate-brand">{copy.landing.subheadline}</p>
             <div className="mt-[clamp(16px,2.2vh,28px)]">
-              <MovingBorderLink href={surveyPath} className="min-h-[clamp(44px,5.4vh,56px)] py-2 text-[clamp(15px,1.8vh,18px)]" onClick={() => { resetQuiz(); window.sessionStorage.removeItem('quiz:lastIndex'); onStart(); }}>{copy.landing.cta}</MovingBorderLink>
+              <MovingBorderLink href={surveyPath} className="min-h-[clamp(44px,5.4vh,56px)] py-2 text-[clamp(15px,1.8vh,18px)]" onClick={() => { startQuizFromLanding(); onStart(); }}>{copy.landing.cta}</MovingBorderLink>
             </div>
           </div>
           <div className="min-w-0">
@@ -201,8 +136,8 @@ export function LandingPage({ language, surveyPath, onStart, onLocaleChange }: {
         </section>
         <div className="min-h-3 flex-1 md:min-h-6 md:flex-none" aria-hidden="true" />
         <footer className="flex shrink-0 flex-col items-center gap-[clamp(6px,0.9vh,10px)]">
-          <BoCongThuongBadge alt={copy.common.bctBadgeAlt} height={52} className="[&_img]:h-[clamp(28px,4.2vh,48px)] [&_img]:w-auto" />
-          <p className="text-center text-[clamp(11px,1.35vh,14px)] leading-snug text-muted-brand">{copy.landing.legal.prefix}<a href={copy.landing.legal.termsUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-forest underline decoration-forest/30 underline-offset-2 transition hover:decoration-forest">{copy.landing.legal.terms}</a>{copy.landing.legal.connector}<a href={copy.landing.legal.privacyUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-forest underline decoration-forest/30 underline-offset-2 transition hover:decoration-forest">{copy.landing.legal.privacy}</a>{copy.landing.legal.suffix}</p>
+          {language !== 'en' ? <BoCongThuongBadge alt={copy.common.bctBadgeAlt} height={52} className="[&_img]:h-[clamp(28px,4.2vh,48px)] [&_img]:w-auto" /> : null}
+          <LegalConsent />
         </footer>
       </div>
     </main>

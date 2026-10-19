@@ -20,7 +20,9 @@ import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, d
 import { firstPaymentCommerce, formatPerDay, planPerDay, savingsVersusPriciest } from '@/lib/revenuecat/plan-pricing';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { syncRevenueCatAttribution } from '@/lib/revenuecat/attribution-attributes';
-import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, redemptionUrlFromCheckoutOperation, savePendingRedemptionCorrelation, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
+import { completePurchasedCheckout } from '@/lib/revenuecat/purchase-handoff';
+import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
+import { usePostcheckoutRedirect } from '@/lib/revenuecat/use-postcheckout-redirect';
 import { resolvePaywallPricing } from '@/lib/revenuecat/paywall-offer-state';
 import { buildRevenueCatPaywall, checkoutPackage, defaultPaywallPlan, SIX_MONTH_PLAN_ID, type PaywallOfferKind, type RevenueCatPaywall } from '@/lib/revenuecat/paywall-plans';
 import { hasWelcomeVoucherBeenClaimed, markWelcomeVoucherClaimed, shouldArmExitVoucher } from '@/lib/revenuecat/welcome-voucher';
@@ -139,12 +141,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     [plans, selectedId],
   );
 
-  useEffect(() => {
-    if (!hydrated) return;
-    if (isUserPurchased({ purchased, lead })) {
-      router.replace('/postcheckout');
-    }
-  }, [hydrated, lead, purchased, router]);
+  usePostcheckoutRedirect(hydrated && isUserPurchased({ purchased, lead }));
 
   useEffect(() => trackStepViewed('paywall'), []);
 
@@ -374,20 +371,28 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       purchaseSucceededRef.current = true;
       window.clearTimeout(abandonTimer);
       clearPaywallCheckoutPending();
-      setPurchased(true);
-      trackEvent('revenuecat_checkout_completed', { plan: plan.id, ...checkoutCommerce });
-      purchaseLeadIdRef.current = lead.lead_id;
-      const redeemUrl = purchaseResult.redemptionInfo?.redeemUrl
-        ?? await redemptionUrlFromCheckoutOperation(readRevenueCatWebConfig().apiKey, purchaseResult.operationSessionId);
-      redemptionLinkHashRef.current = await redemptionLinkHash(redeemUrl);
-      if (!redemptionLinkHashRef.current) {
-        setRedemption({ kind: 'recovery' });
-        return;
-      }
-      savePendingRedemptionCorrelation({ leadId: lead.lead_id, appUserId: anonymousAppUserIdRef.current, redemptionLinkHash: redemptionLinkHashRef.current });
-      setRedemption({ kind: 'pending' });
-      await correlatePurchasedCustomer();
-      router.push('/postcheckout');
+      await completePurchasedCheckout({
+        markPurchased: () => {
+          setPurchased(true);
+          trackEvent('revenuecat_checkout_completed', { plan: plan.id, ...checkoutCommerce });
+          purchaseLeadIdRef.current = lead.lead_id;
+        },
+        redeemUrl: purchaseResult.redemptionInfo?.redeemUrl,
+        operationSessionId: purchaseResult.operationSessionId,
+        apiKey: readRevenueCatWebConfig().apiKey,
+        leadId: lead.lead_id,
+        appUserId: anonymousAppUserIdRef.current ?? '',
+        correlate: async (hash) => {
+          redemptionLinkHashRef.current = hash;
+          await correlatePurchasedCustomer();
+        },
+        onRecovery: () => setRedemption({ kind: 'recovery' }),
+        onPending: (hash) => {
+          redemptionLinkHashRef.current = hash;
+          setRedemption({ kind: 'pending' });
+        },
+        navigate: () => router.push('/postcheckout'),
+      });
     } catch (purchaseError) {
       const leftPaddleOpen = paddleOpenedRef.current || isUserCancelledPurchase(purchaseError);
       if (leftPaddleOpen && !isAlreadyPurchased(purchaseError)) {
@@ -578,7 +583,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         {displayedRedemption?.kind === 'pending' && <p role="status" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-brand">{activeLocale === 'vi' ? 'Đang xác minh thanh toán của bạn…' : 'Verifying your payment…'}</p>}
         {displayedRedemption?.kind === 'recovery' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Thanh toán đã được ghi nhận' : 'Payment received'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'Chúng tôi không thể xác minh liên kết kích hoạt. Vui lòng kiểm tra email thanh toán của bạn hoặc liên hệ hỗ trợ.' : 'We could not verify your activation link. Check your purchase email or contact support.'}</p></section>}
         {displayedRedemption?.kind === 'email_sent' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Kiểm tra email của bạn' : 'Check your email'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'RevenueCat đã gửi liên kết bảo mật đến email thanh toán. Mở liên kết đó trong Nutree để tự động kích hoạt gói.' : 'RevenueCat sent a secure link to your checkout email. Open it in Nutree to activate your plan automatically.'}</p></section>}
-        <div className="mt-6 flex justify-center px-4"><BoCongThuongBadge alt={copy.common.bctBadgeAlt} /></div>
+        {activeLocale !== 'en' ? <div className="mt-6 flex justify-center px-4"><BoCongThuongBadge alt={copy.common.bctBadgeAlt} /></div> : null}
         <p className="mx-auto mt-3 max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{copy.paywall.termsIntro} {copy.paywall.secure}</p>
       </div>
       <PaywallExitVoucher

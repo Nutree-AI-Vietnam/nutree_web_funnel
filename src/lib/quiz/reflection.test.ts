@@ -22,6 +22,16 @@ describe('buildReflection', () => {
     expect(buildReflection({ fitness_goal: 'bulk' }, en).startsWith('friend')).toBe(true);
   });
 
+  it('uses the locale fallbacks when earlier answers are missing', () => {
+    const template = '[name] | [goal] | [challenges] | [duration]';
+    expect(buildReflection({}, { ...vi, reflection: { ...vi.reflection, template } })).toBe(
+      'Bạn | của bạn | thiếu một kế hoạch rõ ràng | từng ngày',
+    );
+    expect(buildReflection({}, { ...en, reflection: { ...en.reflection, template } })).toBe(
+      'friend | your goal | without a clear plan | day by day',
+    );
+  });
+
   it('uses a friendly lowercase greeting fallback when name is skipped', () => {
     expect(getGreetingName(undefined, vi)).toBe('bạn');
     expect(getGreetingName('  ', vi)).toBe('bạn');

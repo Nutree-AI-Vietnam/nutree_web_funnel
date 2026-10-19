@@ -113,6 +113,7 @@ describe('analytics', () => {
       event_name: 'Purchase',
       event_id: 'Purchase.test-event-id',
       event_source_url: 'https://quiz.test/paywall',
+      locale: 'vi',
       custom_data: planCommerce,
       user_data: {
         em: sha256('jane@example.com'),
@@ -121,6 +122,22 @@ describe('analytics', () => {
         fbc: 'fb.1.1760000000000.IwAR-click',
       },
     });
+  });
+
+  it('sends the english locale with the same event id and no pixel id', async () => {
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '');
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID_EN', '2222222222');
+    vi.stubGlobal('document', {
+      documentElement: { getAttribute: () => 'en' },
+    });
+    trackEvent('email_captured', {});
+    await vi.waitFor(() => expect(metaServerEvents()).toHaveLength(1));
+    expect(metaServerEvents()[0].body).toMatchObject({
+      event_name: 'Lead',
+      event_id: 'Lead.test-event-id',
+      locale: 'en',
+    });
+    expect(metaServerEvents()[0].body.pixel_id).toBeUndefined();
   });
 
   it('dates fbc by when the tab first saw the click', async () => {
@@ -179,6 +196,36 @@ describe('analytics', () => {
   it('fires ViewContent once on the funnel landing step', () => {
     trackStepViewed('landing');
     const w = window as unknown as { fbq: ReturnType<typeof vi.fn> };
+    expect(w.fbq).toHaveBeenCalledWith('track', 'ViewContent', {
+      content_name: 'funnel_landing',
+      content_category: 'onboarding',
+    }, { eventID: 'ViewContent.test-event-id' });
+  });
+
+  it('fires ViewContent once per session on the goal step, in the browser and on the server', async () => {
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
+    trackStepViewed('goal');
+    trackStepViewed('goal');
+    const w = window as unknown as TestWindow;
+    expect(w.fbq).toHaveBeenCalledTimes(1);
+    expect(w.fbq).toHaveBeenCalledWith('track', 'ViewContent', {
+      content_name: 'funnel_quiz_start',
+      content_category: 'onboarding',
+    }, { eventID: 'ViewContent.test-event-id' });
+    expect(w.ttq.track).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(metaServerEvents()).toHaveLength(1));
+    expect(metaServerEvents()[0].body).toMatchObject({
+      event_name: 'ViewContent',
+      event_id: 'ViewContent.test-event-id',
+      custom_data: { content_name: 'funnel_quiz_start', content_category: 'onboarding' },
+    });
+  });
+
+  it('does not send a second ViewContent when landing and goal are both viewed', () => {
+    trackStepViewed('landing');
+    trackStepViewed('goal');
+    const w = window as unknown as { fbq: ReturnType<typeof vi.fn> };
+    expect(w.fbq.mock.calls.filter(([, event]) => event === 'ViewContent')).toHaveLength(1);
     expect(w.fbq).toHaveBeenCalledWith('track', 'ViewContent', {
       content_name: 'funnel_landing',
       content_category: 'onboarding',

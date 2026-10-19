@@ -1,12 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { capture, identify } = vi.hoisted(() => ({ capture: vi.fn(), identify: vi.fn() }));
-
-vi.mock('posthog-js', () => ({
-  default: { capture, identify },
+const { capture, identify, register, getProperty } = vi.hoisted(() => ({
+  capture: vi.fn(),
+  identify: vi.fn(),
+  register: vi.fn(),
+  getProperty: vi.fn(),
 }));
 
-import { captureFunnelEvent, identifyFunnelLead } from './posthog';
+vi.mock('posthog-js', () => ({
+  default: { capture, identify, register, get_property: getProperty },
+}));
+
+import { captureFunnelEvent, identifyFunnelLead, registerDocumentFunnelLocale, registerFunnelSuperProperties } from './posthog';
 
 describe('captureFunnelEvent', () => {
   beforeEach(() => {
@@ -32,5 +37,38 @@ describe('identifyFunnelLead', () => {
   it('skips an empty lead id', () => {
     identifyFunnelLead('', 'ada@example.com');
     expect(identify).not.toHaveBeenCalled();
+  });
+});
+
+describe('registerDocumentFunnelLocale', () => {
+  beforeEach(() => {
+    register.mockClear();
+    getProperty.mockReset();
+  });
+
+  it('re-registers the stored english locale instead of the reloaded document', () => {
+    getProperty.mockReturnValue('en');
+    vi.stubGlobal('document', {
+      documentElement: { getAttribute: () => 'vi' },
+    });
+    expect(registerDocumentFunnelLocale('/postcheckout')).toBe('en');
+    expect(register).toHaveBeenCalledWith({ funnel_locale: 'en', funnel: 'web_funnel_en' });
+    register.mockClear();
+    expect(registerDocumentFunnelLocale('/')).toBe('vi');
+    expect(register).toHaveBeenCalledWith({ funnel_locale: 'vi', funnel: 'web_funnel_vi' });
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('registerFunnelSuperProperties', () => {
+  beforeEach(() => {
+    register.mockClear();
+  });
+
+  it('sets the locale and funnel name on every later event', () => {
+    registerFunnelSuperProperties('en');
+    registerFunnelSuperProperties('vi');
+    expect(register).toHaveBeenNthCalledWith(1, { funnel_locale: 'en', funnel: 'web_funnel_en' });
+    expect(register).toHaveBeenNthCalledWith(2, { funnel_locale: 'vi', funnel: 'web_funnel_vi' });
   });
 });

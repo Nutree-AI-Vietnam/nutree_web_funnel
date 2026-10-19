@@ -8,6 +8,7 @@ import { BackgroundBeams } from '@/components/ui/background-beams';
 import { ExitIntentModal } from '@/components/exit-intent-modal';
 import { trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
+import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
 import { goToPreviousQuizStep } from '@/lib/quiz/navigation';
 import { QUIZ_STEPS, VALUE_TOUR_STEPS, stepIndex, type QuizStep } from '@/lib/quiz/steps';
 import { useHydrated } from '@/lib/quiz/store';
@@ -26,6 +27,7 @@ export function QuizShell({
   progressIndex,
   onBack,
   showExitIntent = true,
+  renderBeforeHydration = false,
 }: {
   step: QuizStep;
   children: React.ReactNode;
@@ -33,6 +35,8 @@ export function QuizShell({
   progressIndex?: number;
   onBack?: () => void;
   showExitIntent?: boolean;
+  /** Draw this step in the server HTML. Only safe when `step` does not come from saved answers. */
+  renderBeforeHydration?: boolean;
 }) {
   const router = useRouter();
   const copy = useCopy();
@@ -41,17 +45,19 @@ export function QuizShell({
   const currentStep = progressIndex ?? stepIndex(step);
 
   useEffect(() => {
-    if (progressIndex == null) trackStepViewed(step);
-  }, [progressIndex, step]);
+    // Saved progress is applied before `hydrated` flips, so this is the restored step.
+    if (hydrated && progressIndex == null) trackStepViewed(step);
+  }, [hydrated, progressIndex, step]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [step]);
 
-  if (!hydrated) return null;
+  if (!hydrated && !renderBeforeHydration) return null;
 
   const progress = (currentStep / totalSteps) * 100;
   const fitViewport = FIT_VIEWPORT_STEPS.includes(step);
+  const hideBack = SKIP_LANDING && step === 'goal' && progressIndex == null && !onBack;
 
   return (
     <main
@@ -62,7 +68,7 @@ export function QuizShell({
     >
       <BackgroundBeams className="opacity-70" />
       <div className="quiz-shell-header enter-item relative z-10 mb-3 flex shrink-0 items-center justify-between gap-3" style={enterStyle(0)}>
-        {step === 'calculating' ? (
+        {step === 'calculating' || hideBack ? (
           <div aria-hidden="true" className="min-w-11" />
         ) : (
           <button
