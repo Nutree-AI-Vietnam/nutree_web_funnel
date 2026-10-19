@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { OptionCard } from '@/components/option-card';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import type { QuizStep } from '@/lib/quiz/steps';
-import { useQuizStore } from '@/lib/quiz/store';
+import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
 import { QuizStepFrame } from './quiz-step-frame';
 
@@ -23,7 +23,10 @@ export function SingleChoiceStep<K extends keyof OnboardingPayload>({
   options: ReadonlyArray<{ readonly key: string; readonly label: string; readonly icon?: string }>;
 }) {
   const router = useRouter();
-  const value = useQuizStore((s) => s.data[field]);
+  const hydrated = useHydrated();
+  const stored = useQuizStore((s) => s.data[field]);
+  // Saved answers are tab-only. Ignore them until hydration so the server HTML matches.
+  const value = hydrated ? stored : undefined;
   const setData = useQuizStore((s) => s.setData);
   // Show the selection, then advance so feedback lands before navigation.
   const [pending, setPending] = useState<string | null>(null);

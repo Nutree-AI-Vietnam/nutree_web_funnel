@@ -1,7 +1,7 @@
 'use client';
 
 import type { ComponentType } from 'react';
-import { LegalConsent } from '@/components/legal-consent';
+import { GoalEntryFooter } from '@/components/goal-entry-footer';
 import { useCopy } from '@/lib/copy/use-copy';
 import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
 import type { QuizStep } from '@/lib/quiz/steps';
@@ -38,7 +38,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
           description={c.goal.description}
           options={c.goal.options}
         />
-        {SKIP_LANDING ? <LegalConsent className="shrink-0 px-1 pt-3" /> : null}
+        {SKIP_LANDING ? <GoalEntryFooter /> : null}
       </>
     );
   },

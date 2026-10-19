@@ -6,19 +6,17 @@ import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 're
 import { BoCongThuongBadge } from '@/components/bo-cong-thuong-badge';
 import { BackgroundBeams } from '@/components/ui/background-beams';
 import { MovingBorderLink } from '@/components/ui/moving-border-button';
+import { LanguageMenu } from '@/components/language-menu';
 import { LegalConsent } from '@/components/legal-consent';
 import { trackStepViewed } from '@/lib/analytics/track';
-import { copyFor, LOCALE_NAMES, LOCALE_ORDER, type Copy, type Locale } from '@/lib/copy';
+import { copyFor, type Copy, type Locale } from '@/lib/copy';
 import { startQuizFromLanding } from '@/lib/quiz/navigation';
-import { cn } from '@/lib/utils';
 
 const MACRO_BARS = [
   { width: 82, tone: 'bg-protein' },
   { width: 66, tone: 'bg-carbs' },
   { width: 46, tone: 'bg-fat' },
 ];
-
-const LOCALE_FLAGS: Record<Locale, string> = { vi: '🇻🇳', en: '🇺🇸' };
 
 function useViewportFit(frameRef: RefObject<HTMLElement | null>, contentRef: RefObject<HTMLElement | null>, key: string) {
   const [scale, setScale] = useState(1);
@@ -43,69 +41,6 @@ function useViewportFit(frameRef: RefObject<HTMLElement | null>, contentRef: Ref
   }, [frameRef, contentRef, key]);
 
   return scale;
-}
-
-function LanguageMenu({ active, onChange }: { active: Locale; onChange?: (locale: Locale) => void }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('pointerdown', close);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('pointerdown', close);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-
-  return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-label={LOCALE_NAMES[active]}
-        onClick={() => setOpen((value) => !value)}
-        className="flex h-8 items-center gap-0.5 rounded-full border border-white/80 bg-white/85 pl-2 pr-1 text-forest shadow-[0_6px_16px_rgb(16_39_32_/_0.08)] focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-brand"
-      >
-        <span aria-hidden="true" className="text-lg leading-none">{LOCALE_FLAGS[active]}</span>
-        <svg viewBox="0 0 24 24" className={cn('size-4 transition-transform duration-200', open && 'rotate-180')} aria-hidden="true">
-          <path d="M5.5 9.25 12 15.75 18.5 9.25" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-      {open && (
-        <ul role="listbox" aria-label="Language / Ngôn ngữ" className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-2xl border border-white/80 bg-white py-1 shadow-[0_18px_40px_rgb(16_39_32_/_0.16)]">
-          {LOCALE_ORDER.map((locale) => {
-            const selected = locale === active;
-            return (
-              <li key={locale}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={selected}
-                  onClick={() => {
-                    onChange?.(locale);
-                    setOpen(false);
-                  }}
-                  className={cn('flex min-h-12 w-full items-center gap-3 px-4 text-left text-base font-semibold', selected ? 'bg-mist text-forest' : 'text-slate-brand hover:bg-mist/70')}
-                >
-                  <span aria-hidden="true" className="text-xl leading-none">{LOCALE_FLAGS[locale]}</span>
-                  {LOCALE_NAMES[locale]}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
-  );
 }
 
 function PlanPreview({ copy }: { copy: Copy }) {

@@ -10,6 +10,7 @@ import { LandingPage } from '@/components/landing-page';
 import { QuizShell } from '@/components/quiz-shell';
 import { ValueTourScreen } from '@/components/value-tour-screen';
 import { captureAttribution, stripNonAttributionParams } from '@/lib/analytics/attribution';
+import { RouteLocaleProvider } from '@/lib/copy/use-copy';
 import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
 import { startQuizFromLanding } from '@/lib/quiz/navigation';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
@@ -17,6 +18,14 @@ import type { FunnelScreen } from '@/lib/quiz/store';
 import type { Locale } from '@/lib/copy';
 
 export function SurveyPageClient({ language }: { language: Locale }) {
+  return (
+    <RouteLocaleProvider locale={language}>
+      <SurveyPageContent language={language} />
+    </RouteLocaleProvider>
+  );
+}
+
+function SurveyPageContent({ language }: { language: Locale }) {
   const router = useRouter();
   const hydrated = useHydrated();
   const screen = useQuizStore((state) => state.funnelScreen);
@@ -31,7 +40,7 @@ export function SurveyPageClient({ language }: { language: Locale }) {
     if (hydrated && activeLocale !== language) setLocale(language);
   }, [activeLocale, hydrated, language, setLocale]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     captureAttribution();
     stripNonAttributionParams();
   }, []);
@@ -68,7 +77,13 @@ export function SurveyPageClient({ language }: { language: Locale }) {
     );
   }
 
-  if (!hydrated || screen === 'landing') return null;
+  if (SKIP_LANDING && (!hydrated || screen === 'landing')) {
+    return (
+      <QuizShell step="goal" renderBeforeHydration>
+        <StepRenderer step="goal" />
+      </QuizShell>
+    );
+  }
 
   switch (screen) {
     case 'quiz':

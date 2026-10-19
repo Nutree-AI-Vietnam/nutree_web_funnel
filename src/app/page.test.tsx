@@ -1,9 +1,13 @@
 /** @vitest-environment jsdom */
 
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { hydrateRoot } from 'react-dom/client';
+import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import HomePage from './page';
 import { STORAGE_KEY, useQuizStore } from '@/lib/quiz/store';
+
+const BCT_HREF = 'https://online.gov.vn/nen-tang/8827acb5-d544-4881-8984-e67248f540d3';
 
 vi.mock('next/image', () => ({
   default: ({ alt }: { alt?: string }) => <span role="img" aria-label={alt || undefined} />,
@@ -91,6 +95,10 @@ describe('home quiz entry', () => {
     expect(useQuizStore.getState().currentStep).toBe('goal');
     expect(useQuizStore.getState().data.fitness_goal).toBeUndefined();
 
+    expect(screen.queryByRole('button', { name: 'Quay lại' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Tiếng Việt' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Bộ Công Thương/ }).getAttribute('href')).toBe(BCT_HREF);
+
     const terms = screen.getByRole('link', { name: 'Điều khoản' });
     const privacy = screen.getByRole('link', { name: 'Chính sách bảo mật' });
     expect(terms.getAttribute('href')).toBe('https://nutreeai.com/terms');
@@ -120,11 +128,65 @@ describe('home quiz entry', () => {
       custom_data: { content_name: 'funnel_quiz_start', content_category: 'onboarding' },
     });
 
+    fireEvent.click(screen.getByRole('button', { name: 'Giảm cân' }));
+    expect(await screen.findByRole('heading', { name: 'Tên bạn là gì?' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Quay lại' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Tiếng Việt' })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Bộ Công Thương/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Quay lại' }));
+    expect(await screen.findByRole('heading', { name: 'Mục tiêu chính của bạn là gì?' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Quay lại' })).toBeNull();
+    expect(screen.getByRole('link', { name: /Bộ Công Thương/ })).toBeTruthy();
+
     cleanup();
     render(<HomePage />);
     expect(await screen.findByRole('heading', { name: 'Mục tiêu chính của bạn là gì?' })).toBeTruthy();
     expect(viewContentCalls()).toHaveLength(1);
     expect(metaServerEvents()).toHaveLength(1);
+  });
+
+  it('server-renders the goal step, without the back arrow, with the badge and language switcher', () => {
+    useQuizStore.getState().setFunnelScreen('quiz');
+    useQuizStore.getState().setCurrentStep('activity_level');
+    useQuizStore.getState().setData({ fitness_goal: 'cut' });
+
+    const html = renderToString(<HomePage />);
+
+    expect(html).toContain('Mục tiêu chính của bạn là gì?');
+    expect(html).toContain('Giảm cân');
+    expect(html).toContain('Khi tiếp tục, bạn đồng ý với');
+    expect(html).toContain('Tiếng Việt');
+    expect(html).toContain(BCT_HREF);
+    expect(html).not.toContain('Mức độ hoạt động hàng ngày của bạn?');
+    expect(html).not.toContain('Quay lại');
+    expect(html).not.toContain('Xây kế hoạch của tôi');
+    expect(html).not.toContain('aria-pressed="true"');
+  });
+
+  it('hydrates the server goal step without a mismatch', async () => {
+    useQuizStore.getState().setFunnelScreen('quiz');
+    useQuizStore.getState().setCurrentStep('activity_level');
+    const html = renderToString(<HomePage />);
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    container.innerHTML = html;
+    const recoverable: unknown[] = [];
+
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+    await act(async () => {
+      root = hydrateRoot(container, <HomePage />, {
+        onRecoverableError(error) {
+          recoverable.push(error);
+        },
+      });
+    });
+
+    expect(recoverable).toEqual([]);
+    expect(container.textContent).toContain('Mức độ hoạt động hàng ngày của bạn?');
+    await act(async () => {
+      root?.unmount();
+    });
+    container.remove();
   });
 
   it('keeps an in-progress quiz instead of returning to the landing page', async () => {
@@ -144,6 +206,8 @@ describe('home quiz entry', () => {
     expect(await screen.findByRole('heading', { name: 'Mức độ hoạt động hàng ngày của bạn?' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'Xây kế hoạch của tôi' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Điều khoản' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Tiếng Việt' })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Bộ Công Thương/ })).toBeNull();
     expect(useQuizStore.getState().data.fitness_goal).toBe('cut');
     expect(viewContentCalls()).toHaveLength(0);
   });
