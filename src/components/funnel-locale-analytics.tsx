@@ -2,16 +2,13 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { analyticsLocale } from '@/lib/analytics/funnel-locale';
-import { registerFunnelSuperProperties } from '@/lib/analytics/posthog';
+import { registerDocumentFunnelLocale } from '@/lib/analytics/posthog';
 
-/** Attaches funnel_locale and funnel to later PostHog events, and keeps <html lang> with the survey. */
+/** Attaches funnel_locale and funnel to later PostHog events, and keeps <html lang> with the chosen funnel. */
 export function FunnelLocaleAnalytics() {
   const pathname = usePathname();
   useEffect(() => {
-    const locale = analyticsLocale(pathname);
-    document.documentElement.lang = locale;
-    registerFunnelSuperProperties(locale);
+    document.documentElement.lang = registerDocumentFunnelLocale(pathname);
   }, [pathname]);
   return null;
 }

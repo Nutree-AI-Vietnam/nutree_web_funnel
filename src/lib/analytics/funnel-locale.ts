@@ -8,6 +8,9 @@ export type FunnelLocale = (typeof FUNNEL_LOCALES)[number];
 
 const SURVEY_LOCALE = /^\/survey\/(en|vi)(?:\/|$)/;
 
+/** Survives the full document load from the survey into /postcheckout in the same tab. */
+export const FUNNEL_LOCALE_STORAGE_KEY = 'nutree_funnel_locale_v1';
+
 export function isFunnelLocale(value: unknown): value is FunnelLocale {
   return value === 'vi' || value === 'en';
 }
@@ -41,10 +44,35 @@ export function readLockedFunnelLocale(): FunnelLocale {
   return 'vi';
 }
 
+/** Writes the survey locale so a later full page load can keep it. */
+export function rememberFunnelLocale(locale: FunnelLocale): void {
+  try {
+    sessionStorage.setItem(FUNNEL_LOCALE_STORAGE_KEY, locale);
+  } catch {
+    // Private mode and non-browser tests have no storage.
+  }
+}
+
+/** Locale carried from the survey, if this tab stored one. */
+export function readRememberedFunnelLocale(): FunnelLocale | null {
+  try {
+    const stored = sessionStorage.getItem(FUNNEL_LOCALE_STORAGE_KEY);
+    return isFunnelLocale(stored) ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * PostHog locale. An explicit survey path wins so a language switch is visible.
- * Other routes keep the locale from the first load.
+ * Other routes keep the locale stored for this tab, then an already registered
+ * super property, and only then the document default.
  */
-export function analyticsLocale(pathname: string | null | undefined): FunnelLocale {
-  return surveyLocaleFromPath(pathname) ?? readLockedFunnelLocale();
+export function analyticsLocale(pathname: string | null | undefined, registered?: unknown): FunnelLocale {
+  const survey = surveyLocaleFromPath(pathname);
+  if (survey) return survey;
+  const remembered = readRememberedFunnelLocale();
+  if (remembered) return remembered;
+  if (isFunnelLocale(registered)) return registered;
+  return readLockedFunnelLocale();
 }

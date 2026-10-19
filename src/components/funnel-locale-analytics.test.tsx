@@ -5,20 +5,22 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FunnelLocaleAnalytics } from './funnel-locale-analytics';
 
 const path = vi.hoisted(() => ({ current: '/survey/en' }));
-const { register } = vi.hoisted(() => ({ register: vi.fn() }));
+const { register, getProperty } = vi.hoisted(() => ({ register: vi.fn(), getProperty: vi.fn() }));
 
 vi.mock('next/navigation', () => ({
   usePathname: () => path.current,
 }));
 
 vi.mock('posthog-js', () => ({
-  default: { register, capture: vi.fn(), identify: vi.fn() },
+  default: { register, capture: vi.fn(), identify: vi.fn(), get_property: getProperty },
 }));
 
 describe('FunnelLocaleAnalytics', () => {
   afterEach(() => {
     cleanup();
     register.mockClear();
+    getProperty.mockReset();
+    sessionStorage.clear();
     document.documentElement.removeAttribute('data-funnel-locale');
     document.documentElement.lang = 'vi';
   });
@@ -41,5 +43,23 @@ describe('FunnelLocaleAnalytics', () => {
     path.current = '/postcheckout';
     render(<FunnelLocaleAnalytics />);
     expect(register).toHaveBeenCalledWith({ funnel_locale: 'en', funnel: 'web_funnel_en' });
+  });
+
+  it('does not replace a remembered english locale after a full reload onto the vietnamese document', () => {
+    sessionStorage.setItem('nutree_funnel_locale_v1', 'en');
+    document.documentElement.setAttribute('data-funnel-locale', 'vi');
+    path.current = '/postcheckout';
+    render(<FunnelLocaleAnalytics />);
+    expect(register).toHaveBeenCalledWith({ funnel_locale: 'en', funnel: 'web_funnel_en' });
+    expect(document.documentElement.lang).toBe('en');
+  });
+
+  it('does not replace an english super property when nothing is stored for this tab', () => {
+    getProperty.mockReturnValue('en');
+    document.documentElement.setAttribute('data-funnel-locale', 'vi');
+    path.current = '/postcheckout';
+    render(<FunnelLocaleAnalytics />);
+    expect(register).toHaveBeenCalledWith({ funnel_locale: 'en', funnel: 'web_funnel_en' });
+    expect(sessionStorage.getItem('nutree_funnel_locale_v1')).toBe('en');
   });
 });

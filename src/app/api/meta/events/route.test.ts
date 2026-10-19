@@ -234,7 +234,8 @@ describe('Meta Conversions API route', () => {
   it('defaults a missing locale to the Vietnamese dataset', async () => {
     vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID_EN', '2222222222');
     vi.stubEnv('META_CONVERSIONS_API_ACCESS_TOKEN_EN', 'en-token');
-    const { locale: _locale, ...event } = browserEvent;
+    const event = { ...browserEvent };
+    delete event.locale;
     const response = await POST(request(event));
     expect(response.status).toBe(204);
     const [target, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];

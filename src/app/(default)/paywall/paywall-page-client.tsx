@@ -20,7 +20,9 @@ import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, d
 import { firstPaymentCommerce, formatPerDay, planPerDay, savingsVersusPriciest } from '@/lib/revenuecat/plan-pricing';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { syncRevenueCatAttribution } from '@/lib/revenuecat/attribution-attributes';
-import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, redemptionLinkHash, redemptionUrlFromCheckoutOperation, savePendingRedemptionCorrelation, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
+import { completePurchasedCheckout } from '@/lib/revenuecat/purchase-handoff';
+import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, redemptionHandoff, type RedemptionHandoff } from '@/lib/revenuecat/redemption-handoff';
+import { usePostcheckoutRedirect } from '@/lib/revenuecat/use-postcheckout-redirect';
 import { resolvePaywallPricing } from '@/lib/revenuecat/paywall-offer-state';
 import { buildRevenueCatPaywall, checkoutPackage, defaultPaywallPlan, SIX_MONTH_PLAN_ID, type PaywallOfferKind, type RevenueCatPaywall } from '@/lib/revenuecat/paywall-plans';
 import { hasWelcomeVoucherBeenClaimed, markWelcomeVoucherClaimed, shouldArmExitVoucher } from '@/lib/revenuecat/welcome-voucher';
@@ -139,12 +141,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     [plans, selectedId],
   );
 
-  useEffect(() => {
-    if (!hydrated) return;
-    if (isUserPurchased({ purchased, lead })) {
-      router.replace('/postcheckout');
-    }
-  }, [hydrated, lead, purchased, router]);
+  usePostcheckoutRedirect(hydrated && isUserPurchased({ purchased, lead }));
 
   useEffect(() => trackStepViewed('paywall'), []);
 
@@ -374,20 +371,28 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       purchaseSucceededRef.current = true;
       window.clearTimeout(abandonTimer);
       clearPaywallCheckoutPending();
-      setPurchased(true);
-      trackEvent('revenuecat_checkout_completed', { plan: plan.id, ...checkoutCommerce });
-      purchaseLeadIdRef.current = lead.lead_id;
-      const redeemUrl = purchaseResult.redemptionInfo?.redeemUrl
-        ?? await redemptionUrlFromCheckoutOperation(readRevenueCatWebConfig().apiKey, purchaseResult.operationSessionId);
-      redemptionLinkHashRef.current = await redemptionLinkHash(redeemUrl);
-      if (!redemptionLinkHashRef.current) {
-        setRedemption({ kind: 'recovery' });
-        return;
-      }
-      savePendingRedemptionCorrelation({ leadId: lead.lead_id, appUserId: anonymousAppUserIdRef.current, redemptionLinkHash: redemptionLinkHashRef.current });
-      setRedemption({ kind: 'pending' });
-      await correlatePurchasedCustomer();
-      router.push('/postcheckout');
+      await completePurchasedCheckout({
+        markPurchased: () => {
+          setPurchased(true);
+          trackEvent('revenuecat_checkout_completed', { plan: plan.id, ...checkoutCommerce });
+          purchaseLeadIdRef.current = lead.lead_id;
+        },
+        redeemUrl: purchaseResult.redemptionInfo?.redeemUrl,
+        operationSessionId: purchaseResult.operationSessionId,
+        apiKey: readRevenueCatWebConfig().apiKey,
+        leadId: lead.lead_id,
+        appUserId: anonymousAppUserIdRef.current ?? '',
+        correlate: async (hash) => {
+          redemptionLinkHashRef.current = hash;
+          await correlatePurchasedCustomer();
+        },
+        onRecovery: () => setRedemption({ kind: 'recovery' }),
+        onPending: (hash) => {
+          redemptionLinkHashRef.current = hash;
+          setRedemption({ kind: 'pending' });
+        },
+        navigate: () => router.push('/postcheckout'),
+      });
     } catch (purchaseError) {
       const leftPaddleOpen = paddleOpenedRef.current || isUserCancelledPurchase(purchaseError);
       if (leftPaddleOpen && !isAlreadyPurchased(purchaseError)) {

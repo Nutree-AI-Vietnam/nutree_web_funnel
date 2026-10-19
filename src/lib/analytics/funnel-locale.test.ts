@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { analyticsLocale, funnelLocaleFromPath, funnelName, isFunnelLocale, readLockedFunnelLocale, surveyLocaleFromPath } from './funnel-locale';
+import { analyticsLocale, FUNNEL_LOCALE_STORAGE_KEY, funnelLocaleFromPath, funnelName, isFunnelLocale, readLockedFunnelLocale, readRememberedFunnelLocale, surveyLocaleFromPath } from './funnel-locale';
 
 describe('funnel locale', () => {
   afterEach(() => {
@@ -34,5 +34,29 @@ describe('funnel locale', () => {
     expect(analyticsLocale('/postcheckout')).toBe('en');
     expect(analyticsLocale('/survey/vi')).toBe('vi');
     expect(analyticsLocale('/survey/en')).toBe('en');
+  });
+
+  it('keeps a remembered english locale when the reloaded document is vietnamese', () => {
+    const storage = new Map<string, string>([[FUNNEL_LOCALE_STORAGE_KEY, 'en']]);
+    vi.stubGlobal('sessionStorage', {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => { storage.set(key, value); },
+    });
+    vi.stubGlobal('document', {
+      documentElement: { getAttribute: () => 'vi' },
+    });
+    expect(readRememberedFunnelLocale()).toBe('en');
+    expect(analyticsLocale('/postcheckout')).toBe('en');
+    expect(analyticsLocale('/success', 'vi')).toBe('en');
+    expect(analyticsLocale('/survey/vi')).toBe('vi');
+  });
+
+  it('keeps an already registered english super property ahead of the document default', () => {
+    vi.stubGlobal('document', {
+      documentElement: { getAttribute: () => 'vi' },
+    });
+    expect(analyticsLocale('/postcheckout', 'en')).toBe('en');
+    expect(analyticsLocale('/welcome', 'vi')).toBe('vi');
+    expect(analyticsLocale('/welcome', 'fr')).toBe('vi');
   });
 });

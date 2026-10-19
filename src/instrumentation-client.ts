@@ -1,6 +1,5 @@
 import posthog from 'posthog-js';
-import { readLockedFunnelLocale } from '@/lib/analytics/funnel-locale';
-import { registerFunnelSuperProperties } from '@/lib/analytics/posthog';
+import { registerDocumentFunnelLocale } from '@/lib/analytics/posthog';
 import { POSTHOG_PROXY_PATH } from '@/lib/analytics/posthog-proxy';
 
 const projectToken = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
@@ -26,5 +25,5 @@ if (projectToken) {
     debug: process.env.NODE_ENV === 'development',
   });
   posthog.register({ source: 'web_funnel' });
-  registerFunnelSuperProperties(readLockedFunnelLocale());
+  document.documentElement.lang = registerDocumentFunnelLocale(window.location.pathname);
 }
