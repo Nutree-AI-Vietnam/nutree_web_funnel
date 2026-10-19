@@ -4,7 +4,7 @@ import {
   savePendingRedemptionCorrelation,
 } from './redemption-handoff';
 
-/** One RevenueCat lookup or correlation may stall this long before we give up on it. */
+/** One RevenueCat status read, or the correlation call, may stall this long. */
 export const PURCHASE_CALL_TIMEOUT_MS = 4_000;
 
 /** The whole handoff may stall this long before we leave for post-checkout. */
@@ -82,14 +82,20 @@ export async function settlePurchaseRedemption(input: {
   leadId: string;
   appUserId: string;
   lookupRedeemUrl?: (apiKey: string, operationSessionId: string) => Promise<string | null>;
+  checkoutFetcher?: typeof fetch;
   callTimeoutMs?: number;
   deadline?: number;
 }): Promise<{ hash: string | null }> {
   const callTimeoutMs = input.callTimeoutMs ?? PURCHASE_CALL_TIMEOUT_MS;
   const deadline = input.deadline ?? Date.now() + PURCHASE_HANDOFF_TIMEOUT_MS;
-  const lookup = input.lookupRedeemUrl ?? redemptionUrlFromCheckoutOperation;
   const redeemUrl = input.redeemUrl
-    ?? await withTimeout(lookup(input.apiKey, input.operationSessionId ?? ''), callTimeoutMs, deadline);
+    ?? (input.lookupRedeemUrl
+      ? await input.lookupRedeemUrl(input.apiKey, input.operationSessionId ?? '')
+      : await redemptionUrlFromCheckoutOperation(input.apiKey, input.operationSessionId ?? '', {
+        fetcher: input.checkoutFetcher,
+        requestTimeoutMs: callTimeoutMs,
+        deadline,
+      }));
   const hash = await withTimeout(redemptionLinkHash(redeemUrl), callTimeoutMs, deadline);
   if (!hash) return { hash: null };
   savePendingRedemptionCorrelation({
@@ -102,7 +108,8 @@ export async function settlePurchaseRedemption(input: {
 
 /**
  * Keeps the document alive until the handoff has finished, failed, or timed out.
- * A missing hash stays on the paywall recovery state. Every other path navigates.
+ * A missing hash, including a lookup that runs out of time, stays on the paywall
+ * recovery state. Correlation still navigates once a hash has been stored.
  * `markPurchased` runs before any await so entitlement state updates immediately.
  */
 export async function completePurchasedCheckout(input: {
@@ -117,6 +124,7 @@ export async function completePurchasedCheckout(input: {
   onPending: (hash: string) => void;
   navigate: () => void;
   lookupRedeemUrl?: (apiKey: string, operationSessionId: string) => Promise<string | null>;
+  checkoutFetcher?: typeof fetch;
   callTimeoutMs?: number;
   handoffTimeoutMs?: number;
 }): Promise<void> {
@@ -140,12 +148,11 @@ export async function completePurchasedCheckout(input: {
       } catch {
         // A completed payment stays purchased. Post-checkout retries the correlation.
       }
-    } catch (error) {
-      if (!(error instanceof PurchaseHandoffTimeout)) {
-        postcheckoutRedirectHeld = true;
-        leaveForPostcheckout = false;
-        input.onRecovery();
-      }
+    } catch {
+      // No hash was stored. The paywall recovery state is the same outcome as a missing link.
+      postcheckoutRedirectHeld = true;
+      leaveForPostcheckout = false;
+      input.onRecovery();
     }
   } finally {
     try {

@@ -6,6 +6,18 @@ import { readPendingRedemptionCorrelation } from './redemption-handoff';
 
 const redeemUrl = 'https://redeem.test/token';
 
+function useHandoffTimers() {
+  vi.spyOn(crypto.subtle, 'digest').mockResolvedValue(new Uint8Array(32).buffer);
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+}
+
+async function flushWork() {
+  for (let step = 0; step < 30; step += 1) {
+    await vi.advanceTimersByTimeAsync(0);
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+}
+
 describe('purchase handoff navigation', () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -75,7 +87,7 @@ describe('purchase handoff navigation', () => {
   });
 
   it('navigates when a RevenueCat call never resolves and keeps the pending record', async () => {
-    vi.useFakeTimers();
+    useHandoffTimers();
     const navigate = vi.fn();
     const pending = completePurchasedCheckout({
       markPurchased: () => undefined,
@@ -90,7 +102,7 @@ describe('purchase handoff navigation', () => {
       navigate,
     });
 
-    await vi.advanceTimersByTimeAsync(0);
+    await flushWork();
     expect(readPendingRedemptionCorrelation()?.leadId).toBe('lead-1');
     expect(navigate).not.toHaveBeenCalled();
 
@@ -102,10 +114,15 @@ describe('purchase handoff navigation', () => {
     expect(isPurchaseHandoffInFlight()).toBe(false);
   });
 
-  it('navigates when the redemption lookup never resolves, within the call bound', async () => {
-    vi.useFakeTimers();
+  it('stays on the recovery state when lookup requests never resolve', async () => {
+    useHandoffTimers();
+    let calls = 0;
     const navigate = vi.fn();
     const onRecovery = vi.fn();
+    const checkoutFetcher: typeof fetch = () => {
+      calls += 1;
+      return new Promise(() => undefined);
+    };
     const pending = completePurchasedCheckout({
       markPurchased: () => undefined,
       redeemUrl: null,
@@ -113,26 +130,64 @@ describe('purchase handoff navigation', () => {
       apiKey: 'rcb_test',
       leadId: 'lead-1',
       appUserId: '$RCAnonymousID:customer-1',
-      lookupRedeemUrl: () => new Promise(() => undefined),
+      checkoutFetcher,
       correlate: vi.fn(),
       onRecovery,
       onPending: vi.fn(),
       navigate,
     });
 
-    await vi.advanceTimersByTimeAsync(PURCHASE_CALL_TIMEOUT_MS - 1);
-    expect(navigate).not.toHaveBeenCalled();
-
-    await vi.advanceTimersByTimeAsync(1);
+    await vi.advanceTimersByTimeAsync(PURCHASE_HANDOFF_TIMEOUT_MS);
     await pending;
 
-    expect(onRecovery).not.toHaveBeenCalled();
-    expect(navigate).toHaveBeenCalledOnce();
+    expect(onRecovery).toHaveBeenCalledOnce();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(isPostcheckoutRedirectHeld()).toBe(true);
+    expect(readPendingRedemptionCorrelation()).toBeNull();
+    expect(calls).toBeGreaterThan(1);
+    expect(calls).toBeLessThan(8);
     expect(isPurchaseHandoffInFlight()).toBe(false);
   });
 
+  it('keeps polling a slow lookup and navigates once a later try publishes the link', async () => {
+    useHandoffTimers();
+    let calls = 0;
+    const navigate = vi.fn();
+    const onRecovery = vi.fn();
+    const checkoutFetcher: typeof fetch = async () => {
+      calls += 1;
+      const body = calls < 6
+        ? { operation: { redemption_info: null } }
+        : { operation: { redemption_info: { redeem_url: redeemUrl } } };
+      return new Response(JSON.stringify(body), { status: 200 });
+    };
+    const pending = completePurchasedCheckout({
+      markPurchased: () => undefined,
+      redeemUrl: null,
+      operationSessionId: 'op-1',
+      apiKey: 'rcb_test',
+      leadId: 'lead-1',
+      appUserId: '$RCAnonymousID:customer-1',
+      checkoutFetcher,
+      correlate: async () => undefined,
+      onRecovery,
+      onPending: vi.fn(),
+      navigate,
+    });
+
+    await vi.advanceTimersByTimeAsync(5_000);
+    await flushWork();
+    await pending;
+
+    expect(calls).toBe(6);
+    expect(onRecovery).not.toHaveBeenCalled();
+    expect(readPendingRedemptionCorrelation()?.leadId).toBe('lead-1');
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(isPostcheckoutRedirectHeld()).toBe(false);
+  });
+
   it('navigates when the whole handoff reaches its bound and keeps the pending record', async () => {
-    vi.useFakeTimers();
+    useHandoffTimers();
     const navigate = vi.fn();
     const pending = completePurchasedCheckout({
       markPurchased: () => undefined,
@@ -149,7 +204,7 @@ describe('purchase handoff navigation', () => {
       handoffTimeoutMs: PURCHASE_HANDOFF_TIMEOUT_MS,
     });
 
-    await vi.advanceTimersByTimeAsync(0);
+    await flushWork();
     expect(readPendingRedemptionCorrelation()?.leadId).toBe('lead-1');
     expect(navigate).not.toHaveBeenCalled();
 
