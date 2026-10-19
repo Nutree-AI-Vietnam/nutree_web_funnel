@@ -19,6 +19,27 @@ export const vi = {
     progress: 'Tiến độ của bạn',
     stepCount: (current: number, total: number) => `Câu ${current}/${total}`,
   },
+  exitIntent: {
+    messages: [
+      { emoji: '🔥', message: 'Bạn đang làm rất tốt!' },
+      { emoji: '💪', message: 'Sắp hoàn thành rồi!' },
+      { emoji: '✨', message: 'Chỉ còn vài bước nữa!' },
+      { emoji: '🎯', message: 'Mục tiêu của bạn đang rất gần!' },
+    ],
+    greetingNamed: (name: string) => `${name} ơi`,
+    greeting: 'Bạn ơi',
+    bodyWithGoal: (progress: number, goal: string, age: number) =>
+      `Bạn đã hoàn thành ${progress}% chặng đường. Chỉ cần thêm 1-2 phút nữa là Nutree sẽ tính xong kế hoạch ${goal.toLowerCase()} cho tuổi ${age} của bạn.`,
+    body: (progress: number) =>
+      `Bạn đã hoàn thành ${progress}% chặng đường. Chỉ cần thêm 1-2 phút nữa là Nutree sẽ tính xong kế hoạch riêng cho bạn.`,
+    benefits: [
+      { icon: '🎯', text: 'Kế hoạch calo & macro cá nhân' },
+      { icon: '🍽️', text: 'Gợi ý bữa ăn AI theo mục tiêu' },
+      { icon: '📊', text: 'Theo dõi tiến độ mỗi tuần' },
+    ],
+    stay: 'Tiếp tục ngay',
+    leave: 'Tôi sẽ quay lại sau',
+  },
   metric: {
     decrement: (label: string) => `Giảm ${label}`,
     increment: (label: string) => `Tăng ${label}`,
@@ -195,6 +216,9 @@ export const vi = {
   reflection: {
     template: '[name], mục tiêu của bạn đã rõ ràng và hoàn toàn khả thi với một kế hoạch đúng.',
     fallbackName: 'Bạn',
+    goalInlineFallback: 'của bạn',
+    durationInlineFallback: 'từng ngày',
+    challengeInlineFallback: 'thiếu một kế hoạch rõ ràng',
     goalCaption: 'Mục tiêu',
     challengeCaption: 'Rào cản chính',
     durationCaption: 'Thời gian',

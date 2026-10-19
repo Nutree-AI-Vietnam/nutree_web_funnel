@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useLayoutEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ExitOfferPageClient } from '@/app/exit-offer/exit-offer-page-client';
-import { PaywallPageClient } from '@/app/paywall/paywall-page-client';
-import { StepRenderer } from '@/app/quiz/step-renderer';
+import { ExitOfferPageClient } from '@/app/(default)/exit-offer/exit-offer-page-client';
+import { PaywallPageClient } from '@/app/(default)/paywall/paywall-page-client';
+import { StepRenderer } from '@/app/(default)/quiz/step-renderer';
 import { EmailCaptureScreen } from '@/components/email-capture-screen';
 import { LandingPage } from '@/components/landing-page';
 import { QuizShell } from '@/components/quiz-shell';
@@ -14,6 +14,8 @@ import { RouteLocaleProvider } from '@/lib/copy/use-copy';
 import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
 import { startQuizFromLanding } from '@/lib/quiz/navigation';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
+import { isPurchaseHandoffInFlight } from '@/lib/revenuecat/purchase-handoff';
+import { usePostcheckoutRedirect } from '@/lib/revenuecat/use-postcheckout-redirect';
 import type { FunnelScreen } from '@/lib/quiz/store';
 import type { Locale } from '@/lib/copy';
 
@@ -50,12 +52,7 @@ function SurveyPageContent({ language }: { language: Locale }) {
     startQuizFromLanding();
   }, [hydrated, screen]);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    if (isUserPurchased({ purchased, lead }) && (screen === 'paywall' || screen === 'exit-offer')) {
-      router.replace('/postcheckout');
-    }
-  }, [hydrated, lead, purchased, router, screen]);
+  usePostcheckoutRedirect(hydrated && (screen === 'paywall' || screen === 'exit-offer') && isUserPurchased({ purchased, lead }));
 
   const goToScreen = useCallback((nextScreen: FunnelScreen) => {
     setFunnelScreen(nextScreen);
@@ -93,8 +90,7 @@ function SurveyPageContent({ language }: { language: Locale }) {
     case 'value':
       return <ValueTourScreen onComplete={() => goToScreen('paywall')} onBack={() => goToScreen('email')} onMissingLead={() => goToScreen('email')} />;
     case 'exit-offer': {
-      if (isUserPurchased({ purchased, lead })) {
-        router.replace('/postcheckout');
+      if (isUserPurchased({ purchased, lead }) && !isPurchaseHandoffInFlight()) {
         return null;
       }
       return <ExitOfferPageClient onClaim={() => goToScreen('paywall')} onDismiss={() => goToScreen('paywall')} onMissingLead={() => goToScreen('email')} onAlreadyClaimed={() => goToScreen('paywall')} />;

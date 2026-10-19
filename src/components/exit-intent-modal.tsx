@@ -12,13 +12,6 @@ import { QUIZ_STEPS } from '@/lib/quiz/steps';
 const STORAGE_KEY = 'nutree_exit_intent_shown';
 const MIN_STEP_INDEX = 3;
 
-const encouragementMessages = [
-  { emoji: '🔥', message: 'Bạn đang làm rất tốt!' },
-  { emoji: '💪', message: 'Sắp hoàn thành rồi!' },
-  { emoji: '✨', message: 'Chỉ còn vài bước nữa!' },
-  { emoji: '🎯', message: 'Mục tiêu của bạn đang rất gần!' },
-];
-
 export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number }) {
   const copy = useCopy();
   const data = useQuizStore((s) => s.data);
@@ -42,7 +35,7 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
     };
   }, [currentStepIndex]);
 
-  const encouragement = encouragementMessages[currentStepIndex % encouragementMessages.length];
+  const encouragement = copy.exitIntent.messages[currentStepIndex % copy.exitIntent.messages.length];
   const progress = Math.round((currentStepIndex / QUIZ_STEPS.length) * 100);
   const age = deriveAge(data);
   const name = data.name;
@@ -103,7 +96,7 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
                     transition={{ delay: 0.15 }}
                     className="ph-mask text-xs font-extrabold tracking-[0.02em] text-teal-brand"
                   >
-                    {name ? `${name} ơi` : 'Bạn ơi'}
+                    {name ? copy.exitIntent.greetingNamed(name) : copy.exitIntent.greeting}
                   </motion.p>
                   <motion.h2
                     initial={{ opacity: 0, x: -10 }}
@@ -124,8 +117,8 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
                 className="mb-4 text-sm font-semibold leading-relaxed text-slate-brand"
               >
                 {age && goalLabel
-                  ? `Bạn đã hoàn thành ${progress}% chặng đường. Chỉ cần thêm 1-2 phút nữa là Nutree sẽ tính xong kế hoạch ${goalLabel.toLowerCase()} cho tuổi ${age} của bạn.`
-                  : `Bạn đã hoàn thành ${progress}% chặng đường. Chỉ cần thêm 1-2 phút nữa là Nutree sẽ tính xong kế hoạch riêng cho bạn.`}
+                  ? copy.exitIntent.bodyWithGoal(progress, goalLabel, age)
+                  : copy.exitIntent.body(progress)}
               </motion.p>
 
               {/* Benefits list with staggered animation */}
@@ -138,11 +131,7 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
                 }}
                 className="mb-5 grid gap-2"
               >
-                {[
-                  { icon: '🎯', text: 'Kế hoạch calo & macro cá nhân' },
-                  { icon: '🍽️', text: 'Gợi ý bữa ăn AI theo mục tiêu' },
-                  { icon: '📊', text: 'Theo dõi tiến độ mỗi tuần' },
-                ].map((item) => (
+                {copy.exitIntent.benefits.map((item) => (
                   <motion.div
                     key={item.text}
                     variants={{
@@ -165,14 +154,14 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
                 className="grid gap-2"
               >
                 <PrimaryButton onClick={stay}>
-                  Tiếp tục ngay
+                  {copy.exitIntent.stay}
                 </PrimaryButton>
                 <button
                   type="button"
                   onClick={leave}
                   className="min-h-11 rounded-2xl border border-border-brand bg-white px-4 py-3 text-sm font-extrabold text-muted-brand transition hover:bg-mist focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.98]"
                 >
-                  Tôi sẽ quay lại sau
+                  {copy.exitIntent.leave}
                 </button>
               </motion.div>
             </div>

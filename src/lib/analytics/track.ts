@@ -9,7 +9,8 @@
  * conversions after health conditions. Each of the four also goes to the
  * Conversions API through our server with the pixel's eventID, so Meta keeps
  * one copy; it carries the hashed email, first name and lead id saved at email
- * capture, and an fbc built from the landing fbclid. The funnel entry sends
+ * capture, an fbc built from the landing fbclid, and the funnel locale that
+ * selects the dataset. The funnel entry sends
  * ViewContent once per tab: on the landing step when that screen is shown,
  * otherwise on the goal step. Ad optimization uses the ViewContent event.
  *
@@ -27,7 +28,8 @@ import { isQuizStep } from '@/lib/quiz/steps';
 import { getAttribution } from './attribution';
 import { pageUrl } from './events-api';
 import { META_EVENTS_PATH, type MetaBrowserEvent, type MetaCustomData, type MetaStandardEvent } from './meta-events-api';
-import { hashMetaIdentity, metaPixelId, readMetaIdentity } from './meta-identity';
+import { readLockedFunnelLocale } from './funnel-locale';
+import { activeMetaPixelId, hashMetaIdentity, readMetaIdentity } from './meta-identity';
 import { TIKTOK_EVENTS_PATH, type TiktokBrowserEvent, type TiktokProperties, type TiktokStandardEvent } from './tiktok-events-api';
 import { captureFunnelEvent } from './posthog';
 import { applyTiktokIdentity, readTiktokIdentity, type TiktokIdentity, type TiktokPixel } from './tiktok-identity';
@@ -184,14 +186,15 @@ function metaFbc(fbclid: unknown): string | null {
   return `fb.1.${seenAt}.${fbclid}`;
 }
 
-/** Server copy of a pixel event; the shared event_id lets Meta keep only one. */
+/** Server copy of a pixel event; the shared event_id lets Meta keep only one. Locale picks the paired dataset. */
 function sendMetaServerEvent(event: Omit<MetaBrowserEvent, 'user_data'>, fbc: string | null): void {
+  const locale = readLockedFunnelLocale();
   try {
     void hashMetaIdentity(readMetaIdentity())
       .then((identity) => fetch(META_EVENTS_PATH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...event, user_data: { ...identity, ...(fbc ? { fbc } : {}) } }),
+        body: JSON.stringify({ ...event, locale, user_data: { ...identity, ...(fbc ? { fbc } : {}) } }),
         keepalive: true,
       }))
       .catch(() => undefined);
@@ -206,7 +209,7 @@ function trackMeta(fbq: AnyWindow['fbq'], name: string, payload: Record<string, 
   const id = eventID(standard.event);
   fbq?.('track', standard.event, standard.params, { eventID: id });
   // The server copy also covers pixels that have not loaded yet or are blocked.
-  if (!metaPixelId() || typeof fetch !== 'function') return;
+  if (!activeMetaPixelId() || typeof fetch !== 'function') return;
   const url = pageUrl(window.location?.href);
   sendMetaServerEvent(
     { event_name: standard.event, event_id: id, ...(url ? { event_source_url: url } : {}), custom_data: standard.params },

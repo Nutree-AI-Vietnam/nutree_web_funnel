@@ -1,5 +1,6 @@
 import { isValidEmail } from '@/lib/quiz/email';
 import { sha256Hex } from './events-api';
+import { readLockedFunnelLocale, type FunnelLocale } from './funnel-locale';
 
 export const META_IDENTITY_STORAGE_KEY = 'nutree_meta_identity_v1';
 
@@ -27,6 +28,33 @@ function storage() {
 
 export function metaPixelId(source = process.env.NEXT_PUBLIC_META_PIXEL_ID): string {
   return source?.replace(/\D/g, '') ?? '';
+}
+
+/**
+ * Pixel id the layout rendered into this document. It wins over the public env
+ * so advanced matching re-inits that pixel and never a second one.
+ */
+export function readRenderedMetaPixelId(): string {
+  if (typeof document === 'undefined') return '';
+  const raw = document.documentElement?.getAttribute('data-meta-pixel-id');
+  return raw && /^\d+$/.test(raw) ? raw : '';
+}
+
+/**
+ * Pixel for a funnel locale when the document has no rendered id. English uses
+ * NEXT_PUBLIC_META_PIXEL_ID_EN when it is set, and the default pixel otherwise.
+ */
+export function metaPixelIdForLocale(locale: FunnelLocale): string {
+  if (locale === 'en') {
+    const english = metaPixelId(process.env.NEXT_PUBLIC_META_PIXEL_ID_EN);
+    if (english) return english;
+  }
+  return metaPixelId();
+}
+
+/** The pixel this document initialized. The rendered id is the paired dataset. */
+export function activeMetaPixelId(): string {
+  return readRenderedMetaPixelId() || metaPixelIdForLocale(readLockedFunnelLocale());
 }
 
 export function normalizeMetaEmail(email: string): string | null {
@@ -82,7 +110,7 @@ export function identifyMetaUser(input: { email: string; externalId?: string; fi
   if (fn) identity.fn = fn;
   saveMetaIdentity(identity);
 
-  const pixelId = metaPixelId();
+  const pixelId = activeMetaPixelId();
   if (pixelId && typeof window !== 'undefined') {
     try {
       (window as AnyWindow).fbq?.('init', pixelId, identity);

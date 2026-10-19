@@ -83,39 +83,107 @@ interface CheckoutStatusResponse {
   };
 }
 
+/** One checkout-status read, including its body. The retry loop is also bounded by the handoff deadline. */
+export const REDEMPTION_LOOKUP_REQUEST_TIMEOUT_MS = 4_000;
+
+function abortable<T>(work: Promise<T>, timeoutMs: number, controller: AbortController): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      controller.abort();
+      reject(new DOMException('The operation was aborted.', 'AbortError'));
+    }, timeoutMs);
+    work.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+function withinDeadline<T>(work: Promise<T>, deadline: number): Promise<T | null> {
+  if (!Number.isFinite(deadline)) return work;
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value: T | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    };
+    const timer = setTimeout(() => finish(null), remaining);
+    work.then(
+      (value) => finish(value),
+      () => finish(null),
+    );
+  });
+}
+
 /**
  * RevenueCat may publish the redemption URL just after Paddle reports success.
  * Poll the operation using the public SDK key, without persisting the URL.
+ * Each read keeps its timeout armed until the body is parsed. The loop also
+ * stops at `deadline`, even if one body never finishes.
  */
 export async function redemptionUrlFromCheckoutOperation(
   apiKey: string,
   operationSessionId: string,
-  options: { fetcher?: typeof fetch; attempts?: number; delayMs?: number } = {},
+  options: {
+    fetcher?: typeof fetch;
+    attempts?: number;
+    delayMs?: number;
+    requestTimeoutMs?: number;
+    deadline?: number;
+  } = {},
 ): Promise<string | null> {
   if (!apiKey || !operationSessionId) return null;
   const fetcher = options.fetcher ?? fetch;
   const attempts = Math.max(1, options.attempts ?? 8);
   const delayMs = Math.max(0, options.delayMs ?? 1000);
+  const requestTimeoutMs = Math.max(1, options.requestTimeoutMs ?? REDEMPTION_LOOKUP_REQUEST_TIMEOUT_MS);
+  const deadline = options.deadline ?? Number.POSITIVE_INFINITY;
 
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    if (attempt > 0 && delayMs > 0) await new Promise((resolve) => globalThis.setTimeout(resolve, delayMs));
-    try {
-      const response = await fetcher(`https://api.revenuecat.com/rcbilling/v1/checkout/${encodeURIComponent(operationSessionId)}`, {
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-          'X-Platform': 'web',
-        },
-      });
-      if (!response.ok) continue;
-      const body = await response.json() as CheckoutStatusResponse;
-      const redeemUrl = body.operation?.redemption_info?.redeem_url;
-      if (typeof redeemUrl === 'string' && URL.canParse(redeemUrl)) return redeemUrl;
-    } catch {
-      // A provider read is best-effort; the caller will show the recovery state.
+  return withinDeadline((async () => {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      if (Date.now() >= deadline) return null;
+      if (attempt > 0 && delayMs > 0) {
+        const pause = Math.min(delayMs, deadline - Date.now());
+        if (pause <= 0) return null;
+        await new Promise((resolve) => globalThis.setTimeout(resolve, pause));
+        if (Date.now() >= deadline) return null;
+      }
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) return null;
+      const controller = new AbortController();
+      try {
+        const redeemUrl = await abortable((async () => {
+          const response = await fetcher(`https://api.revenuecat.com/rcbilling/v1/checkout/${encodeURIComponent(operationSessionId)}`, {
+            headers: {
+              Accept: 'application/json',
+              Authorization: `Bearer ${apiKey}`,
+              'X-Platform': 'web',
+            },
+            signal: controller.signal,
+          });
+          if (!response.ok) return null;
+          const body = await response.json() as CheckoutStatusResponse;
+          const nextUrl = body.operation?.redemption_info?.redeem_url;
+          return typeof nextUrl === 'string' && URL.canParse(nextUrl) ? nextUrl : null;
+        })(), Math.min(requestTimeoutMs, remaining), controller);
+        if (redeemUrl) return redeemUrl;
+      } catch {
+        controller.abort();
+        // A provider read is best-effort; the next attempt, or the deadline, decides.
+      }
     }
-  }
-  return null;
+    return null;
+  })(), deadline);
 }
 
 /** Keeps redemption capabilities out of persistence, routing state, and UI output. */

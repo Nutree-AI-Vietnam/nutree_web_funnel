@@ -3,6 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // PostHog capture endpoints use a trailing slash. Redirecting those breaks ingestion.
   skipTrailingSlashRedirect: true,
+  experimental: {
+    // Unmatched URLs skip every root layout, so the 404 has to be its own document.
+    globalNotFound: true,
+  },
   async headers() {
     const headers = [
       { key: 'Cache-Control', value: 'no-store' },
