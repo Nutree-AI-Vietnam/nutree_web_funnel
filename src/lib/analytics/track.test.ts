@@ -185,6 +185,36 @@ describe('analytics', () => {
     }, { eventID: 'ViewContent.test-event-id' });
   });
 
+  it('fires ViewContent once per session on the goal step, in the browser and on the server', async () => {
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
+    trackStepViewed('goal');
+    trackStepViewed('goal');
+    const w = window as unknown as TestWindow;
+    expect(w.fbq).toHaveBeenCalledTimes(1);
+    expect(w.fbq).toHaveBeenCalledWith('track', 'ViewContent', {
+      content_name: 'funnel_quiz_start',
+      content_category: 'onboarding',
+    }, { eventID: 'ViewContent.test-event-id' });
+    expect(w.ttq.track).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(metaServerEvents()).toHaveLength(1));
+    expect(metaServerEvents()[0].body).toMatchObject({
+      event_name: 'ViewContent',
+      event_id: 'ViewContent.test-event-id',
+      custom_data: { content_name: 'funnel_quiz_start', content_category: 'onboarding' },
+    });
+  });
+
+  it('does not send a second ViewContent when landing and goal are both viewed', () => {
+    trackStepViewed('landing');
+    trackStepViewed('goal');
+    const w = window as unknown as { fbq: ReturnType<typeof vi.fn> };
+    expect(w.fbq.mock.calls.filter(([, event]) => event === 'ViewContent')).toHaveLength(1);
+    expect(w.fbq).toHaveBeenCalledWith('track', 'ViewContent', {
+      content_name: 'funnel_landing',
+      content_category: 'onboarding',
+    }, { eventID: 'ViewContent.test-event-id' });
+  });
+
   it('trackStepViewed sends the step slug', () => {
     trackStepViewed('height');
     const w = window as unknown as { gtag: ReturnType<typeof vi.fn>; fbq: ReturnType<typeof vi.fn> };

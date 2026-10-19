@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PrimaryButton } from './primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
+import { returnToFunnelStart } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import { deriveAge } from '@/lib/quiz/dob';
 import { QUIZ_STEPS } from '@/lib/quiz/steps';
@@ -19,7 +20,6 @@ const encouragementMessages = [
 ];
 
 export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number }) {
-  const setFunnelScreen = useQuizStore((state) => state.setFunnelScreen);
   const copy = useCopy();
   const data = useQuizStore((s) => s.data);
   const [open, setOpen] = useState(false);
@@ -55,7 +55,7 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
   const stay = () => setOpen(false);
   const leave = () => {
     setOpen(false);
-    setFunnelScreen('landing');
+    returnToFunnelStart();
   };
 
   return (

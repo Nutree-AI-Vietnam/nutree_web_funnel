@@ -6,9 +6,10 @@ import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 're
 import { BoCongThuongBadge } from '@/components/bo-cong-thuong-badge';
 import { BackgroundBeams } from '@/components/ui/background-beams';
 import { MovingBorderLink } from '@/components/ui/moving-border-button';
+import { LegalConsent } from '@/components/legal-consent';
 import { trackStepViewed } from '@/lib/analytics/track';
 import { copyFor, LOCALE_NAMES, LOCALE_ORDER, type Copy, type Locale } from '@/lib/copy';
-import { useQuizStore } from '@/lib/quiz/store';
+import { startQuizFromLanding } from '@/lib/quiz/navigation';
 import { cn } from '@/lib/utils';
 
 const MACRO_BARS = [
@@ -164,7 +165,6 @@ function SignalMarquee({ signals }: { signals: Copy['landing']['signals'] }) {
 
 export function LandingPage({ language, surveyPath, onStart, onLocaleChange }: { language: Locale; surveyPath: string; onStart: () => void; onLocaleChange?: (locale: Locale) => void }) {
   const copy = copyFor(language);
-  const resetQuiz = useQuizStore((state) => state.reset);
   const frameRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const scale = useViewportFit(frameRef, contentRef, language);
@@ -191,7 +191,7 @@ export function LandingPage({ language, surveyPath, onStart, onLocaleChange }: {
             <h1 className="max-w-[36rem] text-[clamp(18px,2.65vh,34px)] font-extrabold leading-[1.14] text-forest">{copy.landing.headline}</h1>
             <p className="mt-[clamp(12px,1.6vh,18px)] max-w-[29rem] text-[clamp(13px,1.55vh,17px)] font-semibold leading-snug text-slate-brand">{copy.landing.subheadline}</p>
             <div className="mt-[clamp(16px,2.2vh,28px)]">
-              <MovingBorderLink href={surveyPath} className="min-h-[clamp(44px,5.4vh,56px)] py-2 text-[clamp(15px,1.8vh,18px)]" onClick={() => { resetQuiz(); window.sessionStorage.removeItem('quiz:lastIndex'); onStart(); }}>{copy.landing.cta}</MovingBorderLink>
+              <MovingBorderLink href={surveyPath} className="min-h-[clamp(44px,5.4vh,56px)] py-2 text-[clamp(15px,1.8vh,18px)]" onClick={() => { startQuizFromLanding(); onStart(); }}>{copy.landing.cta}</MovingBorderLink>
             </div>
           </div>
           <div className="min-w-0">
@@ -202,7 +202,7 @@ export function LandingPage({ language, surveyPath, onStart, onLocaleChange }: {
         <div className="min-h-3 flex-1 md:min-h-6 md:flex-none" aria-hidden="true" />
         <footer className="flex shrink-0 flex-col items-center gap-[clamp(6px,0.9vh,10px)]">
           <BoCongThuongBadge alt={copy.common.bctBadgeAlt} height={52} className="[&_img]:h-[clamp(28px,4.2vh,48px)] [&_img]:w-auto" />
-          <p className="text-center text-[clamp(11px,1.35vh,14px)] leading-snug text-muted-brand">{copy.landing.legal.prefix}<a href={copy.landing.legal.termsUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-forest underline decoration-forest/30 underline-offset-2 transition hover:decoration-forest">{copy.landing.legal.terms}</a>{copy.landing.legal.connector}<a href={copy.landing.legal.privacyUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-forest underline decoration-forest/30 underline-offset-2 transition hover:decoration-forest">{copy.landing.legal.privacy}</a>{copy.landing.legal.suffix}</p>
+          <LegalConsent />
         </footer>
       </div>
     </main>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useLayoutEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ExitOfferPageClient } from '@/app/exit-offer/exit-offer-page-client';
 import { PaywallPageClient } from '@/app/paywall/paywall-page-client';
@@ -10,6 +10,8 @@ import { LandingPage } from '@/components/landing-page';
 import { QuizShell } from '@/components/quiz-shell';
 import { ValueTourScreen } from '@/components/value-tour-screen';
 import { captureAttribution, stripNonAttributionParams } from '@/lib/analytics/attribution';
+import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
+import { startQuizFromLanding } from '@/lib/quiz/navigation';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import type { FunnelScreen } from '@/lib/quiz/store';
 import type { Locale } from '@/lib/copy';
@@ -34,6 +36,11 @@ export function SurveyPageClient({ language }: { language: Locale }) {
     stripNonAttributionParams();
   }, []);
 
+  useLayoutEffect(() => {
+    if (!SKIP_LANDING || !hydrated || screen !== 'landing') return;
+    startQuizFromLanding();
+  }, [hydrated, screen]);
+
   useEffect(() => {
     if (!hydrated) return;
     if (isUserPurchased({ purchased, lead }) && (screen === 'paywall' || screen === 'exit-offer')) {
@@ -50,7 +57,7 @@ export function SurveyPageClient({ language }: { language: Locale }) {
     router.replace(`/survey/${nextLocale}`);
   }, [router, setLocale]);
 
-  if (!hydrated || screen === 'landing') {
+  if (!SKIP_LANDING && (!hydrated || screen === 'landing')) {
     return (
       <LandingPage
         language={language}
@@ -60,6 +67,8 @@ export function SurveyPageClient({ language }: { language: Locale }) {
       />
     );
   }
+
+  if (!hydrated || screen === 'landing') return null;
 
   switch (screen) {
     case 'quiz':
