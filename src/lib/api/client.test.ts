@@ -103,7 +103,35 @@ describe('previewTdee', () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(new Response('{}', { status: 500 }));
     await expect(previewTdee(payload)).rejects.toThrow();
   });
+
+  it('sends what the app sends: no body fat, a backend goal and no minutes without training days', async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(previewResponse());
+    await previewTdee({
+      ...payload,
+      body_fat_percentage: 22,
+      fitness_goal: 'maintain',
+      training_days_per_week: 0,
+      training_minutes_per_session: 60,
+    });
+    const body = JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
+    expect(body).not.toHaveProperty('body_fat_percentage');
+    expect(body).toMatchObject({ goal: 'recomp', training_days_per_week: 0, training_minutes_per_session: 0 });
+  });
+
+  it('ignores a trailing slash in the API base URL', async () => {
+    vi.stubEnv('NEXT_PUBLIC_API_BASE_URL', 'https://api.test/');
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(previewResponse());
+    await previewTdee(payload);
+    expect(fetch).toHaveBeenCalledWith('https://api.test/v1/tdee/preview', expect.anything());
+  });
 });
+
+function previewResponse() {
+  return new Response(
+    JSON.stringify({ bmr: 1, tdee: 2, goal: 'cut', macros: { calories: 3, protein: 4, carbs: 5, fat: 6 } }),
+    { status: 200 },
+  );
+}
 
 describe('createLead', () => {
   it('uses the same-origin BFF and returns only the safe lead projection', async () => {
@@ -154,5 +182,13 @@ describe('toWebFunnelSnapshot', () => {
 
   it('normalizes stale training minutes when no training days are selected', () => {
     expect(toWebFunnelSnapshot({ ...payload, training_days_per_week: 0, training_minutes_per_session: 60 }).training_minutes_per_session).toBe(0);
+  });
+
+  it('sends maintain as recomp, the goal the app uses for it', () => {
+    expect(toWebFunnelSnapshot({ ...payload, fitness_goal: 'maintain' }).goal).toBe('recomp');
+  });
+
+  it('leaves body fat out of the saved answers, as the app does', () => {
+    expect(toWebFunnelSnapshot({ ...payload, body_fat_percentage: 22 })).not.toHaveProperty('body_fat_percentage');
   });
 });

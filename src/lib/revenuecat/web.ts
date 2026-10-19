@@ -1,28 +1,21 @@
-import { Purchases, type Package, type Price } from '@revenuecat/purchases-js';
-import { isOneWeekPlanEnabled, isRevenueCatPaywallPlanId, type RevenueCatPaywallPlanId } from './paywall-plans';
+import { Purchases } from '@revenuecat/purchases-js';
 
 type PublicEnvironment = Record<string, string | undefined>;
-
-export interface RevenueCatPlan {
-  id: RevenueCatPaywallPlanId;
-  packageIdentifier: string;
-}
 
 export interface RevenueCatWebConfig {
   apiKey: string;
   offeringIdentifier: string;
-  plans: RevenueCatPlan[];
 }
 
-export const WELCOME_DISCOUNT_CODE = 'WELCOME50';
+/** Advertised offer percentages; checkout prices come from the discounted RevenueCat packages. */
 export const WELCOME_DISCOUNT_PERCENT = 50;
-export const EXIT_DISCOUNT_CODE = 'LASTCHANCE75';
 export const EXIT_DISCOUNT_PERCENT = 75;
 export const PAYWALL_OFFER_STATE_STORAGE_KEY = 'nutree.paywall.offer-state.v1';
 export const PAYWALL_EXIT_OFFER_CLAIMED_STORAGE_KEY = 'nutree.paywall.exit-offer-claimed.v1';
 export const PAYWALL_EXIT_OFFER_CLAIMED_COOKIE = 'nutree_paywall_exit_offer_claimed';
 export const PAYWALL_SELECTED_PLAN_STORAGE_KEY = 'nutree.paywall.selected-plan.v1';
 export const PAYWALL_CHECKOUT_PENDING_STORAGE_KEY = 'nutree.paywall.checkout-pending.v1';
+export const PAYWALL_WELCOME_OFFER_SECONDS = 300;
 export const PAYWALL_EXIT_OFFER_SECONDS = 120;
 
 function readSessionValue(key: string) {
@@ -69,7 +62,7 @@ export function expirePaywallOfferState(kind: 'welcome' | 'exit' = 'exit') {
   writeSessionValue(PAYWALL_OFFER_STATE_STORAGE_KEY, JSON.stringify({ kind, expiresAt: Date.now() }));
 }
 
-export function saveSelectedPaywallPlan(planId: RevenueCatPaywallPlanId) {
+export function saveSelectedPaywallPlan(planId: string) {
   writeSessionValue(PAYWALL_SELECTED_PLAN_STORAGE_KEY, planId);
 }
 
@@ -90,9 +83,8 @@ export function clearPaywallCheckoutPending() {
   }
 }
 
-export function readSelectedPaywallPlan(): RevenueCatPaywallPlanId | null {
-  const value = readSessionValue(PAYWALL_SELECTED_PLAN_STORAGE_KEY);
-  return value && isRevenueCatPaywallPlanId(value) ? value : null;
+export function readSelectedPaywallPlan(): string | null {
+  return readSessionValue(PAYWALL_SELECTED_PLAN_STORAGE_KEY)?.trim() || null;
 }
 
 export function clearPaywallOfferState() {
@@ -104,27 +96,10 @@ export function clearPaywallOfferState() {
   }
 }
 
-export function discountedAmount(price: Price | null | undefined, percent = 0): number | null {
-  if (!price || !Number.isFinite(price.amountMicros) || percent < 0 || percent > 100) return null;
-  return (price.amountMicros / 1_000_000) * (1 - percent / 100);
-}
-
-export function discountedFormattedPrice(price: Price | null | undefined, locale: string, percent = WELCOME_DISCOUNT_PERCENT): string | null {
-  if (!price || !Number.isFinite(price.amountMicros) || percent < 0 || percent > 100) return null;
-  const currency = /^[A-Z]{3}$/.test(price.currency) ? price.currency : null;
-  if (!currency) return null;
-  return new Intl.NumberFormat(locale, { style: 'currency', currency }).format((price.amountMicros / 1_000_000) * (1 - percent / 100));
-}
-
 function publicEnvironment(): PublicEnvironment {
   return {
     NEXT_PUBLIC_REVENUECAT_WEB_API_KEY: process.env.NEXT_PUBLIC_REVENUECAT_WEB_API_KEY,
     NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID: process.env.NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID,
-    NEXT_PUBLIC_REVENUECAT_WEB_1_WEEK_ENABLED: process.env.NEXT_PUBLIC_REVENUECAT_WEB_1_WEEK_ENABLED,
-    NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_1_WEEK: process.env.NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_1_WEEK,
-    NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_4_WEEK: process.env.NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_4_WEEK,
-    NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_12_WEEK: process.env.NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_12_WEEK,
-    NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_52_WEEK: process.env.NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_52_WEEK,
   };
 }
 
@@ -135,34 +110,61 @@ function required(source: PublicEnvironment, key: keyof PublicEnvironment): stri
 }
 
 /** Reads browser-safe RevenueCat Web configuration. Paddle credentials stay in RevenueCat. */
-export function readRevenueCatWebConfig(source?: PublicEnvironment, oneWeekEnabled?: boolean): RevenueCatWebConfig {
+export function readRevenueCatWebConfig(source?: PublicEnvironment): RevenueCatWebConfig {
   const environment = source ?? publicEnvironment();
-  const finalPlan = (oneWeekEnabled ?? isOneWeekPlanEnabled(environment))
-    ? { id: '1-week' as const, packageIdentifier: required(environment, 'NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_1_WEEK') }
-    : { id: '52-week' as const, packageIdentifier: required(environment, 'NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_52_WEEK') };
-
   return {
     apiKey: required(environment, 'NEXT_PUBLIC_REVENUECAT_WEB_API_KEY'),
     offeringIdentifier: required(environment, 'NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID'),
-    plans: [
-      finalPlan,
-      { id: '4-week', packageIdentifier: required(environment, 'NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_4_WEEK') },
-      { id: '12-week', packageIdentifier: required(environment, 'NEXT_PUBLIC_REVENUECAT_WEB_PACKAGE_12_WEEK') },
-    ],
   };
+}
+
+/** True once Paddle's checkout frame is on the page. */
+export function paddleCheckoutIsOpen(root: ParentNode | null | undefined): boolean {
+  return Boolean(
+    root?.querySelector(
+      '#paddle-checkout-container, iframe[src*="paddle.com"], iframe[name*="paddle" i], iframe[class*="paddle" i]',
+    ),
+  );
+}
+
+function messageRecord(data: unknown): Record<string, unknown> | null {
+  if (typeof data === 'string') {
+    try {
+      return messageRecord(JSON.parse(data) as unknown);
+    } catch {
+      return null;
+    }
+  }
+  return typeof data === 'object' && data !== null && !Array.isArray(data) ? (data as Record<string, unknown>) : null;
+}
+
+function paddleEventName(data: unknown): string | null {
+  const message = messageRecord(data);
+  if (!message) return null;
+  const name = [message.name, message.event, message.event_name, message.type].find((value) => typeof value === 'string');
+  return typeof name === 'string' ? name : null;
+}
+
+/** Paddle tells the page the checkout closed. A completed payment is not an abandoned checkout. */
+export function paddleCheckoutClosedWithoutPayment(data: unknown): boolean {
+  const name = paddleEventName(data);
+  if (!name?.includes('checkout.closed')) return false;
+  const message = messageRecord(data);
+  const payload = messageRecord(message?.data) ?? messageRecord(message?.callback_data) ?? message;
+  return payload?.status !== 'completed';
+}
+
+export function paddleCheckoutCompleted(data: unknown): boolean {
+  return paddleEventName(data)?.includes('checkout.completed') ?? false;
+}
+
+/** Removes RevenueCat's checkout layer so the updated price page is visible. */
+export function dismissCheckoutOverlay(root: ParentNode | null | undefined): void {
+  root?.querySelectorAll('.rcb-ui-root').forEach((node) => node.remove());
 }
 
 /** Configure one generated anonymous customer; backend later verifies and binds it to the lead. */
 export function configureRevenueCatForAnonymousCheckout(config: RevenueCatWebConfig) {
   const appUserId = Purchases.generateRevenueCatAnonymousAppUserId();
   return { appUserId, purchases: Purchases.configure({ apiKey: config.apiKey, appUserId }) };
-}
-
-export function packagesByPlan(packages: Package[], plans: RevenueCatPlan[]): Record<RevenueCatPlan['id'], Package> {
-  return Object.fromEntries(
-    plans.flatMap((plan) => {
-      const rcPackage = packages.find((candidate) => candidate.identifier === plan.packageIdentifier);
-      return rcPackage ? [[plan.id, rcPackage]] : [];
-    }),
-  ) as Record<RevenueCatPlan['id'], Package>;
 }

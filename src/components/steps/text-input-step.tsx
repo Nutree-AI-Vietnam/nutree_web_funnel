@@ -16,36 +16,37 @@ export function NameAskStep({ step }: { step: QuizStep }) {
   const setData = useQuizStore((s) => s.setData);
   const [value, setValue] = useState(saved ?? '');
 
+  const rememberName = (raw: string) => {
+    const name = raw.trim();
+    setData({ name: name || undefined });
+    return name;
+  };
+
   const submit = () => {
-    setData({ name: value.trim() || undefined });
+    if (!rememberName(value)) return;
     goToNextQuizStep(router, step);
   };
 
   return (
-    <QuizStepFrame title={vi.name_ask.question}>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && value.trim() && submit()}
-        placeholder={vi.name_ask.placeholder}
-        autoFocus
-        className="rounded-2xl border border-white/80 bg-white/90 px-5 py-4 text-lg font-semibold text-forest shadow-inner outline-none transition placeholder:text-muted-brand/65 focus:border-teal-brand focus:ring-4 focus:ring-teal-brand/10"
-      />
-      <div className="mt-auto flex flex-col gap-3 pt-6">
+    <QuizStepFrame title={vi.name_ask.question} description={vi.name_ask.description}>
+      <div className="flex min-h-full flex-col justify-center">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            rememberName(e.target.value);
+          }}
+          onKeyDown={(e) => e.key === 'Enter' && value.trim() && submit()}
+          placeholder={vi.name_ask.placeholder}
+          autoFocus
+          className="ph-no-capture rounded-2xl border border-white/80 bg-white/90 px-5 py-4 text-xl font-semibold text-forest shadow-inner outline-none transition placeholder:text-muted-brand/65 focus:border-teal-brand focus:ring-4 focus:ring-teal-brand/10"
+        />
+      </div>
+      <div className="mt-auto pt-3">
         <PrimaryButton disabled={!value.trim()} onClick={submit}>
           {vi.common.continue}
         </PrimaryButton>
-        <button
-          type="button"
-          onClick={() => {
-            setData({ name: undefined });
-            goToNextQuizStep(router, step);
-          }}
-          className="py-2 text-sm font-medium text-muted-brand hover:text-slate-brand"
-        >
-          {vi.common.skip}
-        </button>
       </div>
     </QuizStepFrame>
   );

@@ -1,9 +1,10 @@
 import { deriveAge } from '../quiz/dob';
+import { toBackendGoal } from '../quiz/fitness-goal';
 import { safeLeadProjection } from '../handoff/lead-projection';
 import type { Lead, OnboardingPayload, TdeeResult } from '../quiz/types';
 
 function baseUrl(): string {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '');
   if (!base) throw new Error('NEXT_PUBLIC_API_BASE_URL is not set');
   return base;
 }
@@ -33,7 +34,11 @@ interface TdeeApiResponse {
   };
 }
 
-/** Calls the existing unauthenticated TDEE preview endpoint. */
+/**
+ * Calls the unauthenticated TDEE preview endpoint with the request the app sends
+ * during onboarding. Body fat is left out, as the app does, so the backend plans
+ * with Mifflin-St Jeor.
+ */
 export async function previewTdee(data: OnboardingPayload): Promise<TdeeResult> {
   const age = deriveAge(data);
   if (age == null) throw new Error('A valid birth date is required before previewing TDEE.');
@@ -42,11 +47,10 @@ export async function previewTdee(data: OnboardingPayload): Promise<TdeeResult> 
     sex: data.gender,
     height: data.height_cm,
     weight: data.weight_kg,
-    ...(data.body_fat_percentage != null && { body_fat_percentage: data.body_fat_percentage }),
     job_type: data.job_type,
     training_days_per_week: data.training_days_per_week,
-    training_minutes_per_session: data.training_minutes_per_session,
-    goal: data.fitness_goal,
+    training_minutes_per_session: data.training_days_per_week === 0 ? 0 : data.training_minutes_per_session,
+    goal: toBackendGoal(data.fitness_goal),
     unit_system: 'metric',
   };
   const result = await post<TdeeApiResponse>('/v1/tdee/preview', body);
@@ -99,11 +103,12 @@ export function toWebFunnelSnapshot(data: OnboardingPayload) {
     gender: data.gender,
     height: data.height_cm,
     weight: data.weight_kg,
-    ...(data.body_fat_percentage != null && { body_fat_percentage: data.body_fat_percentage }),
+    // Body fat stays out, as in the app: the estimate isn't a measurement, and
+    // a saved value would switch the user's later targets to another formula.
     job_type: data.job_type,
     training_days_per_week: data.training_days_per_week,
     training_minutes_per_session: data.training_days_per_week === 0 ? 0 : data.training_minutes_per_session,
-    goal: data.fitness_goal,
+    goal: toBackendGoal(data.fitness_goal),
     pain_points: data.pain_points ?? [],
     dietary_preferences: data.dietary_preferences ?? [],
     target_weight_kg: data.target_weight_kg,

@@ -11,15 +11,15 @@ const label = (
  * Copy is passed in so the sentence follows the active locale.
  */
 export function buildReflection(data: OnboardingPayload, copy: Copy): string {
-  const goal = label(copy.goal.options, data.fitness_goal)?.toLowerCase() ?? 'của bạn';
-  const duration = label(copy.duration.options, data.challenge_duration)?.toLowerCase() ?? 'từng ngày';
+  const goal = label(copy.goal.options, data.fitness_goal)?.toLowerCase() ?? copy.reflection.goalInlineFallback;
+  const duration = label(copy.duration.options, data.challenge_duration)?.toLowerCase() ?? copy.reflection.durationInlineFallback;
   const challenges =
     (data.pain_points ?? [])
     .slice(0, 3)
     .map((k) => label(copy.challenges.options, k))
     .filter((v): v is string => Boolean(v))
       .join(', ')
-      .toLowerCase() || 'thiếu một kế hoạch rõ ràng';
+      .toLowerCase() || copy.reflection.challengeInlineFallback;
 
   return copy.reflection.template
     .replace('[name]', data.name || copy.reflection.fallbackName)

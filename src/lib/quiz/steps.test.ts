@@ -1,10 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { chapterLabel, QUIZ_STEPS, isQuizStep, nextStep, previousStep, stepIndex } from './steps';
+import { chapterLabel, QUIZ_STEPS, VALUE_TOUR_STEPS, isQuizStep, nextStep, onboardingStepCount, previousStep, stepIndex, valueProgressIndex } from './steps';
 
 describe('quiz steps', () => {
   it('keeps one input or decision per quiz screen', () => {
     expect(QUIZ_STEPS).toEqual([
-      'operating_system',
       'goal',
       'name_ask',
       'welcome',
@@ -23,10 +22,6 @@ describe('quiz steps', () => {
       'training_duration',
       'eating_pattern',
       'diet',
-      'support_style',
-      'science',
-      'science_sources',
-      'preview',
       'care_pause',
       'calculating',
       'result',
@@ -41,14 +36,11 @@ describe('quiz steps', () => {
   });
 
   it('navigates forward through quiz screens without creating subroutes', () => {
-    expect(nextStep('operating_system')).toBe('goal');
     expect(nextStep('goal')).toBe('name_ask');
     expect(nextStep('name_ask')).toBe('welcome');
-    expect(nextStep('diet')).toBe('support_style');
+    expect(nextStep('diet')).toBe('care_pause');
     expect(nextStep('body_review')).toBe('activity_level');
-    expect(nextStep('support_style')).toBe('science');
-    expect(nextStep('science')).toBe('science_sources');
-    expect(nextStep('science_sources')).toBe('preview');
+    expect(nextStep('care_pause')).toBe('calculating');
   });
 
   it('continues from result through progress before email capture', () => {
@@ -58,15 +50,19 @@ describe('quiz steps', () => {
 
   it('navigates backward, landing page before first screen', () => {
     expect(previousStep('name_ask')).toBe('goal');
-    expect(previousStep('goal')).toBe('operating_system');
-    expect(previousStep('operating_system')).toBeNull();
+    expect(previousStep('goal')).toBeNull();
   });
 
   it('exposes 1-based progress index', () => {
-    expect(stepIndex('operating_system')).toBe(1);
-    expect(stepIndex('goal')).toBe(2);
-    expect(stepIndex('height')).toBe(11);
-    expect(stepIndex('result')).toBe(26);
+    expect(stepIndex('goal')).toBe(1);
+    expect(stepIndex('height')).toBe(10);
+    expect(stepIndex('result')).toBe(21);
     expect(chapterLabel('training_days')).toBe('Thói quen');
+  });
+
+  it('continues the same progress bar through the value tour', () => {
+    expect(valueProgressIndex('guide')).toBe(QUIZ_STEPS.length + 1);
+    expect(valueProgressIndex('meals')).toBe(onboardingStepCount());
+    expect(VALUE_TOUR_STEPS).toHaveLength(7);
   });
 });

@@ -18,13 +18,30 @@ export const en: Copy = {
     back: 'Back',
     skip: 'Skip',
     retry: 'Try again',
-    progress: 'Quiz progress',
+    bctBadgeAlt: 'Notified to the Vietnam Ministry of Industry and Trade — view our listing on online.gov.vn',
+    progress: 'Your progress',
     stepCount: (current: number, total: number) => `Question ${current}/${total}`,
   },
-  operatingSystem: {
-    question: 'Is your phone Android or iOS?',
-    ios: 'iOS',
-    android: 'Android',
+  exitIntent: {
+    messages: [
+      { emoji: '🔥', message: "You're doing great!" },
+      { emoji: '💪', message: 'Almost there!' },
+      { emoji: '✨', message: 'Just a few steps left!' },
+      { emoji: '🎯', message: 'Your goal is close!' },
+    ],
+    greetingNamed: (name: string) => `${name},`,
+    greeting: 'Hey there',
+    bodyWithGoal: (progress: number, goal: string, age: number) =>
+      `You're ${progress}% of the way there. One or two more minutes and Nutree will finish your ${goal.toLowerCase()} plan for age ${age}.`,
+    body: (progress: number) =>
+      `You're ${progress}% of the way there. One or two more minutes and Nutree will finish a plan made for you.`,
+    benefits: [
+      { icon: '🎯', text: 'A calorie and macro plan made for you' },
+      { icon: '🍽️', text: 'AI meal ideas that match your goal' },
+      { icon: '📊', text: 'Weekly progress you can see' },
+    ],
+    stay: 'Keep going',
+    leave: "I'll come back later",
   },
   metric: {
     decrement: (label: string) => `Decrease ${label}`,
@@ -38,6 +55,8 @@ export const en: Copy = {
     headline: 'Your body, your goal, your plan',
     subheadline:
       'Answer a few questions in about 3 minutes. Nutree turns your body, goal and training into exact calories, macros and a plan you can actually follow.',
+    metaTitle: 'Nutree',
+    metaDescription: 'Answer a few questions and Nutree calculates your calories and macros.',
     cta: 'Build my plan',
     legal: {
       prefix: 'By continuing, you agree to Nutree’s ',
@@ -50,8 +69,8 @@ export const en: Copy = {
     },
     language: 'EN',
     planBadge: 'Plan',
-    planTitle: 'Today’s plan',
-    planSubtitle: 'Calories, macros and how to spread them across the day',
+    planTitle: 'Example plan',
+    planSubtitle: 'A sample day, not your result. Your targets are calculated after you finish.',
     planCalories: '1,470',
     planCaloriesUnit: 'cal / day',
     planMacros: [
@@ -60,9 +79,9 @@ export const en: Copy = {
       { label: 'Fat', value: '48g' },
     ],
     planMeals: [
-      { label: 'Breakfast', calories: 420, note: 'protein-forward' },
-      { label: 'Lunch', calories: 560, note: 'steady energy' },
-      { label: 'Dinner', calories: 490, note: 'light & easy' },
+      { label: 'Breakfast', dish: 'Fried eggs', note: 'protein-forward' },
+      { label: 'Lunch', dish: 'Grilled chicken rice', note: 'steady energy' },
+      { label: 'Dinner', dish: 'Vegetable soup', note: 'light & easy' },
     ],
     signals: ['TDEE', 'BMI', 'Protein', 'Carbs', 'Fat', 'Meals', 'Weight'],
     bullets: [
@@ -71,8 +90,8 @@ export const en: Copy = {
       'Meal ideas that match your macros',
     ],
     proofStats: [
-      { value: '3 min', label: 'to your macro targets' },
-      { value: 'Free', label: 'to see your first result' },
+      { value: '3 min', label: 'to get your plan' },
+      { value: 'Paid', label: 'to unlock the plan in the app' },
     ],
     slides: [
       {
@@ -94,6 +113,7 @@ export const en: Copy = {
   },
   name_ask: {
     question: 'What should we call you?',
+    description: 'So we can get to know each other.',
     placeholder: 'Enter your name',
   },
   welcome: {
@@ -103,16 +123,17 @@ export const en: Copy = {
     stats: [
       { value: '3 min', label: 'to complete' },
       { value: '20 questions', label: 'short & simple' },
-      { value: 'Free', label: 'to see your results' },
+      { value: 'Paid', label: 'to unlock the plan in the app' },
     ],
     cta: 'Let’s start',
   },
   goal: {
     question: 'What’s your main goal?',
+    description: 'This sets your calories and how meals are split.',
     options: [
       { key: 'cut', label: 'Lose fat' },
       { key: 'bulk', label: 'Build muscle' },
-      { key: 'recomp', label: 'Get more toned' },
+      { key: 'recomp', label: 'Build muscle, lose fat' },
       { key: 'maintain', label: 'Maintain and eat with clarity' },
     ],
   },
@@ -134,22 +155,21 @@ export const en: Copy = {
     goalBadge: {
       cut: 'Lose weight',
       bulk: 'Gain weight',
-      recomp: 'Improve body shape',
+      recomp: 'Build muscle, lose fat',
       maintain: 'Maintain weight',
       aligned: 'Fits your goal',
-      adjust: 'Goal needs a check',
+      changed: 'Goal updated',
       bmiAdjust: 'Check target BMI',
-      flexible: 'Flexible goal',
       healthyTitle: (value: number) => `A healthy target is about ${value} kg`,
       healthyBody: 'This sits near a healthy BMI range based on your height.',
       alignedBody: 'This weight direction matches the goal you selected.',
-      adjustBody: 'For this goal, choose a target in the opposite direction.',
-      flexibleBody: 'You can adjust this target around how you want to improve your body composition.',
+      changedBody: 'Nutree will plan for this goal so it matches the weight you picked.',
     },
   },
   challenges: {
     question: 'What’s held you back before?',
-    hint: 'Pick up to 2 that fit best.',
+    description: 'These show where a plan usually slips, so Nutree can plan around it.',
+    hint: 'Select all that apply.',
     options: [
       { key: 'no_time', label: 'No time' },
       { key: 'no_motivation', label: 'Low motivation' },
@@ -176,6 +196,7 @@ export const en: Copy = {
   },
   duration: {
     question: 'How long have you been working on this goal?',
+    description: 'How long you have been trying helps the plan start at the right pace.',
     options: [
       { key: 'just_starting', label: 'Just starting' },
       { key: 'few_months', label: 'A few months' },
@@ -185,6 +206,7 @@ export const en: Copy = {
   },
   motivation: {
     question: 'Why start now?',
+    description: 'This tells Nutree what matters most to you right now.',
     options: [
       { key: 'confidence', label: 'Feel more confident' },
       { key: 'energy', label: 'Have more energy' },
@@ -197,6 +219,9 @@ export const en: Copy = {
   reflection: {
     template: '[name], your goal is clear and genuinely doable with the right plan.',
     fallbackName: 'friend',
+    goalInlineFallback: 'your goal',
+    durationInlineFallback: 'day by day',
+    challengeInlineFallback: 'without a clear plan',
     goalCaption: 'Goal',
     challengeCaption: 'Main blocker',
     durationCaption: 'Time',
@@ -205,9 +230,11 @@ export const en: Copy = {
     todayLabel: 'Today',
     chartLabel: 'Your progress trajectory',
     caption: 'With the right plan, progress gets steady instead of all over the place.',
+    description: 'This is what Nutree understood from what you shared.',
   },
   sex: {
     question: 'What’s your biological sex?',
+    description: 'Biological sex helps estimate how much energy your body uses.',
     options: [
       { key: 'male', label: 'Male' },
       { key: 'female', label: 'Female' },
@@ -229,12 +256,14 @@ export const en: Copy = {
   },
   height: {
     question: 'How tall are you?',
+    description: 'Height helps estimate the energy your body needs each day.',
     heightLabel: 'Height',
     heightHint: 'Use your current height.',
     heightUnit: 'cm',
   },
   weight: {
     question: 'What’s your current weight?',
+    description: 'Your latest weight keeps the plan anchored to where you are now.',
     weightLabel: 'Current weight',
     weightHint: 'Use your most recent weight to calculate TDEE.',
     weightUnit: 'kg',
@@ -316,10 +345,12 @@ export const en: Copy = {
   },
   training_days: {
     question: 'How many days a week do you train?',
+    description: 'Training days keep rest days and workout days from sharing one target.',
     unit: 'days / week',
   },
   training_duration: {
     question: 'How long is each session?',
+    description: 'Session length helps estimate the energy you burn while training.',
     options: [
       { key: '30', label: '~30 min' },
       { key: '45', label: '~45 min' },
@@ -354,6 +385,7 @@ export const en: Copy = {
   },
   activity_level: {
     question: 'How active is your typical day?',
+    description: 'A typical day changes how many calories you need.',
     options: [
       { key: 'desk', label: 'Desk job / mostly sitting' },
       { key: 'on_feet', label: 'On my feet all day' },
@@ -369,6 +401,7 @@ export const en: Copy = {
   },
   eating_pattern: {
     question: 'When does eating go off-plan most?',
+    description: 'Nutree will pay closer attention to this moment when suggesting meals.',
     options: [
       { key: 'morning', label: 'Rushed mornings' },
       { key: 'lunch', label: 'Hard-to-control lunches' },
@@ -380,6 +413,7 @@ export const en: Copy = {
   },
   diet: {
     question: 'Any dietary needs?',
+    description: 'These choices keep meal ideas closer to what works for you.',
     hint: 'Pick up to 2. “No restrictions” clears the others.',
     options: [
       { key: 'vegan', label: 'Vegan' },
@@ -399,15 +433,6 @@ export const en: Copy = {
     disclaimer: 'Nutree is not a doctor or healthcare professional. If you have a severe allergy or health condition, speak with a qualified professional before changing your diet.',
     cta: 'Got it',
     editCta: 'Review my choices',
-  },
-  support_style: {
-    question: 'How should Nutree support you?',
-    options: [
-      { key: 'simple', label: 'Simple, just the main target' },
-      { key: 'flexible', label: 'Flexible for busy days' },
-      { key: 'detailed', label: 'Detailed macros and meals' },
-      { key: 'gentle', label: 'Gentle nudges, no pressure' },
-    ],
   },
   preview: {
     eyebrow: 'Nutree is ready',
@@ -464,6 +489,7 @@ export const en: Copy = {
   },
   calculating: {
     text: 'Building your personalized plan',
+    description: 'Nutree is turning your body, goal, and training into a plan.',
     orbits: ['TDEE', 'BMI', 'Macros'],
     unit: 'cal per day',
     macroCaption: 'Nutrition split',
@@ -474,13 +500,51 @@ export const en: Copy = {
       'Reading your body metrics',
       'Calculating maintenance energy',
       'Splitting macros by goal',
+      'Projecting progress toward your goal',
       'Packaging your plan',
     ],
-    slides: [
-      { title: 'You don’t have to do this alone', body: 'Nutree is turning what you shared into a plan that feels possible to start.' },
-      { title: 'There is a reason behind the number', body: 'We compare your body, goal and routine before setting a calorie target.' },
-      { title: 'Steady beats perfect', body: 'This plan is built to be tracked and adjusted as your body changes.' },
-      { title: 'Almost there', body: 'One more moment and you’ll see your first personalized plan.' },
+    testimonialsLabel: 'Nutree members',
+    testimonials: [
+      {
+        name: 'Linh',
+        flag: '🇻🇳',
+        quote: 'Gained lean muscle while the app tracked everything for me.',
+        result: '-6kg / 2 months',
+        goal: 'Lose weight',
+        avatar: '/images/trust-female.webp',
+      },
+      {
+        name: 'Quang',
+        flag: '🇻🇳',
+        quote: 'The AI scan is so fast! I lost 5kg without feeling restricted.',
+        result: '+4kg muscle / 4 months',
+        goal: 'Gain weight',
+        avatar: '/images/trust-ali.webp',
+      },
+      {
+        name: 'Minh',
+        flag: '🇻🇳',
+        quote: 'The weekly budget approach changed how I think about food.',
+        result: '-3% fat / 3 months',
+        goal: 'Recomp',
+        avatar: '/images/trust-jurica.webp',
+      },
+      {
+        name: 'Sarah',
+        flag: '🇺🇸',
+        quote: 'Finally an app that gets my macros right. Game changer!',
+        result: '-8kg / 3 months',
+        goal: 'Lose weight',
+        avatar: '/images/trust-aiony.webp',
+      },
+      {
+        name: 'Hana',
+        flag: '🇯🇵',
+        quote: 'Simple, accurate, and actually helped me reach my goal.',
+        result: '-4kg / 6 weeks',
+        goal: 'Lose weight',
+        avatar: '/images/trust-good-faces.webp',
+      },
     ],
   },
   tdee_targets: {
@@ -525,11 +589,98 @@ export const en: Copy = {
     monthNumber: (month: number) => `Month ${month}`,
     goalLabel: 'Goal',
     chartLabel: 'Projected path from current weight to target weight',
-    weeks: (weeks: number) => `About ${weeks} days at a steady pace.`,
+    chartLabelByDirection: {
+      down: 'Chart of a downward path from your calorie target',
+      up: 'Chart of an upward path from your calorie target',
+      steady: 'Chart of a steady path from your calorie target',
+    },
+    pace: (days: number) => `About ${days} days at a steady pace.`,
+    planHeadline: {
+      cut: 'Your fat-loss rhythm starts from this calorie target',
+      bulk: 'Your gain rhythm starts from this calorie target',
+      maintain: 'You can hold this weight with the calories and habits below',
+      recomp: 'You can change your body composition with the calories and habits below',
+      fallback: 'What happens next follows the choices you just made',
+    },
+    planPace: (calories: string, protein: string) => `About ${calories} kcal and ${protein} protein a day, then adjust as you progress.`,
+    planPaceFallback: 'Nutree keeps the rhythm of the goal and training schedule you chose.',
+    habitLabel: 'Habits',
+    nextLabel: 'Next',
+    currentStat: 'Now',
+    caloriesStat: 'Calories a day',
+    trainingStat: 'Training days',
+    missingStat: '—',
     disclaimer: 'Results vary. This is a planning estimate, not a promise of results.',
-    noTarget: 'You don’t need to pick a number today.',
-    noTargetHint: 'Nutree can still start with a calorie target and habits that fit you.',
     cta: 'Continue',
+  },
+  valueTour: {
+    stepLabel: (current: number, total: number) => `Step ${current}/${total}`,
+    guide: {
+      eyebrow: 'Nutree stays with you',
+      title: 'Thanks — let’s guide you to your goal',
+      body: 'Your plan is ready. Next, a short tour of how Nutree keeps you on track every day.',
+      cta: 'Show me',
+      points: [
+        'Snap a meal to estimate calories',
+        'Your training days inside the same plan',
+        'Macros that adjust to the days you have logged',
+        'A calorie target from a proven formula',
+      ],
+    },
+    snap: {
+      eyebrow: 'Log meals with a photo',
+      title: 'Estimate meals from photos',
+      body: 'You don’t have to weigh every ingredient. A photo becomes a nutrition log in the app.',
+      cta: 'Sounds good',
+      videoLabel: 'Video of snapping a meal and estimating calories',
+    },
+    activity: {
+      eyebrow: 'Training and movement',
+      title: 'Log walks and workouts',
+      body: 'Workout days and rest days both count toward the calorie target.',
+      cta: 'Got it',
+      imageAlt: 'Nutree workout picker',
+      personalized: (days: number) => `You chose ${days} training days a week. Nutree keeps your food target aligned with that schedule.`,
+    },
+    macros: {
+      eyebrow: 'Daily macros',
+      title: 'Macros that adapt to your habits',
+      body: 'Your protein, carb, and fat targets are recalculated every day.',
+      cta: 'What shapes it?',
+      personalized: (calories: string, protein: number) => `From the numbers you entered, the starting point is ${calories} kcal and ${protein}g of protein a day.`,
+      imageAlt: 'Calories across the week, easing from 1,880 early on to 1,730 later',
+      days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      labels: { protein: 'Protein', carbs: 'Carbs', fat: 'Fat' },
+    },
+    science: {
+      eyebrow: 'How Nutree works',
+      title: 'Nutrition science built for your body',
+      body: 'We use evidence-based TDEE calculations — not generic estimates — to find your calorie target.',
+      cta: 'That’s so detailed!',
+      collageLabel: 'Illustrations of the TDEE formula, energy chart, and ISSN research',
+      sourcesLabel: 'Nutrition data sources',
+      disclaimer: 'These are data sources Nutree references, not endorsements by these organizations.',
+      sources: [
+        { name: 'USDA FoodData Central', image: '/value-tour/sources/usda.png' },
+        { name: 'fatsecret Platform API', image: '/value-tour/sources/fatsecret.png' },
+        { name: 'Vietnam National Institute of Nutrition', image: '/value-tour/sources/nin.png' },
+        { name: 'HCMC Nutrition Research Institute', image: '/value-tour/sources/nri.png' },
+      ],
+    },
+    meals: {
+      eyebrow: 'Meal ideas',
+      title: 'AI-powered meals you’ll actually enjoy',
+      body: 'Get personalised meal suggestions tailored to your taste and macro targets.',
+      cta: 'See Plan Tailored Just for You',
+      cue: 'Swipe for more ideas',
+      cards: [
+        { title: 'Avocado and Egg Toast', meta: '410 kcal', image: '/value-tour/meals/avocado-egg-toast.png' },
+        { title: 'Chicken Bulgogi Lettuce Wrap Set', meta: '354 kcal', image: '/value-tour/meals/chicken-bulgogi.png' },
+        { title: 'Banana Oat Protein Shake', meta: '962 kcal', image: '/value-tour/meals/banana-oat-shake.jpg' },
+        { title: 'Chicken Club Sandwich', meta: '792 kcal', image: '/value-tour/meals/chicken-club.jpg' },
+        { title: 'Small Pepperoni Pizza with Salad', meta: '679 kcal', image: '/value-tour/meals/pepperoni-pizza.jpg' },
+      ],
+    },
   },
   result_promising: {
     eyebrow: 'Ready to save your plan',
@@ -563,8 +714,8 @@ export const en: Copy = {
     cta: 'Get my plan',
   },
   email: {
-    headline: 'Save your plan and get your welcome reward',
-    body: 'Enter your email to save your plan and reveal your welcome price.',
+    headline: 'Save your plan',
+    body: 'Enter your email to save your plan. Next you’ll see how Nutree helps each day, then choose a plan.',
     helper: 'We’ll use it to save your plan and prefill secure checkout. After payment is confirmed, we’ll email a secure link to open your plan in Nutree.',
     placeholder: 'you@example.com',
     cta: 'Save my plan',
@@ -577,6 +728,8 @@ export const en: Copy = {
     trustBody: 'Save your plan so you can come back anytime. Your email is used only for this Nutree journey.',
     privacyPrefix: 'Private',
     privacyLine: 'Your information stays private and is never sold to third parties.',
+    socialCount: '+5,000',
+    socialLabel: 'users',
     avatars: ['A', 'M', 'L', 'N'],
   },
   welcomeGift: {
@@ -594,6 +747,10 @@ export const en: Copy = {
     priceLine: (amount: string, plan: string) => `${amount} for ${plan}.`,
     cta: 'Claim reward',
     lockedCta: 'Reveal price first',
+    exitHeadline: 'Wait — keep this plan',
+    exitSubhead: 'Scratch to open your welcome price, then continue choosing a plan.',
+    exitContinue: 'Continue with this offer',
+    exitContinueHint: 'The welcome price is now applied to the plans below.',
   },
   paywall: {
     offerReserved: 'welcome offer reserved for:',
@@ -612,8 +769,10 @@ export const en: Copy = {
     todayPrice: 'Due today',
     renewal: 'Renewal',
     recommendedTag: 'Most popular',
-    discountTag: (percent: number) => `${percent}% OFF`,
+    discountTag: (percent: number) => `${percent}% off`,
     perDay: 'per day',
+    savePerDay: (percent: number) => `Save ${percent}%`,
+    perDayFootnote: 'Daily price is an estimate based on your first payment.',
     appStoreTitle: 'Loved by iOS users',
     appStoreRating: '4.7/5',
     appStoreReviews: '4k+ App Store reviews',
@@ -622,11 +781,17 @@ export const en: Copy = {
     guaranteeBody: "Follow your plan for 4 weeks. If you still do not see clear progress, we'll refund your purchase.",
     planRecommendation: 'The 12-week plan gives you enough time to build a consistent tracking rhythm.',
     planResearchNote: 'Your WELCOME50 offer is already applied.',
+    standardHeader: 'Nutree Premium',
+    standardTimer: 'Original price for your plan',
+    standardPriceNote: 'The prices shown are the original price of each plan.',
+    standardPriceSummary: (today: string, renewal: string, planLabel: string, cadence: string) =>
+      `You pay ${today} today for the ${planLabel} plan, then it renews at ${renewal} ${cadence} until you cancel.`,
     exitOfferTitle: 'Before you go — take 75% off',
     exitOfferBody: 'Keep your personalized plan at this special one-time exit price.',
     exitOfferEyebrow: 'Exit offer',
     exitOfferScratchSubhead: 'Scratch to reveal your special price.',
     exitOfferRevealedHeadline: 'Your 75% offer is unlocked',
+    exitOfferPrice: '6 months for ₫399,000',
     exitOfferTicketAria: 'The 75 percent offer is unlocked',
     exitOfferScratchAria: 'Scratch the card to reveal the 75 percent offer',
     exitOfferScratchHint: 'Scratch or tap to reveal',
@@ -661,10 +826,8 @@ export const en: Copy = {
     cta: () => 'Grab my plan',
     paypalSummary: (amount: string, renewal: string) => `${amount} today and ${renewal} while active`,
     paypalPlaceholder: 'PayPal buttons render here after the backend returns provider configuration.',
-    exactPriceSummary: (_standard: string, today: string, renewal: string, planLabel: string) => {
-      const cadence = planLabel.replace('-week', ' weeks');
-      return `We've applied the discount to your first ${planLabel} plan. You pay ${today} today, then it auto-renews at the full price of ${renewal} every ${cadence} until you cancel. Cancel at least 1 day before renewal in the app's Subscription Page or live chat.`;
-    },
+    exactPriceSummary: (today: string, renewal: string, planLabel: string, cadence: string) =>
+      `We've applied the discount to your ${planLabel} plan. You pay ${today} today, then it auto-renews at ${renewal} ${cadence} until you cancel. Cancel at least 1 day before renewal in the app's Subscription Page or live chat.`,
     loading: 'Starting checkout...',
     error: 'Couldn’t start checkout. Please try again.',
     paymentError: 'Payment is being checked. You do not need to pay again.',
@@ -692,6 +855,6 @@ export const en: Copy = {
   },
   success: {
     headline: 'Your plan is unlocked',
-    body: 'After your payment is verified, RevenueCat will email a secure link. Open it in Nutree to sign in and activate your plan automatically. No need to retake the quiz.',
+    body: 'After your payment is verified, RevenueCat will email a secure link. Open it in Nutree to sign in and activate your plan automatically. No need to start over.',
   },
 };

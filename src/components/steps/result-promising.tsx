@@ -10,10 +10,12 @@ export function ResultPromisingStep() {
   const setFunnelScreen = useQuizStore((s) => s.setFunnelScreen);
 
   return (
-    <div className="flex flex-1 flex-col gap-2.5">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="quiz-step-body min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain">
+      <div className="quiz-step-stack flex min-h-full flex-col gap-2.5">
       <div className="rounded-[1.7rem] border border-white/80 bg-white/78 p-3.5 shadow-[0_20px_64px_rgb(26_71_57_/_0.12)] backdrop-blur">
         <p className="mb-1 text-sm font-bold text-emerald-brand">{vi.result_promising.eyebrow}</p>
-        <h1 className="text-[1.45rem] font-extrabold leading-tight text-forest">
+        <h1 className="ph-mask text-[1.45rem] font-extrabold leading-tight text-forest">
           {vi.result_promising.headline.replace('[name]', name || vi.reflection.fallbackName)}
         </h1>
         <p className="mt-1.5 text-xs leading-relaxed text-slate-brand">{vi.result_promising.body}</p>
@@ -82,7 +84,9 @@ export function ResultPromisingStep() {
         </div>
       </section>
 
-      <div className="mt-auto pt-1">
+      </div>
+      </div>
+      <div className="quiz-step-cta relative z-20 shrink-0 bg-[linear-gradient(180deg,rgb(244_250_247_/_0),#f3faf7_32%)] pt-3">
         <PrimaryButton onClick={() => setFunnelScreen('email')}>
           {vi.result_promising.cta}
         </PrimaryButton>

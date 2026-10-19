@@ -22,7 +22,7 @@ export function TrainingDaysStep() {
   const setData = useQuizStore((s) => s.setData);
 
   return (
-    <QuizStepFrame title={vi.training_days.question}>
+    <QuizStepFrame title={vi.training_days.question} description={vi.training_days.description}>
       <div className="grid grid-cols-4 gap-2.5">
         {[0, 1, 2, 3, 4, 5, 6, 7].map((d) => (
           <button
@@ -37,7 +37,7 @@ export function TrainingDaysStep() {
                 goToNextQuizStep(router, 'training_days');
               }
             }}
-            className={`${optionClass(value === d)} relative min-h-14 py-4 text-xl font-extrabold`}
+            className={`${optionClass(value === d)} relative min-h-12 py-3 text-lg font-extrabold`}
           >
             {d}
             {value === d && (
@@ -60,9 +60,11 @@ export function TrainingDaysStep() {
 
 export function TrainingDurationStep({
   question,
+  description,
   options,
 }: {
   question: string;
+  description?: string;
   options: ReadonlyArray<{ readonly key: string; readonly label: string }>;
 }) {
   const router = useRouter();
@@ -70,7 +72,8 @@ export function TrainingDurationStep({
   const setData = useQuizStore((s) => s.setData);
 
   return (
-    <QuizStepFrame title={question} className="gap-3">
+    <QuizStepFrame title={question} description={description} className="gap-3">
+      <div className="flex flex-col gap-2.5">
       {options.map((o) => (
         <button
           key={o.key}
@@ -82,7 +85,7 @@ export function TrainingDurationStep({
           }}
           className={cn(
             optionClass(value === Number(o.key)),
-            'flex min-h-12 w-full items-center justify-between gap-3 px-5 py-4 text-left text-base font-semibold',
+            'flex min-h-11 w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-[15px] font-semibold',
           )}
         >
           <span>{o.label}</span>
@@ -98,6 +101,7 @@ export function TrainingDurationStep({
           </span>
         </button>
       ))}
+      </div>
     </QuizStepFrame>
   );
 }

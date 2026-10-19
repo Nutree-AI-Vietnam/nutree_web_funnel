@@ -1,9 +1,17 @@
 'use client';
 
+import { Children, isValidElement, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+
+function isStickyCta(node: ReactNode) {
+  if (!isValidElement<{ className?: string }>(node)) return false;
+  const className = node.props.className;
+  return typeof className === 'string' && className.includes('mt-auto');
+}
 
 export function QuizStepFrame({
   title,
+  description,
   hint,
   eyebrow,
   children,
@@ -11,30 +19,85 @@ export function QuizStepFrame({
   titleClassName,
 }: {
   title?: string;
+  description?: string;
   hint?: string;
   eyebrow?: string;
   children: React.ReactNode;
   className?: string;
   titleClassName?: string;
 }) {
+  const items = Children.toArray(children);
+  const last = items[items.length - 1];
+  const footer = isStickyCta(last) ? last : null;
+  const body = footer ? items.slice(0, -1) : items;
+  const frameRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [lift, setLift] = useState(0);
+
+  useLayoutEffect(() => {
+    const frame = frameRef.current;
+    const header = headerRef.current;
+    const scroller = bodyRef.current;
+    const stack = scroller?.firstElementChild as HTMLElement | null;
+    if (!frame || !scroller || !stack) return;
+
+    const measure = () => {
+      if (frame.closest('[data-fit-viewport]')) {
+        setLift(0);
+        return;
+      }
+      const titleH = header?.offsetHeight ?? 0;
+      const kids = [...stack.children] as HTMLElement[];
+      const gap = kids.length > 1 ? 12 : 0;
+      const contentH = kids.reduce((sum, el, index) => sum + el.offsetHeight + (index > 0 ? gap : 0), 0);
+      const available = scroller.clientHeight;
+      const overflows = contentH > available - 8;
+      if (overflows || titleH === 0) {
+        setLift(0);
+        return;
+      }
+      const spaceAbove = (available - contentH) / 2;
+      const chrome = frame.getBoundingClientRect().top;
+      const next = Math.max(0, Math.min(titleH / 2 + chrome / 2, spaceAbove - 16));
+      setLift((current) => (Math.abs(current - next) < 1 ? current : Math.round(next)));
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(scroller);
+    if (header) observer.observe(header);
+    return () => observer.disconnect();
+  }, [title, description]);
+
   return (
-    <div className={cn('flex flex-1 flex-col gap-4', className)}>
+    <div ref={frameRef} className={cn('quiz-step-frame relative flex min-h-0 flex-1 flex-col gap-3', className)}>
       {(eyebrow || title) && (
-        <header>
+        <header ref={headerRef} className="shrink-0">
           {eyebrow && (
-            <p className="mb-1 text-xs font-extrabold uppercase tracking-wider text-teal-brand">
+            <p className="mb-1 text-sm font-extrabold tracking-[0.02em] text-teal-brand">
               {eyebrow}
             </p>
           )}
           {title && (
-            <h1 className={cn('max-w-[20rem] text-[1.9rem] font-extrabold leading-[1.12] tracking-tight text-forest [text-wrap:balance]', titleClassName)}>
+            <h1 className={cn('max-w-[22rem] text-[clamp(1.7rem,6.4vw,2.05rem)] font-extrabold leading-[1.12] tracking-tight text-forest [text-wrap:balance]', titleClassName)}>
               {title}
             </h1>
           )}
-          {hint && <p className="mt-2.5 text-sm font-semibold leading-relaxed text-muted-brand">{hint}</p>}
+          {description && <p className="mt-2 max-w-[24rem] text-base font-semibold leading-snug text-slate-brand">{description}</p>}
+          {hint && <p className="mt-2 text-base font-semibold leading-relaxed text-muted-brand">{hint}</p>}
         </header>
       )}
-      {children}
+      <div ref={bodyRef} className="quiz-step-body min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain">
+        <div className="quiz-step-stack flex min-h-full flex-col gap-3" style={lift > 0 ? { translate: `0 -${lift}px` } : undefined}>
+          {body}
+        </div>
+      </div>
+      {footer && (
+        <div className="quiz-step-cta relative z-20 shrink-0 bg-[linear-gradient(180deg,rgb(244_250_247_/_0),#f3faf7_32%)] pt-3 [&_.mt-auto]:mt-0">
+          {footer}
+        </div>
+      )}
     </div>
   );
 }
