@@ -22,6 +22,27 @@ export const en: Copy = {
     progress: 'Your progress',
     stepCount: (current: number, total: number) => `Question ${current}/${total}`,
   },
+  exitIntent: {
+    messages: [
+      { emoji: '🔥', message: "You're doing great!" },
+      { emoji: '💪', message: 'Almost there!' },
+      { emoji: '✨', message: 'Just a few steps left!' },
+      { emoji: '🎯', message: 'Your goal is close!' },
+    ],
+    greetingNamed: (name: string) => `${name},`,
+    greeting: 'Hey there',
+    bodyWithGoal: (progress: number, goal: string, age: number) =>
+      `You're ${progress}% of the way there. One or two more minutes and Nutree will finish your ${goal.toLowerCase()} plan for age ${age}.`,
+    body: (progress: number) =>
+      `You're ${progress}% of the way there. One or two more minutes and Nutree will finish a plan made for you.`,
+    benefits: [
+      { icon: '🎯', text: 'A calorie and macro plan made for you' },
+      { icon: '🍽️', text: 'AI meal ideas that match your goal' },
+      { icon: '📊', text: 'Weekly progress you can see' },
+    ],
+    stay: 'Keep going',
+    leave: "I'll come back later",
+  },
   metric: {
     decrement: (label: string) => `Decrease ${label}`,
     increment: (label: string) => `Increase ${label}`,
@@ -198,6 +219,9 @@ export const en: Copy = {
   reflection: {
     template: '[name], your goal is clear and genuinely doable with the right plan.',
     fallbackName: 'friend',
+    goalInlineFallback: 'your goal',
+    durationInlineFallback: 'day by day',
+    challengeInlineFallback: 'without a clear plan',
     goalCaption: 'Goal',
     challengeCaption: 'Main blocker',
     durationCaption: 'Time',

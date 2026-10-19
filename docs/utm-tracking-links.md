@@ -81,7 +81,9 @@ In-app share  https://quiz.nutreeai.com/?utm_source=app&utm_medium=referral&utm_
    are last-touch. See `src/lib/analytics/attribution.ts`.
 3. The URL keeps its attribution parameters. Only non-attribution parameters are removed, so
    GA4, TikTok, and Airbridge still read the campaign when their scripts load. The Meta pixel
-   loads before hydration and gets the full landing URL either way.
+   loads before hydration and gets the full landing URL either way. `/survey/en` loads only the
+   English pixel (`NEXT_PUBLIC_META_PIXEL_ID_EN`, falling back to the default pixel). Every other
+   page loads only the default pixel.
 4. Every funnel event (`funnel_step_viewed`, `email_captured`, `revenuecat_checkout_started`,
    `revenuecat_checkout_completed`, ...) carries the stored attribution as event parameters to
    GA4 and TikTok. See `src/lib/analytics/track.ts`.
@@ -96,7 +98,7 @@ Where the data shows up:
 | Tool | Where to look |
 | --- | --- |
 | GA4 | Reports → Acquisition → Traffic acquisition (session source / medium / campaign). Event parameters `utm_*` need custom dimensions to appear in reports. |
-| Meta | Events Manager → Pixel → PageView and standard events carry the landing URL. |
+| Meta | Events Manager → the pixel for that funnel. `/survey/en` uses the English dataset; other pages use the default pixel. PageView and standard events carry the landing URL. |
 | TikTok | Events Manager → Pixel → page events carry the landing URL. |
 | Airbridge | Web touchpoints on the install/open journey. |
 | RevenueCat | Customer → Attributes, and Charts filtered by Media source or Campaign. |

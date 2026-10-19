@@ -136,7 +136,7 @@ export function LandingPage({ language, surveyPath, onStart, onLocaleChange }: {
         </section>
         <div className="min-h-3 flex-1 md:min-h-6 md:flex-none" aria-hidden="true" />
         <footer className="flex shrink-0 flex-col items-center gap-[clamp(6px,0.9vh,10px)]">
-          <BoCongThuongBadge alt={copy.common.bctBadgeAlt} height={52} className="[&_img]:h-[clamp(28px,4.2vh,48px)] [&_img]:w-auto" />
+          {language !== 'en' ? <BoCongThuongBadge alt={copy.common.bctBadgeAlt} height={52} className="[&_img]:h-[clamp(28px,4.2vh,48px)] [&_img]:w-auto" /> : null}
           <LegalConsent />
         </footer>
       </div>

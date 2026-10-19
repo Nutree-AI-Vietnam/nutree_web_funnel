@@ -1,5 +1,6 @@
 import { isValidEmail } from '@/lib/quiz/email';
 import { sha256Hex } from './events-api';
+import { readLockedFunnelLocale, type FunnelLocale } from './funnel-locale';
 
 export const META_IDENTITY_STORAGE_KEY = 'nutree_meta_identity_v1';
 
@@ -27,6 +28,18 @@ function storage() {
 
 export function metaPixelId(source = process.env.NEXT_PUBLIC_META_PIXEL_ID): string {
   return source?.replace(/\D/g, '') ?? '';
+}
+
+/**
+ * Pixel for a funnel locale. English uses NEXT_PUBLIC_META_PIXEL_ID_EN when it
+ * is set, and the default pixel otherwise. Other locales always use the default.
+ */
+export function metaPixelIdForLocale(locale: FunnelLocale): string {
+  if (locale === 'en') {
+    const english = metaPixelId(process.env.NEXT_PUBLIC_META_PIXEL_ID_EN);
+    if (english) return english;
+  }
+  return metaPixelId();
 }
 
 export function normalizeMetaEmail(email: string): string | null {
@@ -82,7 +95,7 @@ export function identifyMetaUser(input: { email: string; externalId?: string; fi
   if (fn) identity.fn = fn;
   saveMetaIdentity(identity);
 
-  const pixelId = metaPixelId();
+  const pixelId = metaPixelIdForLocale(readLockedFunnelLocale());
   if (pixelId && typeof window !== 'undefined') {
     try {
       (window as AnyWindow).fbq?.('init', pixelId, identity);

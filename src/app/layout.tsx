@@ -1,14 +1,12 @@
 import type { Metadata } from 'next';
 import { Be_Vietnam_Pro } from 'next/font/google';
-import Script from 'next/script';
 import { AnalyticsScripts } from '@/components/analytics-scripts';
+import { FunnelLocaleAnalytics } from '@/components/funnel-locale-analytics';
 import { LocalPreviewTools } from '@/components/local-preview-tools';
-import { metaPixelId } from '@/lib/analytics/meta-identity';
-import { metaPixelBootstrapScript } from '@/lib/analytics/meta-pixel-snippet';
-import { siteUrl } from '@/lib/site-url';
+import { MetaPixel } from '@/app/meta-pixel';
+import { requestFunnelLocale } from '@/lib/analytics/request-funnel-locale';
+import { rootMetadata } from '@/lib/funnel/survey-metadata';
 import './globals.css';
-
-const META_PIXEL_ID = metaPixelId();
 
 const beVietnam = Be_Vietnam_Pro({
   subsets: ['latin', 'vietnamese'],
@@ -16,69 +14,21 @@ const beVietnam = Be_Vietnam_Pro({
   variable: '--font-be-vietnam',
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  applicationName: 'Nutree',
-  title: {
-    default: 'Nutree',
-    template: '%s | Nutree',
-  },
-  description:
-    'Trả lời vài câu để Nutree tính calo và macro cho bạn.',
-  openGraph: {
-    title: 'Nutree',
-    description:
-      'Trả lời vài câu để Nutree tính calo và macro cho bạn.',
-    url: '/',
-    siteName: 'Nutree',
-    locale: 'vi_VN',
-    type: 'website',
-    images: [
-      {
-        url: '/nutree-logo-simple.png',
-        width: 930,
-        height: 834,
-        alt: 'Nutree',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary',
-    title: 'Nutree',
-    description:
-      'Trả lời vài câu để Nutree tính calo và macro cho bạn.',
-    images: ['/nutree-logo-simple.png'],
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return rootMetadata(await requestFunnelLocale());
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await requestFunnelLocale();
   return (
-    <html lang="vi" className="h-full" data-scroll-behavior="smooth">
+    <html lang={locale} className="h-full" data-funnel-locale={locale} data-scroll-behavior="smooth">
       <head>
-        {META_PIXEL_ID ? (
-          <>
-            <Script id="meta-pixel" strategy="beforeInteractive">
-              {metaPixelBootstrapScript(META_PIXEL_ID)}
-            </Script>
-            <noscript>
-              <img
-                height={1}
-                width={1}
-                style={{ display: 'none' }}
-                src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
-                alt=""
-              />
-            </noscript>
-          </>
-        ) : null}
+        <MetaPixel locale={locale} />
       </head>
       <body className={`${beVietnam.variable} flex min-h-full flex-col font-sans antialiased`}>
+        <FunnelLocaleAnalytics />
         <AnalyticsScripts />
         {children}
         <LocalPreviewTools />

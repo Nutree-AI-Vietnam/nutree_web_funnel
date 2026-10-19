@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { capture, identify } = vi.hoisted(() => ({ capture: vi.fn(), identify: vi.fn() }));
+const { capture, identify, register } = vi.hoisted(() => ({ capture: vi.fn(), identify: vi.fn(), register: vi.fn() }));
 
 vi.mock('posthog-js', () => ({
-  default: { capture, identify },
+  default: { capture, identify, register },
 }));
 
-import { captureFunnelEvent, identifyFunnelLead } from './posthog';
+import { captureFunnelEvent, identifyFunnelLead, registerFunnelSuperProperties } from './posthog';
 
 describe('captureFunnelEvent', () => {
   beforeEach(() => {
@@ -32,5 +32,18 @@ describe('identifyFunnelLead', () => {
   it('skips an empty lead id', () => {
     identifyFunnelLead('', 'ada@example.com');
     expect(identify).not.toHaveBeenCalled();
+  });
+});
+
+describe('registerFunnelSuperProperties', () => {
+  beforeEach(() => {
+    register.mockClear();
+  });
+
+  it('sets the locale and funnel name on every later event', () => {
+    registerFunnelSuperProperties('en');
+    registerFunnelSuperProperties('vi');
+    expect(register).toHaveBeenNthCalledWith(1, { funnel_locale: 'en', funnel: 'web_funnel_en' });
+    expect(register).toHaveBeenNthCalledWith(2, { funnel_locale: 'vi', funnel: 'web_funnel_vi' });
   });
 });

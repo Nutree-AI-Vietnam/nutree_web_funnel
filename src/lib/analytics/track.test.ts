@@ -113,6 +113,7 @@ describe('analytics', () => {
       event_name: 'Purchase',
       event_id: 'Purchase.test-event-id',
       event_source_url: 'https://quiz.test/paywall',
+      locale: 'vi',
       custom_data: planCommerce,
       user_data: {
         em: sha256('jane@example.com'),
@@ -121,6 +122,22 @@ describe('analytics', () => {
         fbc: 'fb.1.1760000000000.IwAR-click',
       },
     });
+  });
+
+  it('sends the english locale with the same event id and no pixel id', async () => {
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '');
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID_EN', '2222222222');
+    vi.stubGlobal('document', {
+      documentElement: { getAttribute: () => 'en' },
+    });
+    trackEvent('email_captured', {});
+    await vi.waitFor(() => expect(metaServerEvents()).toHaveLength(1));
+    expect(metaServerEvents()[0].body).toMatchObject({
+      event_name: 'Lead',
+      event_id: 'Lead.test-event-id',
+      locale: 'en',
+    });
+    expect(metaServerEvents()[0].body.pixel_id).toBeUndefined();
   });
 
   it('dates fbc by when the tab first saw the click', async () => {
