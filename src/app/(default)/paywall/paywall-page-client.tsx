@@ -177,6 +177,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       markExitOfferClaimed();
     }
     if (pricing.mode !== 'original') storePaywallOffer({ kind: pricing.mode, expiresAt: pricing.expiresAt });
+    if (pricing.mode === 'welcome' && pricing.autoApplied) trackEvent('welcome_offer_auto_applied', { discount_percent: WELCOME_DISCOUNT_PERCENT, offer_auto_applied: true });
     const readyTimer = window.setTimeout(() => {
       setOfferKind(pricing.mode);
       setOfferExpiresAt(pricing.mode === 'original' ? null : pricing.expiresAt);
@@ -325,7 +326,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     };
     const rcPackage = checkoutPackage(plan, offer);
     const checkoutCommerce = firstPaymentCommerce(rcPackage.webBillingProduct);
-    trackEvent('revenuecat_checkout_started', { plan: plan.id, package_id: rcPackage.identifier, country_code: countryCode ?? 'auto', ...checkoutCommerce });
+    trackEvent('revenuecat_checkout_started', { plan: plan.id, package_id: rcPackage.identifier, offer_kind: offer ?? 'original', offer_auto_applied: offer === 'welcome' && !hasWelcomeVoucherBeenClaimed(), country_code: countryCode ?? 'auto', ...checkoutCommerce });
     void syncRevenueCatAttribution(purchasesRef.current);
 
     watchPaddle = window.setInterval(() => {
@@ -490,7 +491,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     : isExitOfferMode
       ? (activeLocale === 'vi' ? `Ưu đãi giảm ${EXIT_DISCOUNT_PERCENT}% đã hết hạn` : `${EXIT_DISCOUNT_PERCENT}% offer expired`)
     : welcomeOfferActive
-      ? (activeLocale === 'vi' ? 'Ưu đãi Nutree Premium' : 'Nutree Premium offer')
+      ? `${copy.paywall.discountTag(WELCOME_DISCOUNT_PERCENT)} · Nutree Premium`
       : (activeLocale === 'vi' ? 'Ưu đãi đã hết hạn' : 'Offer expired');
   const timerLabel = isOriginalPricing
     ? copy.paywall.standardTimer
