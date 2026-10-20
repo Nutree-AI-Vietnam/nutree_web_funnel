@@ -21,7 +21,7 @@ type TestWindow = {
   fbq: ReturnType<typeof vi.fn>;
   ttq: { track: ReturnType<typeof vi.fn>; identify?: ReturnType<typeof vi.fn> };
   sessionStorage: Pick<Storage, 'getItem' | 'setItem'>;
-  location?: { href: string };
+  location?: { href?: string; hostname?: string };
 };
 
 function serverEvents() {
@@ -43,6 +43,7 @@ describe('analytics', () => {
       gtag: vi.fn(),
       fbq: vi.fn(),
       ttq: { track: vi.fn() },
+      location: { hostname: 'quiz.nutreeai.com' },
       sessionStorage: {
         getItem: (key: string) => store.get(key) ?? null,
         setItem: (key: string, value: string) => {
@@ -102,7 +103,7 @@ describe('analytics', () => {
     vi.stubGlobal('crypto', { randomUUID: () => 'test-event-id', subtle: webcrypto.subtle });
     vi.spyOn(Date, 'now').mockReturnValue(1_760_000_000_000);
     const w = window as unknown as TestWindow;
-    w.location = { href: 'https://quiz.test/paywall?fbclid=IwAR-click#plan' };
+    w.location = { hostname: 'quiz.nutreeai.com', href: 'https://quiz.test/paywall?fbclid=IwAR-click#plan' };
     w.sessionStorage.setItem(META_IDENTITY_STORAGE_KEY, JSON.stringify({ em: 'jane@example.com', external_id: 'lead-1', fn: 'jane' }));
     trackEvent('revenuecat_checkout_completed', { plan: '12-week', value: 249000, currency: 'VND', fbclid: 'IwAR-click' });
     expect(w.fbq).toHaveBeenCalledWith('track', 'Purchase', planCommerce, { eventID: 'Purchase.test-event-id' });
@@ -122,6 +123,17 @@ describe('analytics', () => {
         fbc: 'fb.1.1760000000000.IwAR-click',
       },
     });
+  });
+
+  it.each(['quiz.preview.nutreeai.com', 'nutreewebfunnel-git-branch.vercel.app', 'localhost'])('sends no Meta or TikTok server copy from %s', async (hostname) => {
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
+    vi.stubEnv('NEXT_PUBLIC_TIKTOK_PIXEL_ID', 'TT123');
+    const w = window as unknown as TestWindow;
+    w.location = { hostname, href: `https://${hostname}/paywall` };
+    trackEvent('email_captured', {});
+    trackEvent('revenuecat_checkout_completed', { plan: '12-week', value: 249000, currency: 'VND' });
+    await Promise.resolve();
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('sends the english locale with the same event id and no pixel id', async () => {
@@ -162,7 +174,7 @@ describe('analytics', () => {
 
   it('copies Meta standard events to the server when the pixel is blocked', async () => {
     vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
-    vi.stubGlobal('window', { sessionStorage: (window as unknown as TestWindow).sessionStorage });
+    vi.stubGlobal('window', { location: { hostname: 'quiz.nutreeai.com' }, sessionStorage: (window as unknown as TestWindow).sessionStorage });
     trackStepViewed('landing');
     await vi.waitFor(() => expect(metaServerEvents().map(({ body }) => body.event_name)).toEqual(['ViewContent']));
   });
@@ -294,7 +306,7 @@ describe('analytics', () => {
   it('copies TikTok standard events to the server with the pixel event_id', () => {
     vi.stubEnv('NEXT_PUBLIC_TIKTOK_PIXEL_ID', 'PIXEL');
     const w = window as unknown as TestWindow;
-    w.location = { href: 'https://quiz.test/paywall?ttclid=click-1#plan' };
+    w.location = { hostname: 'quiz.nutreeai.com', href: 'https://quiz.test/paywall?ttclid=click-1#plan' };
     w.sessionStorage.setItem(TIKTOK_IDENTITY_STORAGE_KEY, JSON.stringify({ email: emailHash, external_id: leadHash }));
     trackEvent('revenuecat_checkout_completed', { plan: '12-week', value: 249000, currency: 'VND', ttclid: 'click-1' });
     const properties = {
@@ -319,7 +331,7 @@ describe('analytics', () => {
 
   it('copies standard events to the server before the pixel has loaded', () => {
     vi.stubEnv('NEXT_PUBLIC_TIKTOK_PIXEL_ID', 'PIXEL');
-    vi.stubGlobal('window', { sessionStorage: (window as unknown as TestWindow).sessionStorage });
+    vi.stubGlobal('window', { location: { hostname: 'quiz.nutreeai.com' }, sessionStorage: (window as unknown as TestWindow).sessionStorage });
     trackStepViewed('paywall');
     expect(serverEvents().map(({ body }) => body.event)).toEqual(['ViewContent']);
   });
