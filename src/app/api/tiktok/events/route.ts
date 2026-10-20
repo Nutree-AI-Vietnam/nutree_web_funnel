@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginMutation } from '@/lib/handoff/lead-access-session';
+import { isProductionDeployment } from '@/lib/analytics/ad-pixel-host';
 import { clientIp } from '@/lib/analytics/events-api';
 import { parseTiktokBrowserEvent, TIKTOK_EVENTS_API_URL, tiktokEventsApiBody } from '@/lib/analytics/tiktok-events-api';
 
@@ -11,14 +12,18 @@ const MAX_BODY_LENGTH = 16_384;
 /**
  * Forwards the browser's TikTok standard events to the Events API with the
  * same event_id, adding IP, user agent and the _ttp cookie. Inert (204) until
- * TIKTOK_EVENTS_API_ACCESS_TOKEN is set. Delivery failures are logged without
+ * TIKTOK_EVENTS_API_ACCESS_TOKEN is set, and outside the production deployment
+ * unless TIKTOK_EVENTS_API_TEST_CODE is set. Delivery failures are logged without
  * user data and never surface to the funnel.
  */
 export async function POST(request: NextRequest) {
   if (!isSameOriginMutation(request.headers, request.nextUrl.origin)) return NextResponse.json({ detail: 'Cross-site mutation rejected.' }, { status: 403 });
   const accessToken = process.env.TIKTOK_EVENTS_API_ACCESS_TOKEN?.trim();
   const pixelId = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID?.trim();
+  const testCode = process.env.TIKTOK_EVENTS_API_TEST_CODE?.trim() || undefined;
   if (!accessToken || !pixelId) return new NextResponse(null, { status: 204 });
+  // Outside production only test events are forwarded, so previews never reach the live pixel.
+  if (!isProductionDeployment() && !testCode) return new NextResponse(null, { status: 204 });
   const raw = await request.text();
   if (raw.length > MAX_BODY_LENGTH) return NextResponse.json({ detail: 'Event too large.' }, { status: 413 });
   let input: unknown = null;
@@ -34,7 +39,7 @@ export async function POST(request: NextRequest) {
     ip: clientIp(request.headers),
     userAgent: request.headers.get('user-agent'),
     ttp: request.cookies.get('_ttp')?.value,
-  }, process.env.TIKTOK_EVENTS_API_TEST_CODE?.trim() || undefined);
+  }, testCode);
   try {
     const response = await fetch(TIKTOK_EVENTS_API_URL, {
       method: 'POST',

@@ -27,6 +27,7 @@ const browserEvent = {
 };
 
 beforeEach(() => {
+  vi.stubEnv('VERCEL_ENV', 'production');
   vi.stubEnv('META_CONVERSIONS_API_ACCESS_TOKEN', 'capi-token');
   vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
   vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE', '');
@@ -91,6 +92,20 @@ describe('Meta Conversions API route', () => {
   });
 
   it('marks events with the test event code when one is configured', async () => {
+    vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE', 'TEST123');
+    await POST(request(browserEvent));
+    expect(sentBodies()[0].test_event_code).toBe('TEST123');
+  });
+
+  it.each(['preview', 'development', undefined])('forwards nothing from a %s deployment without a test event code', async (vercelEnv) => {
+    vi.stubEnv('VERCEL_ENV', vercelEnv);
+    const response = await POST(request(browserEvent));
+    expect(response.status).toBe(204);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('forwards only as a test event outside production', async () => {
+    vi.stubEnv('VERCEL_ENV', 'preview');
     vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE', 'TEST123');
     await POST(request(browserEvent));
     expect(sentBodies()[0].test_event_code).toBe('TEST123');

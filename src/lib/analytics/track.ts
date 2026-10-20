@@ -23,8 +23,12 @@
  * there. Each standard event also goes to the Events API through our server
  * with the same event_id, so TikTok keeps one copy; it carries the hashed
  * email and lead id saved at email capture.
+ *
+ * Both pixels and both server copies run only on quiz.nutreeai.com (see
+ * ad-pixel-host), so preview and local traffic stays out of the live datasets.
  */
 import { isQuizStep } from '@/lib/quiz/steps';
+import { isAdPixelHost } from './ad-pixel-host';
 import { getAttribution } from './attribution';
 import { pageUrl } from './events-api';
 import { META_EVENTS_PATH, type MetaBrowserEvent, type MetaCustomData, type MetaStandardEvent } from './meta-events-api';
@@ -209,7 +213,7 @@ function trackMeta(fbq: AnyWindow['fbq'], name: string, payload: Record<string, 
   const id = eventID(standard.event);
   fbq?.('track', standard.event, standard.params, { eventID: id });
   // The server copy also covers pixels that have not loaded yet or are blocked.
-  if (!activeMetaPixelId() || typeof fetch !== 'function') return;
+  if (!isAdPixelHost() || !activeMetaPixelId() || typeof fetch !== 'function') return;
   const url = pageUrl(window.location?.href);
   sendMetaServerEvent(
     { event_name: standard.event, event_id: id, ...(url ? { event_source_url: url } : {}), custom_data: standard.params },
@@ -245,7 +249,7 @@ function tiktokPage(): TiktokBrowserEvent['page'] {
 function trackTiktok(ttq: TiktokPixel | undefined, name: string, payload: Record<string, unknown>): void {
   if (isQuizStepView(name, payload)) return;
   // The server copy also covers pixels that have not loaded yet or are blocked.
-  const serverCopy = Boolean(process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID) && typeof fetch === 'function';
+  const serverCopy = Boolean(process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID) && isAdPixelHost() && typeof fetch === 'function';
   if (!ttq && !serverCopy) return;
   const identity = readTiktokIdentity();
   applyTiktokIdentity(ttq, identity);

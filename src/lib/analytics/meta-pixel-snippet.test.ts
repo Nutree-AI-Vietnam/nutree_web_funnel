@@ -11,6 +11,10 @@ describe('meta pixel bootstrap', () => {
     expect(script).toContain("fbq('track','PageView')");
   });
 
+  it('does nothing off the live quiz host', () => {
+    expect(metaPixelBootstrapScript('863565810110494')).toMatch(/^\(function\(\)\{if\(location\.hostname!=='quiz\.nutreeai\.com'\)return;/);
+  });
+
   it('rejects a non-numeric pixel id so the snippet cannot be injected', () => {
     expect(metaPixelBootstrapScript("863');alert(1)//")).toBe('');
   });

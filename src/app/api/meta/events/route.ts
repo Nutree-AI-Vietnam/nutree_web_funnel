@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginMutation } from '@/lib/handoff/lead-access-session';
+import { isProductionDeployment } from '@/lib/analytics/ad-pixel-host';
 import { clientIp, isRecord } from '@/lib/analytics/events-api';
 import { isFunnelLocale, type FunnelLocale } from '@/lib/analytics/funnel-locale';
 import { metaDatasetForLocale } from '@/lib/analytics/meta-dataset';
@@ -27,7 +28,8 @@ function funnelLocaleFromEvent(input: unknown): FunnelLocale | null {
  * here. A missing locale is Vietnamese so a tab still on the previous bundle
  * keeps its server events. English is used only when its pixel and token are
  * both set; otherwise the Vietnamese pair is used. Inert (204) until the
- * chosen access token is set. Delivery failures are
+ * chosen access token is set, and outside the production deployment unless a
+ * test event code is set. Delivery failures are
  * logged without user data and never surface to the funnel.
  */
 export async function POST(request: NextRequest) {
@@ -46,6 +48,8 @@ export async function POST(request: NextRequest) {
   if (!event) return NextResponse.json({ detail: 'Invalid event.' }, { status: 400 });
   const dataset = metaDatasetForLocale(locale);
   if (!dataset.accessToken || !dataset.pixelId) return new NextResponse(null, { status: 204 });
+  // Outside production only test events are forwarded, so previews never reach the live dataset.
+  if (!isProductionDeployment() && !dataset.testEventCode) return new NextResponse(null, { status: 204 });
   const body = metaEventsApiBody(event, {
     eventTime: Math.floor(Date.now() / 1000),
     ip: clientIp(request.headers),
