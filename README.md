@@ -50,9 +50,8 @@ npm run build                # production build check
 | `NEXT_PUBLIC_GA4_ID` | GA4 measurement id (optional; script omitted if unset) |
 | `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel id for Vietnamese pages and every non-English route (optional) |
 | `NEXT_PUBLIC_META_PIXEL_ID_EN` | Meta Pixel id for `/survey/en`. Used only together with the English token; otherwise the page uses the default pixel |
-| `META_CONVERSIONS_API_ACCESS_TOKEN` | Server-only Conversions API token for the default pixel. Empty keeps `/api/meta/events` inert |
+| `META_CONVERSIONS_API_ACCESS_TOKEN` | Server-only Conversions API token for the default pixel. Empty keeps `/api/meta/events` inert. The route forwards only from the production deployment on `quiz.nutreeai.com` |
 | `META_CONVERSIONS_API_ACCESS_TOKEN_EN` | Server-only token for the English pixel. Used only together with the English pixel id; otherwise events use the default token. Set in Vercel as a Sensitive variable |
-| `META_CONVERSIONS_API_TEST_EVENT_CODE` / `META_CONVERSIONS_API_TEST_EVENT_CODE_EN` | Optional Test Events codes. The English code is used only when the English pixel and token are both set |
 | `NEXT_PUBLIC_TIKTOK_PIXEL_ID` | TikTok Pixel id (optional) |
 | `NEXT_PUBLIC_AIRBRIDGE_APP_NAME` | Airbridge app name (optional) |
 | `NEXT_PUBLIC_AIRBRIDGE_WEB_TOKEN` | Airbridge web SDK token (optional) |

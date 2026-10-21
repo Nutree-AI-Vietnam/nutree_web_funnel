@@ -18,6 +18,7 @@ function snippet(): string {
 describe('Meta pixel', () => {
   afterEach(() => {
     cleanup();
+    vi.unstubAllEnvs();
   });
 
   it('inits only the pixel id the layout chose', () => {
@@ -35,5 +36,11 @@ describe('Meta pixel', () => {
     const { container } = render(<MetaPixel pixelId="" />);
     expect(container.innerHTML).toBe('');
     expect(document.getElementById('meta-pixel')).toBeNull();
+  });
+
+  it('ships no no-script image, which could not check the host', () => {
+    vi.stubEnv('VERCEL_ENV', 'production');
+    const { container } = render(<MetaPixel pixelId={ENGLISH_ID} />);
+    expect(container.querySelector('noscript')).toBeNull();
   });
 });
