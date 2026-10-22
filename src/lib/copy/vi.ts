@@ -845,7 +845,7 @@ export const vi = {
   },
   momoCheckout: {
     methodLabel: 'Phương thức thanh toán',
-    momoHint: 'Ví MoMo hoặc thẻ ATM nội địa',
+    momoHint: 'Ví MoMo hoặc Thẻ ATM Nội Địa',
     cardLabel: 'Thẻ quốc tế',
     cardHint: 'Visa, Mastercard qua Paddle',
     oneTime: 'Thanh toán một lần',
@@ -856,7 +856,7 @@ export const vi = {
     opening: 'Đang mở MoMo…',
     payWith: 'Thanh toán qua',
     wallet: 'Ví MoMo',
-    atm: 'Thẻ ATM nội địa',
+    atm: 'Thẻ ATM Nội Địa',
     paidHeadline: 'Mở Nutree và đăng nhập',
     paidBody: 'Thanh toán MoMo đã được ghi nhận. Mở Nutree và đăng nhập bằng email thanh toán để kích hoạt gói.',
     loadingPrices: 'Đang tải giá…',

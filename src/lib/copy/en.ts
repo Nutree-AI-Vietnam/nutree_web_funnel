@@ -849,7 +849,7 @@ export const en: Copy = {
   },
   momoCheckout: {
     methodLabel: 'Payment method',
-    momoHint: 'MoMo wallet or domestic ATM card',
+    momoHint: 'MoMo wallet or Domestic ATM Card',
     cardLabel: 'International card',
     cardHint: 'Visa, Mastercard via Paddle',
     oneTime: 'One-time payment',
@@ -860,7 +860,7 @@ export const en: Copy = {
     opening: 'Opening MoMo…',
     payWith: 'Pay with',
     wallet: 'MoMo wallet',
-    atm: 'Domestic ATM card',
+    atm: 'Domestic ATM Card',
     paidHeadline: 'Open Nutree and sign in',
     paidBody: 'Your MoMo payment is confirmed. Open Nutree and sign in with your checkout email to activate the plan.',
     loadingPrices: 'Loading prices…',
