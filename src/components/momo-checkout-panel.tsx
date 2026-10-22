@@ -97,7 +97,7 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
     <div id="momo-checkout">
       <div role="radiogroup" aria-label={selectPlanAria} aria-busy={!plans} className="mt-5 grid gap-3">
         {plans
-          ? <MomoPlanChoices plans={plans} value={selected} locale={locale} recommendedLabel={recommendedLabel} copy={copy} disabled={busy} onChange={(plan) => { setSelected(plan); trackEvent('offer_selected', { offer_id: plan, provider: 'momo' }); }} />
+          ? <MomoPlanChoices plans={plans} value={selected} locale={locale} recommendedLabel={recommendedLabel} copy={copy} disabled={busy} onChange={(plan) => { setSelected(plan); trackEvent('offer_selected', { offer_id: plan, provider: 'momo', value: plans.find((quote) => quote.plan === plan)?.amount, currency: 'VND' }); }} />
           : !quoteFailed && [0, 1, 2].map((index) => <div key={index} aria-hidden="true" className="min-h-[5.6rem] animate-pulse rounded-[1.4rem] border-2 border-[#dfe7e3] bg-[#f6f8f7]" />)}
       </div>
       {!plans && quoteFailed && (

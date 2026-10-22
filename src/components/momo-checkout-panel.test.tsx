@@ -109,6 +109,16 @@ describe('MomoCheckoutPanel', () => {
     expect(trackEvent).toHaveBeenCalledWith('momo_checkout_started', expect.objectContaining({ plan: 'quarterly', value: 249_000, currency: 'VND' }));
   });
 
+  it('reports a plan switch with that plan price, like the card picker', async () => {
+    fetchMomoPlans.mockResolvedValue(introQuotes);
+    renderPanel();
+
+    await screen.findByRole('button', { name: /Pay 249\.000đ with MoMo/ });
+    fireEvent.click(screen.getAllByRole('radio').find((choice) => choice.textContent?.includes('599.000đ'))!);
+
+    expect(trackEvent).toHaveBeenCalledWith('offer_selected', { offer_id: 'yearly', provider: 'momo', value: 599_000, currency: 'VND' });
+  });
+
   it('prices a buyer quoted regular prices like any other, without mentioning earlier purchases', async () => {
     fetchMomoPlans.mockResolvedValue(regularQuotes);
     startMomoCheckout.mockResolvedValue({ payUrl, orderId, amount: 498_000 });
