@@ -11,7 +11,9 @@ available, and MoMo is offered (and preselected) only for Vietnam traffic.
 
 1. The quiz creates a lead with `POST /v1/web-funnel/leads`.
 2. The paywall loads `GET /v1/web-funnel/momo/plans?lead_id=…`. The API quotes
-   the intro price for a buyer's first pass and the regular price after that.
+   the intro price for the lead's first pass and the regular price after that,
+   judged from that lead's own orders only. The paywall shows the quoted price
+   and never says whether the buyer bought before.
 3. The buyer picks a pass and a payment method, and the paywall calls
    `POST /v1/web-funnel/momo/checkouts` with `monthly`, `quarterly` or
    `yearly` and `wallet` or `atm`. The API signs a MoMo `captureWallet`
@@ -19,13 +21,9 @@ available, and MoMo is offered (and preselected) only for Vietnam traffic.
    ATM card, and returns `pay_url`, `order_id` and the `amount` the order
    charges. Pay stays disabled until the plan quote from step 2 has loaded,
    and the plan and method stay fixed while the order is created. If `amount`
-   differs from the price on screen, the paywall reloads the quotes instead of
-   opening MoMo; the unpaid order expires.
-   Regular prices mean a pass was already paid with the lead's email. The
-   paywall then reads the lead status: a `payment_verified` or `claimed` lead
-   (paid in another tab, or in the browser MoMo returned to) gets the MoMo
-   sign-in hand-off instead of Pay. Any other buyer is told a pass was already
-   bought with this email, and Pay reads "Buy another pass".
+   differs from the price on screen, the paywall does not open MoMo: it shows
+   `amount` as that plan's price with a short note that the price was updated,
+   and the buyer taps Pay again. The unpaid order expires.
 4. The browser opens the MoMo page.
 5. MoMo notifies `POST /v1/webhooks/momo/ipn`. The API checks the HMAC
    signature, partner code and amount, marks the order `paid` and the lead

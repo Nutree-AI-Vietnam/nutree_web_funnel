@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PostcheckoutPageClient } from '@/app/(default)/postcheckout/postcheckout-page-client';
 import { copyFor } from '@/lib/copy';
 import { useQuizStore } from '@/lib/quiz/store';
-import { readCheckoutMethod, saveCheckoutEmail } from '@/lib/revenuecat/checkout-email';
+import { readCheckoutMethod, rememberCheckoutMethod, saveCheckoutEmail } from '@/lib/revenuecat/checkout-email';
 import { PaywallPageClient } from './paywall-page-client';
 
 const purchases = vi.hoisted(() => ({ getOfferings: vi.fn(), purchase: vi.fn() }));
@@ -59,6 +59,7 @@ describe('paywall checkout method', () => {
     purchases.getOfferings.mockResolvedValue({ all: { web_default: offering } });
     // Created on call, so a test that never opens the card checkout leaves no promise to reject.
     rejectPurchase = () => {};
+    purchases.purchase.mockClear();
     purchases.purchase.mockImplementation(() => new Promise((_, reject) => { rejectPurchase = reject; }));
     assign.mockClear();
     vi.stubGlobal('location', { ...window.location, assign });
@@ -99,28 +100,19 @@ describe('paywall checkout method', () => {
     expect(screen.queryByRole('heading', { name: copy.momoCheckout.paidHeadline })).toBeNull();
   });
 
-  it('shows the MoMo sign-in hand-off instead of a second charge when this lead was paid in another tab', async () => {
-    let paid = false;
-    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
-      if (url.startsWith('/api/web-funnel/momo/plans')) {
-        return Response.json({ plans: paid ? momoQuotes.map((quote) => ({ ...quote, amount: quote.regular_amount, intro: false })) : momoQuotes });
-      }
-      if (url === '/api/web-funnel/leads/lead-1/status') {
-        return Response.json({ lead_id: 'lead-1', masked_email: 'b***@example.com', status: 'payment_verified' });
-      }
-      return Response.json({ order_id: 'a'.repeat(32), pay_url: payUrl, amount: 498_000 }, { status: 201 });
-    }));
+  it('records a card checkout as paddle when it starts, replacing the mark of an earlier paid MoMo order', async () => {
+    // A MoMo pass was paid in this tab for an earlier lead; this lead pays by card.
+    rememberCheckoutMethod('momo');
     renderPaywall();
-    const pay = await screen.findByRole('button', { name: /Pay 249\.000đ with MoMo/ });
-
-    // The buyer paid this lead's pass in the browser MoMo returned to, which ends the intro price.
-    paid = true;
-    fireEvent.click(pay);
-
-    expect(await screen.findByRole('heading', { name: copy.momoCheckout.paidHeadline })).toBeTruthy();
+    fireEvent.click(await screen.findByRole('radio', { name: new RegExp(copy.momoCheckout.cardLabel) }));
+    const [cta] = screen.getAllByRole('button', { name: copy.paywall.cta() });
+    await waitFor(() => expect((cta as HTMLButtonElement).disabled).toBe(false));
     expect(readCheckoutMethod()).toBe('momo');
-    expect(assign).not.toHaveBeenCalled();
-    const momoPay = screen.getAllByRole('button').find((button) => button.textContent?.includes('498.000đ')) as HTMLButtonElement;
-    expect(momoPay.disabled).toBe(true);
+
+    fireEvent.click(cta);
+    fireEvent.click(await screen.findByRole('button', { name: 'Continue to payment' }));
+
+    await waitFor(() => expect(purchases.purchase).toHaveBeenCalledTimes(1));
+    expect(readCheckoutMethod()).toBe('paddle');
   });
 });

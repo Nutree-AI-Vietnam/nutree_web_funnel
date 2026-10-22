@@ -11,7 +11,6 @@ import { MomoCheckoutPanel } from './momo-checkout-panel';
 const fetchMomoPlans = vi.hoisted(() => vi.fn());
 const startMomoCheckout = vi.hoisted(() => vi.fn());
 const trackEvent = vi.hoisted(() => vi.fn());
-const getLeadStatus = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/payments/momo-checkout', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/payments/momo-checkout')>()),
@@ -19,7 +18,6 @@ vi.mock('@/lib/payments/momo-checkout', async (importOriginal) => ({
   startMomoCheckout,
 }));
 vi.mock('@/lib/analytics/track', () => ({ trackEvent }));
-vi.mock('@/lib/api/client', () => ({ getLeadStatus }));
 
 const copy = copyFor('en').momoCheckout;
 const orderId = '7fca4122bc86438a8a2ab4721f8a914d';
@@ -37,11 +35,6 @@ const regularQuotes: MomoPlanQuote[] = [
 
 function renderPanel() {
   return render(<MomoCheckoutPanel leadId="lead-1" locale="en" copy={copy} recommendedLabel="Recommended" selectPlanAria="Choose a plan" disabled={false} />);
-}
-
-/** The Pay button's name also carries the MoMo logo's alt text. */
-function buyAnother(amount: string) {
-  return { name: (name: string) => name.endsWith(copy.payAnother(amount)) };
 }
 
 function payButton() {
@@ -63,7 +56,6 @@ describe('MomoCheckoutPanel', () => {
     useQuizStore.getState().reset();
     fetchMomoPlans.mockReset();
     startMomoCheckout.mockReset();
-    getLeadStatus.mockReset();
     trackEvent.mockClear();
     assign.mockClear();
     vi.stubGlobal('location', { ...window.location, assign });
@@ -115,7 +107,18 @@ describe('MomoCheckoutPanel', () => {
     expect(readCheckoutMethod()).toBeNull();
     expect(useQuizStore.getState().momoOrderId).toBe(orderId);
     expect(trackEvent).toHaveBeenCalledWith('momo_checkout_started', expect.objectContaining({ amount: 249_000, currency: 'VND' }));
-    expect(getLeadStatus).not.toHaveBeenCalled();
+  });
+
+  it('prices a buyer quoted regular prices like any other, without mentioning earlier purchases', async () => {
+    fetchMomoPlans.mockResolvedValue(regularQuotes);
+    startMomoCheckout.mockResolvedValue({ payUrl, orderId, amount: 498_000 });
+    renderPanel();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Pay 498\.000đ with MoMo/ }));
+
+    await waitFor(() => expect(assign).toHaveBeenCalledWith(payUrl));
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('keeps the plan and payment method fixed while the order is created', async () => {
@@ -151,70 +154,47 @@ describe('MomoCheckoutPanel', () => {
     expect(useQuizStore.getState().momoOrderId).toBeNull();
   });
 
-  it('hands a lead that has already paid to the MoMo sign-in instead of charging it again', async () => {
-    useQuizStore.getState().setLead({ lead_id: 'lead-1', masked_email: 'b***@example.com', status: 'payment_pending' });
-    fetchMomoPlans.mockResolvedValueOnce(introQuotes).mockResolvedValueOnce(regularQuotes);
-    startMomoCheckout.mockResolvedValue({ payUrl, orderId, amount: 498_000 });
-    getLeadStatus.mockResolvedValue({ lead_id: 'lead-1', masked_email: 'b***@example.com', status: 'payment_verified' });
+  it('shows the charged price instead of opening MoMo when the order costs more than the price on screen', async () => {
+    fetchMomoPlans.mockResolvedValue(introQuotes);
+    startMomoCheckout.mockResolvedValueOnce({ payUrl, orderId, amount: 498_000 });
     renderPanel();
 
     fireEvent.click(await screen.findByRole('button', { name: /Pay 249\.000đ with MoMo/ }));
 
-    await waitFor(() => expect(useQuizStore.getState().lead?.status).toBe('payment_verified'));
-    expect(getLeadStatus).toHaveBeenCalledWith('lead-1');
-    expect(readCheckoutMethod()).toBe('momo');
-    expect(useQuizStore.getState().purchased).toBe(true);
+    const pay = await screen.findByRole('button', { name: /Pay 498\.000đ with MoMo/ });
+    expect(screen.getByRole('status').textContent).toBe(copy.priceChanged('498.000đ'));
+    const quarterly = screen.getAllByRole('radio').find((choice) => choice.getAttribute('aria-checked') === 'true')!;
+    expect(quarterly.textContent).toContain('498.000đ');
+    expect(quarterly.textContent).not.toContain('249.000đ');
+    expect(fetchMomoPlans).toHaveBeenCalledTimes(1);
     expect(assign).not.toHaveBeenCalled();
     expect(useQuizStore.getState().momoOrderId).toBeNull();
     expect(trackEvent).not.toHaveBeenCalledWith('momo_checkout_started', expect.anything());
-  });
 
-  it.each([
-    ['the lead is still unpaid', () => getLeadStatus.mockResolvedValue({ lead_id: 'lead-1', masked_email: 'b***@example.com', status: 'payment_pending' })],
-    ['the lead status cannot be read', () => getLeadStatus.mockRejectedValue(new Error('Could not load checkout status: 503'))],
-  ])('tells a buyer whose email already bought a pass and makes another one an explicit purchase when %s', async (_case, stubLead) => {
-    stubLead();
-    fetchMomoPlans.mockResolvedValueOnce(introQuotes).mockResolvedValueOnce(regularQuotes);
-    startMomoCheckout.mockResolvedValue({ payUrl, orderId, amount: 498_000 });
-    renderPanel();
+    // Tapping again creates a new order, which now matches the price shown.
+    const nextOrderId = 'c'.repeat(32);
+    startMomoCheckout.mockResolvedValueOnce({ payUrl, orderId: nextOrderId, amount: 498_000 });
+    fireEvent.click(pay);
 
-    fireEvent.click(await screen.findByRole('button', { name: /Pay 249\.000đ with MoMo/ }));
-
-    const another = await screen.findByRole('button', buyAnother('498.000đ'));
-    expect(screen.getByRole('alert').textContent).toBe(copy.paidBefore);
-    expect(assign).not.toHaveBeenCalled();
-    expect(readCheckoutMethod()).toBeNull();
-    expect(useQuizStore.getState().momoOrderId).toBeNull();
-
-    // Switching plans keeps both the notice and the explicit label.
-    fireEvent.click(screen.getAllByRole('radio').find((choice) => choice.textContent?.includes('1.198.000đ'))!);
-    expect(screen.getByRole('alert').textContent).toBe(copy.paidBefore);
-    expect(screen.getByRole('button', buyAnother('1.198.000đ'))).toBeTruthy();
-    fireEvent.click(screen.getAllByRole('radio').find((choice) => choice.textContent?.includes('498.000đ'))!);
-
-    fireEvent.click(another);
     await waitFor(() => expect(assign).toHaveBeenCalledWith(payUrl));
+    expect(startMomoCheckout).toHaveBeenCalledTimes(2);
+    expect(useQuizStore.getState().momoOrderId).toBe(nextOrderId);
+    expect(trackEvent).toHaveBeenCalledWith('momo_checkout_started', expect.objectContaining({ plan: 'quarterly', amount: 498_000, intro: false }));
+    expect(screen.queryByRole('status')).toBeNull();
   });
 
-  it('shows the new price instead of opening MoMo when the order charges another amount at the same intro status', async () => {
-    const repriced = introQuotes.map((quote) => (quote.plan === 'quarterly' ? { ...quote, amount: 279_000 } : quote));
-    fetchMomoPlans.mockResolvedValueOnce(introQuotes).mockResolvedValueOnce(repriced);
+  it('drops the price notice when the buyer picks another plan', async () => {
+    fetchMomoPlans.mockResolvedValue(introQuotes);
     startMomoCheckout.mockResolvedValue({ payUrl, orderId, amount: 279_000 });
     renderPanel();
 
     fireEvent.click(await screen.findByRole('button', { name: /Pay 249\.000đ with MoMo/ }));
+    expect((await screen.findByRole('status')).textContent).toBe(copy.priceChanged('279.000đ'));
 
-    const pay = await screen.findByRole('button', { name: /Pay 279\.000đ with MoMo/ });
-    expect(screen.getByRole('alert').textContent).toBe(copy.priceChanged('279.000đ'));
-    expect(fetchMomoPlans).toHaveBeenCalledTimes(2);
-    expect(getLeadStatus).not.toHaveBeenCalled();
+    fireEvent.click(screen.getAllByRole('radio').find((choice) => choice.textContent?.includes('599.000đ'))!);
+
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByRole('button', { name: /Pay 599\.000đ with MoMo/ })).toBeTruthy();
     expect(assign).not.toHaveBeenCalled();
-    expect(useQuizStore.getState().momoOrderId).toBeNull();
-    expect(trackEvent).not.toHaveBeenCalledWith('momo_checkout_started', expect.anything());
-
-    fireEvent.click(pay);
-
-    await waitFor(() => expect(assign).toHaveBeenCalledWith(payUrl));
-    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

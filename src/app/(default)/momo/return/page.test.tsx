@@ -130,6 +130,8 @@ describe('MoMo return page', () => {
     expect(screen.getByRole('link', { name: 'nutreeaidev@gmail.com' }).getAttribute('href')).toContain(orderId);
     expect(screen.queryByRole('link', { name: copy.tryAgain })).toBeNull();
     expect(screen.getByRole('link', { name: copy.notPaid }).getAttribute('href')).toBe('/paywall');
+    // An order this browser cannot read is not confirmed paid, so no checkout method is recorded.
+    expect(readCheckoutMethod()).toBeNull();
     expect(purchaseEvents()).toHaveLength(0);
   });
 

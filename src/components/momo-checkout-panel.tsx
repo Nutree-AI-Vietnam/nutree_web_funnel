@@ -4,13 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import { MomoLogo } from '@/components/momo-logo';
 import { MomoPlanChoices } from '@/components/momo-plan-choices';
 import { trackEvent } from '@/lib/analytics/track';
-import { getLeadStatus } from '@/lib/api/client';
 import type { Copy } from '@/lib/copy';
 import { fetchMomoPlans, formatMomoAmount, MOMO_UNAVAILABLE, startMomoCheckout, type MomoPayMethod, type MomoPlanKey, type MomoPlanQuote } from '@/lib/payments/momo-checkout';
 import { cn } from '@/lib/utils';
 import { useQuizStore } from '@/lib/quiz/store';
-import type { Lead, LeadStatus } from '@/lib/quiz/types';
-import { rememberCheckoutMethod } from '@/lib/revenuecat/checkout-email';
 
 interface MomoCheckoutPanelProps {
   leadId: string;
@@ -21,31 +18,15 @@ interface MomoCheckoutPanelProps {
   disabled: boolean;
 }
 
-/** Lead statuses the paywall answers with the MoMo sign-in hand-off instead of Pay. */
-const PAID_LEAD_STATUSES = new Set<LeadStatus>(['payment_verified', 'claimed']);
-
-/**
- * The backend drops the intro price once a pass is paid with the checkout email.
- * When that pass is this lead's own (paid in another tab, or in the browser MoMo
- * returned to), returns the lead so the buyer is not asked to pay again.
- */
-async function findPaidLead(leadId: string, plans: MomoPlanQuote[]): Promise<Lead | null> {
-  if (plans.every((plan) => plan.intro)) return null;
-  const lead = await getLeadStatus(leadId).catch(() => null);
-  return lead?.lead_id === leadId && PAID_LEAD_STATUSES.has(lead.status) ? lead : null;
-}
-
 /**
  * MoMo one-time pass picker. Prices come only from the backend quote: until it
  * loads nothing is priced and Pay stays disabled. Plan and method stay fixed
  * while the order is created, and the buyer leaves for MoMo only when that order
- * charges the price on screen. A buyer whose email already bought a pass is told
- * so and has to choose to buy another.
+ * charges the price on screen. Otherwise the charged amount replaces that price
+ * and the buyer taps Pay again; the unpaid order expires.
  */
 export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, selectPlanAria, disabled }: MomoCheckoutPanelProps) {
   const setMomoOrderId = useQuizStore((state) => state.setMomoOrderId);
-  const setLead = useQuizStore((state) => state.setLead);
-  const setPurchased = useQuizStore((state) => state.setPurchased);
   // Quotes are kept with their lead so another lead never sees them.
   const [quotes, setQuotes] = useState<{ leadId: string; plans: MomoPlanQuote[] } | null>(null);
   const [quoteFailed, setQuoteFailed] = useState(false);
@@ -65,29 +46,21 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
 
   useEffect(() => {
     let cancelled = false;
-    const load = async () => {
-      const plans = await fetchMomoPlans(leadId);
-      const paidLead = await findPaidLead(leadId, plans);
-      if (cancelled) return;
-      if (paidLead) {
-        // Same steps as a paid MoMo return, so the paywall and post-checkout show the sign-in hand-off.
-        rememberCheckoutMethod('momo');
-        setPurchased(true);
-        setLead(paidLead);
-      }
-      setQuotes({ leadId, plans });
-      setQuoteFailed(false);
-    };
-    load().catch(() => { if (!cancelled) setQuoteFailed(true); });
+    fetchMomoPlans(leadId).then(
+      (plans) => {
+        if (cancelled) return;
+        setQuotes({ leadId, plans });
+        setQuoteFailed(false);
+      },
+      () => { if (!cancelled) setQuoteFailed(true); },
+    );
     return () => { cancelled = true; };
-  }, [leadId, quoteAttempt, setLead, setPurchased]);
+  }, [leadId, quoteAttempt]);
 
   const plans = quotes?.leadId === leadId ? quotes.plans : null;
   const quote = plans ? plans.find((plan) => plan.plan === selected) ?? plans[0] ?? null : null;
   const amount = quote ? formatMomoAmount(quote.amount) : null;
-  const paidBefore = plans?.some((plan) => !plan.intro) ?? false;
-  const notice = plans && (paidBefore ? copy.paidBefore : priceNotice);
-  const payLabel = busy ? copy.opening : amount ? (paidBefore ? copy.payAnother(amount) : copy.pay(amount)) : quoteFailed ? copy.payUnpriced : copy.loadingPrices;
+  const payLabel = busy ? copy.opening : amount ? copy.pay(amount) : quoteFailed ? copy.payUnpriced : copy.loadingPrices;
 
   const retryQuote = () => {
     setQuoteFailed(false);
@@ -103,10 +76,11 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
       const started = await startMomoCheckout(quote.plan, method, locale, leadId);
       if (!mountedRef.current) return;
       if (started.amount !== quote.amount) {
-        // Reload every quote, which also finds a pass paid with this email meanwhile; the unpaid order expires.
+        const charged = { ...quote, amount: started.amount, intro: started.amount < quote.regular_amount };
+        setQuotes((current) => (current?.leadId === leadId
+          ? { leadId, plans: current.plans.map((plan) => (plan.plan === charged.plan ? charged : plan)) }
+          : current));
         setPriceNotice(copy.priceChanged(formatMomoAmount(started.amount)));
-        setQuotes(null);
-        setQuoteAttempt((attempt) => attempt + 1);
         setBusy(false);
         return;
       }
@@ -149,7 +123,7 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
           </button>
         ))}
       </div>
-      {notice && <p role="alert" className="mt-4 rounded-2xl bg-[#FFF7ED] px-4 py-3 text-sm font-bold text-[#9A3412]">{notice}</p>}
+      {priceNotice && <p role="status" className="mt-4 rounded-2xl bg-[#FFF7ED] px-4 py-3 text-sm font-bold text-[#9A3412]">{priceNotice}</p>}
       <button
         type="button"
         disabled={busy || disabled || !quote}

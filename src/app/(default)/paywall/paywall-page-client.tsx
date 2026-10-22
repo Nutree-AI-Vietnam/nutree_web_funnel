@@ -335,7 +335,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     };
     const rcPackage = checkoutPackage(plan, offer);
     const checkoutCommerce = firstPaymentCommerce(rcPackage.webBillingProduct);
-    // Post-checkout shows the card redemption-email guidance, not MoMo copy from an earlier attempt.
+    // Post-checkout shows the card redemption-email guidance, not the hand-off of an earlier paid MoMo order.
     rememberCheckoutMethod('paddle');
     trackEvent('revenuecat_checkout_started', { plan: plan.id, package_id: rcPackage.identifier, offer_kind: offer ?? 'original', offer_auto_applied: offer === 'welcome' && !hasWelcomeVoucherBeenClaimed(), country_code: countryCode ?? 'auto', ...checkoutCommerce });
     void syncRevenueCatAttribution(purchasesRef.current);

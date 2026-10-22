@@ -867,9 +867,7 @@ export const en: Copy = {
     payUnpriced: 'Pay with MoMo',
     pricesError: 'We couldn’t load MoMo prices.',
     retryPrices: 'Try again',
-    priceChanged: (amount: string) => `This pass now costs ${amount}. Check the new price, then tap Pay again.`,
-    paidBefore: 'You already bought a Nutree pass with this email. If you just paid, open Nutree and sign in with this email to use it. Pay again only if you want an extra pass.',
-    payAnother: (amount: string) => `Buy another pass for ${amount}`,
+    priceChanged: (amount: string) => `The price was updated to ${amount}. Tap again to pay.`,
   },
   momoReturn: {
     headline: 'Confirming your payment',
