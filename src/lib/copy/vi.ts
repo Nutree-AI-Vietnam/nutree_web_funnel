@@ -864,6 +864,8 @@ export const vi = {
     pricesError: 'Chưa tải được giá gói MoMo.',
     retryPrices: 'Thử lại',
     priceChanged: (amount: string) => `Giá gói này hiện là ${amount}. Vui lòng xem lại giá mới rồi nhấn thanh toán lần nữa.`,
+    paidBefore: 'Bạn đã mua một gói Nutree bằng email này. Nếu vừa thanh toán, hãy mở Nutree và đăng nhập bằng email này để dùng gói. Chỉ thanh toán tiếp nếu bạn muốn mua thêm một gói.',
+    payAnother: (amount: string) => `Mua thêm một gói với giá ${amount}`,
   },
   momoReturn: {
     headline: 'Đang xác nhận thanh toán',

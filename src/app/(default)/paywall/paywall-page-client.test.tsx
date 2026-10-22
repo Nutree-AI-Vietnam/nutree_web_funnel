@@ -57,7 +57,9 @@ describe('paywall checkout method', () => {
     useQuizStore.getState().setLead({ lead_id: 'lead-1', masked_email: 'b***@example.com', status: 'payment_pending' });
     saveCheckoutEmail('buyer@example.com');
     purchases.getOfferings.mockResolvedValue({ all: { web_default: offering } });
-    purchases.purchase.mockReturnValue(new Promise((_, reject) => { rejectPurchase = reject; }));
+    // Created on call, so a test that never opens the card checkout leaves no promise to reject.
+    rejectPurchase = () => {};
+    purchases.purchase.mockImplementation(() => new Promise((_, reject) => { rejectPurchase = reject; }));
     assign.mockClear();
     vi.stubGlobal('location', { ...window.location, assign });
     vi.stubGlobal('fetch', vi.fn(async (url: string) => (url.startsWith('/api/web-funnel/momo/plans')
@@ -95,5 +97,30 @@ describe('paywall checkout method', () => {
     render(<PostcheckoutPageClient />);
     expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: copy.momoCheckout.paidHeadline })).toBeNull();
+  });
+
+  it('shows the MoMo sign-in hand-off instead of a second charge when this lead was paid in another tab', async () => {
+    let paid = false;
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (url.startsWith('/api/web-funnel/momo/plans')) {
+        return Response.json({ plans: paid ? momoQuotes.map((quote) => ({ ...quote, amount: quote.regular_amount, intro: false })) : momoQuotes });
+      }
+      if (url === '/api/web-funnel/leads/lead-1/status') {
+        return Response.json({ lead_id: 'lead-1', masked_email: 'b***@example.com', status: 'payment_verified' });
+      }
+      return Response.json({ order_id: 'a'.repeat(32), pay_url: payUrl, amount: 498_000 }, { status: 201 });
+    }));
+    renderPaywall();
+    const pay = await screen.findByRole('button', { name: /Pay 249\.000đ with MoMo/ });
+
+    // The buyer paid this lead's pass in the browser MoMo returned to, which ends the intro price.
+    paid = true;
+    fireEvent.click(pay);
+
+    expect(await screen.findByRole('heading', { name: copy.momoCheckout.paidHeadline })).toBeTruthy();
+    expect(readCheckoutMethod()).toBe('momo');
+    expect(assign).not.toHaveBeenCalled();
+    const momoPay = screen.getAllByRole('button').find((button) => button.textContent?.includes('498.000đ')) as HTMLButtonElement;
+    expect(momoPay.disabled).toBe(true);
   });
 });

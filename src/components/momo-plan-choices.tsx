@@ -8,10 +8,12 @@ interface MomoPlanChoicesProps {
   locale: 'vi' | 'en';
   recommendedLabel: string;
   copy: Copy['momoCheckout'];
+  /** True while an order is being created, so the plan on screen is the plan charged. */
+  disabled: boolean;
   onChange: (plan: MomoPlanKey) => void;
 }
 
-export function MomoPlanChoices({ plans, value, locale, recommendedLabel, copy, onChange }: MomoPlanChoicesProps) {
+export function MomoPlanChoices({ plans, value, locale, recommendedLabel, copy, disabled, onChange }: MomoPlanChoicesProps) {
   return (
     <>
       {plans.map((quote) => {
@@ -23,10 +25,11 @@ export function MomoPlanChoices({ plans, value, locale, recommendedLabel, copy, 
             type="button"
             role="radio"
             aria-checked={active}
+            disabled={disabled}
             onClick={() => onChange(quote.plan)}
             className={cn(
-              'overflow-hidden rounded-[1.4rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]',
-              active ? 'border-[#ff5b1f] shadow-[0_12px_26px_rgb(255_106_31_/_0.10)]' : 'border-[#dfe7e3] hover:border-teal-brand/60',
+              'overflow-hidden rounded-[1.4rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99] disabled:cursor-not-allowed',
+              active ? 'border-[#ff5b1f] shadow-[0_12px_26px_rgb(255_106_31_/_0.10)]' : 'border-[#dfe7e3] hover:border-teal-brand/60 disabled:opacity-60 disabled:hover:border-[#dfe7e3]',
             )}
           >
             {planCopy.recommended && <span className="block bg-gradient-to-r from-[#ef4d59] to-[#ff781f] px-3 py-1.5 text-center text-[0.62rem] font-extrabold tracking-[0.02em] text-white">{recommendedLabel}</span>}

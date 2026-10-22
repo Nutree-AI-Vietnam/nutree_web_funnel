@@ -31,8 +31,9 @@ export function clearCheckoutEmail() {
 /**
  * Which provider the last checkout used, so post-checkout copy matches it.
  * Card checkouts record `paddle` when they start; MoMo records `momo` only
- * once its order is confirmed paid. Nothing clears it: a started MoMo
- * checkout writes nothing, so there is no stale MoMo value to remove.
+ * once the backend confirms a paid order (the return page) or a paid lead
+ * (the paywall). Nothing clears it: a started MoMo checkout writes nothing,
+ * so there is no stale MoMo value to remove.
  */
 export function rememberCheckoutMethod(method: 'momo' | 'paddle') {
   storage()?.setItem(CHECKOUT_METHOD_STORAGE_KEY, method);
