@@ -359,6 +359,71 @@ describe('analytics', () => {
     expect(w.ttq.track).toHaveBeenCalledWith('Purchase', commerce, { event_id: 'Purchase.test-event-id' });
   });
 
+  it('reports a MoMo order that opens MoMo as InitiateCheckout, with AddToCart for the kept plan', () => {
+    trackEvent('momo_checkout_started', { plan: 'quarterly', method: 'wallet', value: 249000, intro: true, currency: 'VND' });
+    const w = window as unknown as TestWindow;
+    expect(w.fbq).toHaveBeenCalledWith('track', 'InitiateCheckout', {
+      value: 249000,
+      currency: 'VND',
+      content_type: 'product',
+      num_items: 1,
+      content_ids: ['quarterly'],
+      content_name: 'quarterly',
+      contents: [{ id: 'quarterly', quantity: 1 }],
+    }, { eventID: 'InitiateCheckout.test-event-id' });
+    const product = { value: 249000, currency: 'VND', content_type: 'product', contents: [{ content_id: 'quarterly', quantity: 1, price: 249000 }] };
+    expect(w.ttq.track.mock.calls.filter(([event]) => event !== 'momo_checkout_started')).toEqual([
+      ['AddToCart', product, { event_id: 'AddToCart.test-event-id' }],
+      ['InitiateCheckout', product, { event_id: 'InitiateCheckout.test-event-id' }],
+    ]);
+  });
+
+  it('reports a paid MoMo pass as a Meta and TikTok Purchase whose event id is fixed by the order', async () => {
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
+    vi.stubEnv('NEXT_PUBLIC_TIKTOK_PIXEL_ID', 'PIXEL');
+    vi.stubGlobal('crypto', { randomUUID: () => 'test-event-id', subtle: webcrypto.subtle });
+    const orderId = 'a'.repeat(32);
+    const eventId = `Purchase.momo.${orderId}`;
+    // A second tab or a reopened return link reports the same order again.
+    trackEvent('momo_checkout_completed', { order_id: orderId, plan: 'quarterly', value: 249000, currency: 'VND' });
+    trackEvent('momo_checkout_completed', { order_id: orderId, plan: 'quarterly', value: 249000, currency: 'VND' });
+    const w = window as unknown as TestWindow;
+    const metaParams = {
+      value: 249000,
+      currency: 'VND',
+      content_type: 'product',
+      num_items: 1,
+      content_ids: ['quarterly'],
+      content_name: 'quarterly',
+      contents: [{ id: 'quarterly', quantity: 1 }],
+    };
+    const tiktokParams = {
+      value: 249000,
+      currency: 'VND',
+      content_type: 'product',
+      contents: [{ content_id: 'quarterly', quantity: 1, price: 249000 }],
+    };
+    expect(w.fbq.mock.calls).toEqual([
+      ['track', 'Purchase', metaParams, { eventID: eventId }],
+      ['track', 'Purchase', metaParams, { eventID: eventId }],
+    ]);
+    expect(w.ttq.track.mock.calls.filter(([event]) => event === 'Purchase')).toEqual([
+      ['Purchase', tiktokParams, { event_id: eventId }],
+      ['Purchase', tiktokParams, { event_id: eventId }],
+    ]);
+    await vi.waitFor(() => expect(metaServerEvents()).toHaveLength(2));
+    const serverIds = serverEvents().map(({ url, body }) => [url, body.event_id]);
+    expect(serverIds).toHaveLength(4);
+    expect(new Set(serverIds.map(([, id]) => id))).toEqual(new Set([eventId]));
+  });
+
+  it('keeps random event ids for a MoMo completion without a valid order id', () => {
+    trackEvent('momo_checkout_completed', { order_id: '../leads', plan: 'quarterly', value: 249000, currency: 'VND' });
+    const w = window as unknown as TestWindow;
+    expect(w.fbq).toHaveBeenCalledWith('track', 'Purchase', expect.any(Object), { eventID: 'Purchase.test-event-id' });
+    expect(w.ttq.track).toHaveBeenCalledWith('Purchase', expect.any(Object), { event_id: 'Purchase.test-event-id' });
+  });
+
   it('sends AddToCart once per plan however often it is clicked', () => {
     trackEvent('offer_selected', { offer_id: 'vn_monthly_welcome50', provider: 'revenuecat' });
     trackEvent('offer_selected', { offer_id: 'vn_monthly_welcome50', provider: 'revenuecat' });
