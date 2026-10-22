@@ -12,6 +12,12 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ord
   if (result.status !== 200) {
     return NextResponse.json({ detail: 'Could not load MoMo order status.' }, { status: result.status });
   }
-  const payload = result.payload as { status?: unknown } | null;
-  return NextResponse.json({ order_id: orderId, status: payload?.status ?? 'pending' }, { headers: NO_STORE });
+  const payload = result.payload as { status?: unknown; plan?: unknown; amount?: unknown } | null;
+  // Plan and amount let the return page report the purchase to ad platforms.
+  return NextResponse.json({
+    order_id: orderId,
+    status: payload?.status ?? 'pending',
+    plan: typeof payload?.plan === 'string' ? payload.plan : null,
+    amount: typeof payload?.amount === 'number' ? payload.amount : null,
+  }, { headers: NO_STORE });
 }

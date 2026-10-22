@@ -359,6 +359,26 @@ describe('analytics', () => {
     expect(w.ttq.track).toHaveBeenCalledWith('Purchase', commerce, { event_id: 'Purchase.test-event-id' });
   });
 
+  it('reports a paid MoMo pass as a Meta and TikTok Purchase with its plan and VND value', () => {
+    trackEvent('momo_checkout_completed', { order_id: 'a'.repeat(32), plan: 'quarterly', value: 249000, currency: 'VND' });
+    const w = window as unknown as { fbq: ReturnType<typeof vi.fn>; ttq: { track: ReturnType<typeof vi.fn> } };
+    expect(w.fbq).toHaveBeenCalledWith('track', 'Purchase', {
+      value: 249000,
+      currency: 'VND',
+      content_type: 'product',
+      num_items: 1,
+      content_ids: ['quarterly'],
+      content_name: 'quarterly',
+      contents: [{ id: 'quarterly', quantity: 1 }],
+    }, { eventID: 'Purchase.test-event-id' });
+    expect(w.ttq.track).toHaveBeenCalledWith('Purchase', {
+      value: 249000,
+      currency: 'VND',
+      content_type: 'product',
+      contents: [{ content_id: 'quarterly', quantity: 1, price: 249000 }],
+    }, { event_id: 'Purchase.test-event-id' });
+  });
+
   it('sends AddToCart once per plan however often it is clicked', () => {
     trackEvent('offer_selected', { offer_id: 'vn_monthly_welcome50', provider: 'revenuecat' });
     trackEvent('offer_selected', { offer_id: 'vn_monthly_welcome50', provider: 'revenuecat' });

@@ -5,10 +5,9 @@ import { MomoLogo } from '@/components/momo-logo';
 import { MomoPlanChoices } from '@/components/momo-plan-choices';
 import { trackEvent } from '@/lib/analytics/track';
 import type { Copy } from '@/lib/copy';
-import { DEFAULT_MOMO_PLANS, fetchMomoPlans, formatMomoAmount, startMomoCheckout, type MomoPayMethod, type MomoPlanKey, type MomoPlanQuote } from '@/lib/payments/momo-checkout';
+import { fetchMomoPlans, formatMomoAmount, MOMO_UNAVAILABLE, startMomoCheckout, type MomoPayMethod, type MomoPlanKey, type MomoPlanQuote } from '@/lib/payments/momo-checkout';
 import { cn } from '@/lib/utils';
 import { useQuizStore } from '@/lib/quiz/store';
-import { rememberCheckoutMethod } from '@/lib/revenuecat/checkout-email';
 
 interface MomoCheckoutPanelProps {
   leadId: string;
@@ -19,10 +18,16 @@ interface MomoCheckoutPanelProps {
   disabled: boolean;
 }
 
-/** MoMo one-time pass picker. The backend prices the order and MoMo shows the final amount. */
+/**
+ * MoMo one-time pass picker. Prices come only from the backend quote, which is
+ * what MoMo charges: until it loads nothing is priced and Pay stays disabled.
+ */
 export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, selectPlanAria, disabled }: MomoCheckoutPanelProps) {
   const setMomoOrderId = useQuizStore((state) => state.setMomoOrderId);
-  const [plans, setPlans] = useState<MomoPlanQuote[]>(DEFAULT_MOMO_PLANS);
+  // Quotes are kept with their lead so another lead never sees them.
+  const [quotes, setQuotes] = useState<{ leadId: string; plans: MomoPlanQuote[] } | null>(null);
+  const [quoteFailed, setQuoteFailed] = useState(false);
+  const [quoteAttempt, setQuoteAttempt] = useState(0);
   const [selected, setSelected] = useState<MomoPlanKey>('quarterly');
   const [method, setMethod] = useState<MomoPayMethod>('wallet');
   const [busy, setBusy] = useState(false);
@@ -31,35 +36,52 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
   useEffect(() => {
     let cancelled = false;
     fetchMomoPlans(leadId)
-      .then((quotes) => { if (!cancelled) setPlans(quotes); })
-      .catch(() => { /* Keep intro prices; the order is priced by the backend. */ });
+      .then((plans) => {
+        if (cancelled) return;
+        setQuotes({ leadId, plans });
+        setQuoteFailed(false);
+      })
+      .catch(() => { if (!cancelled) setQuoteFailed(true); });
     return () => { cancelled = true; };
-  }, [leadId]);
+  }, [leadId, quoteAttempt]);
 
-  const quote = plans.find((plan) => plan.plan === selected) ?? plans[0]!;
-  const amount = formatMomoAmount(quote.amount);
+  const plans = quotes?.leadId === leadId ? quotes.plans : null;
+  const quote = plans ? plans.find((plan) => plan.plan === selected) ?? plans[0] ?? null : null;
+  const amount = quote ? formatMomoAmount(quote.amount) : null;
+
+  const retryQuote = () => {
+    setQuoteFailed(false);
+    setQuoteAttempt((attempt) => attempt + 1);
+  };
 
   const pay = async () => {
-    if (busy || disabled) return;
+    if (busy || disabled || !quote) return;
     setBusy(true);
     setError(null);
     try {
       const started = await startMomoCheckout(quote.plan, method, locale, leadId);
-      rememberCheckoutMethod('momo');
       setMomoOrderId(started.orderId);
       trackEvent('momo_checkout_started', { plan: quote.plan, method, amount: quote.amount, intro: quote.intro, currency: 'VND' });
       window.location.assign(started.payUrl);
     } catch (checkoutError) {
       setBusy(false);
-      setError(checkoutError instanceof Error ? checkoutError.message : 'MoMo checkout is unavailable.');
+      setError(checkoutError instanceof Error ? checkoutError.message : MOMO_UNAVAILABLE);
     }
   };
 
   return (
     <div id="momo-checkout">
-      <div role="radiogroup" aria-label={selectPlanAria} className="mt-5 grid gap-3">
-        <MomoPlanChoices plans={plans} value={selected} locale={locale} recommendedLabel={recommendedLabel} copy={copy} onChange={(plan) => { setSelected(plan); trackEvent('offer_selected', { offer_id: plan, provider: 'momo' }); }} />
+      <div role="radiogroup" aria-label={selectPlanAria} aria-busy={!plans} className="mt-5 grid gap-3">
+        {plans
+          ? <MomoPlanChoices plans={plans} value={selected} locale={locale} recommendedLabel={recommendedLabel} copy={copy} onChange={(plan) => { setSelected(plan); trackEvent('offer_selected', { offer_id: plan, provider: 'momo' }); }} />
+          : !quoteFailed && [0, 1, 2].map((index) => <div key={index} aria-hidden="true" className="min-h-[5.6rem] animate-pulse rounded-[1.4rem] border-2 border-[#dfe7e3] bg-[#f6f8f7]" />)}
       </div>
+      {!plans && quoteFailed && (
+        <div role="alert" className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-[#fff1f2] px-4 py-3 text-sm font-bold text-error-brand">
+          <span>{copy.pricesError}</span>
+          <button type="button" onClick={retryQuote} className="shrink-0 rounded-full border-2 border-current px-3 py-1 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#a50064]/20">{copy.retryPrices}</button>
+        </div>
+      )}
       <div role="radiogroup" aria-label={copy.payWith} className="mt-4 flex items-center justify-center gap-2 text-sm font-bold">
         <span className="text-muted-brand">{copy.payWith}</span>
         {(['wallet', 'atm'] as const).map((option) => (
@@ -77,17 +99,19 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
       </div>
       <button
         type="button"
-        disabled={busy || disabled}
+        disabled={busy || disabled || !quote}
         onClick={() => { void pay(); }}
         className="mt-5 flex min-h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-[#a50064] px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(165_0_100_/_0.22)] transition hover:bg-[#8a0054] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#a50064]/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
       >
         <MomoLogo size={26} className="bg-white" />
-        <span>{busy ? copy.opening : copy.pay(amount)}</span>
+        <span>{busy ? copy.opening : amount ? copy.pay(amount) : quoteFailed ? copy.payUnpriced : copy.loadingPrices}</span>
       </button>
-      <p className="mt-4 text-center text-sm leading-relaxed text-muted-brand">
-        {copy.summary(amount, quote.weeks)}
-        {quote.regular_amount !== quote.amount && <> {copy.renewal(formatMomoAmount(quote.regular_amount))}</>}
-      </p>
+      {quote && amount && (
+        <p className="mt-4 text-center text-sm leading-relaxed text-muted-brand">
+          {copy.summary(amount, quote.weeks)}
+          {quote.regular_amount !== quote.amount && <> {copy.renewal(formatMomoAmount(quote.regular_amount))}</>}
+        </p>
+      )}
       {error && <p role="alert" className="mt-4 rounded-2xl bg-[#fff1f2] px-4 py-3 text-sm font-bold text-error-brand">{error}</p>}
     </div>
   );

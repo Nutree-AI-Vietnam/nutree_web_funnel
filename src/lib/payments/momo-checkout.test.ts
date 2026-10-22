@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { DEFAULT_MOMO_PLANS, formatMomoAmount, isMomoPayUrl, momoCheckoutFailureDetail, momoOrderIdFrom, momoPlanKey } from './momo-checkout';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { claimMomoPurchaseReport, fetchMomoOrderStatus, formatMomoAmount, isMomoPayUrl, isMomoPostcheckout, MOMO_UNAVAILABLE, momoCheckoutFailureDetail, momoOrderIdFrom, momoPlanKey } from './momo-checkout';
 
 describe('momoPlanKey', () => {
   it('accepts only the MoMo pass catalog', () => {
@@ -7,14 +7,6 @@ describe('momoPlanKey', () => {
     expect(momoPlanKey('quarterly')).toBe('quarterly');
     expect(momoPlanKey('yearly')).toBe('yearly');
     expect(() => momoPlanKey('$rc_six_month')).toThrow('Unknown MoMo plan');
-  });
-
-  it('starts every pass at the intro price until the backend quotes', () => {
-    expect(DEFAULT_MOMO_PLANS.map((plan) => [plan.plan, plan.amount, plan.regular_amount])).toEqual([
-      ['monthly', 99_000, 198_000],
-      ['quarterly', 249_000, 498_000],
-      ['yearly', 599_000, 1_198_000],
-    ]);
   });
 });
 
@@ -43,12 +35,76 @@ describe('momoOrderIdFrom', () => {
 });
 
 describe('momoCheckoutFailureDetail', () => {
-  it('names the MoMo settings that are still empty', () => {
+  it('never shows configuration details to shoppers', () => {
     expect(momoCheckoutFailureDetail({
       detail: { message: 'MoMo is not configured', missing: ['MOMO_PARTNER_CODE', 'MOMO_IPN_URL'] },
-    })).toBe('MoMo is not configured. Add MOMO_PARTNER_CODE, MOMO_IPN_URL.');
+    })).toBe(MOMO_UNAVAILABLE);
+    expect(MOMO_UNAVAILABLE).not.toMatch(/MOMO_/);
+    expect(momoCheckoutFailureDetail({ detail: [{ loc: ['body'] }] })).toBe(MOMO_UNAVAILABLE);
+    expect(momoCheckoutFailureDetail(null)).toBe(MOMO_UNAVAILABLE);
+  });
+
+  it('keeps a plain backend message', () => {
     expect(momoCheckoutFailureDetail({ detail: 'Unknown MoMo plan' })).toBe('Unknown MoMo plan');
-    expect(momoCheckoutFailureDetail({ detail: [{ loc: ['body'] }] })).toBe('MoMo checkout is unavailable.');
+  });
+});
+
+describe('isMomoPostcheckout', () => {
+  it('recognises the post-checkout link the return page opens', () => {
+    expect(isMomoPostcheckout('?method=momo')).toBe(true);
+    expect(isMomoPostcheckout('?method=paddle')).toBe(false);
+    expect(isMomoPostcheckout('')).toBe(false);
+  });
+});
+
+describe('claimMomoPurchaseReport', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('reports each order once per tab', () => {
+    const values = new Map<string, string>();
+    vi.stubGlobal('window', {
+      sessionStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => { values.set(key, value); },
+      },
+    });
+    expect(claimMomoPurchaseReport('a'.repeat(32))).toBe(true);
+    expect(claimMomoPurchaseReport('a'.repeat(32))).toBe(false);
+    expect(claimMomoPurchaseReport('b'.repeat(32))).toBe(true);
+  });
+
+  it('still reports when session storage is unavailable', () => {
+    vi.stubGlobal('window', {
+      get sessionStorage(): Storage {
+        throw new Error('blocked');
+      },
+    });
+    expect(claimMomoPurchaseReport('a'.repeat(32))).toBe(true);
+  });
+});
+
+describe('fetchMomoOrderStatus', () => {
+  const orderId = '7fca4122bc86438a8a2ab4721f8a914d';
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('returns the plan and amount of a paid order', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ order_id: orderId, status: 'paid', plan: 'quarterly', amount: 249_000 })));
+    await expect(fetchMomoOrderStatus(orderId)).resolves.toEqual({ status: 'paid', httpStatus: 200, plan: 'quarterly', amount: 249_000 });
+  });
+
+  it('drops a plan or amount it does not recognise', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ status: 'pending', plan: '$rc_six_month', amount: '249000' })));
+    await expect(fetchMomoOrderStatus(orderId)).resolves.toEqual({ status: 'pending', httpStatus: 200, plan: null, amount: null });
+  });
+
+  it('reports the HTTP status when the order cannot be read', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ detail: 'Draft session unavailable.' }, { status: 401 })));
+    await expect(fetchMomoOrderStatus(orderId)).resolves.toEqual({ status: null, httpStatus: 401, plan: null, amount: null });
   });
 });
 

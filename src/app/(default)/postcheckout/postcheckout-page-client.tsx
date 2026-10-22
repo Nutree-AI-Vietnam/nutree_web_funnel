@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { RedemptionEmailPreview } from '@/components/redemption-email-guide';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { copyFor } from '@/lib/copy';
+import { isMomoPostcheckout } from '@/lib/payments/momo-checkout';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { clearCheckoutEmail, readCheckoutMethod } from '@/lib/revenuecat/checkout-email';
 import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation } from '@/lib/revenuecat/redemption-handoff';
@@ -25,8 +26,12 @@ export function PostcheckoutPageClient() {
   const vi = locale === 'vi';
   const redeemCopy = copyFor(vi ? 'vi' : 'en').redeem;
   const momoCopy = copyFor(vi ? 'vi' : 'en').momoCheckout;
-  // MoMo passes unlock when the buyer signs in to the app with the checkout email.
-  const momoHandoff = hydrated && readCheckoutMethod() === 'momo' && !pendingCorrelation;
+  // MoMo passes unlock when the buyer signs in to the app with the checkout email. The return
+  // page adds ?method=momo for tabs without the stored method; a pending RevenueCat correlation
+  // is a card purchase. The URL is read after hydration so server and client renders match.
+  const momoHandoff = hydrated
+    && !pendingCorrelation
+    && (isMomoPostcheckout(window.location.search) || readCheckoutMethod() === 'momo');
 
   useEffect(() => {
     if (!hydrated || !lead) return;

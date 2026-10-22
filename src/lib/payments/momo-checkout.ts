@@ -36,14 +36,20 @@ export const MOMO_PLAN_COPY: Record<MomoPlanKey, MomoPlanCopy> = {
   },
 };
 
-/** Shown until the backend quote arrives. Prices mirror backend momo_pass.py. */
-export const DEFAULT_MOMO_PLANS: MomoPlanQuote[] = [
-  { plan: 'monthly', weeks: 4, amount: 99_000, regular_amount: 198_000, intro: true },
-  { plan: 'quarterly', weeks: 12, amount: 249_000, regular_amount: 498_000, intro: true },
-  { plan: 'yearly', weeks: 52, amount: 599_000, regular_amount: 1_198_000, intro: true },
-];
-
 export const MOMO_ORDER_ID = /^[0-9a-f]{32}$/;
+
+/** Shown to shoppers whenever MoMo checkout fails for a reason they cannot fix. */
+export const MOMO_UNAVAILABLE = 'MoMo is temporarily unavailable. Please try again later.';
+
+/** Post-checkout for a confirmed MoMo order. The query param still says MoMo where the tab has no stored method. */
+export const MOMO_POSTCHECKOUT_PATH = '/postcheckout?method=momo';
+
+export function isMomoPostcheckout(search: string): boolean {
+  return new URLSearchParams(search).get('method') === 'momo';
+}
+
+/** Per-order guard so a reloaded return page does not report the same purchase twice. */
+const PURCHASE_REPORTED_KEY_PREFIX = 'nutree.momo.purchase-reported.v1.';
 
 const PLAN_KEYS = new Set<MomoPlanKey>(['monthly', 'quarterly', 'yearly']);
 
@@ -68,16 +74,22 @@ export function momoOrderIdFrom(params: { get(name: string): string | null }): s
   return value && MOMO_ORDER_ID.test(value) ? value : null;
 }
 
+/** Backend messages are shopper-safe strings; anything structured (such as configuration details) is not shown. */
 export function momoCheckoutFailureDetail(payload: unknown): string {
-  if (!payload || typeof payload !== 'object') return 'MoMo checkout is unavailable.';
-  const detail = (payload as { detail?: unknown }).detail;
-  if (typeof detail === 'string' && detail.trim()) return detail;
-  const missing = detail && typeof detail === 'object' && !Array.isArray(detail)
-    ? (detail as { missing?: unknown }).missing
-    : undefined;
-  if (!Array.isArray(missing)) return 'MoMo checkout is unavailable.';
-  const names = missing.filter((item): item is string => typeof item === 'string' && item.startsWith('MOMO_'));
-  return names.length ? `MoMo is not configured. Add ${names.join(', ')}.` : 'MoMo checkout is unavailable.';
+  const detail = payload && typeof payload === 'object' ? (payload as { detail?: unknown }).detail : undefined;
+  return typeof detail === 'string' && detail.trim() ? detail : MOMO_UNAVAILABLE;
+}
+
+/** True the first time this tab reports the order as purchased. */
+export function claimMomoPurchaseReport(orderId: string): boolean {
+  try {
+    const key = `${PURCHASE_REPORTED_KEY_PREFIX}${orderId}`;
+    if (window.sessionStorage.getItem(key)) return false;
+    window.sessionStorage.setItem(key, '1');
+  } catch {
+    // Without session storage the purchase is still reported.
+  }
+  return true;
 }
 
 export function formatMomoAmount(amount: number): string {
@@ -101,7 +113,7 @@ export async function fetchMomoPlans(leadId: string): Promise<MomoPlanQuote[]> {
   });
   const payload = (await response.json().catch(() => null)) as { plans?: unknown } | null;
   const plans = Array.isArray(payload?.plans) ? payload.plans.filter(isQuote) : [];
-  if (!response.ok || plans.length !== DEFAULT_MOMO_PLANS.length) throw new Error('MoMo prices are unavailable.');
+  if (!response.ok || plans.length !== PLAN_KEYS.size) throw new Error('MoMo prices are unavailable.');
   return plans;
 }
 
@@ -119,19 +131,30 @@ export async function startMomoCheckout(
   });
   const payload = (await response.json().catch(() => null)) as { pay_url?: unknown; order_id?: unknown; detail?: unknown } | null;
   if (!response.ok || !isMomoPayUrl(payload?.pay_url) || typeof payload?.order_id !== 'string') {
-    throw new Error(typeof payload?.detail === 'string' ? payload.detail : 'MoMo checkout is unavailable.');
+    throw new Error(typeof payload?.detail === 'string' ? payload.detail : MOMO_UNAVAILABLE);
   }
   return { payUrl: payload.pay_url, orderId: payload.order_id };
 }
 
-export async function fetchMomoOrderStatus(orderId: string): Promise<{ status: MomoOrderStatus | null; httpStatus: number }> {
+export interface MomoOrderStatusResult {
+  status: MomoOrderStatus | null;
+  httpStatus: number;
+  plan: MomoPlanKey | null;
+  /** VND charged for the order. */
+  amount: number | null;
+}
+
+export async function fetchMomoOrderStatus(orderId: string): Promise<MomoOrderStatusResult> {
   const response = await fetch(`/api/web-funnel/momo/orders/${encodeURIComponent(orderId)}/status`, {
     cache: 'no-store',
     credentials: 'same-origin',
   });
-  const payload = (await response.json().catch(() => null)) as { status?: unknown } | null;
+  const payload = (await response.json().catch(() => null)) as { status?: unknown; plan?: unknown; amount?: unknown } | null;
+  if (!response.ok) return { status: null, httpStatus: response.status, plan: null, amount: null };
   const status = ['pending', 'paid', 'failed', 'expired'].includes(String(payload?.status))
     ? (payload?.status as MomoOrderStatus)
     : null;
-  return { status: response.ok ? status : null, httpStatus: response.status };
+  const plan = PLAN_KEYS.has(payload?.plan as MomoPlanKey) ? (payload?.plan as MomoPlanKey) : null;
+  const amount = typeof payload?.amount === 'number' && Number.isFinite(payload.amount) && payload.amount > 0 ? payload.amount : null;
+  return { status, httpStatus: response.status, plan, amount };
 }

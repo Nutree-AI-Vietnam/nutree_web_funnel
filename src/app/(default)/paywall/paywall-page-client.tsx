@@ -28,7 +28,7 @@ import { usePostcheckoutRedirect } from '@/lib/revenuecat/use-postcheckout-redir
 import { resolvePaywallPricing } from '@/lib/revenuecat/paywall-offer-state';
 import { buildRevenueCatPaywall, checkoutPackage, defaultPaywallPlan, SIX_MONTH_PLAN_ID, type PaywallOfferKind, type RevenueCatPaywall } from '@/lib/revenuecat/paywall-plans';
 import { hasWelcomeVoucherBeenClaimed, markWelcomeVoucherClaimed, shouldArmExitVoucher } from '@/lib/revenuecat/welcome-voucher';
-import { clearCheckoutEmail, readCheckoutEmail, readCheckoutMethod } from '@/lib/revenuecat/checkout-email';
+import { clearCheckoutEmail, readCheckoutEmail, readCheckoutMethod, rememberCheckoutMethod } from '@/lib/revenuecat/checkout-email';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 
@@ -335,6 +335,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     };
     const rcPackage = checkoutPackage(plan, offer);
     const checkoutCommerce = firstPaymentCommerce(rcPackage.webBillingProduct);
+    // Post-checkout shows the card redemption-email guidance, not MoMo copy from an earlier attempt.
+    rememberCheckoutMethod('paddle');
     trackEvent('revenuecat_checkout_started', { plan: plan.id, package_id: rcPackage.identifier, offer_kind: offer ?? 'original', offer_auto_applied: offer === 'welcome' && !hasWelcomeVoucherBeenClaimed(), country_code: countryCode ?? 'auto', ...checkoutCommerce });
     void syncRevenueCatAttribution(purchasesRef.current);
 

@@ -1,10 +1,12 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { LEAD_ACCESS_COOKIE } from '@/lib/handoff/lead-access-session';
+import { MOMO_UNAVAILABLE } from '@/lib/payments/momo-checkout';
 
 /**
  * Forward a MoMo request to the API with the server-held BFF token and the
- * browser's lead capability. MoMo keys never reach the quiz.
+ * browser's lead capability. MoMo keys never reach the quiz. Like the other BFF
+ * routes it sends no Origin, so the API's origin pin cannot reject other quiz hosts.
  */
 export async function momoUpstream(
   request: NextRequest,
@@ -23,14 +25,13 @@ export async function momoUpstream(
         ...(init.body ? { 'Content-Type': 'application/json' } : {}),
         'X-Lead-Access-Key': leadKey,
         'X-Web-Funnel-BFF-Token': bffToken,
-        Origin: request.nextUrl.origin,
       },
       body: init.body,
       cache: 'no-store',
     });
     return { status: upstream.status, payload: await upstream.json().catch(() => null) };
   } catch {
-    return { response: NextResponse.json({ detail: 'MoMo checkout is unavailable.' }, { status: 502 }) };
+    return { response: NextResponse.json({ detail: MOMO_UNAVAILABLE }, { status: 502 }) };
   }
 }
 

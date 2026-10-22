@@ -16,7 +16,8 @@
  *
  * TikTok gets the same commercial steps as standard events (CompleteRegistration
  * at email capture, ViewContent on the paywall, AddToCart once per plan,
- * InitiateCheckout, Purchase) next to its custom names. Only standard events
+ * InitiateCheckout, Purchase) next to its custom names. A paid MoMo pass is a
+ * Purchase on both platforms, like a card checkout. Only standard events
  * feed optimization; custom names are kept for reporting. Quiz screens (age,
  * height, weight, ...) never reach TikTok, not even as custom names. TikTok
  * reads product ids from contents[].content_id; Meta's content_ids is ignored
@@ -96,6 +97,11 @@ function claimFunnelEntryView(step: string): boolean {
   }
 }
 
+/** Card (RevenueCat) and MoMo pass purchases both count as an ad Purchase. */
+function isCompletedPurchase(name: string): boolean {
+  return name === 'revenuecat_checkout_completed' || name === 'momo_checkout_completed';
+}
+
 function metaStandardEvent(name: string, params: Record<string, unknown>): MetaStandard | null {
   if (name === 'email_captured') return { event: 'Lead', params: { content_name: 'email_capture' } };
   if (name === 'funnel_step_viewed' && (params.step === 'landing' || params.step === 'goal')) {
@@ -112,7 +118,7 @@ function metaStandardEvent(name: string, params: Record<string, unknown>): MetaS
   if (name === 'revenuecat_checkout_started') {
     return { event: 'InitiateCheckout', params: commerceParams(params) };
   }
-  if (name === 'revenuecat_checkout_completed') {
+  if (isCompletedPurchase(name)) {
     return { event: 'Purchase', params: commerceParams(params) };
   }
   return null;
@@ -139,7 +145,7 @@ function tiktokStandardEvents(name: string, params: Record<string, unknown>): Ti
     // Keeping the preselected plan never fires offer_selected, so its AddToCart is sent here.
     return addToTiktokCart(params.plan) ? [{ event: 'AddToCart', params: product }, checkout] : [checkout];
   }
-  if (name === 'revenuecat_checkout_completed') {
+  if (isCompletedPurchase(name)) {
     return [{ event: 'Purchase', params: tiktokProductParams(params, params.plan) }];
   }
   return [];

@@ -12,10 +12,12 @@ available, and MoMo is offered (and preselected) only for Vietnam traffic.
 1. The quiz creates a lead with `POST /v1/web-funnel/leads`.
 2. The paywall loads `GET /v1/web-funnel/momo/plans?lead_id=…`. The API quotes
    the intro price for a buyer's first pass and the regular price after that.
-3. The buyer picks a pass and the paywall calls
+3. The buyer picks a pass and a payment method, and the paywall calls
    `POST /v1/web-funnel/momo/checkouts` with `monthly`, `quarterly` or
-   `yearly`. The API signs a MoMo `payWithMethod` request (wallet, ATM or card
-   on one MoMo page) and returns `pay_url` and `order_id`.
+   `yearly` and `wallet` or `atm`. The API signs a MoMo `captureWallet`
+   request for Ví MoMo (QR or app) or a `payWithATM` request for a domestic
+   ATM card, and returns `pay_url` and `order_id`. Pay stays disabled until
+   the plan quote from step 2 has loaded.
 4. The browser opens the MoMo page.
 5. MoMo notifies `POST /v1/webhooks/momo/ipn`. The API checks the HMAC
    signature, partner code and amount, marks the order `paid` and the lead
@@ -24,9 +26,13 @@ available, and MoMo is offered (and preselected) only for Vietnam traffic.
    when the buyer taps "Quay về". That page polls
    `GET /v1/web-funnel/momo/orders/:order_id/status`. While an order is
    pending, the API asks MoMo's query API, so the page settles even when the
-   IPN is late or cannot reach the API (local runs). Paid orders continue to
-   `/postcheckout`; failed or expired orders show the order id and a way back
-   to the paywall.
+   IPN is late or cannot reach the API (local runs). Paid orders are reported
+   once per order to Meta and TikTok as a `Purchase` and continue to
+   `/postcheckout?method=momo`; failed or expired orders show the order id and
+   a way back to the paywall. When the browser has no checkout session (for
+   example an in-app browser handed the return to Safari), the page says the
+   payment may already be complete, tells the buyer to sign in to Nutree with
+   the checkout email, and shows the order id and the support email.
 7. The buyer opens Nutree and signs in with the checkout email. User sync
    grants the RevenueCat promotional `standard` entitlement for the pass
    window, so the app unlocks without a store purchase.
