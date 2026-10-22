@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { claimMomoPurchaseReport, fetchMomoOrderStatus, formatMomoAmount, isMomoPayUrl, isMomoPostcheckout, MOMO_UNAVAILABLE, momoCheckoutFailureDetail, momoOrderIdFrom, momoPlanKey } from './momo-checkout';
+import { claimMomoPurchaseReport, fetchMomoOrderStatus, formatMomoAmount, isMomoPayUrl, isMomoPostcheckout, MOMO_UNAVAILABLE, momoCheckoutFailureDetail, momoOrderIdFrom, momoPlanKey, startMomoCheckout } from './momo-checkout';
 
 describe('momoPlanKey', () => {
   it('accepts only the MoMo pass catalog', () => {
@@ -62,12 +62,15 @@ describe('claimMomoPurchaseReport', () => {
     vi.unstubAllGlobals();
   });
 
-  it('reports each order once per tab', () => {
-    const values = new Map<string, string>();
+  it('reports each order once per browser, in storage every tab shares', () => {
+    const shared = new Map<string, string>();
     vi.stubGlobal('window', {
-      sessionStorage: {
-        getItem: (key: string) => values.get(key) ?? null,
-        setItem: (key: string, value: string) => { values.set(key, value); },
+      localStorage: {
+        getItem: (key: string) => shared.get(key) ?? null,
+        setItem: (key: string, value: string) => { shared.set(key, value); },
+      },
+      get sessionStorage(): Storage {
+        throw new Error('the guard must not depend on one tab');
       },
     });
     expect(claimMomoPurchaseReport('a'.repeat(32))).toBe(true);
@@ -75,13 +78,32 @@ describe('claimMomoPurchaseReport', () => {
     expect(claimMomoPurchaseReport('b'.repeat(32))).toBe(true);
   });
 
-  it('still reports when session storage is unavailable', () => {
+  it('still reports when local storage is unavailable', () => {
     vi.stubGlobal('window', {
-      get sessionStorage(): Storage {
+      get localStorage(): Storage {
         throw new Error('blocked');
       },
     });
     expect(claimMomoPurchaseReport('a'.repeat(32))).toBe(true);
+  });
+});
+
+describe('startMomoCheckout', () => {
+  const orderId = '7fca4122bc86438a8a2ab4721f8a914d';
+  const payUrl = 'https://test-payment.momo.vn/v2/gateway/pay?t=1';
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('returns the amount the new order charges', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ order_id: orderId, pay_url: payUrl, amount: 498_000 }, { status: 201 })));
+    await expect(startMomoCheckout('quarterly', 'wallet', 'vi', 'lead-1')).resolves.toEqual({ orderId, payUrl, amount: 498_000 });
+  });
+
+  it('refuses a checkout whose charge it cannot compare with the price shown', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ order_id: orderId, pay_url: payUrl, amount: null }, { status: 201 })));
+    await expect(startMomoCheckout('quarterly', 'wallet', 'vi', 'lead-1')).rejects.toThrow(MOMO_UNAVAILABLE);
   });
 });
 

@@ -9,7 +9,7 @@ import { trackEvent } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { claimMomoPurchaseReport, fetchMomoOrderStatus, MOMO_POSTCHECKOUT_PATH, momoOrderIdFrom, type MomoOrderStatusResult } from '@/lib/payments/momo-checkout';
 import { useQuizStore } from '@/lib/quiz/store';
-import { clearCheckoutMethod, rememberCheckoutMethod } from '@/lib/revenuecat/checkout-email';
+import { rememberCheckoutMethod } from '@/lib/revenuecat/checkout-email';
 
 /**
  * `session`: no order id to look up. `unconfirmed`: this browser cannot read the
@@ -22,7 +22,11 @@ const POLL_MS = 3000;
 const GIVE_UP_MS = 120_000;
 const SUPPORT_EMAIL = 'nutreeaidev@gmail.com';
 
-/** Post-checkout copy follows the provider only once MoMo has confirmed the payment. */
+/**
+ * Post-checkout copy follows the provider only once MoMo has confirmed the
+ * payment. Failed or expired orders leave the method alone: it is never `momo`
+ * unless some order was paid, and a revisited failed order must not erase that.
+ */
 function recordPaidOrder(orderId: string, order: MomoOrderStatusResult) {
   rememberCheckoutMethod('momo');
   if (claimMomoPurchaseReport(orderId)) {
@@ -64,7 +68,6 @@ function MomoReturn() {
         return;
       }
       if (order?.status === 'failed' || order?.status === 'expired') {
-        clearCheckoutMethod();
         trackEvent('momo_checkout_failed', { order_id: orderId, status: order.status });
         finish(order.status);
         return;

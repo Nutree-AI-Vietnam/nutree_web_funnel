@@ -36,6 +36,17 @@ describe('MoMo checkout BFF', () => {
     expect((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].headers).not.toHaveProperty('Origin');
   });
 
+  it('treats a checkout without the charged amount as unavailable', async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(Response.json({
+      order_id: 'a'.repeat(32), pay_url: 'https://test-payment.momo.vn/v2/gateway/pay?t=1',
+    }, { status: 201 }));
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({ detail: MOMO_UNAVAILABLE });
+  });
+
   it('hides the names of missing MoMo settings from shoppers', async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(Response.json({
       detail: { message: 'MoMo is not configured', missing: ['MOMO_PARTNER_CODE', 'MOMO_SECRET_KEY'] },

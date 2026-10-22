@@ -19,8 +19,10 @@ interface MomoCheckoutPanelProps {
 }
 
 /**
- * MoMo one-time pass picker. Prices come only from the backend quote, which is
- * what MoMo charges: until it loads nothing is priced and Pay stays disabled.
+ * MoMo one-time pass picker. Prices come only from the backend quote: until it
+ * loads nothing is priced and Pay stays disabled. The quote can go stale (for
+ * example a pass paid in another tab ends the intro price), so the buyer leaves
+ * for MoMo only when the new order charges the price on screen.
  */
 export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, selectPlanAria, disabled }: MomoCheckoutPanelProps) {
   const setMomoOrderId = useQuizStore((state) => state.setMomoOrderId);
@@ -32,6 +34,7 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
   const [method, setMethod] = useState<MomoPayMethod>('wallet');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [priceNotice, setPriceNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,10 +61,19 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
     if (busy || disabled || !quote) return;
     setBusy(true);
     setError(null);
+    setPriceNotice(null);
     try {
       const started = await startMomoCheckout(quote.plan, method, locale, leadId);
+      if (started.amount !== quote.amount) {
+        // Reload every quote and let the buyer confirm the new price; the unpaid order expires.
+        setPriceNotice(copy.priceChanged(formatMomoAmount(started.amount)));
+        setQuotes(null);
+        setQuoteAttempt((attempt) => attempt + 1);
+        setBusy(false);
+        return;
+      }
       setMomoOrderId(started.orderId);
-      trackEvent('momo_checkout_started', { plan: quote.plan, method, amount: quote.amount, intro: quote.intro, currency: 'VND' });
+      trackEvent('momo_checkout_started', { plan: quote.plan, method, amount: started.amount, intro: quote.intro, currency: 'VND' });
       window.location.assign(started.payUrl);
     } catch (checkoutError) {
       setBusy(false);
@@ -73,7 +85,7 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
     <div id="momo-checkout">
       <div role="radiogroup" aria-label={selectPlanAria} aria-busy={!plans} className="mt-5 grid gap-3">
         {plans
-          ? <MomoPlanChoices plans={plans} value={selected} locale={locale} recommendedLabel={recommendedLabel} copy={copy} onChange={(plan) => { setSelected(plan); trackEvent('offer_selected', { offer_id: plan, provider: 'momo' }); }} />
+          ? <MomoPlanChoices plans={plans} value={selected} locale={locale} recommendedLabel={recommendedLabel} copy={copy} onChange={(plan) => { setSelected(plan); setPriceNotice(null); trackEvent('offer_selected', { offer_id: plan, provider: 'momo' }); }} />
           : !quoteFailed && [0, 1, 2].map((index) => <div key={index} aria-hidden="true" className="min-h-[5.6rem] animate-pulse rounded-[1.4rem] border-2 border-[#dfe7e3] bg-[#f6f8f7]" />)}
       </div>
       {!plans && quoteFailed && (
@@ -97,6 +109,7 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
           </button>
         ))}
       </div>
+      {priceNotice && <p role="alert" className="mt-4 rounded-2xl bg-[#FFF7ED] px-4 py-3 text-sm font-bold text-[#9A3412]">{priceNotice}</p>}
       <button
         type="button"
         disabled={busy || disabled || !quote}

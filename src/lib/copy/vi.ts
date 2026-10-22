@@ -863,6 +863,7 @@ export const vi = {
     payUnpriced: 'Thanh toán bằng MoMo',
     pricesError: 'Chưa tải được giá gói MoMo.',
     retryPrices: 'Thử lại',
+    priceChanged: (amount: string) => `Giá gói này hiện là ${amount}. Vui lòng xem lại giá mới rồi nhấn thanh toán lần nữa.`,
   },
   momoReturn: {
     headline: 'Đang xác nhận thanh toán',

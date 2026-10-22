@@ -17,9 +17,12 @@
  * TikTok gets the same commercial steps as standard events (CompleteRegistration
  * at email capture, ViewContent on the paywall, AddToCart once per plan,
  * InitiateCheckout, Purchase) next to its custom names. A paid MoMo pass is a
- * Purchase on both platforms, like a card checkout. Only standard events
- * feed optimization; custom names are kept for reporting. Quiz screens (age,
- * height, weight, ...) never reach TikTok, not even as custom names. TikTok
+ * Purchase on both platforms, like a card checkout; its event id is fixed per
+ * order (Purchase.momo.<order id>), so within their 48-hour dedupe window both
+ * platforms drop a repeat of that order from another tab or a later server
+ * copy. Only standard events feed optimization; custom names are kept for
+ * reporting. Quiz screens (age, height, weight, ...) never reach TikTok, not
+ * even as custom names. TikTok
  * reads product ids from contents[].content_id; Meta's content_ids is ignored
  * there. Each standard event also goes to the Events API through our server
  * with the same event_id, so TikTok keeps one copy; it carries the hashed
@@ -28,6 +31,7 @@
  * Both pixels and both server copies run only on quiz.nutreeai.com (see
  * ad-pixel-host), so preview and local traffic stays out of the live datasets.
  */
+import { MOMO_ORDER_ID } from '@/lib/payments/momo-checkout';
 import { isQuizStep } from '@/lib/quiz/steps';
 import { isAdPixelHost } from './ad-pixel-host';
 import { getAttribution } from './attribution';
@@ -216,7 +220,7 @@ function sendMetaServerEvent(event: Omit<MetaBrowserEvent, 'user_data'>, fbc: st
 function trackMeta(fbq: AnyWindow['fbq'], name: string, payload: Record<string, unknown>): void {
   const standard = metaStandardEvent(name, payload);
   if (!standard) return;
-  const id = eventID(standard.event);
+  const id = eventID(standard.event, fixedEventKey(name, payload));
   fbq?.('track', standard.event, standard.params, { eventID: id });
   // The server copy also covers pixels that have not loaded yet or are blocked.
   if (!isAdPixelHost() || !activeMetaPixelId() || typeof fetch !== 'function') return;
@@ -260,8 +264,9 @@ function trackTiktok(ttq: TiktokPixel | undefined, name: string, payload: Record
   const identity = readTiktokIdentity();
   applyTiktokIdentity(ttq, identity);
   ttq?.track(name, payload);
+  const key = fixedEventKey(name, payload);
   for (const { event, params } of tiktokStandardEvents(name, payload)) {
-    const id = eventID(event);
+    const id = eventID(event, key);
     ttq?.track(event, params, { event_id: id });
     if (serverCopy) {
       sendTiktokServerEvent({ event, event_id: id, properties: params, user: tiktokUser(identity, payload), page: tiktokPage() });
@@ -269,8 +274,22 @@ function trackTiktok(ttq: TiktokPixel | undefined, name: string, payload: Record
   }
 }
 
-/** Unique per event: TikTok drops later events that reuse an event_id. */
-function eventID(event: string): string {
+/**
+ * A paid MoMo order is one purchase however many pages report it, so its id
+ * comes from the order. Anything else that should count once per occurrence
+ * gets no key.
+ */
+function fixedEventKey(name: string, params: Record<string, unknown>): string | null {
+  const orderId = params.order_id;
+  return name === 'momo_checkout_completed' && typeof orderId === 'string' && MOMO_ORDER_ID.test(orderId) ? `momo.${orderId}` : null;
+}
+
+/**
+ * Unique per event unless a fixed key is given: TikTok drops later events that
+ * reuse an event_id, and Meta keeps one pixel or server copy per event_id.
+ */
+function eventID(event: string, key: string | null = null): string {
+  if (key) return `${event}.${key}`;
   const uuid = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
     : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;

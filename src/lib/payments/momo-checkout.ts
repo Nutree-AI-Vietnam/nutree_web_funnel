@@ -48,7 +48,7 @@ export function isMomoPostcheckout(search: string): boolean {
   return new URLSearchParams(search).get('method') === 'momo';
 }
 
-/** Per-order guard so a reloaded return page does not report the same purchase twice. */
+/** Per-order guard so a reloaded or second return page does not report the same purchase twice. */
 const PURCHASE_REPORTED_KEY_PREFIX = 'nutree.momo.purchase-reported.v1.';
 
 const PLAN_KEYS = new Set<MomoPlanKey>(['monthly', 'quarterly', 'yearly']);
@@ -80,14 +80,19 @@ export function momoCheckoutFailureDetail(payload: unknown): string {
   return typeof detail === 'string' && detail.trim() ? detail : MOMO_UNAVAILABLE;
 }
 
-/** True the first time this tab reports the order as purchased. */
+/**
+ * True the first time this browser reports the order as purchased. Every tab
+ * shares the lead cookie that reads the order, so the guard lives in
+ * localStorage, not in one tab's session. The Purchase event id is also fixed
+ * per order (see track.ts), so the ad platforms drop any repeat that gets past it.
+ */
 export function claimMomoPurchaseReport(orderId: string): boolean {
   try {
     const key = `${PURCHASE_REPORTED_KEY_PREFIX}${orderId}`;
-    if (window.sessionStorage.getItem(key)) return false;
-    window.sessionStorage.setItem(key, '1');
+    if (window.localStorage.getItem(key)) return false;
+    window.localStorage.setItem(key, '1');
   } catch {
-    // Without session storage the purchase is still reported.
+    // Without local storage the purchase is still reported; its fixed event id dedupes it.
   }
   return true;
 }
@@ -117,23 +122,35 @@ export async function fetchMomoPlans(leadId: string): Promise<MomoPlanQuote[]> {
   return plans;
 }
 
+/** A VND charge: a whole number of dong above zero. */
+export function isMomoAmount(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+}
+
+export interface MomoCheckoutStart {
+  payUrl: string;
+  orderId: string;
+  /** VND the order charges, which can differ from an older quote. */
+  amount: number;
+}
+
 export async function startMomoCheckout(
   plan: MomoPlanKey,
   method: MomoPayMethod,
   lang: 'vi' | 'en',
   leadId: string,
-): Promise<{ payUrl: string; orderId: string }> {
+): Promise<MomoCheckoutStart> {
   const response = await fetch('/api/web-funnel/momo/checkouts', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ plan: momoPlanKey(plan), method, lang, lead_id: leadId }),
   });
-  const payload = (await response.json().catch(() => null)) as { pay_url?: unknown; order_id?: unknown; detail?: unknown } | null;
-  if (!response.ok || !isMomoPayUrl(payload?.pay_url) || typeof payload?.order_id !== 'string') {
+  const payload = (await response.json().catch(() => null)) as { pay_url?: unknown; order_id?: unknown; amount?: unknown; detail?: unknown } | null;
+  if (!response.ok || !isMomoPayUrl(payload?.pay_url) || typeof payload?.order_id !== 'string' || !isMomoAmount(payload?.amount)) {
     throw new Error(typeof payload?.detail === 'string' ? payload.detail : MOMO_UNAVAILABLE);
   }
-  return { payUrl: payload.pay_url, orderId: payload.order_id };
+  return { payUrl: payload.pay_url, orderId: payload.order_id, amount: payload.amount };
 }
 
 export interface MomoOrderStatusResult {
@@ -155,6 +172,6 @@ export async function fetchMomoOrderStatus(orderId: string): Promise<MomoOrderSt
     ? (payload?.status as MomoOrderStatus)
     : null;
   const plan = PLAN_KEYS.has(payload?.plan as MomoPlanKey) ? (payload?.plan as MomoPlanKey) : null;
-  const amount = typeof payload?.amount === 'number' && Number.isFinite(payload.amount) && payload.amount > 0 ? payload.amount : null;
+  const amount = isMomoAmount(payload?.amount) ? payload.amount : null;
   return { status, httpStatus: response.status, plan, amount };
 }

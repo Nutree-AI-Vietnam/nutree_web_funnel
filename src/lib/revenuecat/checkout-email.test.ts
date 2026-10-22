@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clearCheckoutEmail, clearCheckoutMethod, readCheckoutEmail, readCheckoutMethod, rememberCheckoutMethod, saveCheckoutEmail } from './checkout-email';
+import { clearCheckoutEmail, readCheckoutEmail, readCheckoutMethod, rememberCheckoutMethod, saveCheckoutEmail } from './checkout-email';
 
 function memoryStorage() {
   const values = new Map<string, string>();
@@ -53,7 +53,7 @@ describe('checkout email session helper', () => {
     expect(readCheckoutMethod()).toBeNull();
   });
 
-  it('forgets the provider when the checkout did not complete', () => {
+  it('lets a later card checkout replace an earlier MoMo method', () => {
     const session = memoryStorage();
     Object.defineProperty(globalThis, 'window', {
       configurable: true,
@@ -61,8 +61,6 @@ describe('checkout email session helper', () => {
     });
 
     rememberCheckoutMethod('momo');
-    clearCheckoutMethod();
-    expect(readCheckoutMethod()).toBeNull();
     rememberCheckoutMethod('paddle');
     expect(readCheckoutMethod()).toBe('paddle');
   });

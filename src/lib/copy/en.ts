@@ -867,6 +867,7 @@ export const en: Copy = {
     payUnpriced: 'Pay with MoMo',
     pricesError: 'We couldn’t load MoMo prices.',
     retryPrices: 'Try again',
+    priceChanged: (amount: string) => `This pass now costs ${amount}. Check the new price, then tap Pay again.`,
   },
   momoReturn: {
     headline: 'Confirming your payment',

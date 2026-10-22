@@ -31,7 +31,8 @@ export function clearCheckoutEmail() {
 /**
  * Which provider the last checkout used, so post-checkout copy matches it.
  * Card checkouts record `paddle` when they start; MoMo records `momo` only
- * once its order is confirmed paid.
+ * once its order is confirmed paid. Nothing clears it: a started MoMo
+ * checkout writes nothing, so there is no stale MoMo value to remove.
  */
 export function rememberCheckoutMethod(method: 'momo' | 'paddle') {
   storage()?.setItem(CHECKOUT_METHOD_STORAGE_KEY, method);
@@ -40,9 +41,4 @@ export function rememberCheckoutMethod(method: 'momo' | 'paddle') {
 export function readCheckoutMethod(): 'momo' | 'paddle' | null {
   const value = storage()?.getItem(CHECKOUT_METHOD_STORAGE_KEY);
   return value === 'momo' || value === 'paddle' ? value : null;
-}
-
-/** A failed or expired MoMo order must not leave MoMo copy behind for a later card checkout. */
-export function clearCheckoutMethod() {
-  storage()?.removeItem(CHECKOUT_METHOD_STORAGE_KEY);
 }

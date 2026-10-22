@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginMutation } from '@/lib/handoff/lead-access-session';
 import { momoUpstream, NO_STORE } from '@/lib/payments/momo-bff';
-import { isMomoPayUrl, MOMO_UNAVAILABLE, momoCheckoutFailureDetail } from '@/lib/payments/momo-checkout';
+import { isMomoAmount, isMomoPayUrl, MOMO_UNAVAILABLE, momoCheckoutFailureDetail } from '@/lib/payments/momo-checkout';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,11 +18,12 @@ export async function POST(request: NextRequest) {
   if (result.status !== 201) {
     return NextResponse.json({ detail: momoCheckoutFailureDetail(payload) }, { status: result.status });
   }
-  if (!isMomoPayUrl(payload?.pay_url) || typeof payload?.order_id !== 'string') {
+  // The paywall compares the charged amount with the price it showed before sending the buyer to MoMo.
+  if (!isMomoPayUrl(payload?.pay_url) || typeof payload?.order_id !== 'string' || !isMomoAmount(payload?.amount)) {
     return NextResponse.json({ detail: MOMO_UNAVAILABLE }, { status: 502 });
   }
   return NextResponse.json(
-    { pay_url: payload.pay_url, order_id: payload.order_id, amount: payload.amount ?? null },
+    { pay_url: payload.pay_url, order_id: payload.order_id, amount: payload.amount },
     { status: 201, headers: NO_STORE },
   );
 }

@@ -16,8 +16,12 @@ available, and MoMo is offered (and preselected) only for Vietnam traffic.
    `POST /v1/web-funnel/momo/checkouts` with `monthly`, `quarterly` or
    `yearly` and `wallet` or `atm`. The API signs a MoMo `captureWallet`
    request for Ví MoMo (QR or app) or a `payWithATM` request for a domestic
-   ATM card, and returns `pay_url` and `order_id`. Pay stays disabled until
-   the plan quote from step 2 has loaded.
+   ATM card, and returns `pay_url`, `order_id` and the `amount` the order
+   charges. Pay stays disabled until the plan quote from step 2 has loaded.
+   If `amount` differs from the price on screen (for example a pass was paid
+   in another tab, which ends the intro price), the paywall reloads the
+   quotes and shows the new price instead of opening MoMo; the unpaid order
+   expires.
 4. The browser opens the MoMo page.
 5. MoMo notifies `POST /v1/webhooks/momo/ipn`. The API checks the HMAC
    signature, partner code and amount, marks the order `paid` and the lead
@@ -26,8 +30,7 @@ available, and MoMo is offered (and preselected) only for Vietnam traffic.
    when the buyer taps "Quay về". That page polls
    `GET /v1/web-funnel/momo/orders/:order_id/status`. While an order is
    pending, the API asks MoMo's query API, so the page settles even when the
-   IPN is late or cannot reach the API (local runs). Paid orders are reported
-   once per order to Meta and TikTok as a `Purchase` and continue to
+   IPN is late or cannot reach the API (local runs). Paid orders continue to
    `/postcheckout?method=momo`; failed or expired orders show the order id and
    a way back to the paywall. When the browser has no checkout session (for
    example an in-app browser handed the return to Safari), the page says the
@@ -45,6 +48,22 @@ available, and MoMo is offered (and preselected) only for Vietnam traffic.
 
 Prices are code in the API (`src/domain/model/payments/momo_pass.py`); the quiz
 shows what the API quotes.
+
+## Ad reporting
+
+A return page that can read a paid order sends Meta and TikTok a `Purchase`
+(pixel plus server copy) with the plan and VND amount. Its event id is fixed
+per order, `Purchase.momo.<order_id>`, and the browser keeps a per-order flag
+in localStorage, so other tabs and reopened return links in the same browser
+do not report the order again, and the platforms drop repeats that carry the
+same id within their 48-hour window.
+
+A return that lands in a browser without the checkout session (the in-app
+browser to Safari hand-off in step 6) cannot read the order, so it reports
+nothing, and the API does not yet report MoMo purchases from the IPN. Those
+paid orders are missing from Meta and TikTok. A server-side report sent when
+the IPN marks a web order paid must reuse `Purchase.momo.<order_id>` so the
+platforms keep one copy when the browser also reports it.
 
 ## Where the secrets go
 
