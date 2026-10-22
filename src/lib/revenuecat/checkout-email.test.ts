@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clearCheckoutEmail, readCheckoutEmail, saveCheckoutEmail } from './checkout-email';
+import { clearCheckoutEmail, readCheckoutEmail, readCheckoutMethod, rememberCheckoutMethod, saveCheckoutEmail } from './checkout-email';
 
 function memoryStorage() {
   const values = new Map<string, string>();
@@ -37,5 +37,19 @@ describe('checkout email session helper', () => {
 
     saveCheckoutEmail('not-an-email');
     expect(readCheckoutEmail()).toBeNull();
+  });
+
+  it('remembers which provider the last checkout used', () => {
+    const session = memoryStorage();
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: { sessionStorage: session },
+    });
+
+    expect(readCheckoutMethod()).toBeNull();
+    rememberCheckoutMethod('momo');
+    expect(readCheckoutMethod()).toBe('momo');
+    session.setItem('nutree.checkout.method.v1', 'cash');
+    expect(readCheckoutMethod()).toBeNull();
   });
 });

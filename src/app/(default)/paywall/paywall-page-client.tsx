@@ -8,7 +8,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { BoCongThuongBadge } from '@/components/bo-cong-thuong-badge';
 import { ConversionShell } from '@/components/conversion-shell';
+import { MomoCheckoutPanel } from '@/components/momo-checkout-panel';
 import { NutreeLogo } from '@/components/nutree-logo';
+import { PaymentMethodChoice, type CheckoutPaymentMethod } from '@/components/payment-method-choice';
 import { PaywallExitVoucher } from '@/components/paywall-exit-voucher';
 import { stripNonAttributionParams } from '@/lib/analytics/attribution';
 import { identifyMetaUser } from '@/lib/analytics/meta-identity';
@@ -26,7 +28,7 @@ import { usePostcheckoutRedirect } from '@/lib/revenuecat/use-postcheckout-redir
 import { resolvePaywallPricing } from '@/lib/revenuecat/paywall-offer-state';
 import { buildRevenueCatPaywall, checkoutPackage, defaultPaywallPlan, SIX_MONTH_PLAN_ID, type PaywallOfferKind, type RevenueCatPaywall } from '@/lib/revenuecat/paywall-plans';
 import { hasWelcomeVoucherBeenClaimed, markWelcomeVoucherClaimed, shouldArmExitVoucher } from '@/lib/revenuecat/welcome-voucher';
-import { clearCheckoutEmail, readCheckoutEmail } from '@/lib/revenuecat/checkout-email';
+import { clearCheckoutEmail, readCheckoutEmail, readCheckoutMethod } from '@/lib/revenuecat/checkout-email';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 
@@ -123,6 +125,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // RevenueCat load failures concern the card checkout only; MoMo does not need them.
+  const [providerError, setProviderError] = useState<string | null>(null);
   const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
   const [redemption, setRedemption] = useState<RedemptionHandoff | null>(null);
   const purchasesRef = useRef<PurchasesInstance | null>(null);
@@ -136,6 +140,10 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const plans = paywall.plans;
 
   const countryCode = initialCountryCode ?? (isLocalPreviewHost() ? getLocalPreviewCountry() : undefined);
+  // MoMo settles in VND only, so it is offered (and preselected) in Vietnam.
+  const momoAvailable = countryCode === 'VN';
+  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('momo');
+  const payingWithMomo = momoAvailable && paymentMethod === 'momo';
   const selected = useMemo(
     () => plans.find((plan) => plan.id === selectedId) ?? defaultPaywallPlan(plans),
     [plans, selectedId],
@@ -238,12 +246,13 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         if (!nextPaywall.plans.length) throw new Error('RevenueCat offering has no packages to show.');
         if (!cancelled) {
           setError(null);
+          setProviderError(null);
           setPaywall(nextPaywall);
           setLoadState('ready');
         }
       } catch (loadError) {
         if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : 'Unable to initialize RevenueCat checkout.');
+          setProviderError(loadError instanceof Error ? loadError.message : 'Unable to initialize RevenueCat checkout.');
           setLoadState('error');
         }
       }
@@ -412,6 +421,10 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   }, [activeLocale, countryCode, correlatePurchasedCustomer, data.name, lead, purchased, router, selected, setPurchased]);
 
   const requestCheckout = () => {
+    if (payingWithMomo) {
+      document.getElementById('momo-checkout')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     if (lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id) {
       setRedemption({ kind: 'pending' });
       return;
@@ -432,8 +445,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const gender = data.gender === 'male' ? copy.paywall.genderMale : data.gender === 'female' ? copy.paywall.genderFemale : copy.paywall.genderFallback;
   const benefits = copy.paywall.benefits.map((benefit, index) => ({ ...benefit, icon: benefitEmoji[index] ?? '✅' }));
   const persistedCorrelation = Boolean(lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id);
-  const displayedRedemption = redemption ?? (persistedCorrelation ? ({ kind: 'pending' } satisfies RedemptionHandoff) : lead?.status === 'payment_verified' ? ({ kind: 'email_sent' } satisfies RedemptionHandoff) : null);
-  const checkoutUnavailable = Boolean(displayedRedemption);
+  const momoPaid = readCheckoutMethod() === 'momo' && (lead?.status === 'payment_verified' || lead?.status === 'claimed');
+  const displayedRedemption = redemption ?? (persistedCorrelation ? ({ kind: 'pending' } satisfies RedemptionHandoff) : lead?.status === 'payment_verified' && !momoPaid ? ({ kind: 'email_sent' } satisfies RedemptionHandoff) : null);
+  const checkoutUnavailable = Boolean(displayedRedemption) || momoPaid;
   const personalRows = [
     { icon: '🔥', label: copy.paywall.goalLabel, value: goal },
     { icon: '🎯', label: copy.paywall.personalizedFor, value: gender },
@@ -523,7 +537,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
             <Link href={`/survey/${activeLocale}`} aria-label="Nutree" className="block h-11 w-11 shrink-0"><NutreeLogo priority className="h-11 w-11" /></Link>
             <div><p className={cn('text-[0.74rem] font-bold leading-tight', exitOfferActive ? 'text-[#9A3412]' : 'text-muted-brand')}>{headerOfferLabel}</p>{isOriginalPricing ? <p className="mt-0.5 text-[0.92rem] font-extrabold leading-tight text-forest">{copy.paywall.standardTimer}</p> : <strong aria-live="polite" className={cn('mt-0.5 inline-flex rounded-md px-1.5 py-0.5 text-[1.2rem] font-extrabold leading-none tracking-[-0.035em] tabular-nums', exitOfferActive ? 'bg-[#C2410C] text-white' : 'text-[#111418]')}>{countdown}</strong>}</div>
-            <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className={cn('min-h-11 rounded-[1rem] px-3.5 text-[0.78rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-[0.86rem]', exitOfferActive ? 'bg-[#C2410C] hover:bg-[#9A3412]' : 'bg-forest hover:bg-emerald-deep')}>{busy ? copy.paywall.loading : copy.paywall.topCta}</button>
+            <button type="button" disabled={(!payingWithMomo && !pricesReady) || busy || checkoutUnavailable} onClick={requestCheckout} className={cn('min-h-11 rounded-[1rem] px-3.5 text-[0.78rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-[0.86rem]', exitOfferActive ? 'bg-[#C2410C] hover:bg-[#9A3412]' : 'bg-forest hover:bg-emerald-deep')}>{busy ? copy.paywall.loading : copy.paywall.topCta}</button>
           </div>
         </div>
       )}
@@ -539,6 +553,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
 
         <section className="mt-5 rounded-[2rem] bg-white p-3.5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-5">
           <h2 className="text-center text-[1.08rem] font-extrabold tracking-[-0.02em] text-forest sm:text-[1.18rem]">{copy.paywall.planTitle}</h2>
+          {momoAvailable && <PaymentMethodChoice value={paymentMethod} copy={copy.momoCheckout} onChange={(method) => { setPaymentMethod(method); trackEvent('payment_method_selected', { provider: method }); }} />}
+          {payingWithMomo && <MomoCheckoutPanel leadId={lead.lead_id} locale={activeLocale} copy={copy.momoCheckout} recommendedLabel={copy.paywall.recommendedTag} selectPlanAria={copy.paywall.selectPlanAria} disabled={checkoutUnavailable} />}
+          {!payingWithMomo && <>
           {!isOriginalPricing && <p className={cn('mt-4 rounded-[1.15rem] px-3 py-2.5 text-center text-[0.84rem] font-extrabold tabular-nums', exitOfferActive ? 'bg-[#FFF7ED] text-[#9A3412] ring-1 ring-[#FDBA74]' : 'bg-[#e8f4ef] text-forest')}>{timerLabel}</p>}
           <div role="radiogroup" aria-label={copy.paywall.selectPlanAria} className="mt-5 grid gap-3">
             {!plans.length && loadState === 'loading' && [0, 1, 2].map((index) => <div key={index} aria-hidden="true" className="min-h-[5.25rem] animate-pulse rounded-[1.4rem] border-2 border-[#dfe7e3] bg-[#f6f8f7]" />)}
@@ -575,20 +592,23 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
           <p className="mt-1.5 text-sm font-medium text-muted-brand">{offerNote}</p>
           <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta()}</button>
           <p className="mt-4 text-center text-sm leading-relaxed text-muted-brand">{priceSummary}</p>
+          </>}
         </section>
 
         <section className="mt-5 rounded-[2rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8"><h2 className="text-[1.2rem] font-extrabold tracking-[-0.03em] text-forest">{copy.paywall.includesTitle}</h2><div className="mt-5 grid gap-4">{benefits.map((benefit) => <div key={benefit.title} className="grid grid-cols-[2.55rem_1fr] gap-3"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-mist text-[1.1rem]" aria-hidden="true">{benefit.icon}</span><div><h3 className="text-[0.92rem] font-extrabold text-forest">{benefit.title}</h3><p className="mt-0.5 text-[0.84rem] leading-relaxed text-muted-brand">{benefit.body}</p></div></div>)}</div></section>
         <section className="mt-5 rounded-[2rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8"><h2 className="text-[1.2rem] font-extrabold tracking-[-0.03em] text-forest">{copy.paywall.personalTitle}</h2><div className="mt-5 grid gap-4">{personalRows.map((row) => <div key={row.label} className="grid grid-cols-[2.55rem_1fr] items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#edf7f3] text-[1.1rem]" aria-hidden="true">{row.icon}</span><p className="text-[0.86rem] leading-relaxed text-muted-brand">{row.label} <strong className="font-extrabold text-forest">{row.value}</strong></p></div>)}</div></section>
         <section className="mt-5 rounded-[2rem] bg-white p-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8"><Image src="/guarantee-30day.webp" alt="" width={160} height={160} className="mx-auto h-28 w-28 object-contain" /><h2 className="mt-3 text-[1.16rem] font-extrabold leading-tight tracking-[-0.025em] text-[#111418]">{copy.paywall.guaranteeTitle}</h2><p className="mt-3 text-[0.84rem] font-medium leading-relaxed text-muted-brand">{copy.paywall.guaranteeBody}</p></section>
-        {error && <p role="alert" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-error-brand">{error}</p>}
+        {(error ?? (payingWithMomo ? null : providerError)) && <p role="alert" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-error-brand">{error ?? providerError}</p>}
         {displayedRedemption?.kind === 'pending' && <p role="status" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-brand">{activeLocale === 'vi' ? 'Đang xác minh thanh toán của bạn…' : 'Verifying your payment…'}</p>}
         {displayedRedemption?.kind === 'recovery' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Thanh toán đã được ghi nhận' : 'Payment received'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'Chúng tôi không thể xác minh liên kết kích hoạt. Vui lòng kiểm tra email thanh toán của bạn hoặc liên hệ hỗ trợ.' : 'We could not verify your activation link. Check your purchase email or contact support.'}</p></section>}
         {displayedRedemption?.kind === 'email_sent' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Kiểm tra email của bạn' : 'Check your email'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'RevenueCat đã gửi liên kết bảo mật đến email thanh toán. Mở liên kết đó trong Nutree để tự động kích hoạt gói.' : 'RevenueCat sent a secure link to your checkout email. Open it in Nutree to activate your plan automatically.'}</p></section>}
+        {momoPaid && <section role="status" className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{copy.momoCheckout.paidHeadline}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{copy.momoCheckout.paidBody}</p></section>}
         {activeLocale !== 'en' ? <div className="mt-6 flex justify-center px-4"><BoCongThuongBadge alt={copy.common.bctBadgeAlt} /></div> : null}
         <p className="mx-auto mt-3 max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{copy.paywall.termsIntro} {copy.paywall.secure}</p>
       </div>
       <PaywallExitVoucher
-        armed={shouldArmExitVoucher({
+        // The voucher unlocks a card-checkout discount, which MoMo passes do not use.
+        armed={!payingWithMomo && shouldArmExitVoucher({
           discountActive: welcomeOfferActive || exitOfferActive,
           checkoutOpen: showCheckoutConfirm || busy,
           purchased: checkoutUnavailable,
