@@ -106,7 +106,7 @@ describe('MomoCheckoutPanel', () => {
     expect(startMomoCheckout).toHaveBeenCalledWith('quarterly', 'wallet', 'en', 'lead-1');
     expect(readCheckoutMethod()).toBeNull();
     expect(useQuizStore.getState().momoOrderId).toBe(orderId);
-    expect(trackEvent).toHaveBeenCalledWith('momo_checkout_started', expect.objectContaining({ amount: 249_000, currency: 'VND' }));
+    expect(trackEvent).toHaveBeenCalledWith('momo_checkout_started', expect.objectContaining({ plan: 'quarterly', value: 249_000, currency: 'VND' }));
   });
 
   it('prices a buyer quoted regular prices like any other, without mentioning earlier purchases', async () => {
@@ -154,47 +154,72 @@ describe('MomoCheckoutPanel', () => {
     expect(useQuizStore.getState().momoOrderId).toBeNull();
   });
 
-  it('shows the charged price instead of opening MoMo when the order costs more than the price on screen', async () => {
-    fetchMomoPlans.mockResolvedValue(introQuotes);
+  it('reloads every price instead of opening MoMo when the order charges another amount', async () => {
+    fetchMomoPlans.mockResolvedValueOnce(introQuotes).mockResolvedValueOnce(regularQuotes);
     startMomoCheckout.mockResolvedValueOnce({ payUrl, orderId, amount: 498_000 });
     renderPanel();
 
     fireEvent.click(await screen.findByRole('button', { name: /Pay 249\.000đ with MoMo/ }));
 
-    const pay = await screen.findByRole('button', { name: /Pay 498\.000đ with MoMo/ });
-    expect(screen.getByRole('status').textContent).toBe(copy.priceChanged('498.000đ'));
-    const quarterly = screen.getAllByRole('radio').find((choice) => choice.getAttribute('aria-checked') === 'true')!;
-    expect(quarterly.textContent).toContain('498.000đ');
-    expect(quarterly.textContent).not.toContain('249.000đ');
-    expect(fetchMomoPlans).toHaveBeenCalledTimes(1);
+    await screen.findByRole('button', { name: /Pay 498\.000đ with MoMo/ });
+    expect(screen.getByRole('status').textContent).toBe(copy.pricesUpdated);
+    expect(fetchMomoPlans).toHaveBeenCalledTimes(2);
     expect(assign).not.toHaveBeenCalled();
     expect(useQuizStore.getState().momoOrderId).toBeNull();
     expect(trackEvent).not.toHaveBeenCalledWith('momo_checkout_started', expect.anything());
 
-    // Tapping again creates a new order, which now matches the price shown.
+    // The backend priced every plan for this buyer at once, so no card keeps an intro price.
+    const cards = screen.getAllByRole('radio').slice(0, 3).map((choice) => choice.textContent);
+    expect(cards.join(' ')).not.toMatch(/\b(99|249|599)\.000đ/);
+    fireEvent.click(screen.getAllByRole('radio').find((choice) => choice.textContent?.includes('1.198.000đ'))!);
+    expect(screen.getByRole('status').textContent).toBe(copy.pricesUpdated);
+
     const nextOrderId = 'c'.repeat(32);
-    startMomoCheckout.mockResolvedValueOnce({ payUrl, orderId: nextOrderId, amount: 498_000 });
-    fireEvent.click(pay);
+    startMomoCheckout.mockResolvedValueOnce({ payUrl, orderId: nextOrderId, amount: 1_198_000 });
+    fireEvent.click(screen.getByRole('button', { name: /Pay 1\.198\.000đ with MoMo/ }));
 
     await waitFor(() => expect(assign).toHaveBeenCalledWith(payUrl));
-    expect(startMomoCheckout).toHaveBeenCalledTimes(2);
+    expect(startMomoCheckout).toHaveBeenLastCalledWith('yearly', 'wallet', 'en', 'lead-1');
     expect(useQuizStore.getState().momoOrderId).toBe(nextOrderId);
-    expect(trackEvent).toHaveBeenCalledWith('momo_checkout_started', expect.objectContaining({ plan: 'quarterly', amount: 498_000, intro: false }));
+    expect(trackEvent).toHaveBeenCalledWith('momo_checkout_started', expect.objectContaining({ plan: 'yearly', value: 1_198_000, intro: false }));
     expect(screen.queryByRole('status')).toBeNull();
   });
 
-  it('drops the price notice when the buyer picks another plan', async () => {
-    fetchMomoPlans.mockResolvedValue(introQuotes);
-    startMomoCheckout.mockResolvedValue({ payUrl, orderId, amount: 279_000 });
+  it('states no renewal price below the charge when the regular price rose', async () => {
+    const raised = regularQuotes.map((quote) => (quote.plan === 'quarterly' ? { ...quote, amount: 548_000, regular_amount: 548_000 } : quote));
+    fetchMomoPlans.mockResolvedValueOnce(regularQuotes).mockResolvedValueOnce(raised);
+    startMomoCheckout.mockResolvedValue({ payUrl, orderId, amount: 548_000 });
+    renderPanel();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Pay 498\.000đ with MoMo/ }));
+
+    await screen.findByRole('button', { name: /Pay 548\.000đ with MoMo/ });
+    expect(screen.getByText(copy.summary('548.000đ', 12), { exact: false }).textContent).not.toContain('498.000đ');
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it('keeps Pay unpriced with a retry when the reloaded prices fail', async () => {
+    fetchMomoPlans.mockResolvedValueOnce(introQuotes).mockRejectedValueOnce(new Error('MoMo prices are unavailable.'));
+    startMomoCheckout.mockResolvedValue({ payUrl, orderId, amount: 498_000 });
     renderPanel();
 
     fireEvent.click(await screen.findByRole('button', { name: /Pay 249\.000đ with MoMo/ }));
-    expect((await screen.findByRole('status')).textContent).toBe(copy.priceChanged('279.000đ'));
 
-    fireEvent.click(screen.getAllByRole('radio').find((choice) => choice.textContent?.includes('599.000đ'))!);
+    expect((await screen.findByRole('alert')).textContent).toContain(copy.pricesError);
+    expect(payButton().disabled).toBe(true);
+    expect(screen.queryByText(/\d\.000đ/)).toBeNull();
+    expect(assign).not.toHaveBeenCalled();
+  });
 
-    expect(screen.queryByRole('status')).toBeNull();
-    expect(screen.getByRole('button', { name: /Pay 599\.000đ with MoMo/ })).toBeTruthy();
+  it('shows its own error copy instead of the upstream message when checkout fails', async () => {
+    fetchMomoPlans.mockResolvedValue(introQuotes);
+    startMomoCheckout.mockRejectedValue(new Error('MoMo checkout is unavailable.'));
+    renderPanel();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Pay 249\.000đ with MoMo/ }));
+
+    expect((await screen.findByRole('alert')).textContent).toBe(copy.checkoutError);
+    expect(payButton().disabled).toBe(false);
     expect(assign).not.toHaveBeenCalled();
   });
 });

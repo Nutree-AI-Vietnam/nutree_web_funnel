@@ -21,9 +21,11 @@ available, and MoMo is offered (and preselected) only for Vietnam traffic.
    ATM card, and returns `pay_url`, `order_id` and the `amount` the order
    charges. Pay stays disabled until the plan quote from step 2 has loaded,
    and the plan and method stay fixed while the order is created. If `amount`
-   differs from the price on screen, the paywall does not open MoMo: it shows
-   `amount` as that plan's price with a short note that the price was updated,
-   and the buyer taps Pay again. The unpaid order expires.
+   differs from the price on screen, the paywall does not open MoMo: the API
+   prices every plan for a buyer at once, so it reloads all quotes and shows a
+   note that prices were updated, which also tells a buyer who just paid not to
+   pay again but to sign in to Nutree. The unpaid order expires. Checkout
+   errors show the paywall's own localized message, not the API's `detail`.
 4. The browser opens the MoMo page.
 5. MoMo notifies `POST /v1/webhooks/momo/ipn`. The API checks the HMAC
    signature, partner code and amount, marks the order `paid` and the lead
@@ -52,6 +54,10 @@ Prices are code in the API (`src/domain/model/payments/momo_pass.py`); the quiz
 shows what the API quotes.
 
 ## Ad reporting
+
+A MoMo order whose charge matches the price on screen sends Meta and TikTok an
+`InitiateCheckout` with the plan and VND amount as it opens MoMo, and TikTok an
+`AddToCart` for a plan not yet in the cart, like a card checkout.
 
 A return page that can read a paid order sends Meta and TikTok a `Purchase`
 (pixel plus server copy) with the plan and VND amount. Its event id is fixed

@@ -16,8 +16,9 @@
  *
  * TikTok gets the same commercial steps as standard events (CompleteRegistration
  * at email capture, ViewContent on the paywall, AddToCart once per plan,
- * InitiateCheckout, Purchase) next to its custom names. A paid MoMo pass is a
- * Purchase on both platforms, like a card checkout; its event id is fixed per
+ * InitiateCheckout, Purchase) next to its custom names. A MoMo order that opens
+ * MoMo is an InitiateCheckout and a paid MoMo pass is a Purchase on both
+ * platforms, like a card checkout; the Purchase event id is fixed per
  * order (Purchase.momo.<order id>), so within their 48-hour dedupe window both
  * platforms drop a repeat of that order from another tab or a later server
  * copy. Only standard events feed optimization; custom names are kept for
@@ -101,6 +102,11 @@ function claimFunnelEntryView(step: string): boolean {
   }
 }
 
+/** Card (RevenueCat) and MoMo pass checkouts both count as an ad InitiateCheckout. */
+function isCheckoutStart(name: string): boolean {
+  return name === 'revenuecat_checkout_started' || name === 'momo_checkout_started';
+}
+
 /** Card (RevenueCat) and MoMo pass purchases both count as an ad Purchase. */
 function isCompletedPurchase(name: string): boolean {
   return name === 'revenuecat_checkout_completed' || name === 'momo_checkout_completed';
@@ -119,7 +125,7 @@ function metaStandardEvent(name: string, params: Record<string, unknown>): MetaS
       },
     };
   }
-  if (name === 'revenuecat_checkout_started') {
+  if (isCheckoutStart(name)) {
     return { event: 'InitiateCheckout', params: commerceParams(params) };
   }
   if (isCompletedPurchase(name)) {
@@ -143,7 +149,7 @@ function tiktokStandardEvents(name: string, params: Record<string, unknown>): Ti
       ? [{ event: 'AddToCart', params: tiktokProductParams(params, params.offer_id) }]
       : [];
   }
-  if (name === 'revenuecat_checkout_started') {
+  if (isCheckoutStart(name)) {
     const product = tiktokProductParams(params, params.plan);
     const checkout: TiktokStandard = { event: 'InitiateCheckout', params: product };
     // Keeping the preselected plan never fires offer_selected, so its AddToCart is sent here.
