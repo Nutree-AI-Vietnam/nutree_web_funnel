@@ -12,7 +12,11 @@ export function isAdPixelHost(hostname: string | undefined = typeof window === '
   return hostname === AD_PIXEL_HOST;
 }
 
-/** Server routes forward live events only from the production deployment. */
+/**
+ * Server routes forward live events only from the production deployment. The
+ * Meta route also checks the request host, so a production deployment's
+ * vercel.app URL sends nothing either.
+ */
 export function isProductionDeployment(vercelEnv = process.env.VERCEL_ENV): boolean {
   return vercelEnv === 'production';
 }
