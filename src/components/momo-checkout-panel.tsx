@@ -24,7 +24,9 @@ interface MomoCheckoutPanelProps {
  * while the order is created, and the buyer leaves for MoMo only when that order
  * charges the price on screen. Otherwise every quote is reloaded, because the
  * backend prices all plans for a buyer at once, and the unpaid order expires.
- * Checkout errors show the panel's own copy, never upstream text.
+ * Regular-price quotes mean this lead already paid, so they carry a note telling
+ * a buyer who just paid to sign in instead. Checkout errors show the panel's own
+ * copy, never upstream text.
  */
 export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, selectPlanAria, disabled }: MomoCheckoutPanelProps) {
   const setMomoOrderId = useQuizStore((state) => state.setMomoOrderId);
@@ -42,7 +44,13 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    // Safari can restore this page from its back/forward cache after the buyer left for MoMo.
+    const leaveBusy = (event: PageTransitionEvent) => { if (event.persisted) setBusy(false); };
+    window.addEventListener('pageshow', leaveBusy);
+    return () => {
+      mountedRef.current = false;
+      window.removeEventListener('pageshow', leaveBusy);
+    };
   }, []);
 
   useEffect(() => {
@@ -62,6 +70,7 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
   const quote = plans ? plans.find((plan) => plan.plan === selected) ?? plans[0] ?? null : null;
   const amount = quote ? formatMomoAmount(quote.amount) : null;
   const payLabel = busy ? copy.opening : amount ? copy.pay(amount) : quoteFailed ? copy.payUnpriced : copy.loadingPrices;
+  const note = pricesUpdated ? copy.pricesUpdated : plans?.some((plan) => !plan.intro) ? copy.justPaid : null;
 
   const retryQuote = () => {
     setQuoteFailed(false);
@@ -122,7 +131,7 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
           </button>
         ))}
       </div>
-      {pricesUpdated && <p role="status" className="mt-4 rounded-2xl bg-[#FFF7ED] px-4 py-3 text-sm font-bold text-[#9A3412]">{copy.pricesUpdated}</p>}
+      {note && <p role="status" className="mt-4 rounded-2xl bg-[#FFF7ED] px-4 py-3 text-sm font-bold text-[#9A3412]">{note}</p>}
       <button
         type="button"
         disabled={busy || disabled || !quote}

@@ -500,7 +500,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         : (activeLocale === 'vi'
           ? `Ưu đãi đã hết hạn. Bạn thanh toán ${originalTotal} hôm nay, sau đó gói tự gia hạn theo giá đầy đủ ${renewalTotal} ${renewalCadence} cho đến khi bạn hủy.`
           : `The offer has expired. You pay ${originalTotal} today, then ${renewalTotal} ${renewalCadence} until you cancel.`);
-  const headerOfferLabel = isOriginalPricing
+  // A MoMo pass is priced by its panel, so the header promotes no card offer or countdown.
+  const headerOfferLabel = payingWithMomo || isOriginalPricing
     ? copy.paywall.standardHeader
     : exitOfferActive
     ? (activeLocale === 'vi' ? `Ưu đãi · Giảm ${EXIT_DISCOUNT_PERCENT}%` : `${EXIT_DISCOUNT_PERCENT}% off offer`)
@@ -509,6 +510,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     : welcomeOfferActive
       ? `${copy.paywall.discountTag(WELCOME_DISCOUNT_PERCENT)} · Nutree Premium`
       : (activeLocale === 'vi' ? 'Ưu đãi đã hết hạn' : 'Offer expired');
+  const headerNote = payingWithMomo ? copy.momoCheckout.oneTime : isOriginalPricing ? copy.paywall.standardTimer : null;
+  const headerHighlight = exitOfferActive && !payingWithMomo;
   const timerLabel = isOriginalPricing
     ? copy.paywall.standardTimer
     : isExitOfferMode
@@ -535,11 +538,11 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     <ConversionShell
       hideLogo
       stickyHeader={(
-        <div className={cn('fixed left-1/2 top-0 z-50 w-full max-w-lg -translate-x-1/2 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-[0_12px_34px_rgb(16_39_32_/_0.12)] backdrop-blur-xl', exitOfferActive ? 'border-[#FDBA74] bg-[#FFF7ED]/95 supports-[backdrop-filter]:bg-[#FFF7ED]/85' : 'border-white/55 bg-white/70 supports-[backdrop-filter]:bg-white/60')}>
+        <div className={cn('fixed left-1/2 top-0 z-50 w-full max-w-lg -translate-x-1/2 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-[0_12px_34px_rgb(16_39_32_/_0.12)] backdrop-blur-xl', headerHighlight ? 'border-[#FDBA74] bg-[#FFF7ED]/95 supports-[backdrop-filter]:bg-[#FFF7ED]/85' : 'border-white/55 bg-white/70 supports-[backdrop-filter]:bg-white/60')}>
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
             <Link href={`/survey/${activeLocale}`} aria-label="Nutree" className="block h-11 w-11 shrink-0"><NutreeLogo priority className="h-11 w-11" /></Link>
-            <div><p className={cn('text-[0.74rem] font-bold leading-tight', exitOfferActive ? 'text-[#9A3412]' : 'text-muted-brand')}>{headerOfferLabel}</p>{isOriginalPricing ? <p className="mt-0.5 text-[0.92rem] font-extrabold leading-tight text-forest">{copy.paywall.standardTimer}</p> : <strong aria-live="polite" className={cn('mt-0.5 inline-flex rounded-md px-1.5 py-0.5 text-[1.2rem] font-extrabold leading-none tracking-[-0.035em] tabular-nums', exitOfferActive ? 'bg-[#C2410C] text-white' : 'text-[#111418]')}>{countdown}</strong>}</div>
-            <button type="button" disabled={(!payingWithMomo && !pricesReady) || busy || checkoutUnavailable} onClick={requestCheckout} className={cn('min-h-11 rounded-[1rem] px-3.5 text-[0.78rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-[0.86rem]', exitOfferActive ? 'bg-[#C2410C] hover:bg-[#9A3412]' : 'bg-forest hover:bg-emerald-deep')}>{busy ? copy.paywall.loading : copy.paywall.topCta}</button>
+            <div><p className={cn('text-[0.74rem] font-bold leading-tight', headerHighlight ? 'text-[#9A3412]' : 'text-muted-brand')}>{headerOfferLabel}</p>{headerNote ? <p className="mt-0.5 text-[0.92rem] font-extrabold leading-tight text-forest">{headerNote}</p> : <strong aria-live="polite" className={cn('mt-0.5 inline-flex rounded-md px-1.5 py-0.5 text-[1.2rem] font-extrabold leading-none tracking-[-0.035em] tabular-nums', headerHighlight ? 'bg-[#C2410C] text-white' : 'text-[#111418]')}>{countdown}</strong>}</div>
+            <button type="button" disabled={(!payingWithMomo && !pricesReady) || busy || checkoutUnavailable} onClick={requestCheckout} className={cn('min-h-11 rounded-[1rem] px-3.5 text-[0.78rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-[0.86rem]', headerHighlight ? 'bg-[#C2410C] hover:bg-[#9A3412]' : 'bg-forest hover:bg-emerald-deep')}>{busy ? copy.paywall.loading : copy.paywall.topCta}</button>
           </div>
         </div>
       )}

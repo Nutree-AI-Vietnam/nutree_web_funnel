@@ -78,6 +78,7 @@ describe('MomoCheckoutPanel', () => {
     resolve(introQuotes);
     const priced = await screen.findByRole('button', { name: /Pay 249\.000đ with MoMo/ });
     expect((priced as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('shows an error with a retry instead of fallback prices when the quote fails', async () => {
@@ -119,16 +120,37 @@ describe('MomoCheckoutPanel', () => {
     expect(trackEvent).toHaveBeenCalledWith('offer_selected', { offer_id: 'yearly', provider: 'momo', value: 599_000, currency: 'VND' });
   });
 
-  it('prices a buyer quoted regular prices like any other, without mentioning earlier purchases', async () => {
+  it('tells a buyer quoted regular prices not to pay again after a payment, yet lets them buy another pass', async () => {
+    // This lead paid already, but this tab loaded its quotes afterwards, so no order amount differs.
     fetchMomoPlans.mockResolvedValue(regularQuotes);
     startMomoCheckout.mockResolvedValue({ payUrl, orderId, amount: 498_000 });
     renderPanel();
 
-    fireEvent.click(await screen.findByRole('button', { name: /Pay 498\.000đ with MoMo/ }));
+    const pay = await screen.findByRole('button', { name: /Pay 498\.000đ with MoMo/ });
+    expect(screen.getByRole('status').textContent).toBe(copy.justPaid);
+    expect(screen.queryByRole('alert')).toBeNull();
+
+    fireEvent.click(pay);
 
     await waitFor(() => expect(assign).toHaveBeenCalledWith(payUrl));
-    expect(screen.queryByRole('alert')).toBeNull();
-    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('lets the buyer pay again when the browser restores the page after they left for MoMo', async () => {
+    fetchMomoPlans.mockResolvedValue(introQuotes);
+    startMomoCheckout.mockResolvedValue({ payUrl, orderId, amount: 249_000 });
+    renderPanel();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Pay 249\.000đ with MoMo/ }));
+    await waitFor(() => expect(assign).toHaveBeenCalledWith(payUrl));
+    expect(payButton().textContent).toBe(copy.opening);
+    expect(payButton().disabled).toBe(true);
+
+    // The buyer swipes back from MoMo and Safari restores the paywall from its back/forward cache.
+    act(() => { window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })); });
+
+    expect(payButton().textContent).toBe(copy.pay('249.000đ'));
+    expect(payButton().disabled).toBe(false);
+    expect((screen.getAllByRole('radio') as HTMLButtonElement[]).every((choice) => !choice.disabled)).toBe(true);
   });
 
   it('keeps the plan and payment method fixed while the order is created', async () => {
@@ -192,7 +214,7 @@ describe('MomoCheckoutPanel', () => {
     expect(startMomoCheckout).toHaveBeenLastCalledWith('yearly', 'wallet', 'en', 'lead-1');
     expect(useQuizStore.getState().momoOrderId).toBe(nextOrderId);
     expect(trackEvent).toHaveBeenCalledWith('momo_checkout_started', expect.objectContaining({ plan: 'yearly', value: 1_198_000, intro: false }));
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByRole('status').textContent).toBe(copy.justPaid);
   });
 
   it('states no renewal price below the charge when the regular price rose', async () => {

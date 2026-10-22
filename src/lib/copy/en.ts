@@ -868,6 +868,7 @@ export const en: Copy = {
     pricesError: 'We couldn’t load MoMo prices.',
     retryPrices: 'Try again',
     pricesUpdated: 'Prices were updated. If you just paid for a pass, don’t pay again: open Nutree and sign in with your checkout email.',
+    justPaid: 'If you just paid for a pass, don’t pay again: open Nutree and sign in with your checkout email.',
     checkoutError: 'MoMo is temporarily unavailable. Please try again later.',
   },
   momoReturn: {

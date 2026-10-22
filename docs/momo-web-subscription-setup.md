@@ -12,8 +12,11 @@ available, and MoMo is offered (and preselected) only for Vietnam traffic.
 1. The quiz creates a lead with `POST /v1/web-funnel/leads`.
 2. The paywall loads `GET /v1/web-funnel/momo/plans?lead_id=…`. The API quotes
    the intro price for the lead's first pass and the regular price after that,
-   judged from that lead's own orders only. The paywall shows the quoted price
-   and never says whether the buyer bought before.
+   judged from that lead's own orders only. The paywall shows the quoted price.
+   A regular-price quote means this lead already paid, so the paywall adds a
+   note telling a buyer who just paid not to pay again but to sign in to
+   Nutree. The quote is scoped to the lead, so the note reveals nothing beyond
+   the browser's own lead.
 3. The buyer picks a pass and a payment method, and the paywall calls
    `POST /v1/web-funnel/momo/checkouts` with `monthly`, `quarterly` or
    `yearly` and `wallet` or `atm`. The API signs a MoMo `captureWallet`
@@ -23,10 +26,11 @@ available, and MoMo is offered (and preselected) only for Vietnam traffic.
    and the plan and method stay fixed while the order is created. If `amount`
    differs from the price on screen, the paywall does not open MoMo: the API
    prices every plan for a buyer at once, so it reloads all quotes and shows a
-   note that prices were updated, which also tells a buyer who just paid not to
-   pay again but to sign in to Nutree. The unpaid order expires. Checkout
+   note that prices were updated and that a buyer who just paid should sign in
+   to Nutree instead of paying again. The unpaid order expires. Checkout
    errors show the paywall's own localized message, not the API's `detail`.
-4. The browser opens the MoMo page.
+4. The browser opens the MoMo page. If the buyer goes back and the browser
+   restores the paywall from its back/forward cache, Pay works again.
 5. MoMo notifies `POST /v1/webhooks/momo/ipn`. The API checks the HMAC
    signature, partner code and amount, marks the order `paid` and the lead
    `payment_verified`, and answers HTTP 204.

@@ -864,6 +864,7 @@ export const vi = {
     pricesError: 'Chưa tải được giá gói MoMo.',
     retryPrices: 'Thử lại',
     pricesUpdated: 'Giá đã được cập nhật. Nếu bạn vừa thanh toán một gói, đừng thanh toán lại: hãy mở Nutree và đăng nhập bằng email thanh toán.',
+    justPaid: 'Nếu bạn vừa thanh toán một gói, đừng thanh toán lại: hãy mở Nutree và đăng nhập bằng email thanh toán.',
     checkoutError: 'MoMo tạm thời không khả dụng. Vui lòng thử lại sau.',
   },
   momoReturn: {

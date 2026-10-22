@@ -7,6 +7,7 @@ import { PostcheckoutPageClient } from '@/app/(default)/postcheckout/postcheckou
 import { copyFor } from '@/lib/copy';
 import { useQuizStore } from '@/lib/quiz/store';
 import { readCheckoutMethod, rememberCheckoutMethod, saveCheckoutEmail } from '@/lib/revenuecat/checkout-email';
+import { EXIT_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
 import { PaywallPageClient } from './paywall-page-client';
 
 const purchases = vi.hoisted(() => ({ getOfferings: vi.fn(), purchase: vi.fn() }));
@@ -98,6 +99,19 @@ describe('paywall checkout method', () => {
     render(<PostcheckoutPageClient />);
     expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: copy.momoCheckout.paidHeadline })).toBeNull();
+  });
+
+  it('keeps the card offer and its countdown out of the header while paying with MoMo', async () => {
+    render(<PaywallPageClient initialCountryCode="VN" exitOfferMode />);
+    const header = (await screen.findByRole('button', { name: copy.paywall.topCta })).parentElement!;
+
+    expect(header.textContent).toBe(`${copy.paywall.standardHeader}${copy.momoCheckout.oneTime}${copy.paywall.topCta}`);
+    expect(header.querySelector('[aria-live]')).toBeNull();
+
+    fireEvent.click(screen.getByRole('radio', { name: new RegExp(copy.momoCheckout.cardLabel) }));
+
+    expect(header.textContent).toContain(`${EXIT_DISCOUNT_PERCENT}% off offer`);
+    expect(header.querySelector('[aria-live]')?.textContent).toMatch(/\d+:\d{2}/);
   });
 
   it('records a card checkout as paddle when it starts, replacing the mark of an earlier paid MoMo order', async () => {
