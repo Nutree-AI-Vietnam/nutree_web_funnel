@@ -65,11 +65,12 @@ const ENGLISH_WELCOME_SECONDS = 600;
 const INCLUDE_ICONS: IconName[] = ['plate', 'camera', 'calendar', 'chat'];
 
 /**
- * Wallets show only once they are switched on in Paddle, so the badge never promises a method
- * checkout lacks: set NEXT_PUBLIC_CHECKOUT_WALLETS=apple_pay,google_pay after enabling them.
- * The local preview shows both so the layout can be reviewed.
+ * Wallet badges for payment methods switched on in Paddle (Apple Pay and Google Pay are on).
+ * NEXT_PUBLIC_CHECKOUT_WALLETS overrides the list, e.g. "google_pay" alone, or "none" to hide both.
  */
-const CHECKOUT_WALLETS = (process.env.NEXT_PUBLIC_CHECKOUT_WALLETS ?? '').split(',').map((wallet) => wallet.trim()).filter(Boolean);
+const CHECKOUT_WALLETS = process.env.NEXT_PUBLIC_CHECKOUT_WALLETS
+  ? process.env.NEXT_PUBLIC_CHECKOUT_WALLETS.split(',').map((wallet) => wallet.trim()).filter(Boolean)
+  : ['apple_pay', 'google_pay'];
 
 function ApplePayBadge() {
   return (
@@ -685,7 +686,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
 
   // While a discount runs, the header is just the offer, its countdown and the button; otherwise the plan and its price.
   const offerRunning = welcomeOfferActive || exitOfferActive;
-  const checkoutWallets = isLocalPreviewHost() ? ['apple_pay', 'google_pay'] : CHECKOUT_WALLETS;
+  const checkoutWallets = CHECKOUT_WALLETS;
   const englishHeader = (
     <div className={cn('fixed left-1/2 top-0 z-50 w-full max-w-lg -translate-x-1/2 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-[0_12px_34px_rgb(16_39_32_/_0.12)] backdrop-blur-xl', exitOfferActive ? 'border-[#FDBA74] bg-[#FFF7ED]/95' : 'border-white/55 bg-white/90')}>
       <div className={cn('grid items-center gap-3', offerRunning ? 'grid-cols-[1fr_auto]' : 'grid-cols-[auto_1fr_auto]')}>
