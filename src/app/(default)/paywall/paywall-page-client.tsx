@@ -28,6 +28,8 @@ import { buildRevenueCatPaywall, checkoutPackage, defaultPaywallPlan, SIX_MONTH_
 import { hasWelcomeVoucherBeenClaimed, markWelcomeVoucherClaimed, shouldArmExitVoucher } from '@/lib/revenuecat/welcome-voucher';
 import { clearCheckoutEmail, readCheckoutEmail } from '@/lib/revenuecat/checkout-email';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
+import { formatWeight } from '@/lib/quiz/units';
+import { useUnits } from '@/lib/quiz/use-units';
 import { cn } from '@/lib/utils';
 
 interface PaywallPageClientProps {
@@ -103,6 +105,7 @@ function isAlreadyPurchased(error: unknown): boolean {
 export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOfferMode, onMissingLead }: PaywallPageClientProps) {
   const router = useRouter();
   const copy = useCopy();
+  const { system } = useUnits();
   const hydrated = useHydrated();
   const lead = useQuizStore((state) => state.lead);
   const data = useQuizStore((state) => state.data);
@@ -532,8 +535,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       <div className="pt-[5.75rem]">
         <section className="rounded-[2rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-8">
           <p className="text-center text-[0.92rem] font-semibold text-slate-brand">{copy.paywall.goalIntro}</p>
-          <h1 className="mx-auto mt-1 max-w-2xl text-center text-[1.28rem] font-extrabold leading-tight tracking-[-0.03em] text-forest sm:text-[1.55rem]">{copy.paywall.goalHeadline(targetWeight, targetDate)}</h1>
-          <svg viewBox="0 0 640 245" className="mt-8 h-auto w-full" role="img" aria-label={copy.paywall.goalChartAria}><path d="M48 62 C132 65 156 86 213 130 S304 165 360 168" fill="none" stroke="#a3bd68" strokeWidth="6" strokeLinecap="round" /><path d="M360 168 H580" fill="none" stroke="#2d8b70" strokeWidth="6" strokeLinecap="round" /><circle cx="48" cy="62" r="9" fill="#d7a84d" /><circle cx="360" cy="168" r="12" fill="#2d8b70" stroke="white" strokeWidth="6" /><text x="62" y="52" fill="#6b7b75" fontSize="20" fontWeight="600">{currentWeight} kg</text><text x="48" y="228" fill="#6b7b75" fontSize="17" fontWeight="700">{copy.paywall.now}</text><text x="580" y="228" textAnchor="end" fill="#6b7b75" fontSize="17" fontWeight="700">{targetDate}</text></svg>
+          <h1 className="mx-auto mt-1 max-w-2xl text-center text-[1.28rem] font-extrabold leading-tight tracking-[-0.03em] text-forest sm:text-[1.55rem]">{system === 'metric' ? copy.paywall.goalHeadline(targetWeight, targetDate) : `${formatWeight(targetWeight, system)} by ${targetDate}`}</h1>
+          <svg viewBox="0 0 640 245" className="mt-8 h-auto w-full" role="img" aria-label={copy.paywall.goalChartAria}><path d="M48 62 C132 65 156 86 213 130 S304 165 360 168" fill="none" stroke="#a3bd68" strokeWidth="6" strokeLinecap="round" /><path d="M360 168 H580" fill="none" stroke="#2d8b70" strokeWidth="6" strokeLinecap="round" /><circle cx="48" cy="62" r="9" fill="#d7a84d" /><circle cx="360" cy="168" r="12" fill="#2d8b70" stroke="white" strokeWidth="6" /><text x="62" y="52" fill="#6b7b75" fontSize="20" fontWeight="600">{formatWeight(currentWeight, system)}</text><text x="48" y="228" fill="#6b7b75" fontSize="17" fontWeight="700">{copy.paywall.now}</text><text x="580" y="228" textAnchor="end" fill="#6b7b75" fontSize="17" fontWeight="700">{targetDate}</text></svg>
           <p className="mx-auto mt-4 max-w-[35rem] text-center text-[0.9rem] leading-relaxed text-muted-brand">{copy.paywall.goalNote}</p>
         </section>
 

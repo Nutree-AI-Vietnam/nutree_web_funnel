@@ -9,10 +9,19 @@ import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import type { QuizStep } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
+import type { Measure } from '@/lib/quiz/units';
 import { isMetricValueValid, MetricInput, parseMetricDraft } from './metric-input';
 import { QuizStepFrame } from './quiz-step-frame';
+import { UnitFields } from './unit-fields';
 
 type NumberField = 'target_weight_kg' | 'height_cm' | 'weight_kg' | 'body_fat_percentage';
+
+/** Fields the visitor enters in their own units; the others are plain numbers. */
+const UNIT_MEASURES: Partial<Record<NumberField, Measure>> = {
+  height_cm: 'height',
+  weight_kg: 'weight',
+  target_weight_kg: 'weight',
+};
 
 type FieldConfig = {
   label: string;
@@ -76,9 +85,12 @@ export function NumberInputStep({
   const [attempted, setAttempted] = useState(false);
   const config = fieldConfigFor(copy)[field];
   const [value, setValue] = useState(saved != null ? String(saved) : config.defaultValue != null ? String(config.defaultValue) : '');
+  // What a unit field reports: the metric value, or null while what is typed is not valid.
+  const [metric, setMetric] = useState<number | null>(null);
+  const measure = UNIT_MEASURES[field];
 
-  const parsed = parseMetricDraft(value);
-  const valid = isMetricValueValid(value, min, max);
+  const parsed = measure ? metric : parseMetricDraft(value);
+  const valid = measure ? metric != null : isMetricValueValid(value, min, max);
   const showError = (touched || attempted) && !valid;
   const error = copy.metric.rangeError(config.label, min, max, unit);
 
@@ -100,20 +112,36 @@ export function NumberInputStep({
         }}
       >
         <div className="flex min-h-0 flex-1 flex-col">
-        <MetricInput
-          id={`${step}-${field}`}
-          label={config.label}
-          unit={unit}
-          value={value}
-          min={min}
-          max={max}
-          step={config.step}
-          autoFocus
-          bare
-          error={showError ? error : undefined}
-          onChange={setValue}
-          onBlur={() => setTouched(true)}
-        />
+        {measure ? (
+          <UnitFields
+            measure={measure}
+            id={`${step}-${field}`}
+            label={config.label}
+            initialValue={saved ?? config.defaultValue}
+            unit={unit}
+            min={min}
+            max={max}
+            autoFocus
+            showError={touched || attempted}
+            onChange={setMetric}
+            onBlur={() => setTouched(true)}
+          />
+        ) : (
+          <MetricInput
+            id={`${step}-${field}`}
+            label={config.label}
+            unit={unit}
+            value={value}
+            min={min}
+            max={max}
+            step={config.step}
+            autoFocus
+            bare
+            error={showError ? error : undefined}
+            onChange={setValue}
+            onBlur={() => setTouched(true)}
+          />
+        )}
         </div>
         <div className="quiz-number-actions flex shrink-0 flex-col gap-3 pt-4">
           <PrimaryButton type="submit">{copy.common.continue}</PrimaryButton>

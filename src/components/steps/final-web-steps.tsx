@@ -11,10 +11,13 @@ import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
 import { deriveAge } from '@/lib/quiz/dob';
 import { goalAfterTargetWeight } from '@/lib/quiz/fitness-goal';
+import { formatHeight, formatWeight } from '@/lib/quiz/units';
+import { useUnits } from '@/lib/quiz/use-units';
 import { bmi, bmiCategory } from '@/lib/tdee/insights';
 import { cn } from '@/lib/utils';
 import { isMetricValueValid, MetricInput, parseMetricDraft } from './metric-input';
 import { QuizStepFrame } from './quiz-step-frame';
+import { UnitFields } from './unit-fields';
 
 function useDraftNumber(field: keyof OnboardingPayload) {
   const saved = useQuizStore((s) => s.data[field]);
@@ -135,9 +138,11 @@ export function TargetWeightStep() {
   const copy = useCopy();
   const setData = useQuizStore((s) => s.setData);
   const data = useQuizStore((s) => s.data);
-  const [target, setTarget] = useDraftNumber('target_weight_kg');
-  const valid = isMetricValueValid(target, 30, 250);
-  const targetValue = parseMetricDraft(target);
+  const { system } = useUnits();
+  const [touched, setTouched] = useState(false);
+  // What the unit field reports: the target in kg, or null while what is typed is not valid.
+  const [targetValue, setTargetValue] = useState<number | null>(null);
+  const valid = targetValue != null;
   const currentValue = data.weight_kg;
   const currentAge = data.age ?? deriveAge(data);
   const hasValidBmiContext = currentAge != null
@@ -186,24 +191,23 @@ export function TargetWeightStep() {
             <div className="text-center">
               <span className="sr-only">{copy.target_weight.currentLabel}</span>
               <span className="text-lg font-extrabold leading-none tracking-tight text-slate-brand">
-                {data.weight_kg ?? '—'}
+                {data.weight_kg != null ? formatWeight(data.weight_kg, system) : '—'}
               </span>
-              <span className="ml-0.5 text-sm font-bold text-slate-brand">{copy.target_weight.unit}</span>
             </div>
             <span aria-hidden="true" className="text-2xl font-extrabold leading-none tracking-tight text-[#e6a0a8]">»</span>
           </div>
-          <MetricInput
+          <UnitFields
+            measure="weight"
             id="target-weight"
             label={copy.target_weight.label}
+            initialValue={data.target_weight_kg}
             unit={copy.target_weight.unit}
-            value={target}
             min={30}
             max={250}
-            step={1}
-            bare
             variant="hero"
-            onChange={setTarget}
-            onBlur={() => null}
+            showError={touched && system !== 'metric'}
+            onChange={setTargetValue}
+            onBlur={() => setTouched(true)}
           />
         </div>
       </div>
@@ -252,12 +256,11 @@ export function TargetWeightStep() {
         <PrimaryButton
           disabled={!valid}
           onClick={() => {
-            const parsed = parseMetricDraft(target);
-            if (!parsed) return;
+            if (targetValue == null) return;
             setData({
-              target_weight_kg: parsed,
+              target_weight_kg: targetValue,
               target_weight_unsure: false,
-              fitness_goal: goalAfterTargetWeight(data.fitness_goal, data.weight_kg, parsed),
+              fitness_goal: goalAfterTargetWeight(data.fitness_goal, data.weight_kg, targetValue),
             });
             goToNextQuizStep(router, 'target_weight');
           }}
@@ -274,13 +277,14 @@ export function BodyReviewStep() {
   const copy = useCopy();
   const data = useQuizStore((s) => s.data);
   const setData = useQuizStore((s) => s.setData);
+  const { system } = useUnits();
   const review = copy.body_review;
   const rows = [
     [review.goalLabel, getGoalLabel(copy, data.fitness_goal)],
     [review.ageLabel, deriveAge(data) ? `${deriveAge(data)}` : review.missingValue],
-    [review.heightLabel, data.height_cm ? `${data.height_cm} cm` : review.missingValue],
-    [review.weightLabel, data.weight_kg ? `${data.weight_kg} kg` : review.missingValue],
-    [review.targetWeightLabel, data.target_weight_kg ? `${data.target_weight_kg} kg` : review.targetWeightPending],
+    [review.heightLabel, data.height_cm ? formatHeight(data.height_cm, system) : review.missingValue],
+    [review.weightLabel, data.weight_kg ? formatWeight(data.weight_kg, system) : review.missingValue],
+    [review.targetWeightLabel, data.target_weight_kg ? formatWeight(data.target_weight_kg, system) : review.targetWeightPending],
   ];
 
   return (
