@@ -114,7 +114,7 @@ export function formatHeight(cm: number, system: UnitSystem): string {
 }
 
 export function formatWeight(kg: number, system: UnitSystem): string {
-  return system === 'metric' ? `${kg} kg` : `${kgToPounds(kg)} lb`;
+  return system === 'metric' ? `${Math.round(kg * 10) / 10} kg` : `${kgToPounds(kg)} lb`;
 }
 
 /** The ends of [min, max] (metric) as the whole units a visitor can type, for error text. */

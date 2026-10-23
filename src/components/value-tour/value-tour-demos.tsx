@@ -84,11 +84,18 @@ export function AppStoreRating({ className }: { className?: string }) {
   const copy = useCopy();
   const rating = copy.funnel.rating;
   return (
-    <section className={cn('rounded-[1.6rem] bg-white p-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]', className)} aria-label={rating.line}>
-      <p className="text-[3rem] font-extrabold leading-none tracking-[-0.04em] text-forest">{rating.value}</p>
-      <StarRow value={Number(rating.value)} className="mt-2 text-[1.35rem]" />
-      <p className="mt-2 text-sm font-extrabold text-forest">{rating.count}</p>
-      <p className="text-xs font-semibold text-muted-brand">{rating.store}</p>
+    <section aria-label={rating.line} className={cn('grid grid-cols-2 border-y border-forest/12 py-4 text-center', className)}>
+      <div className="border-r border-forest/12 px-2">
+        <p className="flex items-center justify-center gap-1.5" aria-hidden="true">
+          <span className="text-[1.7rem] font-extrabold leading-none tracking-[-0.03em] text-forest">{rating.value}</span>
+          <StarRow value={Number(rating.value)} className="text-[0.85rem]" />
+        </p>
+        <p className="mt-1.5 text-[0.8rem] font-semibold leading-snug text-muted-brand" aria-hidden="true">{rating.label}</p>
+      </div>
+      <div className="px-2" aria-hidden="true">
+        <p className="text-[1.7rem] font-extrabold leading-none tracking-[-0.03em] text-forest">{rating.countValue}</p>
+        <p className="mt-1.5 text-[0.8rem] font-semibold leading-snug text-muted-brand">{rating.countLabel}</p>
+      </div>
     </section>
   );
 }

@@ -83,7 +83,7 @@ export function ValueTourScreen({
         </QuizStepFrame>
       )}
       {step === 'proof' && (
-        <QuizStepFrame eyebrow={tour.proof.eyebrow}>
+        <QuizStepFrame>
           <AppStoreRating />
           <section className="rounded-[1.6rem] bg-white/90 p-4 shadow-[0_10px_30px_rgb(26_71_57_/_0.06)]">
             <h2 className="text-[1.12rem] font-extrabold tracking-[-0.02em] text-forest">{tour.proof.title}</h2>

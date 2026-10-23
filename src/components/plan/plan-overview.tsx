@@ -1,7 +1,7 @@
 'use client';
 
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
-import { firstChangePlan, planNumbers, sampleDay, type ChangeSource } from '@/lib/quiz/plan-content';
+import { firstChangePlan, planNumbers, sampleDay, type ChangeSource, type DishId, type Meal } from '@/lib/quiz/plan-content';
 import { formatGoalDate, goalTimeline, type GoalTimeline } from '@/lib/quiz/progress-projection';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload, TdeeResult } from '@/lib/quiz/types';
@@ -139,14 +139,14 @@ export function FirstChangesCard({ data, tdee, className }: { data: OnboardingPa
   return (
     <section className={cn(CARD, className)}>
       <h2 className="text-[1.12rem] font-extrabold tracking-[-0.02em] text-forest">{said.title}</h2>
-      <ol className="mt-3 grid gap-4">
-        {firstChangePlan(data, answers).map((change) => (
-          <li key={change.id} className="border-l-[3px] border-teal-brand/70 pl-3.5">
-            <p className="text-[0.78rem] font-bold text-muted-brand">
-              {said.youSaid}: <span className="text-slate-brand">{sourceLabel(change.source)}</span>
-            </p>
-            <p className="mt-0.5 text-[1rem] font-extrabold leading-snug text-forest">{plan.changes[change.id].title}</p>
-            <p className="mt-0.5 text-sm font-semibold leading-relaxed text-slate-brand">{plan.changes[change.id].body(numbers)}</p>
+      <ol className="mt-3 divide-y divide-border-brand/60">
+        {firstChangePlan(data, answers).map((change, index) => (
+          <li key={change.id} className="grid grid-cols-[1.75rem_1fr] gap-3 py-3 first:pt-0 last:pb-0">
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-mist text-[0.8rem] font-extrabold text-forest">{index + 1}</span>
+            <span>
+              <span className="block text-[0.98rem] font-extrabold leading-snug text-forest">{plan.changes[change.id].title(numbers)}</span>
+              <span className="mt-1 inline-block rounded-full bg-[#f1f5f3] px-2 py-0.5 text-[0.72rem] font-bold text-muted-brand">{said.youSaid} {sourceLabel(change.source).toLowerCase()}</span>
+            </span>
           </li>
         ))}
       </ol>
@@ -154,14 +154,52 @@ export function FirstChangesCard({ data, tdee, className }: { data: OnboardingPa
   );
 }
 
+const MEAL_TINT: Record<Meal, string> = { breakfast: '#fff1df', lunch: '#e5f4ee', snack: '#fde9ec', dinner: '#e9eefb' };
+const DISH_ICON: Record<DishId, string> = {
+  eggs_toast: '🍳',
+  yogurt_oats: '🥣',
+  tofu_scramble: '🥔',
+  chia_pudding: '🫐',
+  chicken_rice_bowl: '🍚',
+  tuna_salad: '🥗',
+  chickpea_quinoa: '🥗',
+  salmon_potatoes: '🐟',
+  beef_stir_fry: '🥢',
+  lentil_curry: '🍛',
+  apple_peanut_butter: '🍎',
+  yogurt_berries: '🍓',
+  hummus_carrots: '🥕',
+};
+
+/** The day's calories as a ring split by where they come from: protein, carbs and fat. */
+function CalorieRing({ total, unit, macros }: { total: string; unit: string; macros: ReadonlyArray<{ label: string; share: number; color: string }> }) {
+  const radius = 50;
+  const circumference = 2 * Math.PI * radius;
+  const gap = 5;
+  const starts = macros.map((_, index) => macros.slice(0, index).reduce((sum, macro) => sum + macro.share, 0) * circumference);
+  return (
+    <div className="relative h-[7.25rem] w-[7.25rem] shrink-0">
+      <svg viewBox="0 0 128 128" className="h-full w-full -rotate-90" aria-hidden="true">
+        <circle cx="64" cy="64" r={radius} fill="none" stroke="#eef4f1" strokeWidth="12" />
+        {macros.map((macro, index) => (
+          <circle key={macro.label} cx="64" cy="64" r={radius} fill="none" stroke={macro.color} strokeWidth="12" strokeLinecap="round" strokeDasharray={`${Math.max(0, macro.share * circumference - gap)} ${circumference}`} strokeDashoffset={-starts[index]} />
+        ))}
+      </svg>
+      <p className="absolute inset-0 grid place-content-center text-center">
+        <span className="text-[1.6rem] font-extrabold leading-none tracking-[-0.04em] text-forest tabular-nums">{total}</span>
+        <span className="mt-1 text-[0.68rem] font-bold leading-tight text-muted-brand">{unit}</span>
+      </p>
+    </div>
+  );
+}
+
 /**
- * The plan for one day as a plain card, not dressed as an app screen: calorie
- * target, macros, a day of meals for the diet answers, and the goal date.
+ * The plan for one day as a plain card, not dressed as an app screen: the
+ * calorie target as a ring with its macros, then a day of meals for the diet answers.
  */
-export function PlanDayCard({ data, tdee, system, className }: {
+export function PlanDayCard({ data, tdee, className }: {
   data: OnboardingPayload;
   tdee: TdeeResult;
-  system: UnitSystem;
   className?: string;
 }) {
   const copy = useCopy();
@@ -171,54 +209,41 @@ export function PlanDayCard({ data, tdee, system, className }: {
   const format = new Intl.NumberFormat(numberLocale(locale));
   const meals = sampleDay(tdee.calories, data.dietary_preferences);
   const total = meals.reduce((sum, row) => sum + row.calories, 0);
-  const timeline = goalTimeline(data);
   const macros = [
-    { label: copy.tdee_targets.protein, grams: Math.round(tdee.protein_g), kcal: tdee.protein_g * 4, color: '#e0803a' },
-    { label: copy.tdee_targets.carbs, grams: Math.round(tdee.carbs_g), kcal: tdee.carbs_g * 4, color: '#1fa892' },
-    { label: copy.tdee_targets.fat, grams: Math.round(tdee.fat_g), kcal: tdee.fat_g * 9, color: '#d7a84d' },
+    { label: copy.tdee_targets.protein, grams: Math.round(tdee.protein_g), kcal: tdee.protein_g * 4, color: 'var(--color-protein)' },
+    { label: copy.tdee_targets.carbs, grams: Math.round(tdee.carbs_g), kcal: tdee.carbs_g * 4, color: 'var(--color-carbs)' },
+    { label: copy.tdee_targets.fat, grams: Math.round(tdee.fat_g), kcal: tdee.fat_g * 9, color: 'var(--color-fat)' },
   ];
   const macroTotal = macros.reduce((sum, macro) => sum + macro.kcal, 0) || 1;
+  const shares = macros.map((macro) => ({ ...macro, share: macro.kcal / macroTotal }));
 
   return (
-    <section className={cn(CARD, 'overflow-hidden p-0 sm:p-0', className)}>
-      <div className="px-4 pb-4 pt-4 sm:px-5">
-        <p className="text-sm font-extrabold text-teal-brand">{day.title}</p>
-        <p className="mt-1 flex items-baseline gap-2">
-          <span className="text-[2.6rem] font-extrabold leading-none tracking-[-0.04em] text-forest tabular-nums">{format.format(total)}</span>
-          <span className="text-sm font-bold text-slate-brand">{day.kcal}</span>
-        </p>
-        <div className="mt-3 flex h-2.5 overflow-hidden rounded-full" aria-hidden="true">
-          {macros.map((macro) => <span key={macro.label} style={{ width: `${(macro.kcal / macroTotal) * 100}%`, background: macro.color }} />)}
-        </div>
-        <ul className="mt-2 grid grid-cols-3 gap-2">
-          {macros.map((macro) => (
-            <li key={macro.label} className="text-sm">
-              <span className="flex items-center gap-1.5 text-[0.74rem] font-bold text-muted-brand"><span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ background: macro.color }} />{macro.label}</span>
-              <span className="font-extrabold text-forest">{macro.grams} g</span>
+    <section className={cn(CARD, className)} aria-label={`${format.format(total)} ${day.kcal}`}>
+      <div className="flex items-center gap-4 sm:gap-6">
+        <CalorieRing total={format.format(total)} unit={day.kcal} macros={shares} />
+        <ul className="grid min-w-0 flex-1 gap-2.5">
+          {shares.map((macro) => (
+            <li key={macro.label} className="flex items-center gap-2 text-[0.9rem]">
+              <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: macro.color }} />
+              <span className="min-w-0 flex-1 whitespace-nowrap font-bold text-slate-brand">{macro.label}</span>
+              <span className="whitespace-nowrap font-extrabold tabular-nums text-forest">{macro.grams} g</span>
             </li>
           ))}
         </ul>
       </div>
-      <ul className="divide-y divide-border-brand/60 border-t border-border-brand/60 px-4 sm:px-5">
+      <h3 className="mt-5 text-[0.95rem] font-extrabold text-forest">{day.title}</h3>
+      <ul className="mt-2 grid gap-1.5">
         {meals.map((row) => (
-          <li key={row.meal} className="flex items-center justify-between gap-3 py-2.5">
-            <span className="min-w-0">
-              <span className="block text-[0.72rem] font-bold text-muted-brand">{plan.meals[row.meal]}</span>
-              <span className="block text-[0.92rem] font-bold leading-snug text-forest">{plan.dishes[row.dish]}</span>
+          <li key={row.meal} className="flex items-center gap-3 py-1.5">
+            <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-[0.85rem] text-[1.25rem]" style={{ background: MEAL_TINT[row.meal] }}>{DISH_ICON[row.dish]}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[0.9rem] font-extrabold leading-snug text-forest">{plan.dishes[row.dish]}</span>
+              <span className="block text-[0.76rem] font-semibold text-muted-brand">{plan.meals[row.meal]}</span>
             </span>
-            <span className="shrink-0 text-sm font-extrabold tabular-nums text-slate-brand">{format.format(row.calories)}</span>
+            <span className="shrink-0 text-[0.9rem] font-extrabold tabular-nums text-slate-brand">{format.format(row.calories)}</span>
           </li>
         ))}
       </ul>
-      {timeline && (
-        <div className="bg-forest px-4 py-3 text-white sm:px-5">
-          <div className="flex items-baseline justify-between gap-3 text-sm font-bold">
-            <span className="text-white/75">{formatWeight(timeline.currentKg, system)}</span>
-            <span className="font-extrabold">{day.goal(formatWeight(timeline.targetKg, system), formatGoalDate(timeline.date, locale, false))}</span>
-          </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/20"><div className="h-full w-[4%] rounded-full bg-[#e7a23a]" /></div>
-        </div>
-      )}
     </section>
   );
 }

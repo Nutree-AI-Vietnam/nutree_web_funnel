@@ -68,8 +68,6 @@ export const STEP_CHAPTERS: Record<QuizStep, QuizChapter> = {
   confidence: 'plan',
 };
 
-export const QUIZ_CHAPTERS: readonly QuizChapter[] = ['intent', 'body', 'routine', 'plan'];
-
 /** Screens that ask the visitor something, for the question count on the welcome screen. */
 const QUESTION_STEPS: readonly QuizStep[] = [
   'goal',

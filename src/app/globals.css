@@ -338,10 +338,6 @@ h2 {
     margin-bottom: 0.35rem;
   }
 
-  .quiz-shell-chapters {
-    display: none;
-  }
-
   .quiz-step-frame {
     gap: 0.35rem;
   }
@@ -410,11 +406,7 @@ h2 {
   }
 
   .quiz-shell[data-fit-viewport] .quiz-shell-progress {
-    margin-bottom: 0.35rem;
-  }
-
-  .quiz-shell[data-fit-viewport] .quiz-shell-chapters {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
   }
 
   .quiz-shell[data-fit-viewport] .quiz-step-frame h1 {
