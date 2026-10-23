@@ -69,6 +69,8 @@ export async function previewTdee(data: OnboardingPayload): Promise<TdeeResult> 
 export interface LeadDisplay {
   locale?: 'vi' | 'en';
   units?: 'metric' | 'imperial';
+  /** Times the buyer's first app reminders; kept out of the onboarding snapshot. */
+  off_plan_moment?: OnboardingPayload['hardest_eating_moment'];
 }
 
 export async function createLead(email: string, payload: OnboardingPayload, display: LeadDisplay = {}): Promise<Lead> {

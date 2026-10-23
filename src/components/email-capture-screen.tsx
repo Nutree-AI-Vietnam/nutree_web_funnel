@@ -52,7 +52,7 @@ export function EmailCaptureScreen({ onComplete }: { onComplete: () => void }) {
     setSubmitting(true);
     setError(null);
     try {
-      const lead = await createLead(email.trim(), data, { locale, units: system });
+      const lead = await createLead(email.trim(), data, { locale, units: system, off_plan_moment: data.hardest_eating_moment });
       setLead(lead);
       saveCheckoutEmail(email.trim());
       const secureCookie = window.location.protocol === 'https:' ? '; Secure' : '';
