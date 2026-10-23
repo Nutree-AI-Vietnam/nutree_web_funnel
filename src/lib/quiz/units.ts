@@ -3,15 +3,14 @@
  * what a visitor types and reads back is converted here, at the edges. Imperial labels
  * are English: the Vietnamese funnel stays metric.
  *
- * metric: cm and kg. imperial: feet and inches, pounds. stone: feet and inches, stones and pounds.
+ * metric: cm and kg. imperial: feet and inches, pounds.
  */
-export type UnitSystem = 'metric' | 'imperial' | 'stone';
+export type UnitSystem = 'metric' | 'imperial';
 export type Measure = 'height' | 'weight';
 
 const CM_PER_INCH = 2.54;
 const KG_PER_POUND = 0.45359237;
 const INCHES_PER_FOOT = 12;
-const POUNDS_PER_STONE = 14;
 
 /** Visitors from these countries read feet, inches and pounds. */
 const IMPERIAL_COUNTRIES = new Set(['US', 'GB']);
@@ -20,10 +19,9 @@ export function defaultUnitSystem(locale: string, countryCode: string | undefine
   return locale === 'en' && countryCode && IMPERIAL_COUNTRIES.has(countryCode) ? 'imperial' : 'metric';
 }
 
-/** The systems a visitor can switch between; stones are an extra choice for the UK. */
+/** The systems a visitor can switch between, the default for their country first. */
 export function unitSystemOptions(locale: string, countryCode: string | undefined): UnitSystem[] {
   if (locale !== 'en') return ['metric'];
-  if (countryCode === 'GB') return ['imperial', 'stone', 'metric'];
   return defaultUnitSystem(locale, countryCode) === 'imperial' ? ['imperial', 'metric'] : ['metric', 'imperial'];
 }
 
@@ -57,32 +55,21 @@ export function poundsToKg(pounds: number): number {
   return round1(pounds * KG_PER_POUND);
 }
 
-export function kgToStonePounds(kg: number): { stone: number; pounds: number } {
-  const pounds = kgToPounds(kg);
-  return { stone: Math.floor(pounds / POUNDS_PER_STONE), pounds: pounds % POUNDS_PER_STONE };
-}
-
-export function stonePoundsToKg(stone: number, pounds: number): number {
-  return poundsToKg(stone * POUNDS_PER_STONE + pounds);
-}
-
 /**
- * The text boxes of a measure: major is cm, ft, kg, lb or st; minor is inches,
- * or the pounds that follow the stones. Metric and plain pounds have no minor box.
+ * The boxes of a measure: major is cm, ft, kg or lb; minor is the inches that follow the feet.
+ * Only feet and inches have a minor box.
  */
 export type Boxes = { major: number; minor?: number };
 
 /** Unit labels of the boxes, in the order they are shown. */
 export function boxUnits(measure: Measure, system: UnitSystem): string[] {
   if (measure === 'height') return system === 'metric' ? ['cm'] : ['ft', 'in'];
-  if (system === 'metric') return ['kg'];
-  return system === 'imperial' ? ['lb'] : ['st', 'lb'];
+  return system === 'metric' ? ['kg'] : ['lb'];
 }
 
-/** The minor box must stay below this (11 in after the feet, 13 lb after the stones). */
+/** The minor box must stay below this (11 in after the feet); no other box has a limit. */
 function minorLimit(measure: Measure, system: UnitSystem): number | undefined {
-  if (measure === 'height') return system === 'metric' ? undefined : INCHES_PER_FOOT;
-  return system === 'stone' ? POUNDS_PER_STONE : undefined;
+  return measure === 'height' && system !== 'metric' ? INCHES_PER_FOOT : undefined;
 }
 
 export function toBoxes(measure: Measure, system: UnitSystem, metric: number): Boxes {
@@ -91,9 +78,7 @@ export function toBoxes(measure: Measure, system: UnitSystem, metric: number): B
     const { feet, inches } = cmToFeetInches(metric);
     return { major: feet, minor: inches };
   }
-  if (system === 'imperial') return { major: kgToPounds(metric) };
-  const { stone, pounds } = kgToStonePounds(metric);
-  return { major: stone, minor: pounds };
+  return { major: kgToPounds(metric) };
 }
 
 /**
@@ -113,10 +98,7 @@ export function boxesToMetric(
   const limit = minorLimit(measure, system);
   if (rest < 0 || (limit != null && rest >= limit)) return null;
   let metric = major;
-  if (system !== 'metric') {
-    if (measure === 'height') metric = feetInchesToCm(major, rest);
-    else metric = system === 'imperial' ? poundsToKg(major) : stonePoundsToKg(major, rest);
-  }
+  if (system !== 'metric') metric = measure === 'height' ? feetInchesToCm(major, rest) : poundsToKg(major);
   return metric >= min && metric <= max ? metric : null;
 }
 
@@ -126,20 +108,13 @@ function formatFeetInches(totalInches: number): string {
   return inches ? `${feet} ft ${inches} in` : `${feet} ft`;
 }
 
-function formatPounds(pounds: number, system: UnitSystem): string {
-  if (system !== 'stone') return `${pounds} lb`;
-  const stone = Math.floor(pounds / POUNDS_PER_STONE);
-  const rest = pounds % POUNDS_PER_STONE;
-  return rest ? `${stone} st ${rest} lb` : `${stone} st`;
-}
-
 /** Metric values print as they are, so the Vietnamese funnel reads exactly as before. */
 export function formatHeight(cm: number, system: UnitSystem): string {
   return system === 'metric' ? `${cm} cm` : formatFeetInches(Math.round(cm / CM_PER_INCH));
 }
 
 export function formatWeight(kg: number, system: UnitSystem): string {
-  return system === 'metric' ? `${kg} kg` : formatPounds(kgToPounds(kg), system);
+  return system === 'metric' ? `${kg} kg` : `${kgToPounds(kg)} lb`;
 }
 
 /** The ends of [min, max] (metric) as the whole units a visitor can type, for error text. */
@@ -160,15 +135,9 @@ export function rangeLabels(
     };
   }
   return {
-    min: formatPounds(Math.ceil(min / KG_PER_POUND), system),
-    max: formatPounds(Math.floor(max / KG_PER_POUND), system),
+    min: `${Math.ceil(min / KG_PER_POUND)} lb`,
+    max: `${Math.floor(max / KG_PER_POUND)} lb`,
   };
-}
-
-/** Whether a measure is picked on a scroll wheel in this system: every system but weight in stones. */
-export function usesWheel(measure: Measure, system: UnitSystem): boolean {
-  // Height under stones is still feet and inches, so it keeps the wheel.
-  return measure === 'height' || system !== 'stone';
 }
 
 /** The wheel stop (total inches for height, pounds for weight) that typed boxes stand for. */

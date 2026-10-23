@@ -9,7 +9,6 @@ import {
   rangeLabels,
   stopToBoxes,
   toBoxes,
-  usesWheel,
   wheelBounds,
   type Boxes,
   type Measure,
@@ -34,7 +33,7 @@ function draftsFor(measure: Measure, system: UnitSystem, metric: number | undefi
   if (metric == null) return boxUnits(measure, system).map(() => '');
   // The wheel moves in whole units, so a converted value snaps to one it can show.
   const boxes = toBoxes(measure, system, system === 'metric' ? Math.round(metric) : metric);
-  if (system === 'metric' || !usesWheel(measure, system)) return draftsOf(boxes);
+  if (system === 'metric') return draftsOf(boxes);
   // A value at the edge of the range can round to a stop just outside it; keep it on the wheel.
   const bounds = wheelBounds(measure, min, max);
   return draftsOf(stopToBoxes(measure, clamp(boxesToStop(measure, boxes.major, boxes.minor), bounds.min, bounds.max)));
@@ -70,9 +69,8 @@ type UnitFieldsProps = {
 
 /**
  * One body measure in the visitor's units, with a switch when there is more than one system to
- * pick. Metric, feet and inches, and pounds are picked on the wheel; stones and pounds are typed
- * into two boxes, since a two-part wheel does not fit the screen. Reports the metric value, or
- * null while nothing valid is picked or typed.
+ * pick. Metric, feet and inches, and pounds are all picked on the wheel. Reports the metric value,
+ * or null while nothing valid is picked or typed.
  */
 export function UnitFields({
   measure,
@@ -113,33 +111,28 @@ export function UnitFields({
         : `${label} should be between ${range.min} and ${range.max}.`;
   }
 
-  // Feet and inches serve the stone system too, so the height switch has no stone choice.
-  const choices = measure === 'height' ? options.filter((option) => option !== 'stone') : options;
-  const pressed = measure === 'height' && system === 'stone' ? 'imperial' : system;
   const units = boxUnits(measure, system);
-  const hero = variant === 'hero';
-  const wheel = system !== 'metric' && usesWheel(measure, system);
   const bounds = wheelBounds(measure, min, max);
 
   return (
     <>
-      {choices.length > 1 && (
+      {options.length > 1 && (
         <div
           role="group"
           aria-label={label}
           className="mb-3 inline-flex shrink-0 self-center rounded-full border border-white/80 bg-white/70 p-1 shadow-sm backdrop-blur"
         >
-          {choices.map((option) => (
+          {options.map((option) => (
             <button
               key={option}
               type="button"
-              aria-pressed={option === pressed}
+              aria-pressed={option === system}
               className={cn(
                 'min-h-11 min-w-11 rounded-full px-4 text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-brand',
-                option === pressed ? 'bg-forest text-white shadow-sm' : 'text-muted-brand hover:text-slate-brand',
+                option === system ? 'bg-forest text-white shadow-sm' : 'text-muted-brand hover:text-slate-brand',
               )}
               onClick={() => {
-                if (option !== pressed) setSystem(option);
+                if (option !== system) setSystem(option);
               }}
             >
               {boxUnits(measure, option).join('·')}
@@ -163,7 +156,7 @@ export function UnitFields({
           onChange={(text) => setEntered({ system, drafts: [text] })}
           onBlur={onBlur}
         />
-      ) : wheel ? (
+      ) : (
         <div className="flex flex-1 flex-col">
           <MetricWheelPicker
             id={id}
@@ -185,47 +178,6 @@ export function UnitFields({
               onBlur();
             }}
           />
-          {error && (
-            <p id={`${id}-error`} role="alert" className="mt-4 text-center text-sm font-medium text-error-brand">
-              {error}
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="flex flex-1 flex-col">
-          <div
-            className="flex flex-1 items-center justify-center gap-4"
-            onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget)) onBlur();
-            }}
-          >
-            {units.map((boxUnit, index) => (
-              <div key={boxUnit} className="flex items-baseline gap-1.5">
-                <input
-                  id={index === 0 ? id : `${id}-${boxUnit}`}
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  maxLength={units.length > 1 ? 2 : 3}
-                  aria-label={`${label} (${boxUnit})`}
-                  aria-invalid={error ? true : undefined}
-                  aria-describedby={error ? `${id}-error` : undefined}
-                  value={drafts[index]}
-                  onChange={(event) => {
-                    const next = [...drafts];
-                    next[index] = event.target.value.replace(/\D/g, '');
-                    setEntered({ system, drafts: next });
-                  }}
-                  className={cn(
-                    'ph-no-capture rounded-2xl border border-white/80 bg-white/90 text-center font-extrabold tabular-nums text-forest shadow-inner outline-none transition focus:border-teal-brand focus:ring-4 focus:ring-teal-brand/10',
-                    hero ? 'h-20 text-[3.2rem]' : 'h-16 text-[2.5rem]',
-                    units.length > 1 ? 'w-20' : 'w-28',
-                  )}
-                />
-                <span className="text-lg font-bold text-muted-brand">{boxUnit}</span>
-              </div>
-            ))}
-          </div>
           {error && (
             <p id={`${id}-error`} role="alert" className="mt-4 text-center text-sm font-medium text-error-brand">
               {error}
