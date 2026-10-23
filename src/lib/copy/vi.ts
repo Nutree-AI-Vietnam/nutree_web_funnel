@@ -525,18 +525,6 @@ export const vi = {
     projectionTitle: 'Lộ trình đến cân nặng mục tiêu',
     projectionWeeks: (weeks: number) => `Dự kiến ${weeks} tuần`,
     sourceTitle: 'Vì sao kế hoạch này phù hợp',
-    math: {
-      title: 'Cách tính các con số của bạn',
-      burn: 'đốt mỗi ngày',
-      cut: 'để giảm mỡ',
-      bulk: 'để tăng cơ',
-      target: 'mục tiêu',
-      perKg: 'mỗi kg',
-      perLb: 'mỗi lb',
-      weight: 'cân nặng của bạn',
-      protein: 'protein mỗi ngày',
-      note: 'Cả hai thay đổi khi cân nặng của bạn thay đổi.',
-    },
     sourceItems: [
       'Calo: mức năng lượng bạn đốt mỗi ngày, chỉnh theo mục tiêu',
       'Protein: theo cân nặng và mục tiêu của bạn',

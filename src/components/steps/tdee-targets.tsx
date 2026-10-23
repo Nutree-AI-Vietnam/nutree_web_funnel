@@ -9,14 +9,11 @@ import { useQuizStore } from '@/lib/quiz/store';
 import { bmi, bmiCategory } from '@/lib/tdee/insights';
 import { CalorieRing, MacroLegend, macroShares } from '@/components/plan/plan-overview';
 import { motion, useReducedMotion } from 'motion/react';
-import { useUnits } from '@/lib/quiz/use-units';
-import type { OnboardingPayload, TdeeResult } from '@/lib/quiz/types';
 import { cn } from '@/lib/utils';
 
 const BMI_MIN = 15;
 const BMI_MAX = 35;
 
-const KG_PER_LB = 0.45359237;
 const BMI_ZONES = [
   { from: BMI_MIN, to: 18.5, className: 'bg-[#d9e6ee]' },
   { from: 18.5, to: 25, className: 'bg-teal-brand/60' },
@@ -64,71 +61,6 @@ function BmiGauge({ value, healthyLabel }: { value: number; healthyLabel: string
   );
 }
 
-/** The arithmetic behind the targets, so the visitor can see the numbers are theirs, not a template. */
-function MathCard({ data, tdee, locale }: { data: OnboardingPayload; tdee: TdeeResult; locale: string }) {
-  const vi = useCopy();
-  const { system } = useUnits();
-  const reduce = useReducedMotion();
-  const math = vi.tdee_targets.math;
-  const number = new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US');
-  const burn = Math.round(tdee.tdee);
-  const target = Math.round(tdee.calories);
-  const adjustment = target - burn;
-  const weightKg = data.weight_kg ?? 0;
-  const imperial = system === 'imperial';
-  const weight = imperial ? weightKg / KG_PER_LB : weightKg;
-  const rate = weight > 0 ? tdee.protein_g / weight : 0;
-  const rows = [
-    adjustment === 0
-      ? [{ value: number.format(burn), label: math.burn }, '=', { value: `${number.format(target)} kcal`, label: math.target, strong: true }]
-      : [
-          { value: number.format(burn), label: math.burn },
-          adjustment < 0 ? '−' : '+',
-          { value: number.format(Math.abs(adjustment)), label: adjustment < 0 ? math.cut : math.bulk },
-          '=',
-          { value: `${number.format(target)} kcal`, label: math.target, strong: true },
-        ],
-    [
-      { value: `${new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { maximumFractionDigits: imperial ? 2 : 1 }).format(rate)} g`, label: imperial ? math.perLb : math.perKg },
-      '×',
-      { value: `${new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { maximumFractionDigits: 1 }).format(weight)} ${imperial ? 'lb' : 'kg'}`, label: math.weight },
-      '≈',
-      { value: `${Math.round(tdee.protein_g)} g`, label: math.protein, strong: true },
-    ],
-  ] as const;
-  let order = 0;
-  return (
-    <section className="rounded-[1.4rem] bg-white/88 p-3.5 shadow-[0_12px_34px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.78)] backdrop-blur">
-      <h2 className="text-sm font-extrabold text-forest">{math.title}</h2>
-      <div className="mt-2.5 grid gap-2">
-        {rows.map((row, rowIndex) => (
-          <div key={rowIndex} className={cn('grid items-center gap-1', row.length === 5 ? 'grid-cols-[1fr_auto_1fr_auto_1fr]' : 'grid-cols-[1fr_auto_1fr]')}>
-            {row.map((part, index) => {
-              const delay = 0.2 + (order += 1) * 0.08;
-              return typeof part === 'string' ? (
-                <span key={index} className="px-0.5 text-center text-base font-extrabold text-muted-brand" aria-hidden="true">{part}</span>
-              ) : (
-                <motion.span
-                  key={index}
-                  className={cn('rounded-xl px-1.5 py-1.5 text-center', 'strong' in part && part.strong ? 'bg-forest text-white' : 'bg-mist text-forest')}
-                  initial={reduce ? false : { opacity: 0, y: 6 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay, duration: 0.35, ease: 'easeOut' }}
-                >
-                  <span className="block text-[0.86rem] font-extrabold leading-tight tabular-nums">{part.value}</span>
-                  <span className={cn('block text-[0.6rem] font-bold leading-tight', 'strong' in part && part.strong ? 'text-white/75' : 'text-muted-brand')}>{part.label}</span>
-                </motion.span>
-              );
-            })}
-          </div>
-        ))}
-      </div>
-      <p className="mt-2.5 text-[0.7rem] font-semibold text-muted-brand">{math.note}</p>
-    </section>
-  );
-}
-
 export function TdeeTargetsStep() {
   const vi = useCopy();
   const locale = useLocale();
@@ -171,8 +103,6 @@ export function TdeeTargetsStep() {
         </div>
         <BmiGauge value={bmiValue} healthyLabel={vi.tdee_targets.bmiHealthy} />
       </section>
-
-      <MathCard data={data} tdee={tdee} locale={locale} />
 
       </div>
       </div>

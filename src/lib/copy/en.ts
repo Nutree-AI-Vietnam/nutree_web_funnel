@@ -528,18 +528,6 @@ export const en: Copy = {
     projectionTitle: 'Path to your target weight',
     projectionWeeks: (weeks: number) => `About ${weeks} weeks`,
     sourceTitle: 'How your numbers are set',
-    math: {
-      title: 'The math behind your numbers',
-      burn: 'daily burn',
-      cut: 'for fat loss',
-      bulk: 'to build muscle',
-      target: 'your target',
-      perKg: 'per kg',
-      perLb: 'per lb',
-      weight: 'your weight',
-      protein: 'protein a day',
-      note: 'Both update as your weight changes.',
-    },
     sourceItems: [
       'Calories: your estimated daily burn, adjusted for your goal',
       'Protein: set from your weight and goal',
