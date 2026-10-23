@@ -238,105 +238,123 @@ const DISH_ICON: Record<DishId, string> = {
   hummus_carrots: '🥕',
 };
 
-/** Protein, carbs and fat with their share of the day's calories, in the ring's colours. */
-export function macroShares(tdee: TdeeResult, labels: { protein: string; carbs: string; fat: string }) {
-  const macros = [
-    { label: labels.protein, grams: Math.round(tdee.protein_g), kcal: tdee.protein_g * 4, color: 'var(--color-protein)' },
-    { label: labels.carbs, grams: Math.round(tdee.carbs_g), kcal: tdee.carbs_g * 4, color: 'var(--color-carbs)' },
-    { label: labels.fat, grams: Math.round(tdee.fat_g), kcal: tdee.fat_g * 9, color: 'var(--color-fat)' },
-  ];
-  const total = macros.reduce((sum, macro) => sum + macro.kcal, 0) || 1;
-  return macros.map((macro) => ({ ...macro, share: macro.kcal / total }));
-}
+const MACRO_DOT = { protein: 'bg-protein', carbs: 'bg-carbs', fat: 'bg-fat' } as const;
+const LABEL_EASE = [0.22, 1, 0.36, 1] as const;
 
-/** The day's calories as a ring split by where they come from: protein, carbs and fat. */
-export function CalorieRing({ total, locale, unit, macros, size = 'md' }: {
-  total: number;
-  locale: string;
-  unit: string;
-  macros: ReadonlyArray<{ label: string; share: number; color: string }>;
-  size?: 'md' | 'lg';
-}) {
-  const reduce = useReducedMotion();
-  const radius = 50;
-  const circumference = 2 * Math.PI * radius;
-  const gap = 5;
-  const starts = macros.map((_, index) => macros.slice(0, index).reduce((sum, macro) => sum + macro.share, 0) * circumference);
-  const format = (value: number) => new Intl.NumberFormat(numberLocale(locale)).format(Math.round(value));
+/** A label rule that draws in from the left with the rest of the label. */
+function LabelRule({ className }: { className: string }) {
   return (
-    <div className={cn('relative shrink-0', size === 'lg' ? 'h-[8.75rem] w-[8.75rem]' : 'h-[7.25rem] w-[7.25rem]')}>
-      {/* A soft glow settles behind the ring once it has drawn. */}
-      <motion.span
-        aria-hidden="true"
-        className="absolute inset-3 rounded-full bg-[radial-gradient(circle,rgb(52_208_180_/_0.30),transparent_68%)] blur-md"
-        initial={reduce ? false : { opacity: 0, scale: 0.7 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true }}
-        transition={{ delay: 1.1, duration: 0.8, ease: 'easeOut' }}
-      />
-      <svg viewBox="0 0 128 128" className="relative h-full w-full -rotate-90" aria-hidden="true">
-        <circle cx="64" cy="64" r={radius} fill="none" stroke="#eef4f1" strokeWidth="12" />
-        {macros.map((macro, index) => {
-          const length = Math.max(0, macro.share * circumference - gap);
-          return (
-            <motion.circle
-              key={macro.label}
-              cx="64"
-              cy="64"
-              r={radius}
-              fill="none"
-              stroke={macro.color}
-              strokeWidth="12"
-              strokeLinecap="round"
-              strokeDashoffset={-starts[index]}
-              // Hidden until its turn, so the round cap does not show as a dot before it draws.
-              initial={reduce ? false : { strokeDasharray: `0 ${circumference}`, opacity: 0 }}
-              whileInView={{ strokeDasharray: `${length} ${circumference}`, opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.15 + index * 0.3, duration: 0.6, ease: [0.33, 1, 0.68, 1], opacity: { delay: 0.15 + index * 0.3, duration: 0.05 } }}
-            />
-          );
-        })}
-      </svg>
-      <p className="absolute inset-0 grid place-content-center text-center">
-        <CountUp value={total} format={format} duration={1.2} className={cn('font-extrabold leading-none tracking-[-0.04em] text-forest tabular-nums', size === 'lg' ? 'text-[2rem]' : 'text-[1.6rem]')} />
-        <span className="mt-1 text-[0.68rem] font-bold leading-tight text-muted-brand">{unit}</span>
-      </p>
-    </div>
+    <motion.span
+      aria-hidden="true"
+      className={cn('block origin-left', className)}
+      variants={{ hidden: { scaleX: 0 }, show: { scaleX: 1, transition: { duration: 0.5, ease: LABEL_EASE } } }}
+    />
   );
 }
 
-/** The macro legend beside the ring: grams count up and a thin bar in the ring colour fills to its share. */
-export function MacroLegend({ macros, className }: { macros: ReadonlyArray<{ label: string; grams: number; share: number; color: string }>; className?: string }) {
-  const reduce = useReducedMotion();
+/** A label row that rises into place after the rule above it. */
+function LabelRow({ className, children }: { className: string; children: ReactNode }) {
   return (
-    <ul className={cn('grid min-w-0 flex-1 gap-2.5', className)}>
-      {macros.map((macro, index) => (
-        <li key={macro.label} className="text-[0.9rem]">
-          <span className="flex items-center gap-2">
-            <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: macro.color }} />
-            <span className="min-w-0 flex-1 whitespace-nowrap font-bold text-slate-brand">{macro.label}</span>
-            <CountUp value={macro.grams} format={(value) => `${Math.round(value)} g`} delay={0.15 + index * 0.3} duration={0.7} className="whitespace-nowrap font-extrabold tabular-nums text-forest" />
-          </span>
-          <span aria-hidden="true" className="mt-1 block h-1 overflow-hidden rounded-full bg-forest/8">
-            <motion.span
-              className="block h-full origin-left rounded-full"
-              style={{ background: macro.color, width: `${Math.max(8, macro.share * 100)}%` }}
-              initial={reduce ? false : { scaleX: 0 }}
-              whileInView={{ scaleX: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.15 + index * 0.3, duration: 0.6, ease: [0.33, 1, 0.68, 1] }}
-            />
-          </span>
-        </li>
-      ))}
-    </ul>
+    <motion.div className={className} variants={{ hidden: { opacity: 0, y: 6 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>
+      {children}
+    </motion.div>
+  );
+}
+
+function Grams({ value, className }: { value: ReactNode; className?: string }) {
+  return (
+    <span className={cn('whitespace-nowrap font-extrabold tabular-nums', className)}>
+      {value}
+      <span className="ml-1 text-[0.78rem] font-bold tracking-normal text-muted-brand">g</span>
+    </span>
   );
 }
 
 /**
- * The plan for one day as a plain card, not dressed as an app screen: the
- * calorie target as a ring with its macros, then a day of meals for the diet answers.
+ * The day's targets set like a nutrition label: calories first and largest, protein second,
+ * carbs and fat quiet. The rules draw in once as it scrolls into view; `countUp` also counts the
+ * two numbers that matter, for the screen where they are first revealed. Screen readers get one sentence.
+ */
+export function DailyLabel({ tdee, size = 'lg', countUp = false, className }: {
+  tdee: TdeeResult;
+  /** lg: the result screen. sm: the plan card, under the paywall's dark goal strip, so it opens without a heavy rule. */
+  size?: 'lg' | 'sm';
+  countUp?: boolean;
+  className?: string;
+}) {
+  const copy = useCopy();
+  const locale = useLocale();
+  const reduce = useReducedMotion();
+  const labels = copy.tdee_targets;
+  const format = (value: number) => new Intl.NumberFormat(numberLocale(locale)).format(Math.round(value));
+  const calories = Math.round(tdee.calories);
+  const protein = Math.round(tdee.protein_g);
+  const carbs = Math.round(tdee.carbs_g);
+  const fat = Math.round(tdee.fat_g);
+  const lg = size === 'lg';
+  const number = (value: number, delay: number, duration: number) => (countUp ? <CountUp value={value} format={format} delay={delay} duration={duration} /> : format(value));
+
+  return (
+    <div className={className}>
+      <p className="sr-only">{labels.summary(format(calories), protein, carbs, fat)}</p>
+      <motion.div
+        aria-hidden="true"
+        initial={reduce ? false : 'hidden'}
+        whileInView="show"
+        viewport={{ once: true, margin: '0px 0px -10% 0px' }}
+        variants={{ show: { transition: { delayChildren: 0.05, staggerChildren: 0.09 } } }}
+      >
+        {lg && <LabelRule className="h-1.5 bg-forest" />}
+        <LabelRow className={cn('flex items-end justify-between gap-3', lg ? 'py-3' : 'pb-2.5')}>
+          <span className="min-w-0">
+            <span className={cn('block font-extrabold leading-none tracking-[-0.02em] text-forest', lg ? 'text-[1.35rem]' : 'text-[1rem]')}>{labels.calories}</span>
+            <span className={cn('mt-1.5 block font-semibold text-muted-brand', lg ? 'text-[0.8rem]' : 'text-[0.74rem]')}>{copy.funnel.day.kcal}</span>
+          </span>
+          <span className={cn('font-extrabold tracking-[-0.05em] text-forest tabular-nums', lg ? 'text-[clamp(2.75rem,16vw,3.75rem)] leading-[0.8]' : 'text-[2.1rem] leading-[0.85]')}>
+            {number(calories, 0.25, 1.3)}
+          </span>
+        </LabelRow>
+        <LabelRule className="h-0.5 bg-forest" />
+        <LabelRow className={cn('flex items-baseline justify-between gap-3', lg ? 'py-3' : 'py-2.5')}>
+          <span className={cn('flex items-center gap-2 font-extrabold text-forest', lg ? 'text-[1.05rem]' : 'text-[0.95rem]')}>
+            <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', MACRO_DOT.protein)} />
+            {labels.protein}
+          </span>
+          <Grams value={number(protein, 0.55, 0.8)} className={cn('tracking-[-0.03em] text-forest', lg ? 'text-[2.25rem] leading-none' : 'text-[1.35rem] leading-none')} />
+        </LabelRow>
+        <LabelRule className="h-px bg-forest/15" />
+        {lg ? (
+          (['carbs', 'fat'] as const).map((key, index) => (
+            <div key={key}>
+              {index > 0 && <LabelRule className="h-px bg-forest/15" />}
+              <LabelRow className="flex items-baseline justify-between gap-3 py-2.5">
+                <span className="flex items-center gap-2 text-[0.95rem] font-semibold text-slate-brand">
+                  <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', MACRO_DOT[key])} />
+                  {labels[key]}
+                </span>
+                <Grams value={format(key === 'carbs' ? carbs : fat)} className="text-[1rem] text-slate-brand" />
+              </LabelRow>
+            </div>
+          ))
+        ) : (
+          <LabelRow className="flex flex-wrap items-center gap-x-5 gap-y-1 py-2 text-[0.82rem] font-semibold text-slate-brand">
+            {(['carbs', 'fat'] as const).map((key) => (
+              <span key={key} className="flex items-center gap-2">
+                <span className={cn('h-2 w-2 shrink-0 rounded-full', MACRO_DOT[key])} />
+                {labels[key]}
+                <Grams value={format(key === 'carbs' ? carbs : fat)} className="font-bold text-forest" />
+              </span>
+            ))}
+          </LabelRow>
+        )}
+      </motion.div>
+    </div>
+  );
+}
+
+/**
+ * The plan for one day as a plain card, not dressed as an app screen: the targets as a
+ * compact label, then a day of meals for the diet answers that adds up to the calorie target.
  */
 export function PlanDayCard({ data, tdee, className, reveal }: {
   data: OnboardingPayload;
@@ -352,19 +370,15 @@ export function PlanDayCard({ data, tdee, className, reveal }: {
   const format = new Intl.NumberFormat(numberLocale(locale));
   const meals = sampleDay(tdee.calories, data.dietary_preferences);
   const total = meals.reduce((sum, row) => sum + row.calories, 0);
-  const shares = macroShares(tdee, copy.tdee_targets);
 
   return (
-    <section className={cn(CARD, className)} aria-label={`${format.format(total)} ${day.kcal}`}>
-      <div className="flex items-center gap-4 sm:gap-6">
-        <CalorieRing total={total} locale={locale} unit={day.kcal} macros={shares} />
-        <MacroLegend macros={shares} />
-      </div>
-      <div className="mt-5 flex items-baseline justify-between gap-3">
+    <section className={cn(CARD, className)}>
+      <DailyLabel tdee={tdee} size="sm" />
+      <div className="mt-1 flex items-baseline justify-between gap-3 border-t-2 border-forest pt-3">
         <h3 className="text-[0.95rem] font-extrabold text-forest">{day.title}</h3>
         <span className="text-[0.72rem] font-bold text-muted-brand">kcal</span>
       </div>
-      <ul className="mt-2 grid gap-1.5">
+      <ul className="mt-1.5 grid gap-1">
         {meals.map((row, index) => (
           <li key={row.meal} className="flex items-center gap-3 py-1.5">
             <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-[0.85rem] text-[1.25rem]" style={{ background: MEAL_TINT[row.meal] }}>{DISH_ICON[row.dish]}</span>
@@ -376,6 +390,10 @@ export function PlanDayCard({ data, tdee, className, reveal }: {
           </li>
         ))}
       </ul>
+      <p className="mt-1.5 flex items-baseline justify-between gap-3 border-t-2 border-forest pt-2.5 text-forest">
+        <span className="text-[0.9rem] font-extrabold">{day.total}</span>
+        <span className="text-[1rem] font-extrabold tabular-nums">{format.format(total)}</span>
+      </p>
     </section>
   );
 }

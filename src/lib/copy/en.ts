@@ -513,7 +513,9 @@ export const en: Copy = {
     eyebrow: '',
     headline: 'How much to eat today',
     aha: 'Focus on two numbers: calories and protein.',
-    calories: 'Calories per day',
+    calories: 'Calories',
+    summary: (calories: string, protein: number, carbs: number, fat: number) =>
+      `${calories} kcal a day, ${protein} g protein, ${carbs} g carbs and ${fat} g fat.`,
     protein: 'Protein',
     carbs: 'Carbs',
     fat: 'Fat',
@@ -970,6 +972,7 @@ export const en: Copy = {
     day: {
       title: 'A day on your plan',
       kcal: 'kcal a day',
+      total: 'Total',
     },
     answers: {
       title: 'Built from your answers',

@@ -510,7 +510,9 @@ export const vi = {
     eyebrow: '',
     headline: 'Hôm nay bạn nên ăn bao nhiêu',
     aha: 'Tập trung vào hai con số: calo và protein.',
-    calories: 'Calo mỗi ngày',
+    calories: 'Calo',
+    summary: (calories: string, protein: number, carbs: number, fat: number) =>
+      `${calories} kcal mỗi ngày, ${protein} g protein, ${carbs} g carb và ${fat} g chất béo.`,
     protein: 'Protein',
     carbs: 'Carb',
     fat: 'Chất béo',
@@ -965,6 +967,7 @@ export const vi = {
     day: {
       title: 'Một ngày theo kế hoạch',
       kcal: 'kcal/ngày',
+      total: 'Tổng cộng',
     },
     answers: {
       title: 'Ba thay đổi đầu tiên của bạn',
