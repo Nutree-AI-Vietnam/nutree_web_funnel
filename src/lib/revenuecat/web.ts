@@ -152,7 +152,7 @@ export function readRevenueCatWebConfig(source?: PublicEnvironment, countryCode:
 export function paddleCheckoutIsOpen(root: ParentNode | null | undefined): boolean {
   return Boolean(
     root?.querySelector(
-      '#paddle-checkout-container, iframe[src*="paddle.com"], iframe[name*="paddle" i], iframe[class*="paddle" i]',
+      '#paddle-checkout-container, .paddle-checkout-container, iframe[src*="paddle.com"], iframe[name*="paddle" i], iframe[class*="paddle" i]',
     ),
   );
 }
