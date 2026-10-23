@@ -30,6 +30,13 @@ import { hasWelcomeVoucherBeenClaimed, markWelcomeVoucherClaimed, shouldArmExitV
 import { clearCheckoutEmail, readCheckoutEmail } from '@/lib/revenuecat/checkout-email';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { formatWeight } from '@/lib/quiz/units';
+import { FirstChangesCard, PlanGoalCard, SampleDayCard } from '@/components/plan/plan-overview';
+import { AppStoreRating } from '@/components/value-tour/value-tour-demos';
+import { periodWeeks, planForTimeline } from '@/lib/quiz/plan-content';
+import { formatGoalDate, goalTimeline } from '@/lib/quiz/progress-projection';
+import { localPreviewOffering } from '@/lib/revenuecat/local-preview-offering';
+import { computeTdeeResult } from '@/lib/tdee/calculator';
+import type { Period } from '@revenuecat/purchases-js';
 import { useUnits } from '@/lib/quiz/use-units';
 import { cn } from '@/lib/utils';
 
@@ -89,6 +96,17 @@ function goalDate(locale: 'vi' | 'en') {
   return new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
 }
 
+/** The date a plan bought today first renews. */
+function renewalDate(period: Period | null | undefined, from = new Date()): Date | null {
+  if (!period || !(period.number > 0)) return null;
+  const date = new Date(from);
+  if (period.unit === 'day') date.setDate(date.getDate() + period.number);
+  else if (period.unit === 'week') date.setDate(date.getDate() + period.number * 7);
+  else if (period.unit === 'month') date.setMonth(date.getMonth() + period.number);
+  else date.setFullYear(date.getFullYear() + period.number);
+  return date;
+}
+
 function purchaseErrorCode(error: unknown): number | null {
   if (typeof error !== 'object' || error === null || !('errorCode' in error)) return null;
   const code = (error as { errorCode?: unknown }).errorCode;
@@ -141,14 +159,32 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
 
   const countryCode = initialCountryCode ?? (isLocalPreviewHost() ? getLocalPreviewCountry() : undefined);
   const resolvedCountryCode = normalizeCountryCode(countryCode) ?? 'VN';
+  // English shows the price people pay as the price: no countdown, crossed-out price or "% off"
+  // while the plans renew at the discounted price. Only the exit offer, which really ends, keeps a timer.
+  const plainPricing = activeLocale === 'en';
+  const timeline = useMemo(() => goalTimeline(data), [data]);
+  const timelinePlan = useMemo(
+    () => planForTimeline(plans, (plan) => periodWeeks(plan.rcPackage.webBillingProduct.period), timeline?.weeks ?? null),
+    [plans, timeline],
+  );
   const selected = useMemo(
-    () => plans.find((plan) => plan.id === selectedId) ?? defaultPaywallPlan(plans),
-    [plans, selectedId],
+    () => plans.find((plan) => plan.id === selectedId) ?? (plainPricing ? timelinePlan : undefined) ?? defaultPaywallPlan(plans),
+    [plainPricing, plans, selectedId, timelinePlan],
   );
 
   usePostcheckoutRedirect(hydrated && isUserPurchased({ purchased, lead }));
 
   useEffect(() => trackStepViewed('paywall'), []);
+
+  // The support chat may show on the paywall, but not over Paddle's checkout.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (busy || showCheckoutConfirm) delete root.dataset.supportChat;
+    else root.dataset.supportChat = 'on';
+    return () => {
+      delete root.dataset.supportChat;
+    };
+  }, [busy, showCheckoutConfirm]);
 
   useEffect(() => {
     if (!hydrated || !lead?.lead_id) return;
@@ -216,6 +252,15 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     let cancelled = false;
 
     async function loadRevenueCatOffering() {
+      if (isLocalPreviewHost() && !process.env.NEXT_PUBLIC_REVENUECAT_WEB_API_KEY) {
+        // No RevenueCat key on this machine: lay the paywall out with stand-in prices. Checkout stays off.
+        await Promise.resolve();
+        if (!cancelled) {
+          setPaywall(buildRevenueCatPaywall(localPreviewOffering(resolvedCountryCode)));
+          setLoadState('ready');
+        }
+        return;
+      }
       try {
         const config = readRevenueCatWebConfig(undefined, resolvedCountryCode);
         if (!lead) throw new Error('Your checkout draft is unavailable. Return to email capture to continue.');
@@ -426,7 +471,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       return;
     }
     setError(null);
-    setShowCheckoutConfirm(true);
+    // English opens Paddle straight from the plan button; the renewal terms sit under that button.
+    if (plainPricing) void openCheckout(activeOffer);
+    else setShowCheckoutConfirm(true);
   };
 
   const targetWeight = Math.round(data.target_weight_kg ?? data.weight_kg ?? 60);
@@ -450,7 +497,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const isOriginalPricing = offerKind === 'original';
   const isExitOfferMode = offerKind === 'exit';
   const exitOfferActive = isExitOfferMode && secondsLeft > 0;
-  const welcomeOfferActive = offerKind === 'welcome' && secondsLeft > 0;
+  const welcomeOfferActive = offerKind === 'welcome' && (plainPricing || secondsLeft > 0);
   const activeOffer: PaywallOfferKind | null = exitOfferActive ? 'exit' : welcomeOfferActive ? 'welcome' : null;
   const selectedOriginalPrice = firstPaymentPrice(selected?.rcPackage.webBillingProduct);
   const selectedOfferProduct = selected ? checkoutPackage(selected, activeOffer).webBillingProduct : null;
@@ -518,12 +565,154 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         renewal: `After that, the plan renews at ${renewalTotal} ${renewalCadence}. Cancel anytime.`,
       };
 
+
+  const funnelPaywall = copy.funnel.paywall;
+  const periodWord = (period: Period) => funnelPaywall.planName[period.unit][period.number === 1 ? 0 : 1];
+  const planName = (plan: (typeof plans)[number]) => {
+    const period = plan.rcPackage.webBillingProduct.period;
+    return period ? `${period.number} ${periodWord(period)}` : plan.label[activeLocale];
+  };
+  const billedLabel = (plan: (typeof plans)[number]) => {
+    const period = plan.rcPackage.webBillingProduct.period;
+    return period ? funnelPaywall.billed(period.number, periodWord(period)) : plan.billingLabel[activeLocale];
+  };
+  const selectedPeriod = selected?.rcPackage.webBillingProduct.period;
+  const nextCharge = renewalDate(selectedPeriod);
+  const renewalLine = funnelPaywall.renewal(
+    introTotal,
+    renewalTotal,
+    selectedPeriod ? funnelPaywall.cadence(selectedPeriod.number, periodWord(selectedPeriod)) : renewalCadence,
+    nextCharge ? formatGoalDate(nextCharge, activeLocale) : '',
+  );
+  const targetLabel = timeline ? formatWeight(timeline.targetKg, system) : null;
+  const englishCta = targetLabel ? funnelPaywall.cta(targetLabel) : funnelPaywall.ctaFallback;
+  const statusNodes = (
+    <>
+        {error && <p role="alert" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-error-brand">{error}</p>}
+        {displayedRedemption?.kind === 'pending' && <p role="status" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-brand">{activeLocale === 'vi' ? 'Đang xác minh thanh toán của bạn…' : 'Verifying your payment…'}</p>}
+        {displayedRedemption?.kind === 'recovery' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Thanh toán đã được ghi nhận' : 'Payment received'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'Chúng tôi không thể xác minh liên kết kích hoạt. Vui lòng kiểm tra email thanh toán của bạn hoặc liên hệ hỗ trợ.' : 'We could not verify your activation link. Check your purchase email or contact support.'}</p></section>}
+        {displayedRedemption?.kind === 'email_sent' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Kiểm tra email của bạn' : 'Check your email'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'RevenueCat đã gửi liên kết bảo mật đến email thanh toán. Mở liên kết đó trong Nutree để tự động kích hoạt gói.' : 'RevenueCat sent a secure link to your checkout email. Open it in Nutree to activate your plan automatically.'}</p></section>}
+    </>
+  );
+
   if (!hydrated || !lead || !offerStateReady) return null;
+
+  const englishHeader = (
+    <div className={cn('fixed left-1/2 top-0 z-50 w-full max-w-lg -translate-x-1/2 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-[0_12px_34px_rgb(16_39_32_/_0.12)] backdrop-blur-xl', exitOfferActive ? 'border-[#FDBA74] bg-[#FFF7ED]/95' : 'border-white/55 bg-white/80')}>
+      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
+        <Link href={`/survey/${activeLocale}`} aria-label="Nutree" className="block h-11 w-11 shrink-0"><NutreeLogo priority className="h-11 w-11" /></Link>
+        <div className="min-w-0">
+          {exitOfferActive ? (
+            <>
+              <p className="text-[0.74rem] font-bold leading-tight text-[#9A3412]">{funnelPaywall.exitHeader}</p>
+              <strong aria-live="polite" className="mt-0.5 inline-flex rounded-md bg-[#C2410C] px-1.5 py-0.5 text-[1.1rem] font-extrabold leading-none tabular-nums text-white">{countdown}</strong>
+            </>
+          ) : (
+            <>
+              <p className="truncate text-[0.74rem] font-bold leading-tight text-muted-brand">{data.name?.trim() ? copy.funnel.plan.eyebrow(data.name.trim()) : funnelPaywall.header}</p>
+              <p className="mt-0.5 truncate text-[0.95rem] font-extrabold leading-tight text-forest">{selected && pricesReady ? `${planName(selected)} · ${introTotal}` : funnelPaywall.header}</p>
+            </>
+          )}
+        </div>
+        <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className={cn('min-h-11 rounded-[1rem] px-3.5 text-[0.82rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50', exitOfferActive ? 'bg-[#C2410C] hover:bg-[#9A3412]' : 'bg-forest hover:bg-emerald-deep')}>{busy ? copy.paywall.loading : funnelPaywall.topCta}</button>
+      </div>
+    </div>
+  );
+
+  const checkoutButton = (
+    <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className={cn('min-h-14 w-full rounded-2xl px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50', exitOfferActive ? 'bg-[#C2410C] hover:bg-[#9A3412]' : 'bg-forest hover:bg-emerald-deep')}>{busy ? copy.paywall.loading : englishCta}</button>
+  );
+
+  const planTdee = tdee ?? computeTdeeResult(data);
+  const englishBody = (
+    <div className="grid gap-4 pt-[5.5rem]">
+      <PlanGoalCard data={data} tdee={planTdee} system={system} />
+      {planTdee && <SampleDayCard tdee={planTdee} diet={data.dietary_preferences} />}
+      {planTdee && <FirstChangesCard data={data} tdee={planTdee} />}
+
+      <section id="plans" className="rounded-[1.6rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-5">
+        <h2 className="text-[1.12rem] font-extrabold tracking-[-0.02em] text-forest">{funnelPaywall.choosePlan}</h2>
+        {isExitOfferMode && <p className={cn('mt-3 rounded-[1.15rem] px-3 py-2.5 text-center text-[0.84rem] font-extrabold tabular-nums', exitOfferActive ? 'bg-[#FFF7ED] text-[#9A3412] ring-1 ring-[#FDBA74]' : 'bg-mist text-forest')}>{exitOfferActive ? funnelPaywall.exitTimer(countdown) : funnelPaywall.exitEnded}</p>}
+        <div role="radiogroup" aria-label={copy.paywall.selectPlanAria} className="mt-3 grid gap-2.5">
+          {!plans.length && loadState === 'loading' && [0, 1, 2].map((index) => <div key={index} aria-hidden="true" className="min-h-[4.75rem] animate-pulse rounded-[1.3rem] border-2 border-[#dfe7e3] bg-[#f6f8f7]" />)}
+          {plans.map((plan) => {
+            const active = plan.id === selected?.id;
+            const offerPackage = checkoutPackage(plan, activeOffer);
+            const price = firstPaymentPrice(offerPackage.webBillingProduct)?.formattedPrice ?? '…';
+            // During the exit offer the crossed-out price is the price shown a moment ago, which is real.
+            const was = exitOfferActive ? firstPaymentPrice(checkoutPackage(plan, 'welcome').webBillingProduct)?.formattedPrice : null;
+            const perDayLabel = formatPerDay(perDayByPlan[plan.id] ?? null, priceLocale);
+            const fits = plan.id === timelinePlan?.id;
+            return (
+              <button key={plan.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(plan.id); saveSelectedPaywallPlan(plan.id); trackEvent('offer_selected', { offer_id: plan.id, provider: 'revenuecat', ...firstPaymentCommerce(offerPackage.webBillingProduct) }); }} className={cn('overflow-hidden rounded-[1.3rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-forest shadow-[0_12px_26px_rgb(23_69_58_/_0.12)]' : 'border-[#dfe7e3] hover:border-teal-brand/60')}>
+                {fits && <span className="block bg-forest px-3 py-1 text-center text-[0.66rem] font-extrabold tracking-[0.02em] text-white">{funnelPaywall.fitsTimeline}</span>}
+                <span className={cn('grid min-h-[4.75rem] grid-cols-[auto_1fr_auto] items-center gap-3 px-3.5 py-3', active && 'bg-[#f6fbf8]')}>
+                  <span className={cn('grid h-6 w-6 place-items-center rounded-full border-2', active ? 'border-forest' : 'border-[#c8cfcc]')}>{active && <span className="h-3 w-3 rounded-full bg-forest" />}</span>
+                  <span className="min-w-0">
+                    <span className={cn('block text-[1.02rem] font-extrabold leading-tight', active ? 'text-[#111418]' : 'text-[#3f4744]')}>{planName(plan)}</span>
+                    <span className="mt-1 block text-[0.76rem] font-bold leading-snug text-muted-brand">{was && <s className="mr-1 font-semibold opacity-70">{was}</s>}<span className="text-slate-brand">{price}</span> · {billedLabel(plan)}</span>
+                  </span>
+                  <span className={cn('min-w-[5.4rem] rounded-[1rem] px-2.5 py-2 text-center', active ? 'bg-[#e8f4ef] text-forest' : 'bg-[#f2f2f1] text-[#111418]')}>
+                    <span className="block text-[1.32rem] font-extrabold leading-none tracking-[-0.04em] tabular-nums">{perDayLabel ?? price}</span>
+                    <span className="mt-1 block text-[0.6rem] font-extrabold leading-none opacity-75">{perDayLabel ? copy.paywall.perDay : billedLabel(plan)}</span>
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {timeline && timelinePlan && <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-brand">{funnelPaywall.timelineNote(timeline.weeks, planName(timelinePlan))}</p>}
+        {isExitOfferMode && exitOfferActive && <p className="mt-1 text-sm font-medium text-muted-brand">{funnelPaywall.exitNote}</p>}
+        <div className="mt-4">{checkoutButton}</div>
+        <p className="mt-3 text-center text-[0.8rem] font-semibold leading-relaxed text-slate-brand">{renewalLine}</p>
+        <p className="mt-1.5 text-center text-[0.76rem] font-medium leading-relaxed text-muted-brand">{funnelPaywall.cancelLine}</p>
+        <p className="mt-1.5 text-center text-[0.76rem] font-medium leading-relaxed text-muted-brand">{funnelPaywall.accessLine}</p>
+        <div className="mt-3 flex items-center justify-center gap-2 text-[0.72rem] font-bold text-muted-brand">
+          <span>{funnelPaywall.payWith}</span>
+          <span className="rounded-md border border-border-brand px-2 py-0.5 font-extrabold text-forest">💳 {funnelPaywall.card}</span>
+          <span className="rounded-md border border-border-brand px-2 py-0.5 font-extrabold italic text-[#003087]">Pay<span className="text-[#009cde]">Pal</span></span>
+        </div>
+      </section>
+
+      <AppStoreRating />
+
+      <section className="rounded-[1.6rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-5">
+        <h2 className="text-[1.12rem] font-extrabold tracking-[-0.02em] text-forest">{funnelPaywall.includesTitle}</h2>
+        <ul className="mt-3 grid gap-3">{funnelPaywall.includes.map((item, index) => <li key={item.title} className="grid grid-cols-[2.4rem_1fr] gap-3"><span className="grid h-9 w-9 place-items-center rounded-2xl bg-mist text-[1rem]" aria-hidden="true">{benefitEmoji[index] ?? '✅'}</span><span><span className="block text-[0.92rem] font-extrabold text-forest">{item.title}</span><span className="mt-0.5 block text-[0.84rem] leading-relaxed text-muted-brand">{item.body}</span></span></li>)}</ul>
+      </section>
+
+      <section className="rounded-[1.6rem] bg-white p-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]">
+        <Image src="/guarantee-30day.webp" alt="" width={160} height={160} className="mx-auto h-24 w-24 object-contain" />
+        <h2 className="mt-2 text-[1.12rem] font-extrabold leading-tight text-[#111418]">{funnelPaywall.guaranteeTitle}</h2>
+        <p className="mt-2 text-[0.84rem] font-medium leading-relaxed text-muted-brand">{funnelPaywall.guaranteeBody}</p>
+      </section>
+
+      <section className="rounded-[1.6rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-5">
+        <h2 className="text-[1.12rem] font-extrabold tracking-[-0.02em] text-forest">{funnelPaywall.faqTitle}</h2>
+        <div className="mt-2 divide-y divide-border-brand/60">
+          {funnelPaywall.faqs.map((faq) => (
+            <details key={faq.q} className="group py-3">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[0.95rem] font-extrabold text-forest">{faq.q}<span aria-hidden="true" className="text-teal-brand transition group-open:rotate-45">+</span></summary>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-slate-brand">{faq.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-[1.6rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]">
+        <p className="text-center text-sm font-extrabold text-forest">{selected ? `${planName(selected)} · ${introTotal}` : ''}</p>
+        <div className="mt-3">{checkoutButton}</div>
+        <p className="mt-3 text-center text-[0.76rem] font-medium leading-relaxed text-muted-brand">{renewalLine}</p>
+      </section>
+      {statusNodes}
+      <p className="mx-auto max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{funnelPaywall.finePrint}</p>
+    </div>
+  );
 
   return (
     <ConversionShell
       hideLogo
-      stickyHeader={(
+      stickyHeader={plainPricing ? englishHeader : (
         <div className={cn('fixed left-1/2 top-0 z-50 w-full max-w-lg -translate-x-1/2 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-[0_12px_34px_rgb(16_39_32_/_0.12)] backdrop-blur-xl', exitOfferActive ? 'border-[#FDBA74] bg-[#FFF7ED]/95 supports-[backdrop-filter]:bg-[#FFF7ED]/85' : 'border-white/55 bg-white/70 supports-[backdrop-filter]:bg-white/60')}>
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
             <Link href={`/survey/${activeLocale}`} aria-label="Nutree" className="block h-11 w-11 shrink-0"><NutreeLogo priority className="h-11 w-11" /></Link>
@@ -534,6 +723,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       )}
       className="gap-5"
     >
+      {plainPricing ? englishBody : (
       <div className="pt-[5.75rem]">
         <section className="rounded-[2rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-8">
           <p className="text-center text-[0.92rem] font-semibold text-slate-brand">{copy.paywall.goalIntro}</p>
@@ -585,15 +775,13 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         <section className="mt-5 rounded-[2rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8"><h2 className="text-[1.2rem] font-extrabold tracking-[-0.03em] text-forest">{copy.paywall.includesTitle}</h2><div className="mt-5 grid gap-4">{benefits.map((benefit) => <div key={benefit.title} className="grid grid-cols-[2.55rem_1fr] gap-3"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-mist text-[1.1rem]" aria-hidden="true">{benefit.icon}</span><div><h3 className="text-[0.92rem] font-extrabold text-forest">{benefit.title}</h3><p className="mt-0.5 text-[0.84rem] leading-relaxed text-muted-brand">{benefit.body}</p></div></div>)}</div></section>
         <section className="mt-5 rounded-[2rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8"><h2 className="text-[1.2rem] font-extrabold tracking-[-0.03em] text-forest">{copy.paywall.personalTitle}</h2><div className="mt-5 grid gap-4">{personalRows.map((row) => <div key={row.label} className="grid grid-cols-[2.55rem_1fr] items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#edf7f3] text-[1.1rem]" aria-hidden="true">{row.icon}</span><p className="text-[0.86rem] leading-relaxed text-muted-brand">{row.label} <strong className="font-extrabold text-forest">{row.value}</strong></p></div>)}</div></section>
         <section className="mt-5 rounded-[2rem] bg-white p-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-8"><Image src="/guarantee-30day.webp" alt="" width={160} height={160} className="mx-auto h-28 w-28 object-contain" /><h2 className="mt-3 text-[1.16rem] font-extrabold leading-tight tracking-[-0.025em] text-[#111418]">{copy.paywall.guaranteeTitle}</h2><p className="mt-3 text-[0.84rem] font-medium leading-relaxed text-muted-brand">{copy.paywall.guaranteeBody}</p></section>
-        {error && <p role="alert" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-error-brand">{error}</p>}
-        {displayedRedemption?.kind === 'pending' && <p role="status" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-brand">{activeLocale === 'vi' ? 'Đang xác minh thanh toán của bạn…' : 'Verifying your payment…'}</p>}
-        {displayedRedemption?.kind === 'recovery' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Thanh toán đã được ghi nhận' : 'Payment received'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'Chúng tôi không thể xác minh liên kết kích hoạt. Vui lòng kiểm tra email thanh toán của bạn hoặc liên hệ hỗ trợ.' : 'We could not verify your activation link. Check your purchase email or contact support.'}</p></section>}
-        {displayedRedemption?.kind === 'email_sent' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Kiểm tra email của bạn' : 'Check your email'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'RevenueCat đã gửi liên kết bảo mật đến email thanh toán. Mở liên kết đó trong Nutree để tự động kích hoạt gói.' : 'RevenueCat sent a secure link to your checkout email. Open it in Nutree to activate your plan automatically.'}</p></section>}
-        {activeLocale !== 'en' ? <div className="mt-6 flex justify-center px-4"><BoCongThuongBadge alt={copy.common.bctBadgeAlt} /></div> : null}
+        {statusNodes}
+        <div className="mt-6 flex justify-center px-4"><BoCongThuongBadge alt={copy.common.bctBadgeAlt} /></div>
         <p className="mx-auto mt-3 max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{copy.paywall.termsIntro} {copy.paywall.secure}</p>
       </div>
+      )}
       <PaywallExitVoucher
-        armed={shouldArmExitVoucher({
+        armed={!plainPricing && shouldArmExitVoucher({
           discountActive: welcomeOfferActive || exitOfferActive,
           checkoutOpen: showCheckoutConfirm || busy,
           purchased: checkoutUnavailable,

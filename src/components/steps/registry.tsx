@@ -20,6 +20,10 @@ import { TdeeTargetsStep } from './tdee-targets';
 import { NameAskStep } from './text-input-step';
 import { TrainingDaysStep, TrainingDurationStep } from './training-days';
 import { ProgressStep } from './progress';
+import { ConfidenceStep } from './confidence-step';
+import { WeightStep } from './weight-step';
+
+const GOAL_ICONS: Record<string, string> = { cut: '🔥', bulk: '💪', recomp: '⚡', maintain: '🥗' };
 
 /**
  * slug -> screen component. Every QuizStep must have an entry (registry check in page.tsx).
@@ -34,9 +38,11 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
         <SingleChoiceStep
           step="goal"
           field="fitness_goal"
+          eyebrow={c.funnel.goalPromise}
           question={c.goal.question}
-          description={c.goal.description}
-          options={c.goal.options}
+          options={c.goal.options.map((option) => ({ ...option, icon: GOAL_ICONS[option.key] }))}
+          hints={c.funnel.goalCardHints}
+          large
         />
         {SKIP_LANDING ? <GoalEntryFooter /> : null}
       </>
@@ -54,6 +60,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
         description={c.challenges.description}
         hint={c.challenges.hint}
         options={c.challenges.options}
+        replies={c.funnel.coach}
       />
     );
   },
@@ -101,20 +108,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       />
     );
   },
-  weight: function WeightStep() {
-    const c = useCopy();
-    return (
-      <NumberInputStep
-        step="weight"
-        field="weight_kg"
-        question={c.weight.question}
-        hint={c.weight.description}
-        unit={c.weight.weightUnit}
-        min={30}
-        max={250}
-      />
-    );
-  },
+  weight: () => <WeightStep />,
   target_weight: () => <TargetWeightStep />,
   body_review: () => <BodyReviewStep />,
   activity_level: function ActivityLevelStep() {
@@ -169,4 +163,5 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
   calculating: () => <CalculatingStep />,
   result: () => <TdeeTargetsStep />,
   progress: () => <ProgressStep />,
+  confidence: () => <ConfidenceStep />,
 };

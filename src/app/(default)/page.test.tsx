@@ -163,7 +163,7 @@ describe('home quiz entry', () => {
       custom_data: { content_name: 'funnel_quiz_start', content_category: 'onboarding' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Giảm cân' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Giảm cân/ }));
     expect(await screen.findByRole('heading', { name: 'Tên bạn là gì?' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Quay lại' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Tiếng Việt' })).toBeNull();

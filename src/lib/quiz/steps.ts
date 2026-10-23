@@ -22,12 +22,13 @@ export const QUIZ_STEPS = [
   'calculating',
   'result',
   'progress',
+  'confidence',
 ] as const;
 
 export type QuizStep = (typeof QUIZ_STEPS)[number];
 
-/** Product tour after email. Same onboarding bar as the quiz, not a second timeline. */
-export const VALUE_TOUR_STEPS = ['guide', 'snap', 'activity', 'macros', 'works', 'sources', 'meals'] as const;
+/** Product tour after email: the plan, photo logging with meal ideas, then proof. Same onboarding bar as the quiz. */
+export const VALUE_TOUR_STEPS = ['plan', 'snap', 'proof'] as const;
 
 export type ValueTourStep = (typeof VALUE_TOUR_STEPS)[number];
 
@@ -64,14 +65,36 @@ export const STEP_CHAPTERS: Record<QuizStep, QuizChapter> = {
   calculating: 'plan',
   result: 'plan',
   progress: 'plan',
+  confidence: 'plan',
 };
 
-export const CHAPTER_LABELS: Record<QuizChapter, string> = {
-  intent: 'Mục tiêu',
-  body: 'Cơ thể',
-  routine: 'Thói quen',
-  plan: 'Kế hoạch',
-};
+export const QUIZ_CHAPTERS: readonly QuizChapter[] = ['intent', 'body', 'routine', 'plan'];
+
+/** Screens that ask the visitor something, for the question count on the welcome screen. */
+const QUESTION_STEPS: readonly QuizStep[] = [
+  'goal',
+  'name_ask',
+  'challenges',
+  'duration',
+  'motivation',
+  'sex',
+  'age',
+  'height',
+  'weight',
+  'target_weight',
+  'activity_level',
+  'training_days',
+  'training_duration',
+  'eating_pattern',
+  'diet',
+  'confidence',
+];
+
+/** Questions left from this step on, counting the step itself when it asks one. */
+export function questionCount(from: QuizStep = 'goal'): number {
+  const start = QUIZ_STEPS.indexOf(from);
+  return QUESTION_STEPS.filter((step) => QUIZ_STEPS.indexOf(step) >= start).length;
+}
 
 export function isQuizStep(slug: string): slug is QuizStep {
   return (QUIZ_STEPS as readonly string[]).includes(slug);
@@ -94,6 +117,3 @@ export function stepIndex(step: QuizStep): number {
   return QUIZ_STEPS.indexOf(step) + 1;
 }
 
-export function chapterLabel(step: QuizStep): string {
-  return CHAPTER_LABELS[STEP_CHAPTERS[step]];
-}

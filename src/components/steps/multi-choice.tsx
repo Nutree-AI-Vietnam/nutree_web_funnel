@@ -22,6 +22,7 @@ export function MultiChoiceStep({
   description,
   hint,
   options,
+  replies,
 }: {
   step: QuizStep;
   field: ArrayField;
@@ -29,6 +30,8 @@ export function MultiChoiceStep({
   description?: string;
   hint?: string;
   options: ReadonlyArray<{ readonly key: string; readonly label: string; readonly icon?: string }>;
+  /** A one-line reply to the latest pick, per option key. */
+  replies?: Readonly<Record<string, string>>;
 }) {
   const vi = useCopy();
   const router = useRouter();
@@ -114,6 +117,11 @@ export function MultiChoiceStep({
         ))}
       </div>
       <div className={cn('mt-auto', compact ? 'pt-3' : 'pt-6')}>
+        {replies && values.length > 0 && replies[values[values.length - 1]] && (
+          <p role="status" className="mb-2.5 rounded-2xl bg-emerald-50 px-3.5 py-2.5 text-[13px] font-semibold leading-snug text-emerald-900">
+            {replies[values[values.length - 1]]}
+          </p>
+        )}
         <PrimaryButton ref={triggerRef} disabled={values.length === 0} onClick={continueToNext}>
           {vi.common.continue}
         </PrimaryButton>

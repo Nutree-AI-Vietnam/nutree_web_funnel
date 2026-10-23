@@ -117,14 +117,20 @@ function OptionIcon({ icon, compact }: { icon: string; compact?: boolean }) {
 
 export function OptionCard({
   label,
+  hint,
   icon,
   compact,
+  large,
   selected,
   onClick,
 }: {
   label: string;
+  /** A second line under the label. */
+  hint?: string;
   icon?: string;
   compact?: boolean;
+  /** A tall tap card for the first screen. */
+  large?: boolean;
   selected: boolean;
   onClick: () => void;
 }) {
@@ -136,13 +142,16 @@ export function OptionCard({
         aria-pressed={selected}
         className={cn(
           'flex w-full items-center justify-between gap-3 text-left font-semibold transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-teal-brand/20 active:scale-[0.99] group-hover:translate-x-0.5',
-          compact ? 'min-h-10 px-3.5 py-2 text-[13px]' : 'min-h-11 px-4 py-2.5 text-[15px]',
+          compact ? 'min-h-10 px-3.5 py-2 text-[13px]' : large ? 'min-h-[4.25rem] px-4 py-3 text-[16px]' : 'min-h-11 px-4 py-2.5 text-[15px]',
           selected ? 'text-forest' : 'text-charcoal hover:text-forest',
         )}
       >
         <span className="flex min-w-0 items-center gap-3">
           {icon && <OptionIcon icon={icon} compact={compact} />}
-          <span className="min-w-0">{label}</span>
+          <span className="min-w-0">
+            <span className={cn('block', large && 'font-extrabold')}>{label}</span>
+            {hint && <span className="mt-0.5 block text-[13px] font-semibold leading-snug text-muted-brand">{hint}</span>}
+          </span>
         </span>
         <span
           aria-hidden="true"

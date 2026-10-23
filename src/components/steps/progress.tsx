@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
-import { buildProgressProjection, type ProgressDirection } from '@/lib/quiz/progress-projection';
+import { GoalChart } from '@/components/plan/plan-overview';
+import { buildProgressProjection, formatGoalDate, goalTimeline, type ProgressDirection } from '@/lib/quiz/progress-projection';
 import { useQuizStore } from '@/lib/quiz/store';
 import { formatWeight } from '@/lib/quiz/units';
 import { useUnits } from '@/lib/quiz/use-units';
@@ -53,6 +54,42 @@ export function ProgressStep() {
     : projection.calories != null && projection.proteinG != null
       ? copy.progress.planPace(projection.calories.toLocaleString(numberLocale), `${projection.proteinG}g`)
       : copy.progress.planPaceFallback;
+
+  const timeline = goalTimeline(data);
+  if (timeline) {
+    const funnel = copy.funnel.progress;
+    const target = formatWeight(timeline.targetKg, system);
+    const date = formatGoalDate(timeline.date, locale);
+    const name = data.name?.trim();
+    const stats = [
+      { label: funnel.week1, value: formatWeight(timeline.week1Kg, system), date: formatGoalDate(timeline.week1Date, locale, false), tone: 'text-forest', note: funnel.firstWin },
+      { label: funnel.month1, value: formatWeight(timeline.month1Kg, system), date: formatGoalDate(timeline.month1Date, locale, false), tone: 'text-slate-brand' },
+      { label: funnel.goal, value: target, date: formatGoalDate(timeline.date, locale, false), tone: 'text-teal-brand' },
+    ];
+    return (
+      <QuizStepFrame title={name ? funnel.headline(name, target, date) : funnel.headlineNoName(target, date)} eyebrow={funnel.eyebrow}>
+        <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/86 p-4 shadow-[0_18px_50px_rgb(26_71_57_/_0.11)]">
+          <GoalChart timeline={timeline} system={system} nowLabel={copy.funnel.plan.now} week1Label={funnel.week1} month1Label={funnel.month1} goalLabel={formatGoalDate(timeline.date, locale, false)} />
+          <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+            {stats.map((stat) => (
+              <div key={stat.label} className="rounded-2xl bg-mist/70 px-1.5 py-2">
+                <div className={`text-lg font-extrabold leading-tight ${stat.tone}`}>{stat.value}</div>
+                <div className="text-xs font-bold text-muted-brand">{stat.label} · {stat.date}</div>
+                {stat.note && <div className="mt-0.5 text-[0.68rem] font-extrabold text-teal-brand">{stat.note}</div>}
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-center text-sm font-semibold leading-relaxed text-muted-brand">
+            {funnel.pace(system === 'imperial' ? funnel.rateImperial : funnel.rateMetric, timeline.weeks)}
+          </p>
+        </section>
+        <p className="text-xs italic leading-relaxed text-muted-brand">{funnel.estimate}</p>
+        <div className="mt-auto pt-2">
+          <PrimaryButton onClick={() => goToNextQuizStep(router, 'progress')}>{copy.progress.cta}</PrimaryButton>
+        </div>
+      </QuizStepFrame>
+    );
+  }
 
   return (
     <QuizStepFrame title={copy.progress.question} hint={copy.progress.hint} eyebrow={copy.progress.eyebrow}>

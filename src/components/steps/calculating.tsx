@@ -5,9 +5,11 @@ import Image from 'next/image';
 import { AnimatePresence, motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { previewTdee } from '@/lib/api/client';
-import { useCopy, useLocale } from '@/lib/copy/use-copy';
+import { useCopy } from '@/lib/copy/use-copy';
 import { isLocalPreviewHost } from '@/lib/local-preview';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
+import { formatWeight } from '@/lib/quiz/units';
+import { useUnits } from '@/lib/quiz/use-units';
 import { useQuizStore } from '@/lib/quiz/store';
 import { computeTdeeResult } from '@/lib/tdee/calculator';
 import type { TdeeResult } from '@/lib/quiz/types';
@@ -18,8 +20,6 @@ const TOTAL_MS = 10000;
 const RING_R = 52;
 const RING_C = 2 * Math.PI * RING_R;
 
-// easeOutCubic: fast reveal that decelerates onto the final number.
-const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
 
 function usePrefersReducedMotion() {
   const [reduce, setReduce] = useState(
@@ -36,46 +36,51 @@ function usePrefersReducedMotion() {
 
 export function CalculatingStep() {
   const vi = useCopy();
-  const locale = useLocale();
   const router = useRouter();
   const routerRef = useRef(router);
   routerRef.current = router;
+  const { system } = useUnits();
   const data = useQuizStore((s) => s.data);
   const setTdee = useQuizStore((s) => s.setTdee);
+  const cooking = useQuizStore((s) => s.planAnswers.cooking);
+  const setPlanAnswers = useQuizStore((s) => s.setPlanAnswers);
   const reduce = usePrefersReducedMotion();
   const [elapsed, setElapsed] = useState(0);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [resolvedPreview, setResolvedPreview] = useState<TdeeResult | null>(null);
+  const [outcome, setOutcome] = useState<{ result: TdeeResult; source: 'api' | 'fallback' } | null | undefined>(undefined);
+  const loader = vi.funnel.loader;
 
-  // Compute the user's real numbers locally so the animation counts up to
-  // *their* target, not a placeholder. (API result still drives navigation.)
-  const preview = useMemo(() => computeTdeeResult(data), [data]);
+  // The visitor's own answers, ticked off one by one instead of a climbing calorie count.
+  const items = useMemo(() => {
+    const goal = vi.goal.options.find((option) => option.key === data.fitness_goal)?.label;
+    const diet = (data.dietary_preferences ?? []).filter((key) => key !== 'none')
+      .map((key) => vi.diet.options.find((option) => option.key === key)?.label)
+      .filter(Boolean)
+      .join(', ');
+    const moment = vi.eating_pattern.options.find((option) => option.key === data.hardest_eating_moment)?.label;
+    return [
+      goal ? loader.goal(goal) : null,
+      data.weight_kg != null && data.target_weight_kg != null
+        ? loader.weights(formatWeight(data.weight_kg, system), formatWeight(data.target_weight_kg, system))
+        : null,
+      data.training_days_per_week ? loader.training(data.training_days_per_week) : loader.noTraining,
+      diet ? loader.diet(diet) : loader.dietNone,
+      moment ? loader.moment(moment) : null,
+      loader.calories,
+    ].filter((item): item is string => Boolean(item));
+  }, [data, loader, system, vi]);
+  // One yes/no question halfway through, unless it was answered on an earlier pass.
+  const pauseAt = Math.floor(items.length / 2);
+  const stageMs = TOTAL_MS / items.length;
+  const paused = !reduce && cooking == null && elapsed >= pauseAt * stageMs;
 
   useEffect(() => {
     let cancelled = false;
-    let raf: number | null = null;
-    let delayTimer: number | null = null;
-    const duration = reduce ? 0 : TOTAL_MS;
-    setElapsed(duration === 0 ? TOTAL_MS : 0);
     setReady(false);
     setError(false);
-    setResolvedPreview(null);
-
-    const finishDelay = new Promise<void>((resolve) => {
-      delayTimer = window.setTimeout(resolve, duration);
-    });
-    const start = performance.now();
-    if (duration > 0) {
-      raf = requestAnimationFrame(function tick(now) {
-        if (cancelled) return;
-        const e = Math.min(now - start, TOTAL_MS);
-        setElapsed(e);
-        if (e < TOTAL_MS) raf = requestAnimationFrame(tick);
-      });
-    }
-
+    setOutcome(undefined);
     const fallback = () => {
       const result = computeTdeeResult(data);
       return result ? { result, source: 'fallback' as const } : null;
@@ -84,46 +89,60 @@ export function CalculatingStep() {
       ? Promise.resolve(fallback())
       : previewTdee(data)
         .then((result) => ({ result, source: 'api' as const }))
-        .catch((error: unknown) => {
+        .catch((fetchError: unknown) => {
           // The local copy gives the same numbers, but a failing preview usually
           // means a config problem (API URL, CORS), so leave a trace in the console.
-          console.warn('TDEE preview failed; using the local calculation.', error);
+          console.warn('TDEE preview failed; using the local calculation.', fetchError);
           return fallback();
         });
-
-    Promise.all([fetchTdee, finishDelay]).then(([outcome]) => {
-      if (cancelled) return;
-      if (raf != null) cancelAnimationFrame(raf);
-      // rAF pauses in background tabs while the timer keeps running, so land
-      // the count-up and checklist on their final state explicitly.
-      setElapsed(TOTAL_MS);
-      if (outcome) {
-        setResolvedPreview(outcome.result);
-        setTdee(outcome.result, outcome.source);
-        setReady(true);
-        goToNextQuizStep(routerRef.current, 'calculating');
-      } else {
-        setError(true);
-      }
+    void fetchTdee.then((result) => {
+      if (!cancelled) setOutcome(result);
     });
-
     return () => {
       cancelled = true;
-      if (raf != null) cancelAnimationFrame(raf);
-      if (delayTimer != null) window.clearTimeout(delayTimer);
     };
-  }, [attempt, data, reduce, setTdee]);
+  }, [attempt, data]);
 
-  const steps = vi.calculating.steps;
+  // The checklist advances on animation frames and stands still while the question is open.
+  useEffect(() => {
+    if (reduce) {
+      setElapsed(TOTAL_MS);
+      return;
+    }
+    if (paused) return;
+    let raf = 0;
+    let last = performance.now();
+    raf = requestAnimationFrame(function tick(now) {
+      const step = now - last;
+      last = now;
+      setElapsed((value) => Math.min(TOTAL_MS, value + step));
+      raf = requestAnimationFrame(tick);
+    });
+    // rAF pauses in background tabs; a timer keeps the loader from waiting there forever.
+    const timer = window.setTimeout(() => setElapsed((value) => Math.max(value, TOTAL_MS)), TOTAL_MS * 1.5);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(timer);
+    };
+  }, [paused, reduce]);
+
+  const complete = elapsed >= TOTAL_MS;
+
+  useEffect(() => {
+    if (!complete || outcome === undefined) return;
+    if (!outcome) {
+      setError(true);
+      return;
+    }
+    setTdee(outcome.result, outcome.source);
+    setReady(true);
+    goToNextQuizStep(routerRef.current, 'calculating');
+  }, [complete, outcome, setTdee]);
+
   const testimonials = vi.calculating.testimonials;
   const [testimonialIndex, setTestimonialIndex] = useState(0);
-  const stageMs = TOTAL_MS / steps.length;
-  const rawT = elapsed / TOTAL_MS;
-  // Under reduced motion, snap straight to the resolved state (no count-up / fill motion).
-  const frac = reduce ? 1 : easeOut(Math.min(1, rawT));
-  const stage = reduce ? steps.length : Math.min(steps.length - 1, Math.floor(elapsed / stageMs));
-  const stageFrac = reduce ? 1 : Math.min(1, (elapsed - stage * stageMs) / stageMs);
-  const complete = rawT >= 1 || reduce;
+  const frac = Math.min(1, elapsed / TOTAL_MS);
+  const stage = Math.min(items.length, Math.floor(elapsed / stageMs));
 
   useEffect(() => {
     if (reduce || testimonials.length < 2) return;
@@ -134,32 +153,16 @@ export function CalculatingStep() {
   }, [reduce, testimonials.length]);
 
   const testimonial = testimonials[testimonialIndex] ?? testimonials[0];
-
-  // Keep the animated preview aligned with the backend response whenever it
-  // succeeds. The local calculation is only a fallback while that response
-  // is still pending or unavailable.
-  const displayPreview = resolvedPreview ?? preview;
-  // Steps of 5 keep the count-up readable; the final value must match the plan screen exactly.
-  const calories = displayPreview
-    ? frac >= 1
-      ? Math.round(displayPreview.calories)
-      : Math.round((displayPreview.calories * frac) / 5) * 5
-    : null;
-  const calorieLocale = locale === 'vi' ? 'vi-VN' : 'en-US';
-
-  const subtitle = ready
-    ? vi.calculating.ready
-    : complete
-      ? vi.calculating.preparing
-      : steps[Math.min(stage, steps.length - 1)];
+  const subtitle = ready ? loader.done : complete ? vi.calculating.preparing : items[Math.min(stage, items.length - 1)];
+  const name = data.name?.trim();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-x-clip overflow-y-auto overscroll-contain">
       <header className="text-center">
         <h1 className="ph-mask mx-auto max-w-[20rem] text-[clamp(1.7rem,6vw,2rem)] font-extrabold leading-[1.12] tracking-tight text-forest [text-wrap:balance]">
-          {vi.calculating.text.replace('[name]', data.name || vi.reflection.fallbackName)}
+          {name ? loader.title(name) : loader.titleFallback}
         </h1>
-        <p className="mx-auto mt-2 max-w-[22rem] text-base font-semibold leading-snug text-slate-brand">{vi.calculating.description}</p>
+        <p className="mx-auto mt-2 max-w-[22rem] text-base font-semibold leading-snug text-slate-brand">{loader.body}</p>
         <p
           className={cn(
             'mx-auto mt-2 inline-flex min-h-7 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-colors duration-500',
@@ -206,42 +209,33 @@ export function CalculatingStep() {
               />
             </svg>
             <div className="absolute inset-0 grid place-items-center text-center">
-              {calories != null ? (
-                <div>
-                  <div className="text-[clamp(1.9rem,5.2vh,2.6rem)] font-extrabold leading-none tracking-tight tabular-nums text-forest">
-                    {calories.toLocaleString(calorieLocale)}
-                  </div>
-                  <div className="mt-1.5 text-[0.62rem] font-extrabold tracking-[0.02em] text-muted-brand">
-                    {vi.calculating.unit}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-[clamp(1.9rem,5.2vh,2.6rem)] font-extrabold leading-none tabular-nums text-forest">
-                  {Math.round(frac * 100)}%
-                </div>
-              )}
+              <div className="text-[clamp(1.9rem,5.2vh,2.6rem)] font-extrabold leading-none tabular-nums text-forest">
+                {Math.round(frac * 100)}%
+              </div>
             </div>
           </div>
 
-          {/* One bar per plan-building stage */}
-          <ol className="mt-3 flex w-full max-w-[16rem] gap-1.5" aria-label={steps.join(', ')}>
-            {steps.map((item, index) => {
+          {/* The visitor's answers, ticked off as the plan is built. */}
+          <ol className="mt-4 grid w-full max-w-[20rem] gap-2">
+            {items.map((item, index) => {
               const done = complete || index < stage;
               const active = index === stage && !complete;
-              const fill = done ? 100 : active ? Math.round(stageFrac * 100) : 0;
               return (
-                <li key={item} className="h-1.5 flex-1 overflow-hidden rounded-full bg-forest/8" aria-current={active || undefined}>
-                  <div
-                    className="h-full rounded-full bg-[linear-gradient(90deg,#1fa892,#34d0b4)] transition-[width] duration-150 ease-linear"
-                    style={{ width: `${fill}%` }}
-                  />
+                <li key={item} className={cn('flex items-center gap-2.5 text-sm font-bold transition-colors duration-300', done ? 'text-forest' : active ? 'text-slate-brand' : 'text-muted-brand/60')}>
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      'grid h-5 w-5 shrink-0 place-items-center rounded-full text-[0.65rem] font-black',
+                      done ? 'bg-teal-brand text-white' : active ? 'border-2 border-teal-brand/40 border-t-teal-brand motion-safe:animate-spin' : 'border-2 border-forest/12',
+                    )}
+                  >
+                    {done ? '✓' : ''}
+                  </span>
+                  <span className="ph-mask min-w-0">{item}</span>
                 </li>
               );
             })}
           </ol>
-          <p className="mt-2 text-[0.68rem] font-bold tracking-[0.02em] text-muted-brand">
-            {Math.min(stage + 1, steps.length)}/{steps.length} · {steps[Math.min(stage, steps.length - 1)]}
-          </p>
         </div>
 
         {testimonial && (
@@ -284,6 +278,18 @@ export function CalculatingStep() {
           </div>
         )}
       </div>
+
+      {paused && (
+        <div className="fixed inset-0 z-50 grid place-items-end bg-slate-950/30 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-[2px] sm:place-items-center" role="presentation">
+          <section role="dialog" aria-modal="true" aria-labelledby="loader-question" className="w-full max-w-md rounded-[1.8rem] bg-white p-5 shadow-[0_28px_80px_rgb(10_18_16_/_0.28)] animate-soft-enter">
+            <p id="loader-question" className="text-lg font-extrabold leading-snug text-forest">{loader.pauseQuestion}</p>
+            <div className="mt-4 grid grid-cols-2 gap-2.5">
+              <button type="button" autoFocus onClick={() => setPlanAnswers({ cooking: 'home' })} className="min-h-13 rounded-2xl bg-forest px-3 py-3 text-sm font-extrabold text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/30">{loader.yes}</button>
+              <button type="button" onClick={() => setPlanAnswers({ cooking: 'out' })} className="min-h-13 rounded-2xl border border-border-brand bg-white px-3 py-3 text-sm font-extrabold text-forest focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/30">{loader.no}</button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {error && (
         <div className="mt-auto pt-2">

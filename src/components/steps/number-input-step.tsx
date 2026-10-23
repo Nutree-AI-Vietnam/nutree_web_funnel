@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
@@ -67,6 +67,8 @@ export function NumberInputStep({
   max,
   hint,
   optional = false,
+  defaultValue,
+  insight,
 }: {
   step: QuizStep;
   field: NumberField;
@@ -76,6 +78,10 @@ export function NumberInputStep({
   max: number;
   hint?: string;
   optional?: boolean;
+  /** Start value for a new answer; overrides the field default. */
+  defaultValue?: number;
+  /** Shown under the field with the value picked so far, in metric. */
+  insight?: (metric: number | null) => ReactNode;
 }) {
   const router = useRouter();
   const copy = useCopy();
@@ -83,7 +89,8 @@ export function NumberInputStep({
   const setData = useQuizStore((s) => s.setData);
   const [touched, setTouched] = useState(false);
   const [attempted, setAttempted] = useState(false);
-  const config = fieldConfigFor(copy)[field];
+  const fieldConfig = fieldConfigFor(copy)[field];
+  const config = defaultValue != null ? { ...fieldConfig, defaultValue } : fieldConfig;
   const [value, setValue] = useState(saved != null ? String(saved) : config.defaultValue != null ? String(config.defaultValue) : '');
   // What a unit field reports: the metric value, or null while what is typed is not valid.
   const [metric, setMetric] = useState<number | null>(null);
@@ -143,6 +150,7 @@ export function NumberInputStep({
           />
         )}
         </div>
+        {insight?.(measure ? metric : parsed)}
         <div className="quiz-number-actions flex shrink-0 flex-col gap-3 pt-4">
           <PrimaryButton type="submit">{copy.common.continue}</PrimaryButton>
           {optional && (

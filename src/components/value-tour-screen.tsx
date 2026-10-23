@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import { PrimaryButton } from '@/components/primary-button';
 import { QuizShell } from '@/components/quiz-shell';
+import { MacroBars, PlanGoalCard } from '@/components/plan/plan-overview';
 import { QuizStepFrame } from '@/components/steps/quiz-step-frame';
-import { ActivityDemo, GuideDemo, HowItWorksList, MacroDemo, MealCardsDemo, MealSnapDemo, ReferenceSources } from '@/components/value-tour/value-tour-demos';
+import { AppStoreRating, MealIdeas, MealSnapDemo } from '@/components/value-tour/value-tour-demos';
 import { trackStepViewed } from '@/lib/analytics/track';
-import { useCopy, useLocale } from '@/lib/copy/use-copy';
+import { useCopy } from '@/lib/copy/use-copy';
 import { VALUE_TOUR_STEPS, valueProgressIndex, type ValueTourStep } from '@/lib/quiz/steps';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
+import { useUnits } from '@/lib/quiz/use-units';
 import { computeTdeeResult } from '@/lib/tdee/calculator';
 
 export function ValueTourScreen({
@@ -21,14 +23,14 @@ export function ValueTourScreen({
   onMissingLead: () => void;
 }) {
   const copy = useCopy();
-  const locale = useLocale();
   const hydrated = useHydrated();
+  const { system } = useUnits();
   const lead = useQuizStore((state) => state.lead);
   const data = useQuizStore((state) => state.data);
   const storedTdee = useQuizStore((state) => state.tdee);
-  const [step, setStep] = useState<ValueTourStep>('guide');
+  const [step, setStep] = useState<ValueTourStep>('plan');
   const tdee = storedTdee ?? computeTdeeResult(data);
-  const numberLocale = locale === 'vi' ? 'vi-VN' : 'en-US';
+  const tour = copy.funnel.tour;
 
   useEffect(() => {
     if (hydrated && !lead) onMissingLead();
@@ -41,12 +43,6 @@ export function ValueTourScreen({
   if (!hydrated || !lead) return null;
 
   const index = VALUE_TOUR_STEPS.indexOf(step);
-  const isLast = index === VALUE_TOUR_STEPS.length - 1;
-  const screen = step === 'works'
-    ? { eyebrow: copy.science.eyebrow, title: copy.science.headline, body: copy.science.hint, cta: copy.common.continue }
-    : step === 'sources'
-      ? { eyebrow: copy.science.sourcesEyebrow, title: copy.science.sourcesTitle, body: copy.science.sourcesIntro, cta: copy.common.continue }
-      : copy.valueTour[step];
   const advance = () => {
     const next = VALUE_TOUR_STEPS[index + 1];
     if (next) setStep(next);
@@ -57,36 +53,57 @@ export function ValueTourScreen({
     if (previous) setStep(previous);
     else onBack();
   };
-  const detail = step === 'macros' && tdee
-    ? copy.valueTour.macros.personalized(Math.round(tdee.calories).toLocaleString(numberLocale), Math.round(tdee.protein_g))
-    : step === 'activity' && data.training_days_per_week != null
-      ? copy.valueTour.activity.personalized(data.training_days_per_week)
-      : screen.body;
+  const trainingDays = data.training_days_per_week;
 
   return (
-    <QuizShell step="progress" progressIndex={valueProgressIndex(step)} onBack={goBack} showExitIntent={false}>
-      <QuizStepFrame title={screen.title} eyebrow={screen.eyebrow} description={detail}>
-        {step === 'guide' && <GuideDemo points={copy.valueTour.guide.points} />}
-        {step === 'snap' && <MealSnapDemo label={copy.valueTour.snap.videoLabel} />}
-        {step === 'activity' && (
-          <ActivityDemo
-            src={locale === 'vi' ? '/value-tour/workout-vi.png' : '/value-tour/workout-en.png'}
-            alt={copy.valueTour.activity.imageAlt}
-          />
-        )}
-        {step === 'macros' && <MacroDemo alt={copy.valueTour.macros.imageAlt} days={copy.valueTour.macros.days} />}
-        {step === 'works' && <HowItWorksList items={copy.science.items} />}
-        {step === 'sources' && (
-          <>
-            <ReferenceSources sources={copy.science.sources} />
-            <p className="text-sm font-semibold leading-relaxed text-muted-brand">{copy.science.disclaimer}</p>
-          </>
-        )}
-        {step === 'meals' && <MealCardsDemo cards={copy.valueTour.meals.cards} />}
-        <div className="mt-auto pt-3">
-          <PrimaryButton onClick={advance}>{isLast ? copy.valueTour.meals.cta : copy.common.continue}</PrimaryButton>
-        </div>
-      </QuizStepFrame>
+    <QuizShell step="confidence" progressIndex={valueProgressIndex(step)} onBack={goBack} showExitIntent={false}>
+      {step === 'plan' && (
+        <QuizStepFrame eyebrow={tour.plan.eyebrow}>
+          <PlanGoalCard data={data} tdee={tdee} system={system} />
+          {tdee && (
+            <section className="rounded-[1.6rem] bg-white/90 p-4 shadow-[0_10px_30px_rgb(26_71_57_/_0.06)]">
+              <MacroBars tdee={tdee} />
+              {trainingDays != null && trainingDays > 0 && (
+                <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-brand">{copy.valueTour.activity.personalized(trainingDays)}</p>
+              )}
+            </section>
+          )}
+          <div className="mt-auto pt-3">
+            <PrimaryButton onClick={advance}>{tour.plan.cta}</PrimaryButton>
+          </div>
+        </QuizStepFrame>
+      )}
+      {step === 'snap' && (
+        <QuizStepFrame eyebrow={tour.snap.eyebrow} title={tour.snap.title} description={tour.snap.body}>
+          <MealSnapDemo label={copy.valueTour.snap.videoLabel} compact />
+          {tdee && <MealIdeas title={tour.snap.ideasTitle} tdee={tdee} diet={data.dietary_preferences} />}
+          <div className="mt-auto pt-3">
+            <PrimaryButton onClick={advance}>{tour.snap.cta}</PrimaryButton>
+          </div>
+        </QuizStepFrame>
+      )}
+      {step === 'proof' && (
+        <QuizStepFrame eyebrow={tour.proof.eyebrow}>
+          <AppStoreRating />
+          <section className="rounded-[1.6rem] bg-white/90 p-4 shadow-[0_10px_30px_rgb(26_71_57_/_0.06)]">
+            <h2 className="text-[1.12rem] font-extrabold tracking-[-0.02em] text-forest">{tour.proof.title}</h2>
+            <ul className="mt-3 grid gap-3">
+              {tour.proof.benefits.map((benefit, position) => (
+                <li key={benefit.title} className="grid grid-cols-[2rem_1fr] gap-3">
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-forest text-sm font-extrabold text-white">{position + 1}</span>
+                  <span>
+                    <span className="block text-[0.95rem] font-extrabold text-forest">{benefit.title}</span>
+                    <span className="mt-0.5 block text-sm font-semibold leading-relaxed text-slate-brand">{benefit.body}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <div className="mt-auto pt-3">
+            <PrimaryButton onClick={advance}>{tour.proof.cta}</PrimaryButton>
+          </div>
+        </QuizStepFrame>
+      )}
     </QuizShell>
   );
 }

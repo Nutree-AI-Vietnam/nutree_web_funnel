@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'motion/react';
 import Image from 'next/image';
 import { PrimaryButton } from '@/components/primary-button';
+import { questionCount } from '@/lib/quiz/steps';
 import { useCopy } from '@/lib/copy/use-copy';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { getGreetingName } from '@/lib/quiz/reflection';
@@ -56,12 +57,13 @@ export function WelcomeStep() {
         transition={{ delay: 0.3, duration: 0.4 }}
         className="grid grid-cols-3 gap-2"
       >
-        {copy.welcome.stats.map((stat) => (
+        {copy.welcome.stats.map((stat, index) => (
           <div
             key={stat.label}
             className="rounded-2xl bg-white/82 px-3 py-3 text-center shadow-[inset_0_1px_0_rgb(255_255_255_/_0.78)] backdrop-blur"
           >
-            <div className="text-sm font-extrabold text-forest">{stat.value}</div>
+            {/* The middle stat is the question count, kept in step with the quiz. */}
+            <div className="text-sm font-extrabold text-forest">{index === 1 ? copy.funnel.questionCount(questionCount()) : stat.value}</div>
             <div className="mt-0.5 text-[0.65rem] font-semibold text-muted-brand">{stat.label}</div>
           </div>
         ))}

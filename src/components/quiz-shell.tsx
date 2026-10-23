@@ -10,7 +10,7 @@ import { trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
 import { goToPreviousQuizStep } from '@/lib/quiz/navigation';
-import { QUIZ_STEPS, VALUE_TOUR_STEPS, stepIndex, type QuizStep } from '@/lib/quiz/steps';
+import { QUIZ_CHAPTERS, QUIZ_STEPS, STEP_CHAPTERS, VALUE_TOUR_STEPS, stepIndex, type QuizStep } from '@/lib/quiz/steps';
 import { useHydrated } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 
@@ -89,7 +89,7 @@ export function QuizShell({
         aria-valuemin={1}
         aria-valuemax={totalSteps}
         aria-valuenow={currentStep}
-        className="quiz-shell-progress enter-item relative z-10 mb-4 h-1 shrink-0 overflow-hidden rounded-full bg-forest/10"
+        className="quiz-shell-progress enter-item relative z-10 mb-1.5 h-1 shrink-0 overflow-hidden rounded-full bg-forest/10"
         style={enterStyle(1)}
       >
         <div
@@ -97,6 +97,17 @@ export function QuizShell({
           style={{ width: `${Math.max(progress, 4)}%` }}
         />
       </div>
+      <ol aria-hidden="true" className="quiz-shell-chapters enter-item relative z-10 mb-3 grid shrink-0 grid-cols-4 text-[0.66rem] font-extrabold tracking-[0.02em]" style={enterStyle(1)}>
+        {QUIZ_CHAPTERS.map((chapter) => {
+          const current = progressIndex != null ? 'plan' : STEP_CHAPTERS[step];
+          const reached = QUIZ_CHAPTERS.indexOf(chapter) <= QUIZ_CHAPTERS.indexOf(current);
+          return (
+            <li key={chapter} className={cn('text-center', chapter === current ? 'text-forest' : reached ? 'text-teal-brand' : 'text-muted-brand/70')}>
+              {copy.funnel.chapters[chapter]}
+            </li>
+          );
+        })}
+      </ol>
       <div
         key={progressIndex ?? step}
         className={cn(

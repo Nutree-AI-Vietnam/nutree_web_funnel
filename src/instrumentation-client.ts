@@ -17,6 +17,8 @@ if (projectToken) {
     capture_performance: true,
     disable_surveys: true,
     advanced_disable_feature_flags: true,
+    // The recorder is a large script; loading it with the first screen kept taps waiting on slow phones.
+    disable_session_recording: true,
     session_recording: {
       maskAllInputs: true,
       recordBody: false,
@@ -26,4 +28,13 @@ if (projectToken) {
   });
   posthog.register({ source: 'web_funnel' });
   document.documentElement.lang = registerDocumentFunnelLocale(window.location.pathname);
+
+  // Start the replay once the first screen has answered a tap.
+  const startRecording = () => {
+    window.removeEventListener('pointerdown', startRecording, true);
+    window.removeEventListener('keydown', startRecording, true);
+    window.setTimeout(() => posthog.startSessionRecording(), 0);
+  };
+  window.addEventListener('pointerdown', startRecording, true);
+  window.addEventListener('keydown', startRecording, true);
 }

@@ -338,6 +338,10 @@ h2 {
     margin-bottom: 0.35rem;
   }
 
+  .quiz-shell-chapters {
+    display: none;
+  }
+
   .quiz-step-frame {
     gap: 0.35rem;
   }
@@ -406,7 +410,11 @@ h2 {
   }
 
   .quiz-shell[data-fit-viewport] .quiz-shell-progress {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .quiz-shell[data-fit-viewport] .quiz-shell-chapters {
+    margin-bottom: 0.5rem;
   }
 
   .quiz-shell[data-fit-viewport] .quiz-step-frame h1 {
@@ -532,4 +540,12 @@ h2 {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/*
+ * PostHog's chat bubble sits over the right end of every Continue button and over
+ * Paddle's PayPal button. Keep it hidden until a page opts in (the paywall, outside checkout).
+ */
+html:not([data-support-chat='on']) #ph-conversations-widget-container {
+  display: none !important;
 }
