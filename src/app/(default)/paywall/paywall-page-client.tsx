@@ -346,7 +346,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     const customerEmail = readCheckoutEmail();
     if (customerEmail) identifyMetaUser({ email: customerEmail, externalId: lead.lead_id, firstName: data.name });
     if (!customerEmail) {
-      setError(activeLocale === 'vi' ? 'Vui lòng quay lại bước email để xác nhận địa chỉ thanh toán trước khi mua.' : 'Return to email capture to confirm your checkout email before purchasing.');
+      setError(activeLocale === 'vi' ? 'Vui lòng quay lại bước email để xác nhận địa chỉ thanh toán trước khi mua.' : 'We need your email before checkout. Go back to the email step to add it.');
       return;
     }
     checkoutInFlightRef.current = true;
@@ -606,7 +606,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         {error && <p role="alert" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-error-brand">{error}</p>}
         {displayedRedemption?.kind === 'pending' && <p role="status" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-brand">{activeLocale === 'vi' ? 'Đang xác minh thanh toán của bạn…' : 'Verifying your payment…'}</p>}
         {displayedRedemption?.kind === 'recovery' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Thanh toán đã được ghi nhận' : 'Payment received'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'Chúng tôi không thể xác minh liên kết kích hoạt. Vui lòng kiểm tra email thanh toán của bạn hoặc liên hệ hỗ trợ.' : 'We could not verify your activation link. Check your purchase email or contact support.'}</p></section>}
-        {displayedRedemption?.kind === 'email_sent' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Kiểm tra email của bạn' : 'Check your email'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'RevenueCat đã gửi liên kết bảo mật đến email thanh toán. Mở liên kết đó trong Nutree để tự động kích hoạt gói.' : 'RevenueCat sent a secure link to your checkout email. Open it in Nutree to activate your plan automatically.'}</p></section>}
+        {displayedRedemption?.kind === 'email_sent' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Kiểm tra email của bạn' : 'Check your email'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'RevenueCat đã gửi liên kết bảo mật đến email thanh toán. Mở liên kết đó trong Nutree để tự động kích hoạt gói.' : 'We sent a link to your checkout email. Open it on your phone to sign in with your plan.'}</p></section>}
     </>
   );
 
@@ -660,7 +660,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const personalIncludeList = (
     <ul className="mt-3 grid gap-3">{funnelPaywall.personalIncludes({
           calories: planTdee ? Math.round(planTdee.calories).toLocaleString(priceLocale) : '',
-          diet: (data.dietary_preferences ?? []).filter((key) => key !== 'none').map((key) => copy.diet.options.find((option) => option.key === key)?.label).filter(Boolean).join(', ') || null,
+          // Eating styles only: meal ideas can be asked for vegan or halal, but nothing in the app guarantees allergy-free food.
+          diet: (data.dietary_preferences ?? []).filter((key) => key === 'vegan' || key === 'halal').map((key) => copy.diet.options.find((option) => option.key === key)?.label).filter(Boolean).join(', ') || null,
           date: timeline ? formatGoalDate(timeline.date, activeLocale) : null,
         }).map((item, index) => <li key={item.title} className="grid grid-cols-[2.4rem_1fr] gap-3"><span className="grid h-9 w-9 place-items-center rounded-2xl bg-mist text-[1rem]" aria-hidden="true">{benefitEmoji[index] ?? '✅'}</span><span><span className="block text-[0.92rem] font-extrabold text-forest">{item.title}</span><span className="mt-0.5 block text-[0.84rem] leading-relaxed text-muted-brand">{item.body}</span></span></li>)}</ul>
   );

@@ -59,7 +59,7 @@ export function PostcheckoutPageClient() {
       ? (vi ? 'Kiểm tra email bạn đã dùng khi thanh toán để tiếp tục với Nutree.' : 'Check the email you used at checkout to continue with Nutree.')
       : correlationState === 'retry_exhausted'
         ? (vi ? 'Thanh toán đã xong nhưng xác nhận đang chậm hơn dự kiến. Tải lại trang sau; bạn sẽ không bị trừ thêm.' : 'Payment is complete, but confirmation is taking longer than expected. Refresh this page in a moment; you will not be charged again.')
-        : (vi ? 'Kiểm tra email thanh toán để lấy liên kết kích hoạt Nutree. Mở trên điện thoại để tự động đăng nhập và kích hoạt gói.' : 'Check your checkout email for the Nutree redemption link. Open it on your phone to sign in and activate your plan automatically.');
+        : (vi ? 'Liên kết trong email sẽ tự đăng nhập và mở kế hoạch trên điện thoại của bạn.' : 'Follow these steps on your phone.');
 
   const handoff = copyFor(vi ? 'vi' : 'en').funnel.postcheckout;
   // Read on the client only, so the server HTML and the first client render agree.

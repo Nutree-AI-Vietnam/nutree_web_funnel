@@ -53,16 +53,12 @@ export function ValueTourScreen({
     if (previous) setStep(previous);
     else onBack();
   };
-  const trainingDays = data.training_days_per_week;
 
   return (
     <QuizShell step="confidence" progressIndex={valueProgressIndex(step)} onBack={goBack} showExitIntent={false}>
       {step === 'plan' && (
         <QuizStepFrame eyebrow={tour.plan.eyebrow}>
           <PlanGoalCard data={data} tdee={tdee} system={system} />
-          {tdee && trainingDays != null && trainingDays > 0 && (
-            <p className="px-1 text-sm font-semibold leading-relaxed text-slate-brand">{copy.valueTour.activity.personalized(trainingDays)}</p>
-          )}
           <div className="mt-auto pt-3">
             <PrimaryButton onClick={advance}>{tour.plan.cta}</PrimaryButton>
           </div>
