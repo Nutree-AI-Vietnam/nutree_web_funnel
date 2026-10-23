@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from 'motion/react';
 import type { ReactNode } from 'react';
+import { CountUp } from '@/components/ui/count-up';
 import { Icon } from '@/components/ui/icons';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { firstChangePlan, planNumbers, sampleDay, type ChangeSource, type DishId, type Meal } from '@/lib/quiz/plan-content';
@@ -249,25 +250,35 @@ export function macroShares(tdee: TdeeResult, labels: { protein: string; carbs: 
 }
 
 /** The day's calories as a ring split by where they come from: protein, carbs and fat. */
-export function CalorieRing({ total, unit, macros, draw = false }: {
-  total: string;
+export function CalorieRing({ total, locale, unit, macros, size = 'md' }: {
+  total: number;
+  locale: string;
   unit: string;
   macros: ReadonlyArray<{ label: string; share: number; color: string }>;
-  /** Draw the segments in one after another, for the first reveal of the numbers. */
-  draw?: boolean;
+  size?: 'md' | 'lg';
 }) {
   const reduce = useReducedMotion();
   const radius = 50;
   const circumference = 2 * Math.PI * radius;
   const gap = 5;
   const starts = macros.map((_, index) => macros.slice(0, index).reduce((sum, macro) => sum + macro.share, 0) * circumference);
+  const format = (value: number) => new Intl.NumberFormat(numberLocale(locale)).format(Math.round(value));
   return (
-    <div className="relative h-[7.25rem] w-[7.25rem] shrink-0">
-      <svg viewBox="0 0 128 128" className="h-full w-full -rotate-90" aria-hidden="true">
+    <div className={cn('relative shrink-0', size === 'lg' ? 'h-[8.75rem] w-[8.75rem]' : 'h-[7.25rem] w-[7.25rem]')}>
+      {/* A soft glow settles behind the ring once it has drawn. */}
+      <motion.span
+        aria-hidden="true"
+        className="absolute inset-3 rounded-full bg-[radial-gradient(circle,rgb(52_208_180_/_0.30),transparent_68%)] blur-md"
+        initial={reduce ? false : { opacity: 0, scale: 0.7 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true }}
+        transition={{ delay: 1.1, duration: 0.8, ease: 'easeOut' }}
+      />
+      <svg viewBox="0 0 128 128" className="relative h-full w-full -rotate-90" aria-hidden="true">
         <circle cx="64" cy="64" r={radius} fill="none" stroke="#eef4f1" strokeWidth="12" />
         {macros.map((macro, index) => {
           const length = Math.max(0, macro.share * circumference - gap);
-          return draw && !reduce ? (
+          return (
             <motion.circle
               key={macro.label}
               cx="64"
@@ -278,20 +289,48 @@ export function CalorieRing({ total, unit, macros, draw = false }: {
               strokeWidth="12"
               strokeLinecap="round"
               strokeDashoffset={-starts[index]}
-              initial={{ strokeDasharray: `0 ${circumference}` }}
-              animate={{ strokeDasharray: `${length} ${circumference}` }}
-              transition={{ delay: 0.2 + index * 0.35, duration: 0.55, ease: 'easeOut' }}
+              // Hidden until its turn, so the round cap does not show as a dot before it draws.
+              initial={reduce ? false : { strokeDasharray: `0 ${circumference}`, opacity: 0 }}
+              whileInView={{ strokeDasharray: `${length} ${circumference}`, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.15 + index * 0.3, duration: 0.6, ease: [0.33, 1, 0.68, 1], opacity: { delay: 0.15 + index * 0.3, duration: 0.05 } }}
             />
-          ) : (
-            <circle key={macro.label} cx="64" cy="64" r={radius} fill="none" stroke={macro.color} strokeWidth="12" strokeLinecap="round" strokeDasharray={`${length} ${circumference}`} strokeDashoffset={-starts[index]} />
           );
         })}
       </svg>
       <p className="absolute inset-0 grid place-content-center text-center">
-        <span className="text-[1.6rem] font-extrabold leading-none tracking-[-0.04em] text-forest tabular-nums">{total}</span>
+        <CountUp value={total} format={format} duration={1.2} className={cn('font-extrabold leading-none tracking-[-0.04em] text-forest tabular-nums', size === 'lg' ? 'text-[2rem]' : 'text-[1.6rem]')} />
         <span className="mt-1 text-[0.68rem] font-bold leading-tight text-muted-brand">{unit}</span>
       </p>
     </div>
+  );
+}
+
+/** The macro legend beside the ring: grams count up and a thin bar in the ring colour fills to its share. */
+export function MacroLegend({ macros, className }: { macros: ReadonlyArray<{ label: string; grams: number; share: number; color: string }>; className?: string }) {
+  const reduce = useReducedMotion();
+  return (
+    <ul className={cn('grid min-w-0 flex-1 gap-2.5', className)}>
+      {macros.map((macro, index) => (
+        <li key={macro.label} className="text-[0.9rem]">
+          <span className="flex items-center gap-2">
+            <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: macro.color }} />
+            <span className="min-w-0 flex-1 whitespace-nowrap font-bold text-slate-brand">{macro.label}</span>
+            <CountUp value={macro.grams} format={(value) => `${Math.round(value)} g`} delay={0.15 + index * 0.3} duration={0.7} className="whitespace-nowrap font-extrabold tabular-nums text-forest" />
+          </span>
+          <span aria-hidden="true" className="mt-1 block h-1 overflow-hidden rounded-full bg-forest/8">
+            <motion.span
+              className="block h-full origin-left rounded-full"
+              style={{ background: macro.color, width: `${Math.max(8, macro.share * 100)}%` }}
+              initial={reduce ? false : { scaleX: 0 }}
+              whileInView={{ scaleX: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.15 + index * 0.3, duration: 0.6, ease: [0.33, 1, 0.68, 1] }}
+            />
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -318,16 +357,8 @@ export function PlanDayCard({ data, tdee, className, reveal }: {
   return (
     <section className={cn(CARD, className)} aria-label={`${format.format(total)} ${day.kcal}`}>
       <div className="flex items-center gap-4 sm:gap-6">
-        <CalorieRing total={format.format(total)} unit={day.kcal} macros={shares} />
-        <ul className="grid min-w-0 flex-1 gap-2.5">
-          {shares.map((macro) => (
-            <li key={macro.label} className="flex items-center gap-2 text-[0.9rem]">
-              <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: macro.color }} />
-              <span className="min-w-0 flex-1 whitespace-nowrap font-bold text-slate-brand">{macro.label}</span>
-              <span className="whitespace-nowrap font-extrabold tabular-nums text-forest">{macro.grams} g</span>
-            </li>
-          ))}
-        </ul>
+        <CalorieRing total={total} locale={locale} unit={day.kcal} macros={shares} />
+        <MacroLegend macros={shares} />
       </div>
       <div className="mt-5 flex items-baseline justify-between gap-3">
         <h3 className="text-[0.95rem] font-extrabold text-forest">{day.title}</h3>

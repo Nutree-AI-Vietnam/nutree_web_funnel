@@ -1,8 +1,9 @@
 'use client';
 
 import Image from 'next/image';
-import { useReducedMotion } from 'motion/react';
-import { useCopy } from '@/lib/copy/use-copy';
+import { motion, useReducedMotion } from 'motion/react';
+import { CountUp } from '@/components/ui/count-up';
+import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { cn } from '@/lib/utils';
 
 /** A modern iPhone shell. Height is capped so the bezel, title, and button still fit a phone viewport. */
@@ -46,13 +47,23 @@ export function MealSnapDemo({ label, compact = false }: { label: string; compac
   );
 }
 
-/** Five stars filled to the rating, so 4.6 does not read as a full five. */
-export function StarRow({ value, className }: { value: number; className?: string }) {
-  const filled = Math.max(0, Math.min(5, value)) * 20;
+/** Five stars filled to the rating, so 4.7 does not read as a full five; with `animate`, they fill once in view. */
+export function StarRow({ value, className, animate = false }: { value: number; className?: string; animate?: boolean }) {
+  const reduce = useReducedMotion();
+  const filled = `${Math.max(0, Math.min(5, value)) * 20}%`;
   return (
     <span aria-hidden="true" className={cn('relative inline-block tracking-[0.12em] leading-none', className)}>
       <span className="text-[#e3e7e5]">★★★★★</span>
-      <span className="absolute inset-y-0 left-0 overflow-hidden whitespace-nowrap text-[#e7a23a]" style={{ width: `${filled}%` }}>★★★★★</span>
+      <motion.span
+        className="absolute inset-y-0 left-0 overflow-hidden whitespace-nowrap text-[#e7a23a]"
+        initial={animate && !reduce ? { width: '0%' } : false}
+        whileInView={{ width: filled }}
+        viewport={{ once: true }}
+        transition={{ delay: 0.5, duration: 0.9, ease: 'easeOut' }}
+        style={{ width: filled }}
+      >
+        ★★★★★
+      </motion.span>
     </span>
   );
 }
@@ -77,19 +88,44 @@ const LAUREL_LEAVES = (() => {
     const dx = tx * Math.cos(lean) + nx * Math.sin(lean);
     const dy = ty * Math.cos(lean) + ny * Math.sin(lean);
     const rotate = (Math.atan2(dy, dx) * 180) / Math.PI - 90;
-    return { cx: px + dx * ry * 0.92, cy: py + dy * ry * 0.92, rx, ry, rotate };
+    return { t, cx: px + dx * ry * 0.92, cy: py + dy * ry * 0.92, rx, ry, rotate };
   };
   const outer = [0.08, 0.21, 0.34, 0.47, 0.6, 0.73, 0.85].map((t, index) => leaf(t, 1, 3.1 - index * 0.12, 7.4 - index * 0.25));
   const inner = [0.15, 0.28, 0.41, 0.54, 0.67, 0.79].map((t, index) => leaf(t, -1, 2.5 - index * 0.1, 6 - index * 0.2));
-  return [...outer, ...inner];
+  // Grow from the base to the tip.
+  return [...outer, ...inner].sort((a, b) => a.t - b.t);
 })();
 
 function Laurel({ flip = false }: { flip?: boolean }) {
+  const reduce = useReducedMotion();
   return (
     <svg viewBox="-10 -6 50 100" className={cn('h-[5.6rem] w-auto shrink-0 text-gold', flip && '-scale-x-100')} aria-hidden="true">
-      <path d="M30 88 Q 2 50 24 4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <motion.path
+        d="M30 88 Q 2 50 24 4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        initial={reduce ? false : { pathLength: 0 }}
+        whileInView={{ pathLength: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.7, ease: 'easeOut' }}
+      />
       {LAUREL_LEAVES.map((leaf, index) => (
-        <ellipse key={index} cx={leaf.cx} cy={leaf.cy} rx={leaf.rx} ry={leaf.ry} fill="currentColor" transform={`rotate(${leaf.rotate} ${leaf.cx} ${leaf.cy})`} />
+        <g key={index} transform={`rotate(${leaf.rotate} ${leaf.cx} ${leaf.cy})`}>
+          <motion.ellipse
+            cx={leaf.cx}
+            cy={leaf.cy}
+            rx={leaf.rx}
+            ry={leaf.ry}
+            fill="currentColor"
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+            initial={reduce ? false : { scale: 0, opacity: 0 }}
+            whileInView={{ scale: 1, opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.15 + index * 0.045, type: 'spring', stiffness: 260, damping: 16 }}
+          />
+        </g>
       ))}
     </svg>
   );
@@ -121,7 +157,12 @@ function GooglePlayMark({ className }: { className?: string }) {
  */
 export function TrustCard({ className }: { className?: string }) {
   const copy = useCopy();
+  const locale = useLocale();
   const rating = copy.funnel.rating;
+  // "40,000+" or "40.000+": count up to the digits, keep the locale grouping and the trailing "+".
+  const countNumber = Number(rating.countValue.replace(/[^0-9]/g, ''));
+  const countSuffix = rating.countValue.replace(/^[0-9.,\s]+/, '');
+  const countFormat = new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US');
   const stores = [
     { key: 'app-store', mark: <AppleMark className="h-5 w-5 text-charcoal" />, value: rating.value, label: rating.label },
     ...(rating.googlePlay ? [{ key: 'google-play', mark: <GooglePlayMark className="h-5 w-5" />, value: rating.googlePlay.value, label: rating.googlePlay.label }] : []),
@@ -131,7 +172,7 @@ export function TrustCard({ className }: { className?: string }) {
       <div className="flex items-center justify-center gap-2" aria-hidden="true">
         <Laurel />
         <p className="text-center">
-          <span className="block text-[2.5rem] font-extrabold leading-none tracking-[-0.04em] tabular-nums text-forest">{rating.countValue}</span>
+          <CountUp value={countNumber} format={(value) => `${countFormat.format(Math.round(value))}${countSuffix}`} duration={1.4} className="block text-[2.5rem] font-extrabold leading-none tracking-[-0.04em] tabular-nums text-forest" />
           <span className="mt-1.5 block text-[0.95rem] font-bold leading-snug text-slate-brand">{rating.chose}</span>
         </p>
         <Laurel flip />
@@ -141,7 +182,7 @@ export function TrustCard({ className }: { className?: string }) {
           <div key={store.key} className="flex flex-col items-center px-2 text-center">
             <span className="flex items-center gap-2">
               {store.mark}
-              <StarRow value={Number(store.value)} className="text-[1rem]" />
+              <StarRow value={Number(store.value)} className="text-[1rem]" animate />
             </span>
             <span className="mt-1.5 text-[1.45rem] font-extrabold leading-none tabular-nums text-forest">{store.value}<span className="text-[0.95rem] text-muted-brand">{rating.outOf}</span></span>
             <span className="mt-1 text-[0.78rem] font-semibold text-muted-brand">{store.label}</span>
