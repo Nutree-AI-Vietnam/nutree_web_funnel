@@ -1,10 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { LOCALE_NAMES, LOCALE_ORDER, type Locale } from '@/lib/copy';
+import { LOCALE_LABELS, LOCALE_NAMES, LOCALE_ORDER, type Locale } from '@/lib/copy';
 import { cn } from '@/lib/utils';
-
-const LOCALE_FLAGS: Record<Locale, string> = { vi: '🇻🇳', en: '🇺🇸' };
 
 export function LanguageMenu({
   active,
@@ -44,7 +42,7 @@ export function LanguageMenu({
         onClick={() => setOpen((value) => !value)}
         className="flex h-8 items-center gap-0.5 rounded-full border border-white/80 bg-white/85 pl-2 pr-1 text-forest shadow-[0_6px_16px_rgb(16_39_32_/_0.08)] focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-brand"
       >
-        <span aria-hidden="true" className="text-lg leading-none">{LOCALE_FLAGS[active]}</span>
+        <span className="px-1 text-xs font-bold leading-none">{LOCALE_LABELS[active]}</span>
         <svg viewBox="0 0 24 24" className={cn('size-4 transition-transform duration-200', open && 'rotate-180')} aria-hidden="true">
           <path d="M5.5 9.25 12 15.75 18.5 9.25" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -72,7 +70,6 @@ export function LanguageMenu({
                   }}
                   className={cn('flex min-h-12 w-full items-center gap-3 px-4 text-left text-base font-semibold', selected ? 'bg-mist text-forest' : 'text-slate-brand hover:bg-mist/70')}
                 >
-                  <span aria-hidden="true" className="text-xl leading-none">{LOCALE_FLAGS[locale]}</span>
                   {LOCALE_NAMES[locale]}
                 </button>
               </li>
