@@ -55,7 +55,7 @@ export function GoalChart({ timeline, system, nowLabel, week1Label, month1Label,
   const milestones = [
     { day: 7, kg: timeline.week1Kg, label: week1Label },
     { day: 30, kg: timeline.month1Kg, label: month1Label },
-  ].filter((milestone) => milestone.day < timeline.days * 0.8);
+  ].filter((milestone) => milestone.day < timeline.days * 0.8 && x(milestone.day) - x(0) >= 16);
   const start = { x: x(0), y: y(timeline.currentKg) };
   const end = { x: x(timeline.days), y: y(timeline.targetKg) };
 

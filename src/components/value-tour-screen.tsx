@@ -74,7 +74,7 @@ export function ValueTourScreen({
       )}
       {step === 'snap' && (
         <QuizStepFrame eyebrow={tour.snap.eyebrow} title={tour.snap.title} description={tour.snap.body}>
-          <MealSnapDemo label={copy.valueTour.snap.videoLabel} />
+          <MealSnapDemo label={copy.valueTour.snap.videoLabel} compact />
           <div className="mt-auto pt-3">
             <PrimaryButton onClick={advance}>{tour.snap.cta}</PrimaryButton>
           </div>

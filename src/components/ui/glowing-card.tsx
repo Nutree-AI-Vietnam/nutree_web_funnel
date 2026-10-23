@@ -28,13 +28,6 @@ export function GlowingCard({
       )}
     >
       <div
-        aria-hidden="true"
-        className={cn(
-          'absolute inset-y-3 left-0 w-1 rounded-r-full bg-transparent transition duration-300',
-          active && 'bg-teal-brand',
-        )}
-      />
-      <div
         className={cn(
           'absolute inset-px rounded-[calc(1.25rem-1px)] bg-[linear-gradient(135deg,rgb(255_255_255_/_0.58),transparent_70%)]',
           compact && 'rounded-[calc(1rem-1px)]',
