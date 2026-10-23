@@ -993,8 +993,8 @@ export const vi = {
       topCta: 'Nhận kế hoạch',
       choosePlan: 'Chọn gói của bạn',
       planName: { day: ['ngày', 'ngày'], week: ['tuần', 'tuần'], month: ['tháng', 'tháng'], year: ['năm', 'năm'] },
-      billed: (count: number, unit: string) => `Thanh toán mỗi ${count} ${unit}`,
-      cadence: (count: number, unit: string) => `mỗi ${count} ${unit}`,
+      billed: (count: number, unit: string) => (count === 1 ? `Thanh toán mỗi ${unit}` : `Thanh toán mỗi ${count} ${unit}`),
+      cadence: (count: number, unit: string) => (count === 1 ? `mỗi ${unit}` : `mỗi ${count} ${unit}`),
       fitsTimeline: 'Vừa với lộ trình',
       renewal: (today: string, renewal: string, cadence: string, date: string) =>
         `Bạn thanh toán ${today} hôm nay, sau đó ${renewal} ${cadence}${date ? ` từ ${date}` : ''}. Tự động gia hạn; hủy bất cứ lúc nào qua email biên nhận.`,
