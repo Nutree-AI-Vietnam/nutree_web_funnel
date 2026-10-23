@@ -163,20 +163,16 @@ export function CalculatingStep() {
           {name ? loader.title(name) : loader.titleFallback}
         </h1>
         <p className="mx-auto mt-2 max-w-[22rem] text-base font-semibold leading-snug text-slate-brand">{loader.body}</p>
-        <p
-          className={cn(
-            'mx-auto mt-2 inline-flex min-h-7 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-colors duration-500',
-            ready ? 'bg-teal-brand/12 text-teal-brand' : 'text-muted-brand',
+        {/* The checklist below shows the step in progress, so the visible line waits for the finished plan; the space stays reserved. */}
+        <div className="mt-2 min-h-7">
+          {ready && (
+            <p className="mx-auto inline-flex min-h-7 items-center gap-1.5 rounded-full bg-teal-brand/12 px-3 text-xs font-bold text-teal-brand" aria-hidden="true">
+              <span>✓</span>
+              {subtitle}
+            </p>
           )}
-          aria-live="polite"
-        >
-          {ready ? (
-            <span aria-hidden="true">✓</span>
-          ) : (
-            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-teal-brand/25 border-t-teal-brand" aria-hidden="true" />
-          )}
-          {subtitle}
-        </p>
+          <span className="sr-only" aria-live="polite">{subtitle}</span>
+        </div>
       </header>
 
       {/* No min-h-0: on short screens this block must keep its height and scroll, not center up into the header. */}
