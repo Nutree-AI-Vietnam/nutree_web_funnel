@@ -526,15 +526,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     requestCheckoutRef.current();
   }, [loadState]);
 
-  const offerNote = isOriginalPricing
-    ? copy.paywall.standardPriceNote
-    : exitOfferActive
-    ? (activeLocale === 'vi' ? `Ưu đãi giảm ${EXIT_DISCOUNT_PERCENT}% đã được áp dụng cho tất cả gói.` : `Your ${EXIT_DISCOUNT_PERCENT}% offer applies to every plan.`)
-    : isExitOfferMode
-      ? (activeLocale === 'vi' ? `Ưu đãi giảm ${EXIT_DISCOUNT_PERCENT}% đã hết hạn. Giá đã trở về giá gốc cho tất cả gói.` : `The ${EXIT_DISCOUNT_PERCENT}% offer has expired. Prices have returned to the original amount for every plan.`)
-      : welcomeOfferActive
-        ? copy.paywall.planResearchNote
-        : (activeLocale === 'vi' ? 'Ưu đãi đã hết hạn. Giá đã trở về giá gốc cho tất cả gói.' : 'The offer has expired. Prices have returned to the original amount for every plan.');
   const priceSummary = isOriginalPricing
     ? copy.paywall.standardPriceSummary(originalTotal, renewalTotal, selectedLabel, renewalCadence)
     : exitOfferActive
@@ -816,8 +807,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
             })}
           </div>
           <p className="mt-3 text-center text-[0.7rem] font-semibold leading-snug text-muted-brand">{copy.paywall.perDayFootnote}</p>
-          <p className="mt-5 text-[0.94rem] leading-relaxed text-slate-brand">{paywall.recommendationNote?.[activeLocale] ?? copy.paywall.planRecommendation}</p>
-          <p className="mt-1.5 text-sm font-medium text-muted-brand">{offerNote}</p>
+          {paywall.recommendationNote?.[activeLocale] && <p className="mt-5 text-[0.94rem] leading-relaxed text-slate-brand">{paywall.recommendationNote[activeLocale]}</p>}
           <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta()}</button>
           <p className="mt-4 text-center text-sm leading-relaxed text-muted-brand">{priceSummary}</p>
         </section>

@@ -741,11 +741,8 @@ export const en: Copy = {
     repeatPlanTitle: 'Grab your Personal Plan',
     guaranteeTitle: '30-day money-back guarantee',
     guaranteeBody: 'Follow your plan for 4 weeks. If you do not see progress, email support@nutreeai.com within 30 days of purchase and we will refund you in full.',
-    planRecommendation: 'The 12-week plan gives you enough time to build a consistent tracking rhythm.',
-    planResearchNote: 'Your WELCOME50 offer is already applied.',
     standardHeader: 'Nutree Premium',
     standardTimer: 'Original price for your plan',
-    standardPriceNote: 'The prices shown are the original price of each plan.',
     standardPriceSummary: (today: string, renewal: string, planLabel: string, cadence: string) =>
       `You pay ${today} today for the ${planLabel} plan, then it renews at ${renewal} ${cadence} until you cancel.`,
     exitOfferTitle: 'Before you go — take 75% off',

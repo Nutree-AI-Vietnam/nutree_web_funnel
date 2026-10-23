@@ -775,11 +775,8 @@ export const vi = {
     repeatPlanTitle: 'Chọn kế hoạch cá nhân của bạn',
     guaranteeTitle: 'Đảm bảo hoàn tiền trong 30 ngày',
     guaranteeBody: 'Nếu bạn làm theo kế hoạch trong 4 tuần và vẫn không thấy tiến triển rõ ràng, chúng tôi sẽ hoàn tiền cho bạn.',
-    planRecommendation: 'Gói 12 tuần tạo đủ thời gian để xây dựng nhịp theo dõi đều đặn.',
-    planResearchNote: 'Ưu đãi WELCOME50 đã được áp dụng.',
     standardHeader: 'Nutree Premium',
     standardTimer: 'Giá gốc cho kế hoạch của bạn',
-    standardPriceNote: 'Giá hiển thị là giá gốc của từng gói.',
     standardPriceSummary: (today: string, renewal: string, planLabel: string, cadence: string) =>
       `Bạn thanh toán ${today} hôm nay cho gói ${planLabel}, sau đó gói tự gia hạn ${renewal} ${cadence} cho đến khi bạn hủy.`,
     exitOfferTitle: 'Khoan rời đi — nhận ưu đãi giảm 75%',
