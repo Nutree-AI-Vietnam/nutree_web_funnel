@@ -1004,6 +1004,15 @@ export const vi = {
       welcomeEnds: (percent: number, time: string) => `Giá chào mừng giảm ${percent}% kết thúc sau ${time}`,
       welcomeEnded: 'Giá chào mừng đã kết thúc. Giá đã trở lại bình thường.',
       welcomeReserved: (percent: number) => `Ưu đãi giảm ${percent}% giữ cho bạn trong:`,
+      checkout: {
+        title: 'Thanh toán',
+        planLine: (plan: string) => `Gói ${plan}`,
+        discountLine: (percent: number) => `Giảm ${percent}% chào mừng`,
+        offerLine: (percent: number) => `Ưu đãi giảm ${percent}%`,
+        total: 'Tổng hôm nay',
+        secure: 'Thanh toán được Paddle xử lý an toàn.',
+        previewFrame: 'Biểu mẫu thanh toán của Paddle hiện ở đây: Apple Pay, Google Pay, PayPal và thẻ.',
+      },
       paymentsTo: (count: number, date: string) => `${count} lần thanh toán đến ${date}`,
       renewal: (today: string, renewal: string, cadence: string, date: string) =>
         `Bạn thanh toán ${today} hôm nay, sau đó ${renewal} ${cadence}${date ? ` từ ${date}` : ''}. Tự động gia hạn; hủy bất cứ lúc nào qua email biên nhận.`,

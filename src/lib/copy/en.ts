@@ -1009,6 +1009,15 @@ export const en: Copy = {
       welcomeEnds: (percent: number, time: string) => `Your ${percent}% welcome price ends in ${time}`,
       welcomeEnded: 'Your welcome price has ended. Prices are back to normal.',
       welcomeReserved: (percent: number) => `${percent}% discount reserved for:`,
+      checkout: {
+        title: 'Checkout',
+        planLine: (plan: string) => `${plan} plan`,
+        discountLine: (percent: number) => `${percent}% welcome discount`,
+        offerLine: (percent: number) => `${percent}% offer`,
+        total: 'Total today',
+        secure: 'Payments are processed securely by Paddle.',
+        previewFrame: 'Paddle’s payment form appears here: Apple Pay, Google Pay, PayPal and card.',
+      },
       paymentsTo: (count: number, date: string) => `${count} ${count === 1 ? 'payment' : 'payments'} to ${date}`,
       renewal: (today: string, renewal: string, cadence: string, date: string) =>
         `You pay ${today} today, then ${renewal} ${cadence}${date ? ` from ${date}` : ''}. Renews automatically; cancel anytime from your receipt email.`,

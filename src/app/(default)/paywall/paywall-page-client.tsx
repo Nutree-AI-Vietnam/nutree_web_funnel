@@ -4,7 +4,7 @@ import { ErrorCode, Purchases, type Product, type Purchases as PurchasesInstance
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import { BoCongThuongBadge } from '@/components/bo-cong-thuong-badge';
 import { ConversionShell } from '@/components/conversion-shell';
 import { NutreeLogo } from '@/components/nutree-logo';
@@ -63,6 +63,13 @@ const OFFER_SECONDS = PAYWALL_WELCOME_OFFER_SECONDS;
 const ENGLISH_WELCOME_SECONDS = 600;
 // Icons for the four plan inclusions, in personalIncludes order.
 const INCLUDE_ICONS: IconName[] = ['plate', 'camera', 'calendar', 'chat'];
+
+/**
+ * In-page checkout (English): RevenueCat draws Paddle's payment form inside our checkout sheet
+ * instead of the full-screen popup. Off until the live domain is approved in Paddle and tested:
+ * NEXT_PUBLIC_INLINE_CHECKOUT=1 turns it on.
+ */
+const INLINE_CHECKOUT = process.env.NEXT_PUBLIC_INLINE_CHECKOUT === '1';
 
 /**
  * Wallet badges for payment methods switched on in Paddle (Apple Pay and Google Pay are on).
@@ -226,6 +233,12 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   // while the plans renew at the discounted price. Only the exit offer, which really ends, keeps a timer.
   const plainPricing = activeLocale === 'en';
   const welcomeSeconds = plainPricing ? ENGLISH_WELCOME_SECONDS : OFFER_SECONDS;
+  const inlineCheckout = INLINE_CHECKOUT && plainPricing;
+  const [checkoutSheetOpen, setCheckoutSheetOpen] = useState(false);
+  // Local preview has no RevenueCat, so the sheet shows a placeholder frame and its own close button.
+  const [checkoutPreview, setCheckoutPreview] = useState(false);
+  // RevenueCat empties and fills this element itself, so React never renders children into it.
+  const checkoutHostRef = useRef<HTMLDivElement>(null);
   // Read once on the client: a gift claimed earlier in this tab, or a plan link that opens checkout, skips the gift.
   const [giftSkipped, setGiftSkipped] = useState(() => typeof window !== 'undefined' && (hasWelcomeVoucherBeenClaimed() || autostartPending()));
   const timeline = useMemo(() => goalTimeline(data), [data]);
@@ -426,6 +439,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     }
     const customerEmail = readCheckoutEmail();
     if (customerEmail) identifyMetaUser({ email: customerEmail, externalId: lead.lead_id, firstName: data.name });
+    // Mount the sheet now, so its host element exists when RevenueCat starts drawing.
+    if (inlineCheckout && customerEmail) flushSync(() => setCheckoutSheetOpen(true));
     if (!customerEmail) {
       setError(activeLocale === 'vi' ? 'Vui lòng quay lại bước email để xác nhận địa chỉ thanh toán trước khi mua.' : 'We need your email before checkout. Go back to the email step to add it.');
       return;
@@ -502,6 +517,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         selectedLocale: activeLocale,
         defaultLocale: 'en',
         skipSuccessPage: true,
+        ...(inlineCheckout && checkoutHostRef.current ? { htmlTarget: checkoutHostRef.current } : {}),
       } as Parameters<PurchasesInstance['purchase']>[0];
       const purchaseResult = await purchasesRef.current.purchase(purchaseParameters);
       purchaseSucceededRef.current = true;
@@ -543,8 +559,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       stopWatchingPaddle();
       checkoutInFlightRef.current = false;
       setBusy(false);
+      setCheckoutSheetOpen(false);
     }
-  }, [activeLocale, countryCode, correlatePurchasedCustomer, data.name, lead, purchased, resolvedCountryCode, router, selected, setPurchased]);
+  }, [activeLocale, countryCode, correlatePurchasedCustomer, data.name, inlineCheckout, lead, purchased, resolvedCountryCode, router, selected, setPurchased]);
 
   const countdown = formatCountdown(secondsLeft);
   const persistedCorrelation = Boolean(lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id);
@@ -575,6 +592,11 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const requestCheckout = () => {
     if (lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id) {
       setRedemption({ kind: 'pending' });
+      return;
+    }
+    if (inlineCheckout && isLocalPreviewHost() && !purchasesRef.current) {
+      setCheckoutPreview(true);
+      setCheckoutSheetOpen(true);
       return;
     }
     if (!purchasesRef.current || !lead || !pricesReady) {
@@ -708,6 +730,40 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
           )}
         </div>
         <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className={cn('min-h-12 shrink-0 rounded-[1rem] px-4 text-[0.86rem] font-extrabold text-white transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50', exitOfferActive ? 'bg-[#C2410C] shadow-[0_10px_24px_rgb(194_65_12_/_0.25)] hover:bg-[#9A3412]' : 'cta-premium', offerRunning && !busy && 'cta-attention')}><span>{busy ? copy.paywall.loading : funnelPaywall.topCta}</span></button>
+      </div>
+    </div>
+  );
+
+  // Welmi-style summary above RevenueCat's in-page checkout: full price, the offer as a line, total today.
+  const sheetFullPrice = selectedOriginalPrice;
+  const sheetOfferPrice = selectedOfferPrice;
+  const sheetDiscount = sheetFullPrice && sheetOfferPrice && sheetFullPrice.amountMicros > sheetOfferPrice.amountMicros
+    ? new Intl.NumberFormat(priceLocale, { style: 'currency', currency: sheetFullPrice.currency }).format((sheetFullPrice.amountMicros - sheetOfferPrice.amountMicros) / 1_000_000)
+    : null;
+  const checkoutSheet = (
+    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-[rgb(9_22_18_/_0.45)] backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="checkout-sheet-title">
+      <div className="max-h-[94dvh] w-full max-w-lg overflow-y-auto rounded-t-[1.6rem] bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-18px_50px_rgb(9_22_18_/_0.25)] animate-soft-enter">
+        <h2 id="checkout-sheet-title" className="text-center text-[1.1rem] font-extrabold text-forest">{funnelPaywall.checkout.title}</h2>
+        {selected && (
+          <div className="mt-3 grid gap-1.5 text-[0.9rem]">
+            <p className="flex justify-between gap-3 text-slate-brand"><span>{funnelPaywall.checkout.planLine(planName(selected))}</span><span className="tabular-nums">{sheetFullPrice?.formattedPrice}</span></p>
+            {sheetDiscount && (
+              <p className="flex justify-between gap-3 text-slate-brand"><span>{exitOfferActive ? funnelPaywall.checkout.offerLine(EXIT_DISCOUNT_PERCENT) : funnelPaywall.checkout.discountLine(WELCOME_DISCOUNT_PERCENT)}</span><span className="font-extrabold tabular-nums text-[#c0263f]">−{sheetDiscount}</span></p>
+            )}
+            <p className="mt-1 flex items-baseline justify-between gap-3 border-t border-border-brand pt-2.5 text-forest"><span className="font-extrabold">{funnelPaywall.checkout.total}</span><span className="text-[1.15rem] font-extrabold tabular-nums">{introTotal}</span></p>
+            <p className="text-[0.72rem] leading-relaxed text-muted-brand">{renewalLine}</p>
+          </div>
+        )}
+        <div ref={checkoutHostRef} className="mt-3 min-h-[22rem]">
+          {checkoutPreview && (
+            <p className="grid min-h-[22rem] place-items-center rounded-[1.2rem] border-2 border-dashed border-border-brand px-6 text-center text-sm font-semibold text-muted-brand">{funnelPaywall.checkout.previewFrame}</p>
+          )}
+        </div>
+        <p className="mt-3 flex items-center justify-center gap-1.5 text-[0.72rem] font-bold text-muted-brand"><Icon name="lock" className="h-3.5 w-3.5" />{funnelPaywall.checkout.secure}</p>
+        <p className="mt-1.5 flex items-center justify-center gap-1.5 text-[0.78rem] font-extrabold text-forest"><Icon name="shield" className="h-4 w-4 text-teal-brand" />{funnelPaywall.guaranteeTitle}</p>
+        {checkoutPreview && (
+          <button type="button" onClick={() => setCheckoutSheetOpen(false)} className="mt-3 min-h-11 w-full rounded-2xl border border-border-brand text-sm font-extrabold text-forest">Close preview</button>
+        )}
       </div>
     </div>
   );
@@ -867,6 +923,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       )}
       className="gap-5"
     >
+      {/* On <body>, so the page's animated wrappers don't pin this fixed sheet to themselves. */}
+      {inlineCheckout && checkoutSheetOpen && createPortal(checkoutSheet, document.body)}
       {giftOpen && <WelcomeGiftScreen minutes={Math.round(welcomeSeconds / 60)} onClaim={claimWelcomeGift} />}
       {plainPricing ? englishBody : (
       <div className="pt-[5.75rem]">
