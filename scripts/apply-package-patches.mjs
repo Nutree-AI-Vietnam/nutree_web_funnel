@@ -11,6 +11,8 @@ const patchMarkers = [
   'showAddDiscounts: !0',
   'allowDiscountRemoval: !0',
   'discountCode: i.discountCode',
+  'return e.isInElement || (',
+  'p.rcbCancelCheckout = ',
 ];
 
 if (!existsSync(packageManifest) || !existsSync(patchedBundle)) {
@@ -30,22 +32,42 @@ if (patchMarkers.every((marker) => bundle.includes(marker))) {
   process.exit(0);
 }
 
-const lockedDiscountRemoval = `showAddDiscounts: !0,
+// An install that already carries an older copy of the patch is brought up to date in place,
+// because patch-package cannot apply the full patch over part of itself.
+const upgrades = [
+  {
+    // Paddle discount removal.
+    from: `showAddDiscounts: !0,
     showAddTaxId: !1,
-    allowDiscountRemoval: !1`;
-if (bundle.includes(lockedDiscountRemoval)) {
-  const unlocked = bundle.replace(
-    lockedDiscountRemoval,
-    `showAddDiscounts: !0,
+    allowDiscountRemoval: !1`,
+    to: `showAddDiscounts: !0,
     showAddTaxId: !1,
     allowDiscountRemoval: !0`,
-  );
-  if (!patchMarkers.every((marker) => unlocked.includes(marker))) {
-    console.error('Could not enable Paddle discount removal on the existing RevenueCat patch.');
+  },
+  {
+    // Draw Paddle inside the page whenever we pass our own element, whatever RevenueCat's inline setting says.
+    from: 'return ((J = o(f)) == null ? void 0 : J.paddle_billing_params.inline_checkout_enabled) ?? !1;',
+    to: 'return e.isInElement || (((J = o(f)) == null ? void 0 : J.paddle_billing_params.inline_checkout_enabled) ?? !1);',
+  },
+  {
+    // In-page checkout has no back button, so our sheet's close button cancels through this hook.
+    from: `      y || C.addEventListener("popstate", F);
+`,
+    to: `      y || C.addEventListener("popstate", F);
+      y && (p.rcbCancelCheckout = () => {
+        v.closeCheckout(), F();
+      });
+`,
+  },
+];
+if (bundle.includes('discountCodeValue = null')) {
+  const upgraded = upgrades.reduce((text, { from, to }) => (text.includes(from) ? text.replace(from, to) : text), bundle);
+  if (!patchMarkers.every((marker) => upgraded.includes(marker))) {
+    console.error('Could not bring the existing RevenueCat patch up to date.');
     process.exit(1);
   }
-  writeFileSync(patchedBundle, unlocked);
-  console.log('Enabled Paddle discount removal on the existing RevenueCat patch.');
+  writeFileSync(patchedBundle, upgraded);
+  console.log('Brought the existing RevenueCat patch up to date.');
   process.exit(0);
 }
 

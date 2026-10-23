@@ -999,12 +999,12 @@ export const en: Copy = {
       welcomeReserved: (percent: number) => `${percent}% discount reserved for:`,
       checkout: {
         title: 'Checkout',
+        close: 'Close checkout',
         planLine: (plan: string) => `${plan} plan`,
         discountLine: (percent: number) => `${percent}% welcome discount`,
         offerLine: (percent: number) => `${percent}% offer`,
-        total: 'Total today',
         secure: 'Payments are processed securely by Paddle.',
-        previewFrame: 'Paddle’s payment form appears here: Apple Pay, Google Pay, PayPal and card.',
+        previewFrame: 'Your order total and Paddle’s payment form load here: Apple Pay, Google Pay, PayPal and card.',
       },
       paymentsTo: (count: number, date: string) => `${count} ${count === 1 ? 'payment' : 'payments'} to ${date}`,
       renewal: (today: string, renewal: string, cadence: string, date: string) =>

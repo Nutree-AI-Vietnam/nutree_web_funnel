@@ -994,12 +994,12 @@ export const vi = {
       welcomeReserved: (percent: number) => `Ưu đãi giảm ${percent}% giữ cho bạn trong:`,
       checkout: {
         title: 'Thanh toán',
+        close: 'Đóng thanh toán',
         planLine: (plan: string) => `Gói ${plan}`,
         discountLine: (percent: number) => `Giảm ${percent}% chào mừng`,
         offerLine: (percent: number) => `Ưu đãi giảm ${percent}%`,
-        total: 'Tổng hôm nay',
         secure: 'Thanh toán được Paddle xử lý an toàn.',
-        previewFrame: 'Biểu mẫu thanh toán của Paddle hiện ở đây: Apple Pay, Google Pay, PayPal và thẻ.',
+        previewFrame: 'Tổng đơn hàng và biểu mẫu thanh toán của Paddle hiện ở đây: Apple Pay, Google Pay, PayPal và thẻ.',
       },
       paymentsTo: (count: number, date: string) => `${count} lần thanh toán đến ${date}`,
       renewal: (today: string, renewal: string, cadence: string, date: string) =>

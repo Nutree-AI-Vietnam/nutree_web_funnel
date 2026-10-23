@@ -740,30 +740,52 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const sheetDiscount = sheetFullPrice && sheetOfferPrice && sheetFullPrice.amountMicros > sheetOfferPrice.amountMicros
     ? new Intl.NumberFormat(priceLocale, { style: 'currency', currency: sheetFullPrice.currency }).format((sheetFullPrice.amountMicros - sheetOfferPrice.amountMicros) / 1_000_000)
     : null;
+  // RevenueCat hides its back button inside our element, so closing goes through the patched SDK's cancel hook:
+  // the purchase rejects as cancelled and the usual cleanup runs. Local preview has no hook and just closes.
+  const closeCheckoutSheet = () => {
+    const cancel = (checkoutHostRef.current as (HTMLDivElement & { rcbCancelCheckout?: () => void }) | null)?.rcbCancelCheckout;
+    if (cancel) cancel();
+    else setCheckoutSheetOpen(false);
+  };
+  // Our part of the sheet is the discount; RevenueCat draws the order total (with any tax) above Paddle's form.
   const checkoutSheet = (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-[rgb(9_22_18_/_0.45)] backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="checkout-sheet-title">
-      <div className="max-h-[94dvh] w-full max-w-lg overflow-y-auto rounded-t-[1.6rem] bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-18px_50px_rgb(9_22_18_/_0.25)] animate-soft-enter">
-        <h2 id="checkout-sheet-title" className="text-center text-[1.1rem] font-extrabold text-forest">{funnelPaywall.checkout.title}</h2>
-        {selected && (
-          <div className="mt-3 grid gap-1.5 text-[0.9rem]">
-            <p className="flex justify-between gap-3 text-slate-brand"><span>{funnelPaywall.checkout.planLine(planName(selected))}</span><span className="tabular-nums">{sheetFullPrice?.formattedPrice}</span></p>
-            {sheetDiscount && (
-              <p className="flex justify-between gap-3 text-slate-brand"><span>{exitOfferActive ? funnelPaywall.checkout.offerLine(EXIT_DISCOUNT_PERCENT) : funnelPaywall.checkout.discountLine(WELCOME_DISCOUNT_PERCENT)}</span><span className="font-extrabold tabular-nums text-[#c0263f]">−{sheetDiscount}</span></p>
-            )}
-            <p className="mt-1 flex items-baseline justify-between gap-3 border-t border-border-brand pt-2.5 text-forest"><span className="font-extrabold">{funnelPaywall.checkout.total}</span><span className="text-[1.15rem] font-extrabold tabular-nums">{introTotal}</span></p>
-            <p className="text-[0.72rem] leading-relaxed text-muted-brand">{renewalLine}</p>
+    <div
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-[rgb(9_22_18_/_0.45)] backdrop-blur-[2px]"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="checkout-sheet-title"
+      onKeyDown={(event) => { if (event.key === 'Escape') closeCheckoutSheet(); }}
+    >
+      <div className="max-h-[94dvh] w-full max-w-lg overflow-y-auto rounded-t-[1.6rem] bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-18px_50px_rgb(9_22_18_/_0.25)] animate-soft-enter">
+        <div className="relative flex min-h-11 items-center justify-center">
+          <h2 id="checkout-sheet-title" className="text-[1.1rem] font-extrabold text-forest">{funnelPaywall.checkout.title}</h2>
+          <button type="button" onClick={closeCheckoutSheet} aria-label={funnelPaywall.checkout.close} className="absolute right-[-0.5rem] top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-slate-brand transition hover:bg-mist focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">
+            <Icon name="close" className="h-5 w-5" />
+          </button>
+        </div>
+        {selected && (sheetDiscount ? (
+          <div className="mt-2 rounded-2xl bg-[#fdecef] px-3.5 py-3">
+            <p className="flex items-center justify-between gap-3 text-[0.92rem] font-extrabold text-[#c0263f]">
+              <span className="flex items-center gap-1.5"><Icon name="gift" className="h-4 w-4" />{exitOfferActive ? funnelPaywall.checkout.offerLine(EXIT_DISCOUNT_PERCENT) : funnelPaywall.checkout.discountLine(WELCOME_DISCOUNT_PERCENT)}</span>
+              <span className="tabular-nums">−{sheetDiscount}</span>
+            </p>
+            <p className="mt-0.5 flex justify-between gap-3 text-[0.8rem] font-semibold text-slate-brand">
+              <span>{funnelPaywall.checkout.planLine(planName(selected))}</span>
+              <span className="tabular-nums"><s className="text-muted-brand">{sheetFullPrice?.formattedPrice}</s> {sheetOfferPrice?.formattedPrice}</span>
+            </p>
           </div>
-        )}
-        <div ref={checkoutHostRef} className="mt-3 min-h-[22rem]">
+        ) : (
+          <p className="mt-2 flex justify-between gap-3 rounded-2xl bg-mist px-3.5 py-3 text-[0.9rem] font-bold text-forest"><span>{funnelPaywall.checkout.planLine(planName(selected))}</span><span className="tabular-nums">{introTotal}</span></p>
+        ))}
+        {/* Paddle's form needs 312px; on the narrowest phones the box borrows the sheet's side padding. */}
+        <div ref={checkoutHostRef} className="mt-3 min-h-[22rem] max-[359px]:-mx-3">
           {checkoutPreview && (
             <p className="grid min-h-[22rem] place-items-center rounded-[1.2rem] border-2 border-dashed border-border-brand px-6 text-center text-sm font-semibold text-muted-brand">{funnelPaywall.checkout.previewFrame}</p>
           )}
         </div>
-        <p className="mt-3 flex items-center justify-center gap-1.5 text-[0.72rem] font-bold text-muted-brand"><Icon name="lock" className="h-3.5 w-3.5" />{funnelPaywall.checkout.secure}</p>
+        <p className="mt-3 text-center text-[0.72rem] leading-relaxed text-muted-brand">{renewalLine}</p>
+        <p className="mt-2 flex items-center justify-center gap-1.5 text-[0.72rem] font-bold text-muted-brand"><Icon name="lock" className="h-3.5 w-3.5" />{funnelPaywall.checkout.secure}</p>
         <p className="mt-1.5 flex items-center justify-center gap-1.5 text-[0.78rem] font-extrabold text-forest"><Icon name="shield" className="h-4 w-4 text-teal-brand" />{funnelPaywall.guaranteeTitle}</p>
-        {checkoutPreview && (
-          <button type="button" onClick={() => setCheckoutSheetOpen(false)} className="mt-3 min-h-11 w-full rounded-2xl border border-border-brand text-sm font-extrabold text-forest">Close preview</button>
-        )}
       </div>
     </div>
   );
