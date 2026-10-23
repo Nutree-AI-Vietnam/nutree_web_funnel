@@ -14,6 +14,7 @@ import { isLocalPreviewHost } from '@/lib/local-preview';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { saveCheckoutEmail } from '@/lib/revenuecat/checkout-email';
 import { AppStoreRating } from '@/components/value-tour/value-tour-demos';
+import { Icon } from '@/components/ui/icons';
 import { formatGoalDate, goalTimeline } from '@/lib/quiz/progress-projection';
 import { formatWeight } from '@/lib/quiz/units';
 import { useUnits } from '@/lib/quiz/use-units';
@@ -55,7 +56,7 @@ function PlanTeaser({ data, tdee }: { data: OnboardingPayload; tdee: TdeeResult 
         ))}
       </ul>
       <div className="rounded-2xl border border-border-brand/80 bg-mist/50 p-2.5">
-        <p className="text-xs font-bold text-muted-brand"><span aria-hidden="true">🔒 </span>{email.teaserHidden}</p>
+        <p className="flex items-center gap-1.5 text-xs font-bold text-muted-brand"><Icon name="lock" className="h-3.5 w-3.5 text-teal-brand" />{email.teaserHidden}</p>
         <ul className="mt-2 grid grid-cols-2 gap-2" aria-hidden="true">
           {locked.map((block) => (
             <li key={block.label} className="min-w-0 rounded-xl bg-white px-2.5 py-2">

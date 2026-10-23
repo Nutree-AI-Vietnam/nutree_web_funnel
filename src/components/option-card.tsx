@@ -2,6 +2,7 @@
 
 import { GlowingCard } from '@/components/ui/glowing-card';
 import { cn } from '@/lib/utils';
+import { Icon, type IconName } from '@/components/ui/icons';
 
 const brandIcons: Record<string, { path: string; label: string; color: string }> = {
   facebook: {
@@ -65,6 +66,15 @@ function SourceGlyph({ icon, compact }: { icon: string; compact?: boolean }) {
 
 function OptionIcon({ icon, compact }: { icon: string; compact?: boolean }) {
   const brand = brandIcons[icon];
+
+  // "line:<name>" draws one of the brand line icons on a mist tile.
+  if (icon.startsWith('line:')) {
+    return (
+      <span aria-hidden="true" className={cn('flex shrink-0 items-center justify-center rounded-xl bg-mist text-teal-brand', compact ? 'h-7 w-7' : 'h-10 w-10')}>
+        <Icon name={icon.slice(5) as IconName} className={compact ? 'h-3.5 w-3.5' : 'h-5 w-5'} />
+      </span>
+    );
+  }
 
   if (icon === 'google' || icon === 'people' || icon === 'spark') {
     return (

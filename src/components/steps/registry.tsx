@@ -23,7 +23,7 @@ import { ProgressStep } from './progress';
 import { ConfidenceStep } from './confidence-step';
 import { WeightStep } from './weight-step';
 
-const GOAL_ICONS: Record<string, string> = { cut: '🔥', bulk: '💪', recomp: '⚡', maintain: '🥗' };
+const GOAL_ICONS: Record<string, string> = { cut: 'line:flame', bulk: 'line:dumbbell', recomp: 'line:bolt', maintain: 'line:bowl' };
 
 /**
  * slug -> screen component. Every QuizStep must have an entry (registry check in page.tsx).

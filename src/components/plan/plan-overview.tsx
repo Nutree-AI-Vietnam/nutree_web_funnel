@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from 'motion/react';
 import type { ReactNode } from 'react';
+import { Icon } from '@/components/ui/icons';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { firstChangePlan, planNumbers, sampleDay, type ChangeSource, type DishId, type Meal } from '@/lib/quiz/plan-content';
 import { formatGoalDate, goalTimeline, type GoalTimeline } from '@/lib/quiz/progress-projection';
@@ -179,8 +180,8 @@ export function PlanGoalCard({ data, tdee, system, className }: {
       )}
       {tdee && (
         <div className="mt-3 flex flex-wrap gap-2">
-          <span className="rounded-full bg-[#e8f4ef] px-3 py-1.5 text-sm font-extrabold text-forest">🔥 {plan.calories(format.format(Math.round(tdee.calories)))}</span>
-          <span className="rounded-full bg-[#eef2fb] px-3 py-1.5 text-sm font-extrabold text-[#2b4a8b]">💪 {plan.protein(Math.round(tdee.protein_g))}</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-mist px-3 py-1.5 text-sm font-extrabold text-forest"><Icon name="flame" className="h-4 w-4 text-teal-brand" />{plan.calories(format.format(Math.round(tdee.calories)))}</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-mist px-3 py-1.5 text-sm font-extrabold text-forest"><span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-protein" />{plan.protein(Math.round(tdee.protein_g))}</span>
         </div>
       )}
       <p className="mt-3 text-xs font-semibold text-muted-brand">{plan.estimate}</p>
