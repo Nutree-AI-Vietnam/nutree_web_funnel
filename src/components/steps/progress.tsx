@@ -58,33 +58,25 @@ export function ProgressStep() {
   const timeline = goalTimeline(data);
   if (timeline) {
     const funnel = copy.funnel.progress;
-    const target = formatWeight(timeline.targetKg, system);
+    const target = formatWeight(timeline.targetKg, system, locale);
     const date = formatGoalDate(timeline.date, locale);
     const name = data.name?.trim();
-    const stats = [
-      { label: funnel.week1, value: formatWeight(timeline.week1Kg, system), date: formatGoalDate(timeline.week1Date, locale, false), tone: 'text-forest', note: funnel.firstWin },
-      { label: funnel.month1, value: formatWeight(timeline.month1Kg, system), date: formatGoalDate(timeline.month1Date, locale, false), tone: 'text-slate-brand' },
-      { label: funnel.goal, value: target, date: formatGoalDate(timeline.date, locale, false), tone: 'text-teal-brand' },
-    ];
+    const rate = system === 'imperial' ? `${(timeline.kgPerWeek / 0.45359237).toFixed(1)} lb` : formatWeight(timeline.kgPerWeek, 'metric', locale);
     return (
-      <QuizStepFrame title={name ? funnel.headline(name, target, date) : funnel.headlineNoName(target, date)} eyebrow={funnel.eyebrow}>
+      <QuizStepFrame title={name ? funnel.headline(name, target, date) : funnel.headlineNoName(target, date)}>
         <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/86 p-4 shadow-[0_18px_50px_rgb(26_71_57_/_0.11)]">
-          <GoalChart timeline={timeline} system={system} nowLabel={copy.funnel.plan.now} week1Label={funnel.week1} month1Label={funnel.month1} goalLabel={formatGoalDate(timeline.date, locale, false)} />
-          <div className="mt-2 grid grid-cols-3 gap-2 text-center">
-            {stats.map((stat) => (
-              <div key={stat.label} className="rounded-2xl bg-mist/70 px-1.5 py-2">
-                <div className={`text-lg font-extrabold leading-tight ${stat.tone}`}>{stat.value}</div>
-                <div className="text-xs font-bold text-muted-brand">{stat.label}</div>
-                <div className="text-[0.7rem] font-semibold text-muted-brand">{stat.date}</div>
-                {stat.note && <div className="mt-0.5 text-[0.68rem] font-extrabold text-teal-brand">{stat.note}</div>}
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 text-center text-sm font-semibold leading-relaxed text-muted-brand">
-            {funnel.pace(system === 'imperial' ? funnel.rateImperial : funnel.rateMetric, timeline.weeks)}
-          </p>
+          <GoalChart timeline={timeline} system={system} nowLabel={copy.funnel.plan.now} week1Label={funnel.week1} month1Label={funnel.month1} goalLabel={formatGoalDate(timeline.date, locale, false)} animate />
+          {/* The first win, under the path once the goal dot lands: close, small and believable. */}
+          <motion.p
+            className="mt-3 inline-flex rounded-full bg-forest px-3 py-1.5 text-[0.85rem] font-extrabold tabular-nums text-white"
+            initial={reduce ? false : { opacity: 0, y: 6, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 1.0, duration: 0.35 }}
+          >
+            {copy.funnel.plan.firstWin(formatWeight(timeline.week1Kg, system, locale), formatGoalDate(timeline.week1Date, locale, false))}
+          </motion.p>
+          <p className="mt-2 text-[0.75rem] font-semibold leading-snug text-muted-brand">{funnel.estimateAtPace(rate)}</p>
         </section>
-        <p className="text-xs italic leading-relaxed text-muted-brand">{funnel.estimate}</p>
         <div className="mt-auto pt-2">
           <PrimaryButton onClick={() => goToNextQuizStep(router, 'progress')}>{copy.progress.cta}</PrimaryButton>
         </div>
@@ -129,22 +121,22 @@ export function ProgressStep() {
         {projection.kind === 'weight' ? (
           <div className="mt-2 grid grid-cols-3 gap-2 text-center">
             <div>
-              <div className="text-lg font-extrabold text-forest">{formatWeight(projection.current, system)}</div>
+              <div className="text-lg font-extrabold text-forest">{formatWeight(projection.current, system, locale)}</div>
               <div className="text-xs font-semibold text-muted-brand">{copy.progress.startLabel}</div>
             </div>
             <div>
-              <div className="text-lg font-extrabold text-slate-brand">{formatWeight(projection.midpoint, system)}</div>
+              <div className="text-lg font-extrabold text-slate-brand">{formatWeight(projection.midpoint, system, locale)}</div>
               <div className="text-xs font-semibold text-muted-brand">{copy.progress.monthNumber(2)}</div>
             </div>
             <div>
-              <div className="text-lg font-extrabold text-teal-brand">{formatWeight(projection.target, system)}</div>
+              <div className="text-lg font-extrabold text-teal-brand">{formatWeight(projection.target, system, locale)}</div>
               <div className="text-xs font-semibold text-muted-brand">{copy.progress.goalLabel}</div>
             </div>
           </div>
         ) : (
           <div className="mt-2 grid grid-cols-3 gap-2 text-center">
             <div>
-              <div className="text-lg font-extrabold text-forest">{projection.currentKg != null ? formatWeight(projection.currentKg, system) : copy.progress.missingStat}</div>
+              <div className="text-lg font-extrabold text-forest">{projection.currentKg != null ? formatWeight(projection.currentKg, system, locale) : copy.progress.missingStat}</div>
               <div className="text-xs font-semibold text-muted-brand">{copy.progress.currentStat}</div>
             </div>
             <div>

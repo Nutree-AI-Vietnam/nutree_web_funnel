@@ -82,6 +82,18 @@ describe('home quiz entry', () => {
       }
       vi.stubGlobal('ResizeObserver', ResizeObserverStub);
     }
+    // The rating stars on the goal step reveal when in view.
+    if (!('IntersectionObserver' in globalThis)) {
+      class IntersectionObserverStub {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+        takeRecords() {
+          return [];
+        }
+      }
+      vi.stubGlobal('IntersectionObserver', IntersectionObserverStub);
+    }
     window.scrollTo = () => undefined;
     window.history.replaceState(null, '', ENTRY_URL);
     sessionStorage.clear();
@@ -132,6 +144,7 @@ describe('home quiz entry', () => {
 
     expect(screen.queryByRole('button', { name: 'Quay lại' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Tiếng Việt' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: '4.7/5 trên App Store. 40.000+ khách hàng đã chọn Nutree' })).toBeTruthy();
     expect(screen.getByRole('link', { name: /Bộ Công Thương/ }).getAttribute('href')).toBe(BCT_HREF);
 
     const terms = screen.getByRole('link', { name: 'Điều khoản' });

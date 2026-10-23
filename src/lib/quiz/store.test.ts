@@ -185,15 +185,35 @@ describe('quiz store', () => {
     expect([paywall.funnelScreen, paywall.currentStep]).toEqual(['paywall', 'goal']);
   });
 
-  it('sends a saved removed quiz step to the pause before calculating', () => {
-    for (const currentStep of ['science', 'science_sources', 'preview', 'support_style']) {
+  it('sends a saved removed quiz step to calculating', () => {
+    for (const currentStep of ['science', 'science_sources', 'preview', 'support_style', 'care_pause']) {
       const migrated = migratePersistedQuizState({
         funnelScreen: 'quiz',
         currentStep,
         data: { measurement_unit: 'metric' },
       });
-      expect(migrated.currentStep).toBe('care_pause');
+      expect(migrated.currentStep).toBe('calculating');
       expect(migrated.funnelScreen).toBe('quiz');
+    }
+  });
+
+  it('sends a saved duration step on to motivation', () => {
+    const migrated = migratePersistedQuizState({ funnelScreen: 'quiz', currentStep: 'duration', data: { measurement_unit: 'metric' } });
+    expect(migrated.currentStep).toBe('motivation');
+    expect(migrated.funnelScreen).toBe('quiz');
+  });
+
+  it('reopens a version-12 tab saved on a removed step at the step that replaced it', async () => {
+    for (const [saved, expected] of [['care_pause', 'calculating'], ['duration', 'motivation']] as const) {
+      sessionMem.set(STORAGE_KEY, JSON.stringify({
+        state: { funnelScreen: 'quiz', currentStep: saved, data: { measurement_unit: 'metric' }, locale: 'en' },
+        version: 12,
+      }));
+
+      await useQuizStore.persist.rehydrate();
+
+      expect(useQuizStore.getState().currentStep).toBe(expected);
+      expect(useQuizStore.getState().funnelScreen).toBe('quiz');
     }
   });
 

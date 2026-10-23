@@ -8,7 +8,6 @@ describe('quiz steps', () => {
       'name_ask',
       'welcome',
       'challenges',
-      'duration',
       'motivation',
       'reflection',
       'sex',
@@ -22,7 +21,6 @@ describe('quiz steps', () => {
       'training_duration',
       'eating_pattern',
       'diet',
-      'care_pause',
       'calculating',
       'result',
       'progress',
@@ -39,9 +37,8 @@ describe('quiz steps', () => {
   it('navigates forward through quiz screens without creating subroutes', () => {
     expect(nextStep('goal')).toBe('name_ask');
     expect(nextStep('name_ask')).toBe('welcome');
-    expect(nextStep('diet')).toBe('care_pause');
+    expect(nextStep('diet')).toBe('calculating');
     expect(nextStep('body_review')).toBe('activity_level');
-    expect(nextStep('care_pause')).toBe('calculating');
   });
 
   it('continues from result through progress and the confidence question before email capture', () => {
@@ -51,18 +48,19 @@ describe('quiz steps', () => {
   });
 
   it('counts the questions the welcome screen promises', () => {
-    expect(questionCount()).toBe(16);
+    expect(questionCount()).toBe(15);
   });
 
   it('navigates backward, landing page before first screen', () => {
     expect(previousStep('name_ask')).toBe('goal');
+    expect(previousStep('motivation')).toBe('challenges');
     expect(previousStep('goal')).toBeNull();
   });
 
   it('exposes 1-based progress index', () => {
     expect(stepIndex('goal')).toBe(1);
-    expect(stepIndex('height')).toBe(10);
-    expect(stepIndex('result')).toBe(21);
+    expect(stepIndex('height')).toBe(9);
+    expect(stepIndex('result')).toBe(19);
     expect(STEP_CHAPTERS.training_days).toBe('routine');
   });
 

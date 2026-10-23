@@ -58,11 +58,11 @@ export function ValueTourScreen({
     <QuizShell step="confidence" progressIndex={valueProgressIndex(step)} onBack={goBack} showExitIntent={false}>
       {step === 'plan' && (
         <QuizStepFrame eyebrow={tour.plan.eyebrow} title={data.name?.trim() ? copy.funnel.plan.eyebrow(data.name.trim()) : copy.funnel.plan.eyebrowFallback}>
-          {/* The email unlocked the day of meals and the first three changes; show them right away. */}
+          {/* The email unlocked the first three changes and the day of meals; lead with the changes. The result screen already showed the targets. */}
           {tdee ? (
             <>
-              <PlanDayCard data={data} tdee={tdee} reveal />
               <FirstChangesCard data={data} tdee={tdee} reveal />
+              <PlanDayCard data={data} tdee={tdee} reveal targets={false} />
             </>
           ) : (
             <PlanGoalCard data={data} tdee={tdee} system={system} />

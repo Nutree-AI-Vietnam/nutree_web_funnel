@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { goalFromSearch } from '@/lib/funnel/ad-goal';
-import { dishFor, firstChanges, periodWeeks, planForTimeline, sampleDay } from './plan-content';
+import { appIncludeSources, dishFor, firstChanges, periodWeeks, planForTimeline, sampleDay } from './plan-content';
 import { goalTimeline } from './progress-projection';
 
 describe('goalTimeline', () => {
@@ -45,6 +45,24 @@ describe('firstChanges', () => {
 
   it('adds eating out for people who rarely cook', () => {
     expect(firstChanges({ hardest_eating_moment: 'evening' }, { cooking: 'out' })).toEqual(['evening', 'eating_out', 'protein']);
+  });
+});
+
+describe('appIncludeSources', () => {
+  it('tags photo, ideas and coach rows from the answers, and never the pace row', () => {
+    expect(appIncludeSources({ hardest_eating_moment: 'morning', pain_points: ['no_time', 'cravings'] })).toEqual([
+      { kind: 'challenge', key: 'no_time' },
+      { kind: 'moment', key: 'morning' },
+      { kind: 'challenge', key: 'cravings' },
+      null,
+    ]);
+    expect(appIncludeSources({})).toEqual([null, null, null, null]);
+  });
+
+  it('puts the moment first, then eating out, then the blockers in the order picked', () => {
+    expect(appIncludeSources({ hardest_eating_moment: 'eating_out', pain_points: ['no_time'] }, { cooking: 'out' })[0]).toEqual({ kind: 'moment', key: 'eating_out' });
+    expect(appIncludeSources({ pain_points: ['no_time'] }, { cooking: 'out' })[0]).toEqual({ kind: 'cooking' });
+    expect(appIncludeSources({ pain_points: ['stress_eating', 'cravings'] })[2]).toEqual({ kind: 'challenge', key: 'stress_eating' });
   });
 });
 

@@ -5,13 +5,14 @@ import { GoalEntryFooter } from '@/components/goal-entry-footer';
 import { useCopy } from '@/lib/copy/use-copy';
 import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
 import type { QuizStep } from '@/lib/quiz/steps';
+import { useQuizStore } from '@/lib/quiz/store';
 import { CalculatingStep } from './calculating';
 import { BirthDateStep } from './birth-date-step';
 import {
   BodyReviewStep,
   TargetWeightStep,
 } from './final-web-steps';
-import { CarePauseStep, WelcomeStep } from './impression-steps';
+import { WelcomeStep } from './impression-steps';
 import { MultiChoiceStep } from './multi-choice';
 import { NumberInputStep } from './number-input-step';
 import { ReflectionStep } from './reflection';
@@ -24,6 +25,9 @@ import { ConfidenceStep } from './confidence-step';
 import { WeightStep } from './weight-step';
 
 const GOAL_ICONS: Record<string, string> = { cut: 'line:flame', bulk: 'line:dumbbell', recomp: 'line:bolt', maintain: 'line:bowl' };
+
+/** Challenges no longer offered. Their labels stay in the copy so saved answers still read. */
+const RETIRED_CHALLENGES = ['no_motivation', 'past_failures'];
 
 /**
  * slug -> screen component. Every QuizStep must have an entry (registry check in page.tsx).
@@ -52,6 +56,8 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
   welcome: () => <WelcomeStep />,
   challenges: function ChallengesStep() {
     const c = useCopy();
+    // A retired option saved in an older session stays on screen while picked, so it can be cleared.
+    const picked = useQuizStore((s) => s.data.pain_points) ?? [];
     return (
       <MultiChoiceStep
         step="challenges"
@@ -59,20 +65,8 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
         question={c.challenges.question}
         description={c.challenges.description}
         hint={c.challenges.hint}
-        options={c.challenges.options}
+        options={c.challenges.options.filter((o) => !RETIRED_CHALLENGES.includes(o.key) || picked.includes(o.key))}
         replies={c.funnel.coach}
-      />
-    );
-  },
-  duration: function DurationStep() {
-    const c = useCopy();
-    return (
-      <SingleChoiceStep
-        step="duration"
-        field="challenge_duration"
-        question={c.duration.question}
-        description={c.duration.description}
-        options={c.duration.options}
       />
     );
   },
@@ -156,10 +150,10 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
         description={c.diet.description}
         hint={c.diet.hint}
         options={c.diet.options}
+        ctaLabel={c.diet.cta}
       />
     );
   },
-  care_pause: () => <CarePauseStep />,
   calculating: () => <CalculatingStep />,
   result: () => <TdeeTargetsStep />,
   progress: () => <ProgressStep />,

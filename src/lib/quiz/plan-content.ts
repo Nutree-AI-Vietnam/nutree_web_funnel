@@ -147,6 +147,32 @@ export function firstChangePlan(
   return picks;
 }
 
+/** The answers each paywall app row can name: photo logging, meal ideas, then the coach. */
+const APP_ROW_ANSWERS: { moments: string[]; cooking?: true; challenges: string[] }[] = [
+  { moments: ['eating_out'], cooking: true, challenges: ['no_time'] },
+  { moments: ['morning', 'lunch'], challenges: ['dont_know_what_to_eat'] },
+  { moments: ['late_night', 'evening'], challenges: ['cravings', 'stress_eating'] },
+];
+
+/**
+ * The answer each of the paywall's four app rows is tagged with, or null. Per row the off-plan
+ * moment wins, then eating out, then the blockers in the order they were picked. The rows never
+ * share an answer, so no tag repeats; the fourth row (pace) names the goal in its title instead.
+ */
+export function appIncludeSources(
+  data: Pick<OnboardingPayload, 'hardest_eating_moment' | 'pain_points'>,
+  answers: { cooking?: 'home' | 'out' } = {},
+): (ChangeSource | null)[] {
+  const moment = data.hardest_eating_moment;
+  const rows = APP_ROW_ANSWERS.map((row): ChangeSource | null => {
+    if (moment && row.moments.includes(moment)) return { kind: 'moment', key: moment };
+    if (row.cooking && answers.cooking === 'out') return { kind: 'cooking' };
+    const challenge = (data.pain_points ?? []).find((key) => row.challenges.includes(key));
+    return challenge ? { kind: 'challenge', key: challenge } : null;
+  });
+  return [...rows, null];
+}
+
 export function firstChanges(
   data: Pick<OnboardingPayload, 'hardest_eating_moment' | 'pain_points'>,
   answers: { cooking?: 'home' | 'out' } = {},

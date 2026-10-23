@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { NutreeLogo } from '@/components/nutree-logo';
 import { OptionCard } from '@/components/option-card';
 import { PrimaryButton } from '@/components/primary-button';
@@ -23,6 +24,7 @@ export function MultiChoiceStep({
   hint,
   options,
   replies,
+  ctaLabel,
 }: {
   step: QuizStep;
   field: ArrayField;
@@ -32,11 +34,16 @@ export function MultiChoiceStep({
   options: ReadonlyArray<{ readonly key: string; readonly label: string; readonly icon?: string }>;
   /** A one-line reply to the latest pick, per option key. */
   replies?: Readonly<Record<string, string>>;
+  /** Overrides the button label; defaults to Continue. */
+  ctaLabel?: string;
 }) {
   const vi = useCopy();
   const router = useRouter();
+  const reduce = useReducedMotion();
   const values = useQuizStore((s) => s.data[field]) ?? [];
   const setData = useQuizStore((s) => s.setData);
+  const lastKey = values[values.length - 1];
+  const reply = replies && lastKey ? replies[lastKey] : undefined;
   const compact = options.length > 6;
   const twoColumn = field === 'dietary_preferences';
   const [showCareModal, setShowCareModal] = useState(false);
@@ -117,13 +124,27 @@ export function MultiChoiceStep({
         ))}
       </div>
       <div className={cn('mt-auto', compact ? 'pt-3' : 'pt-6')}>
-        {replies && values.length > 0 && replies[values[values.length - 1]] && (
-          <p role="status" className="mb-2.5 rounded-2xl bg-emerald-50 px-3.5 py-2.5 text-[13px] font-semibold leading-snug text-emerald-900">
-            {replies[values[values.length - 1]]}
-          </p>
+        {/* The slot is there from the first frame so the list does not jump on the first pick; replies share one cell and cross-fade. */}
+        {replies && (
+          <div role="status" aria-live="polite" className="mb-2.5 grid min-h-[2.375rem]">
+            <AnimatePresence initial={false}>
+              {reply && (
+                <motion.p
+                  key={lastKey}
+                  className="[grid-area:1/1] rounded-2xl bg-emerald-50 px-3.5 py-2.5 text-[13px] font-semibold leading-snug text-emerald-900"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: reduce ? 0 : 0.15, ease: 'easeOut' }}
+                >
+                  {reply}
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
         )}
         <PrimaryButton ref={triggerRef} disabled={values.length === 0} onClick={continueToNext}>
-          {vi.common.continue}
+          {ctaLabel ?? vi.common.continue}
         </PrimaryButton>
       </div>
       {showCareModal && (

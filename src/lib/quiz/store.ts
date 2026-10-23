@@ -19,9 +19,17 @@ const FUNNEL_SCREENS = ['landing', 'quiz', 'email', 'value', 'paywall', 'exit-of
 export type FunnelScreen = (typeof FUNNEL_SCREENS)[number];
 
 export const STORAGE_KEY = 'nutree_funnel_v1';
-const STORE_VERSION = 12;
+const STORE_VERSION = 13;
 
-const REMOVED_QUIZ_STEPS = new Set(['science', 'science_sources', 'preview', 'support_style']);
+/** Where a tab saved on a removed quiz step picks up. */
+const REMOVED_QUIZ_STEP_REDIRECTS: Record<string, QuizStep> = {
+  science: 'calculating',
+  science_sources: 'calculating',
+  preview: 'calculating',
+  support_style: 'calculating',
+  care_pause: 'calculating',
+  duration: 'motivation',
+};
 
 interface QuizState {
   funnelScreen: FunnelScreen;
@@ -125,7 +133,7 @@ export function migratePersistedQuizState(persistedState: unknown): PersistedQui
   const requestedScreen = state.funnelScreen === 'welcome-gift' ? 'value' : state.funnelScreen;
   const savedScreen = FUNNEL_SCREENS.find((screen) => screen === requestedScreen);
   const rawStep = typeof state.currentStep === 'string' ? state.currentStep : '';
-  const normalizedStep = REMOVED_QUIZ_STEPS.has(rawStep) ? 'care_pause' : rawStep;
+  const normalizedStep = REMOVED_QUIZ_STEP_REDIRECTS[rawStep] ?? rawStep;
   const storedStep = isQuizStep(normalizedStep) ? normalizedStep : initial.currentStep;
   const resume = legacyResume(state.resumeAfterOS);
   const atPhoneQuestion = state.funnelScreen === 'android-filter' || (state.currentStep === 'operating_system' && savedScreen === 'quiz');

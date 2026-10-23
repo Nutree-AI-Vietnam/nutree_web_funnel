@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { AnimatePresence, motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { previewTdee } from '@/lib/api/client';
-import { useCopy } from '@/lib/copy/use-copy';
+import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { isLocalPreviewHost } from '@/lib/local-preview';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { formatWeight } from '@/lib/quiz/units';
@@ -36,6 +36,7 @@ function usePrefersReducedMotion() {
 
 export function CalculatingStep() {
   const vi = useCopy();
+  const locale = useLocale();
   const router = useRouter();
   const routerRef = useRef(router);
   routerRef.current = router;
@@ -63,14 +64,14 @@ export function CalculatingStep() {
     return [
       goal ? loader.goal(goal) : null,
       data.weight_kg != null && data.target_weight_kg != null
-        ? loader.weights(formatWeight(data.weight_kg, system), formatWeight(data.target_weight_kg, system))
+        ? loader.weights(formatWeight(data.weight_kg, system, locale), formatWeight(data.target_weight_kg, system, locale))
         : null,
       data.training_days_per_week ? loader.training(data.training_days_per_week) : loader.noTraining,
       diet ? loader.diet(diet) : loader.dietNone,
       moment ? loader.moment(moment) : null,
       loader.calories,
     ].filter((item): item is string => Boolean(item));
-  }, [data, loader, system, vi]);
+  }, [data, loader, locale, system, vi]);
   // One yes/no question halfway through, unless it was answered on an earlier pass.
   const pauseAt = Math.floor(items.length / 2);
   const stageMs = TOTAL_MS / items.length;

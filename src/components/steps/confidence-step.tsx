@@ -25,7 +25,7 @@ export function ConfidenceStep() {
   const confidence = copy.funnel.confidence;
   const timeline = goalTimeline(data);
   const question = timeline
-    ? confidence.question(formatWeight(timeline.targetKg, system), formatGoalDate(timeline.date, locale, false))
+    ? confidence.question(formatWeight(timeline.targetKg, system, locale), formatGoalDate(timeline.date, locale, false))
     : confidence.questionFallback;
 
   return (

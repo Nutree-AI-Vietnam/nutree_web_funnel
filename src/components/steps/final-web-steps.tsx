@@ -228,7 +228,7 @@ export function TargetWeightStep() {
             <div className="text-center">
               <span className="sr-only">{copy.target_weight.currentLabel}</span>
               <span className="text-lg font-extrabold leading-none tracking-tight text-slate-brand">
-                {data.weight_kg != null ? formatWeight(data.weight_kg, system) : '—'}
+                {data.weight_kg != null ? formatWeight(data.weight_kg, system, locale) : '—'}
               </span>
             </div>
             <span aria-hidden="true" className="text-2xl font-extrabold leading-none tracking-tight text-[#e6a0a8]">»</span>
@@ -250,7 +250,7 @@ export function TargetWeightStep() {
       </div>
       {tooLow && floorKg != null ? (
         <p role="alert" className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-extrabold leading-snug text-amber-900">
-          {copy.funnel.targetTooLow(formatWeight(floorKg, system))}
+          {copy.funnel.targetTooLow(formatWeight(floorKg, system, locale))}
         </p>
       ) : forecast ? (
         <p className="rounded-2xl bg-white/86 px-4 py-3 text-sm font-extrabold leading-snug text-forest shadow-sm">
@@ -261,7 +261,7 @@ export function TargetWeightStep() {
       ) : null}
       {healthyLowKg != null && healthyHighKg != null && (
         <p className="text-center text-xs font-bold text-muted-brand">
-          {copy.funnel.healthyRange(formatWeight(healthyLowKg, system), formatWeight(healthyHighKg, system))}
+          {copy.funnel.healthyRange(formatWeight(healthyLowKg, system, locale), formatWeight(healthyHighKg, system, locale))}
         </p>
       )}
       {/* With the healthy range shown, the badge only needs to appear when the target flips the goal. */}
@@ -329,6 +329,7 @@ export function TargetWeightStep() {
 export function BodyReviewStep() {
   const router = useRouter();
   const copy = useCopy();
+  const locale = useLocale();
   const data = useQuizStore((s) => s.data);
   const setData = useQuizStore((s) => s.setData);
   const { system } = useUnits();
@@ -339,9 +340,9 @@ export function BodyReviewStep() {
     data.fitness_goal ? { label: review.goalLabel, value: getGoalLabel(copy, data.fitness_goal), step: 'goal' as const } : null,
     age ? { label: review.ageLabel, value: String(age), step: 'age' as const } : null,
     data.height_cm ? { label: review.heightLabel, value: formatHeight(data.height_cm, system), step: 'height' as const } : null,
-    data.weight_kg ? { label: review.weightLabel, value: formatWeight(data.weight_kg, system), step: 'weight' as const } : null,
+    data.weight_kg ? { label: review.weightLabel, value: formatWeight(data.weight_kg, system, locale), step: 'weight' as const } : null,
     data.target_weight_kg
-      ? { label: review.targetWeightLabel, value: formatWeight(data.target_weight_kg, system), step: 'target_weight' as const }
+      ? { label: review.targetWeightLabel, value: formatWeight(data.target_weight_kg, system, locale), step: 'target_weight' as const }
       : data.target_weight_unsure ? { label: review.targetWeightLabel, value: review.targetWeightPending, step: 'target_weight' as const } : null,
   ];
   const rows = candidates.filter((row): row is ReviewRow => row != null);
