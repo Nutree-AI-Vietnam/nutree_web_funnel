@@ -163,12 +163,15 @@ export function TrustCard({ className }: { className?: string }) {
   const countNumber = Number(rating.countValue.replace(/[^0-9]/g, ''));
   const countSuffix = rating.countValue.replace(/^[0-9.,\s]+/, '');
   const countFormat = new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US');
+  // Google Play shows its rating once the owner adds it to the copy; until then the tile says the app is there.
   const stores = [
     { key: 'app-store', mark: <AppleMark className="h-5 w-5 text-charcoal" />, value: rating.value, label: rating.label },
-    ...(rating.googlePlay ? [{ key: 'google-play', mark: <GooglePlayMark className="h-5 w-5" />, value: rating.googlePlay.value, label: rating.googlePlay.label }] : []),
+    rating.googlePlay
+      ? { key: 'google-play', mark: <GooglePlayMark className="h-5 w-5" />, value: rating.googlePlay.value, label: rating.googlePlay.label }
+      : { key: 'google-play', mark: <GooglePlayMark className="h-5 w-5" />, name: rating.googlePlayListing.name, label: rating.googlePlayListing.label },
   ];
   return (
-    <section aria-label={`${rating.countValue} ${rating.chose}. ${rating.line}`} className={cn('rounded-[1.6rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]', className)}>
+    <section aria-label={`${rating.countValue} ${rating.chose}. ${rating.line}. ${rating.googlePlay ? `${rating.googlePlay.value}${rating.outOf} ${rating.googlePlay.label}` : `${rating.googlePlayListing.name}: ${rating.googlePlayListing.label}`}`} className={cn('rounded-[1.6rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]', className)}>
       <div className="flex items-center justify-center gap-2" aria-hidden="true">
         <Laurel />
         <p className="text-center">
@@ -177,14 +180,16 @@ export function TrustCard({ className }: { className?: string }) {
         </p>
         <Laurel flip />
       </div>
-      <div className={cn('mt-4 grid rounded-[1.2rem] bg-mist/70 py-3.5', stores.length > 1 ? 'grid-cols-2 divide-x divide-forest/10' : 'grid-cols-1')} aria-hidden="true">
+      <div className="mt-4 grid grid-cols-2 divide-x divide-forest/10 rounded-[1.2rem] bg-mist/70 py-3.5" aria-hidden="true">
         {stores.map((store) => (
-          <div key={store.key} className="flex flex-col items-center px-2 text-center">
-            <span className="flex items-center gap-2">
+          <div key={store.key} className="flex flex-col items-center justify-center px-2 text-center">
+            <span className="flex h-5 items-center gap-1.5">
               {store.mark}
-              <StarRow value={Number(store.value)} className="text-[1rem]" animate />
+              {'value' in store && <StarRow value={Number(store.value)} className="text-[0.9rem]" animate />}
             </span>
-            <span className="mt-1.5 text-[1.45rem] font-extrabold leading-none tabular-nums text-forest">{store.value}<span className="text-[0.95rem] text-muted-brand">{rating.outOf}</span></span>
+            {'value' in store
+              ? <span className="mt-1.5 text-[1.45rem] font-extrabold leading-none tabular-nums text-forest">{store.value}<span className="text-[0.95rem] text-muted-brand">{rating.outOf}</span></span>
+              : <span className="mt-1.5 text-[1.15rem] font-extrabold leading-[1.26] text-forest">{store.name}</span>}
             <span className="mt-1 text-[0.78rem] font-semibold text-muted-brand">{store.label}</span>
           </div>
         ))}

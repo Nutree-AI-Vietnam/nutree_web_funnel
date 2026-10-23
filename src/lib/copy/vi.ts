@@ -901,6 +901,7 @@ export const vi = {
       chose: 'khách hàng đã chọn Nutree',
       outOf: '/5',
       googlePlay: null as { value: string; label: string } | null,
+      googlePlayListing: { name: 'CH Play', label: 'Có trên Android' },
     },
     plan: {
       eyebrow: (name: string) => `Kế hoạch của ${name}`,
@@ -974,7 +975,6 @@ export const vi = {
       heroTitle: (name: string) => `${name}, kế hoạch của bạn đã sẵn sàng`,
       heroFallback: 'Kế hoạch của bạn đã sẵn sàng',
       heroSteady: 'Calo, protein và bữa ăn đã sẵn cho mỗi ngày.',
-      planFor: (plan: string, price: string) => `${plan} giá ${price}`,
       perMonth: (price: string) => `${price} mỗi tháng`,
       billedFor: (price: string, cadence: string) => `${price} thanh toán ${cadence}`,
       header: 'Nutree Premium',
@@ -1015,12 +1015,6 @@ export const vi = {
       ],
       guaranteeTitle: 'Hoàn tiền trong 30 ngày',
       guaranteeBody: 'Theo kế hoạch 4 tuần. Chưa thấy tiến bộ? Email support@nutreeai.com trong 30 ngày để được hoàn tiền toàn bộ.',
-      guaranteeShort: 'Làm theo kế hoạch 4 tuần mà chưa thấy tiến bộ? Hoàn tiền 100%.',
-      faqTitle: 'Câu hỏi',
-      faqs: [
-        { q: 'Làm sao để hủy?', a: 'Hủy bất cứ lúc nào trước ngày gia hạn qua liên kết trong email biên nhận, hoặc email support@nutreeai.com. Bạn vẫn dùng được đến hết kỳ đã thanh toán.' },
-        { q: 'Kế hoạch vào ứng dụng thế nào?', a: 'Sau khi thanh toán, Nutree gửi email liên kết. Cài Nutree, rồi mở liên kết trên cùng điện thoại để đăng nhập với kế hoạch này. Liên kết dùng được trong 60 phút; nếu hết hạn, cứ mở và Nutree sẽ gửi liên kết mới.' },
-      ],
       finePrint: 'Thanh toán được Paddle xử lý an toàn.',
       exitHeader: 'Giá thấp hơn trong vài phút',
       exitNote: 'Giá thấp hơn áp dụng cho mọi gói.',

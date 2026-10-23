@@ -972,9 +972,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
           })}
         </div>
         <div className="mt-4">{checkoutButton}</div>
-        <p className="mt-2.5 flex items-center justify-center gap-1.5 text-[0.8rem] font-extrabold text-forest"><Icon name="shield" className="h-4 w-4 text-teal-brand" />{funnelPaywall.guaranteeTitle}</p>
-        <p className="mt-0.5 text-center text-[0.76rem] font-semibold text-slate-brand">{funnelPaywall.guaranteeShort}</p>
-        <p className="mt-1.5 text-center text-[0.72rem] font-medium leading-relaxed text-muted-brand">{renewalLine}</p>
+        <p className="mt-2.5 text-center text-[0.72rem] font-medium leading-relaxed text-muted-brand">{renewalLine}</p>
         <p className="mt-3 flex items-center justify-center gap-1 text-[0.7rem] font-bold text-muted-brand"><Icon name="lock" className="h-3.5 w-3.5" />{funnelPaywall.payWith}</p>
         <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1.5">
           {checkoutWallets.includes('apple_pay') && <ApplePayBadge />}
@@ -984,27 +982,12 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         </div>
       </section>
 
+      {guaranteeRow(funnelPaywall.guaranteeTitle, funnelPaywall.guaranteeBody)}
+
       <AppIncludesCard data={data} tdee={planTdee} system={system} />
 
       <TrustCard />
 
-      <section className="rounded-[1.6rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-5">
-        <h2 className="text-[1.12rem] font-extrabold tracking-[-0.02em] text-forest">{funnelPaywall.faqTitle}</h2>
-        <div className="mt-2 divide-y divide-border-brand/60">
-          {funnelPaywall.faqs.map((faq) => (
-            <details key={faq.q} className="group py-3">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[0.95rem] font-extrabold text-forest">{faq.q}<span aria-hidden="true" className="text-teal-brand transition group-open:rotate-45">+</span></summary>
-              <p className="mt-2 text-sm font-medium leading-relaxed text-slate-brand">{faq.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
-
-      <section className="rounded-[1.6rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]">
-        <p className="text-center text-sm font-extrabold text-forest">{selected ? funnelPaywall.planFor(planName(selected), introTotal) : ''}</p>
-        <div className="mt-3">{checkoutButton}</div>
-        <p className="mt-3 text-center text-[0.76rem] font-medium leading-relaxed text-muted-brand">{renewalLine}</p>
-      </section>
       {statusNodes}
       <p className="mx-auto max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{funnelPaywall.finePrint}</p>
     </div>

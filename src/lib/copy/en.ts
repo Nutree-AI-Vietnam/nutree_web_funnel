@@ -907,6 +907,7 @@ export const en: Copy = {
       chose: 'customers chose Nutree',
       outOf: '/5',
       googlePlay: null as { value: string; label: string } | null,
+      googlePlayListing: { name: 'Google Play', label: 'Available on Android' },
     },
     plan: {
       eyebrow: (name: string) => `${name}’s plan`,
@@ -980,7 +981,6 @@ export const en: Copy = {
       heroTitle: (name: string) => `${name}, your plan is ready`,
       heroFallback: 'Your plan is ready',
       heroSteady: 'Your calories, protein and meals are set for every day.',
-      planFor: (plan: string, price: string) => `${plan} for ${price}`,
       perMonth: (price: string) => `${price} a month`,
       billedFor: (price: string, cadence: string) => `${price} billed ${cadence}`,
       header: 'Nutree Premium',
@@ -1022,12 +1022,6 @@ export const en: Copy = {
       ],
       guaranteeTitle: '30-day money-back guarantee',
       guaranteeBody: 'Follow your plan for 4 weeks. No progress? Email support@nutreeai.com within 30 days for a full refund.',
-      guaranteeShort: 'Follow your plan for 4 weeks. No progress? Full refund.',
-      faqTitle: 'Questions',
-      faqs: [
-        { q: 'How do I cancel?', a: 'Cancel anytime before the renewal date from the link in your receipt email, or email support@nutreeai.com. You keep access until the end of the period you paid for.' },
-        { q: 'How do I get my plan in the app?', a: 'After you pay, we email you a link. Install Nutree, then open the link on the same phone. It signs you in with your plan.' },
-      ],
       finePrint: 'Payments are processed securely by Paddle.',
       exitHeader: 'Lower price ends in',
       exitNote: 'The lower price applies to every plan.',
