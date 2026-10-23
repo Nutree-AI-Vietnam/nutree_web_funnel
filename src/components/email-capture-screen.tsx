@@ -18,31 +18,55 @@ import { formatGoalDate, goalTimeline } from '@/lib/quiz/progress-projection';
 import { formatWeight } from '@/lib/quiz/units';
 import { useUnits } from '@/lib/quiz/use-units';
 import { computeTdeeResult } from '@/lib/tdee/calculator';
-import { firstChanges, planNumbers, sampleDay } from '@/lib/quiz/plan-content';
+import { firstChangePlan, planNumbers, sampleDay } from '@/lib/quiz/plan-content';
+import type { OnboardingPayload, TdeeResult } from '@/lib/quiz/types';
 
-/** What the plan holds, with the visitor's own numbers blurred until they save it. */
-function PlanTeaser({ calories, protein, dish, change }: { calories: number; protein: number; dish: string; change: string }) {
+/**
+ * What the email unlocks. Calories and protein were shown on earlier screens, so they stay
+ * readable; the day of meals and the first three changes are new, and stay blurred until the email.
+ */
+function PlanTeaser({ data, tdee }: { data: OnboardingPayload; tdee: TdeeResult }) {
   const copy = useCopy();
   const locale = useLocale();
+  const answers = useQuizStore((state) => state.planAnswers);
   const email = copy.funnel.email;
+  const plan = copy.funnel.plan;
   const format = new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US');
-  const rows = [
-    { label: email.teaserCalories, value: `${format.format(calories)} kcal` },
-    { label: email.teaserProtein, value: `${protein} g` },
-    { label: email.teaserDay, value: dish },
-    { label: email.teaserChanges, value: change },
+  const numbers = planNumbers(tdee);
+  const known = [
+    { label: email.teaserCalories, value: `${format.format(numbers.calories)} kcal` },
+    { label: email.teaserProtein, value: `${numbers.proteinG} g` },
+  ];
+  const locked = [
+    { label: email.teaserDay, lines: sampleDay(tdee.calories, data.dietary_preferences).map((row) => plan.dishes[row.dish]) },
+    { label: email.teaserChanges, lines: firstChangePlan(data, answers).map((change) => plan.changes[change.id].title(numbers)) },
   ];
   return (
-    <section aria-label={`${email.teaserTitle}. ${email.teaserHidden}`} className="rounded-2xl border border-border-brand/80 bg-mist/50 p-3">
-      <p className="text-xs font-bold text-muted-brand" aria-hidden="true">🔒 {email.teaserHidden}</p>
-      <ul className="mt-2 grid grid-cols-2 gap-2" aria-hidden="true">
-        {rows.map((row) => (
-          <li key={row.label} className="min-w-0 overflow-hidden rounded-xl bg-white px-2.5 py-2">
-            <span className="block text-[0.68rem] font-bold leading-tight text-muted-brand">{row.label}</span>
-            <span className="mt-0.5 block select-none truncate text-sm font-extrabold text-forest blur-[4px]">{row.value}</span>
+    <section aria-label={email.teaserTitle} className="grid gap-2">
+      <ul className="grid grid-cols-2 gap-2">
+        {known.map((row) => (
+          <li key={row.label} className="flex min-w-0 items-center gap-2 rounded-xl border border-border-brand/70 bg-white px-2.5 py-2">
+            <span aria-hidden="true" className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-teal-brand text-[0.62rem] font-black text-white">✓</span>
+            <span className="min-w-0">
+              <span className="block text-[0.68rem] font-bold leading-tight text-muted-brand">{row.label}</span>
+              <span className="block text-sm font-extrabold tabular-nums text-forest">{row.value}</span>
+            </span>
           </li>
         ))}
       </ul>
+      <div className="rounded-2xl border border-border-brand/80 bg-mist/50 p-2.5">
+        <p className="text-xs font-bold text-muted-brand"><span aria-hidden="true">🔒 </span>{email.teaserHidden}</p>
+        <ul className="mt-2 grid grid-cols-2 gap-2" aria-hidden="true">
+          {locked.map((block) => (
+            <li key={block.label} className="min-w-0 rounded-xl bg-white px-2.5 py-2">
+              <span className="block text-[0.68rem] font-bold leading-tight text-muted-brand">{block.label}</span>
+              {block.lines.map((line) => (
+                <span key={line} className="mt-1 block select-none truncate text-[0.72rem] font-bold text-forest blur-[3.5px]">{line}</span>
+              ))}
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }
@@ -62,7 +86,6 @@ export function EmailCaptureScreen({ onComplete }: { onComplete: () => void }) {
   const timeline = goalTimeline(data);
   const funnelEmail = copy.funnel.email;
   const teaserTdee = computeTdeeResult(data);
-  const teaser = teaserTdee ? planNumbers(teaserTdee) : null;
   const headline = timeline
     ? funnelEmail.headline(formatWeight(timeline.targetKg, system), formatGoalDate(timeline.date, locale, false))
     : funnelEmail.headlineFallback;
@@ -104,5 +127,5 @@ export function EmailCaptureScreen({ onComplete }: { onComplete: () => void }) {
     onComplete();
   };
 
-  return <ConversionShell className="justify-start"><section className="w-full min-w-0 max-w-full rounded-[1.5rem] border border-border-brand bg-white/92 p-5 shadow-[0_18px_55px_rgb(16_39_32_/_0.08)]"><div className="flex min-w-0 flex-col gap-4"><div className="flex items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-extrabold text-emerald-800"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-emerald-500 text-white">✓</span><span>{copy.email.readyBadge}</span></div><h1 className="text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em] text-forest">{headline}</h1>{timeline && <p className="-mt-2 text-xs font-semibold text-muted-brand">{funnelEmail.estimate}</p>}{!teaser && <p className="text-base font-semibold leading-relaxed text-slate-brand">{funnelEmail.body}</p>}{teaser && teaserTdee && <PlanTeaser calories={teaser.calories} protein={teaser.proteinG} dish={copy.funnel.plan.dishes[sampleDay(teaserTdee.calories, data.dietary_preferences)[0].dish]} change={copy.funnel.plan.changes[firstChanges(data)[0]].title(teaser)} />}<div className="grid min-w-0 gap-2"><label htmlFor="email" className="text-sm font-extrabold text-forest">Email</label><input ref={inputRef} id="email" type="email" inputMode="email" autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); if (error) setError(null); }} onKeyDown={(event) => event.key === 'Enter' && void submit()} placeholder={copy.email.placeholder} aria-invalid={error ? true : undefined} aria-describedby="email-helper email-error" className="ph-no-capture w-full min-w-0 min-h-14 rounded-2xl border border-border-brand bg-bg-brand px-5 py-4 text-lg font-semibold text-forest outline-none transition placeholder:text-muted-brand focus:border-teal-brand focus:ring-4 focus:ring-teal-brand/15 aria-[invalid=true]:border-error-brand aria-[invalid=true]:focus:ring-error-brand/15" /><p id="email-helper" className="text-sm font-medium text-muted-brand">{funnelEmail.helper}</p>{error && <p id="email-error" role="alert" className="text-sm font-bold text-error-brand">{error}</p>}</div><PrimaryButton disabled={submitting || !email} onClick={submit}>{submitting ? '...' : funnelEmail.cta}</PrimaryButton><AppStoreRating /><p className="text-center text-xs font-semibold text-muted-brand">{funnelEmail.trustBody}</p>{canBypassEmail && <button type="button" onClick={bypassEmailForLocal} className="min-h-12 rounded-2xl border border-border-brand bg-white px-4 text-sm font-extrabold text-forest transition hover:bg-mist focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.98]">{copy.email.devBypass}</button>}</div></section></ConversionShell>;
+  return <ConversionShell className="justify-start"><section className="w-full min-w-0 max-w-full rounded-[1.5rem] border border-border-brand bg-white/92 p-5 shadow-[0_18px_55px_rgb(16_39_32_/_0.08)]"><div className="flex min-w-0 flex-col gap-4"><div className="flex items-center gap-3 rounded-2xl bg-mist px-4 py-3 text-sm font-extrabold text-forest"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-teal-brand text-white">✓</span><span>{copy.email.readyBadge}</span></div><h1 className="text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em] text-forest">{headline}</h1>{timeline && <p className="-mt-2 text-xs font-semibold text-muted-brand">{funnelEmail.estimate}</p>}{!teaserTdee && <p className="text-base font-semibold leading-relaxed text-slate-brand">{funnelEmail.body}</p>}{teaserTdee && <PlanTeaser data={data} tdee={teaserTdee} />}<div className="grid min-w-0 gap-2"><label htmlFor="email" className="text-sm font-extrabold text-forest">Email</label><input ref={inputRef} id="email" type="email" inputMode="email" autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); if (error) setError(null); }} onKeyDown={(event) => event.key === 'Enter' && void submit()} placeholder={copy.email.placeholder} aria-invalid={error ? true : undefined} aria-describedby="email-helper email-error" className="ph-no-capture w-full min-w-0 min-h-14 rounded-2xl border border-border-brand bg-bg-brand px-5 py-4 text-lg font-semibold text-forest outline-none transition placeholder:text-muted-brand focus:border-teal-brand focus:ring-4 focus:ring-teal-brand/15 aria-[invalid=true]:border-error-brand aria-[invalid=true]:focus:ring-error-brand/15" /><p id="email-helper" className="text-sm font-medium text-muted-brand">{funnelEmail.helper}</p>{error && <p id="email-error" role="alert" className="text-sm font-bold text-error-brand">{error}</p>}</div><PrimaryButton disabled={submitting || !email} onClick={submit}>{submitting ? '...' : funnelEmail.cta}</PrimaryButton><AppStoreRating /><p className="text-center text-xs font-semibold text-muted-brand">{funnelEmail.trustBody}</p>{canBypassEmail && <button type="button" onClick={bypassEmailForLocal} className="min-h-12 rounded-2xl border border-border-brand bg-white px-4 text-sm font-extrabold text-forest transition hover:bg-mist focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.98]">{copy.email.devBypass}</button>}</div></section></ConversionShell>;
 }

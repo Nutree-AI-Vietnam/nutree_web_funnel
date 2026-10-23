@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { PrimaryButton } from '@/components/primary-button';
 import { QuizShell } from '@/components/quiz-shell';
-import { PlanGoalCard } from '@/components/plan/plan-overview';
+import { FirstChangesCard, PlanDayCard, PlanGoalCard } from '@/components/plan/plan-overview';
 import { QuizStepFrame } from '@/components/steps/quiz-step-frame';
 import { MealSnapDemo } from '@/components/value-tour/value-tour-demos';
 import { trackStepViewed } from '@/lib/analytics/track';
@@ -57,8 +57,16 @@ export function ValueTourScreen({
   return (
     <QuizShell step="confidence" progressIndex={valueProgressIndex(step)} onBack={goBack} showExitIntent={false}>
       {step === 'plan' && (
-        <QuizStepFrame eyebrow={tour.plan.eyebrow}>
-          <PlanGoalCard data={data} tdee={tdee} system={system} />
+        <QuizStepFrame eyebrow={tour.plan.eyebrow} title={data.name?.trim() ? copy.funnel.plan.eyebrow(data.name.trim()) : copy.funnel.plan.eyebrowFallback}>
+          {/* The email unlocked the day of meals and the first three changes; show them right away. */}
+          {tdee ? (
+            <>
+              <PlanDayCard data={data} tdee={tdee} reveal />
+              <FirstChangesCard data={data} tdee={tdee} reveal />
+            </>
+          ) : (
+            <PlanGoalCard data={data} tdee={tdee} system={system} />
+          )}
           <div className="mt-auto pt-3">
             <PrimaryButton onClick={advance}>{tour.plan.cta}</PrimaryButton>
           </div>

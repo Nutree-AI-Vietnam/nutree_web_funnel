@@ -976,8 +976,6 @@ export const en: Copy = {
     paywall: {
       heroTitle: (name: string) => `${name}, your plan is ready`,
       heroFallback: 'Your plan is ready',
-      heroGoal: (weight: string, date: string) => `Reach ${weight} by ${date}.`,
-      heroWin: (weight: string, date: string) => `Your first win: ${weight} by ${date}. Estimate. Results vary.`,
       heroSteady: 'Your calories, protein and meals are set for every day.',
       planFor: (plan: string, price: string) => `${plan} for ${price}`,
       perMonth: (price: string) => `${price} a month`,
@@ -992,6 +990,7 @@ export const en: Copy = {
       billed: (count: number, unit: string) => (count === 1 ? `Billed every ${unit}` : `Billed every ${count} ${unit}`),
       cadence: (count: number, unit: string) => (count === 1 ? `every ${unit}` : `every ${count} ${unit}`),
       fitsTimeline: 'Fits your timeline',
+      paymentsTo: (count: number, date: string) => `${count} ${count === 1 ? 'payment' : 'payments'} to ${date}`,
       renewal: (today: string, renewal: string, cadence: string, date: string) =>
         `You pay ${today} today, then ${renewal} ${cadence}${date ? ` from ${date}` : ''}. Renews automatically; cancel anytime from your receipt email.`,
       payWith: 'Pay securely with',

@@ -971,8 +971,6 @@ export const vi = {
     paywall: {
       heroTitle: (name: string) => `${name}, kế hoạch của bạn đã sẵn sàng`,
       heroFallback: 'Kế hoạch của bạn đã sẵn sàng',
-      heroGoal: (weight: string, date: string) => `Đạt ${weight} vào ${date}.`,
-      heroWin: (weight: string, date: string) => `Cột mốc đầu: ${weight} vào ${date}. Ước tính. Kết quả có thể khác.`,
       heroSteady: 'Calo, protein và bữa ăn đã sẵn cho mỗi ngày.',
       planFor: (plan: string, price: string) => `${plan} giá ${price}`,
       perMonth: (price: string) => `${price} mỗi tháng`,
@@ -987,6 +985,7 @@ export const vi = {
       billed: (count: number, unit: string) => (count === 1 ? `Thanh toán mỗi ${unit}` : `Thanh toán mỗi ${count} ${unit}`),
       cadence: (count: number, unit: string) => (count === 1 ? `mỗi ${unit}` : `mỗi ${count} ${unit}`),
       fitsTimeline: 'Vừa với lộ trình',
+      paymentsTo: (count: number, date: string) => `${count} lần thanh toán đến ${date}`,
       renewal: (today: string, renewal: string, cadence: string, date: string) =>
         `Bạn thanh toán ${today} hôm nay, sau đó ${renewal} ${cadence}${date ? ` từ ${date}` : ''}. Tự động gia hạn; hủy bất cứ lúc nào qua email biên nhận.`,
       payWith: 'Thanh toán an toàn với',

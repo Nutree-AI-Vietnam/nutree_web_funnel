@@ -1,5 +1,7 @@
 'use client';
 
+import { motion, useReducedMotion } from 'motion/react';
+import type { ReactNode } from 'react';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { firstChangePlan, planNumbers, sampleDay, type ChangeSource, type DishId, type Meal } from '@/lib/quiz/plan-content';
 import { formatGoalDate, goalTimeline, type GoalTimeline } from '@/lib/quiz/progress-projection';
@@ -9,6 +11,22 @@ import { formatWeight, type UnitSystem } from '@/lib/quiz/units';
 import { cn } from '@/lib/utils';
 
 const CARD = 'rounded-[1.6rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-5';
+
+/** Text that clears from the email screen's blur, once, as the unlocked plan first appears. */
+function Reveal({ on, index, children }: { on?: boolean; index: number; children: ReactNode }) {
+  const reduce = useReducedMotion();
+  if (!on || reduce) return <>{children}</>;
+  return (
+    <motion.span
+      className="inline-block"
+      initial={{ filter: 'blur(4px)', opacity: 0.45 }}
+      animate={{ filter: 'blur(0px)', opacity: 1 }}
+      transition={{ delay: 0.25 + index * 0.08, duration: 0.45, ease: 'easeOut' }}
+    >
+      {children}
+    </motion.span>
+  );
+}
 
 function numberLocale(locale: string) {
   return locale === 'vi' ? 'vi-VN' : 'en-US';
@@ -64,6 +82,74 @@ export function GoalChart({ timeline, system, nowLabel, week1Label, month1Label,
   );
 }
 
+/**
+ * The goal as the paywall's one dark surface: where you are, where you're going and the
+ * path between, drawn in once. Renders nothing without a weight goal.
+ */
+export function GoalStrip({ data, system, className }: { data: OnboardingPayload; system: UnitSystem; className?: string }) {
+  const copy = useCopy();
+  const locale = useLocale();
+  const reduce = useReducedMotion();
+  const plan = copy.funnel.plan;
+  const progress = copy.funnel.progress;
+  const timeline = goalTimeline(data);
+  if (!timeline) return null;
+  const path = timeline.reducing ? 'M8 14 C 120 22, 210 52, 318 62' : 'M8 62 C 120 54, 210 24, 318 14';
+  const end = timeline.reducing ? { x: 318, y: 62 } : { x: 318, y: 14 };
+
+  return (
+    <section className={cn('rounded-[1.6rem] bg-forest p-4 text-white shadow-[0_18px_46px_rgb(23_69_58_/_0.22)] sm:p-5', className)}>
+      <div className="flex items-end justify-between gap-3">
+        <p>
+          <span className="block text-[0.72rem] font-bold text-white/65">{plan.now}</span>
+          <span className="block text-[1.35rem] font-extrabold leading-tight tabular-nums">{formatWeight(timeline.currentKg, system)}</span>
+        </p>
+        <p className="text-right">
+          <span className="block text-[0.72rem] font-bold text-white/65">{progress.goal}</span>
+          <span className="block text-[1.35rem] font-extrabold leading-tight tabular-nums text-teal-bright">{formatWeight(timeline.targetKg, system)}</span>
+          <span className="block whitespace-nowrap text-[0.74rem] font-bold text-white/75">{formatGoalDate(timeline.date, locale)}</span>
+        </p>
+      </div>
+      <svg viewBox="0 0 326 76" className="mt-2 h-auto w-full" aria-hidden="true">
+        <defs>
+          <linearGradient id="goal-strip-fill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stopColor="#34d0b4" stopOpacity="0.28" />
+            <stop offset="1" stopColor="#34d0b4" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={`${path} L318 76 L8 76 Z`} fill="url(#goal-strip-fill)" />
+        <motion.path
+          d={path}
+          fill="none"
+          stroke="#34d0b4"
+          strokeWidth="4"
+          strokeLinecap="round"
+          initial={reduce ? false : { pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+        />
+        <circle cx="8" cy={timeline.reducing ? 14 : 62} r="5" fill="#d7a84d" stroke="#17453a" strokeWidth="2.5" />
+        <motion.circle
+          cx={end.x}
+          cy={end.y}
+          r="6.5"
+          fill="#34d0b4"
+          stroke="#17453a"
+          strokeWidth="3"
+          initial={reduce ? false : { scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.95, duration: 0.3 }}
+          style={{ transformOrigin: `${end.x}px ${end.y}px` }}
+        />
+      </svg>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="rounded-full bg-white/12 px-2.5 py-1 text-[0.8rem] font-bold">{plan.firstWin(formatWeight(timeline.week1Kg, system), formatGoalDate(timeline.week1Date, locale, false))}</span>
+        <span className="text-[0.72rem] font-semibold text-white/60">{plan.estimate}</span>
+      </div>
+    </section>
+  );
+}
+
 /** The plan as one card: name, goal date, path, first win and the daily targets. */
 export function PlanGoalCard({ data, tdee, system, className }: {
   data: OnboardingPayload;
@@ -103,7 +189,7 @@ export function PlanGoalCard({ data, tdee, system, className }: {
 }
 
 /** Three first changes, each next to the answer it comes from. */
-export function FirstChangesCard({ data, tdee, className }: { data: OnboardingPayload; tdee: TdeeResult; className?: string }) {
+export function FirstChangesCard({ data, tdee, className, reveal }: { data: OnboardingPayload; tdee: TdeeResult; className?: string; reveal?: boolean }) {
   const copy = useCopy();
   const answers = useQuizStore((state) => state.planAnswers);
   const plan = copy.funnel.plan;
@@ -124,7 +210,7 @@ export function FirstChangesCard({ data, tdee, className }: { data: OnboardingPa
             <span className="grid h-7 w-7 place-items-center rounded-full bg-mist text-[0.8rem] font-extrabold text-forest">{index + 1}</span>
             <span>
               <span className="block text-[0.76rem] font-bold text-teal-brand">{said.youSaid} {sourceLabel(change.source).toLowerCase()}</span>
-              <span className="mt-0.5 block text-[0.98rem] font-extrabold leading-snug text-forest">{plan.changes[change.id].title(numbers)}</span>
+              <span className="mt-0.5 block text-[0.98rem] font-extrabold leading-snug text-forest"><Reveal on={reveal} index={index + 4}>{plan.changes[change.id].title(numbers)}</Reveal></span>
             </span>
           </li>
         ))}
@@ -176,10 +262,12 @@ function CalorieRing({ total, unit, macros }: { total: string; unit: string; mac
  * The plan for one day as a plain card, not dressed as an app screen: the
  * calorie target as a ring with its macros, then a day of meals for the diet answers.
  */
-export function PlanDayCard({ data, tdee, className }: {
+export function PlanDayCard({ data, tdee, className, reveal }: {
   data: OnboardingPayload;
   tdee: TdeeResult;
   className?: string;
+  /** Unblur the meal names once, as on the screen right after the email. */
+  reveal?: boolean;
 }) {
   const copy = useCopy();
   const locale = useLocale();
@@ -215,11 +303,11 @@ export function PlanDayCard({ data, tdee, className }: {
         <span className="text-[0.72rem] font-bold text-muted-brand">kcal</span>
       </div>
       <ul className="mt-2 grid gap-1.5">
-        {meals.map((row) => (
+        {meals.map((row, index) => (
           <li key={row.meal} className="flex items-center gap-3 py-1.5">
             <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-[0.85rem] text-[1.25rem]" style={{ background: MEAL_TINT[row.meal] }}>{DISH_ICON[row.dish]}</span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[0.9rem] font-extrabold leading-snug text-forest">{plan.dishes[row.dish]}</span>
+              <span className="block text-[0.9rem] font-extrabold leading-snug text-forest"><Reveal on={reveal} index={index}>{plan.dishes[row.dish]}</Reveal></span>
               <span className="block text-[0.76rem] font-semibold text-muted-brand">{plan.meals[row.meal]}</span>
             </span>
             <span className="shrink-0 text-[0.9rem] font-extrabold tabular-nums text-slate-brand">{format.format(row.calories)}</span>
