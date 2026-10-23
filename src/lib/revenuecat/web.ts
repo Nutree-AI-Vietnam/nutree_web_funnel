@@ -148,11 +148,14 @@ export function readRevenueCatWebConfig(source?: PublicEnvironment, countryCode:
   };
 }
 
-/** True once Paddle's checkout frame is on the page. */
+/**
+ * True once Paddle's checkout frame is on the page. RevenueCat's in-page container does not count:
+ * it appears before Paddle loads, so a failed start would otherwise look like an abandoned checkout.
+ */
 export function paddleCheckoutIsOpen(root: ParentNode | null | undefined): boolean {
   return Boolean(
     root?.querySelector(
-      '#paddle-checkout-container, .paddle-checkout-container, iframe[src*="paddle.com"], iframe[name*="paddle" i], iframe[class*="paddle" i]',
+      '#paddle-checkout-container, iframe[src*="paddle.com"], iframe[name*="paddle" i], iframe[class*="paddle" i]',
     ),
   );
 }

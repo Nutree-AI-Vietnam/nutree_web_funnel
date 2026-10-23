@@ -60,6 +60,13 @@ describe('paddleCheckoutIsOpen', () => {
     expect(paddleCheckoutIsOpen(open)).toBe(true);
     expect(paddleCheckoutIsOpen(null)).toBe(false);
   });
+
+  it('does not count RevenueCat’s empty in-page container, which appears before Paddle loads', () => {
+    const placeholder = {
+      querySelector: (selector: string) => (selector.split(',').map((part) => part.trim()).includes('.paddle-checkout-container') ? {} : null),
+    } as unknown as ParentNode;
+    expect(paddleCheckoutIsOpen(placeholder)).toBe(false);
+  });
 });
 
 describe('paddleCheckoutClosedWithoutPayment', () => {

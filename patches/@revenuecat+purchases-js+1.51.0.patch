@@ -1,5 +1,5 @@
 diff --git a/node_modules/@revenuecat/purchases-js/dist/Purchases.es.js b/node_modules/@revenuecat/purchases-js/dist/Purchases.es.js
-index 2e7bfd9..60aa4f1 100644
+index 2e7bfd9..6382126 100644
 --- a/node_modules/@revenuecat/purchases-js/dist/Purchases.es.js
 +++ b/node_modules/@revenuecat/purchases-js/dist/Purchases.es.js
 @@ -20751,16 +20751,18 @@ function iE({
@@ -35,7 +35,7 @@ index 2e7bfd9..60aa4f1 100644
    };
  }
  class sE {
-@@ -20902,8 +20906,13 @@ class sE {
+@@ -20902,12 +20906,17 @@ class sE {
          eventCallback: async (h) => {
            const v = h.name, w = h.data;
            try {
@@ -50,6 +50,11 @@ index 2e7bfd9..60aa4f1 100644
              else if (v === Ia.CHECKOUT_UPDATED)
                f(w);
              else if (v === Ia.CHECKOUT_COMPLETED) {
+-              u == null || u(), d.Checkout.close();
++              this.rcbCompleted = !0, u == null || u(), d.Checkout.close();
+               const y = await this.pollOperationStatus(e);
+               g(y);
+             } else v === Ia.CHECKOUT_CLOSED && (w != null && w.status) && a();
 @@ -20931,7 +20940,9 @@ class sE {
          locale: _,
          customerEmail: p,
@@ -70,7 +75,15 @@ index 2e7bfd9..60aa4f1 100644
    });
    let k = /* @__PURE__ */ ne(null);
    const b = (J) => {
-@@ -21589,7 +21600,9 @@ function TE(r, e) {
+@@ -21577,6 +21588,7 @@ function TE(r, e) {
+       q(d, Z, !0), q(p, "error"), e.onError(Z);
+       return;
+     }
++    if (e.paddleService.rcbCancelled) return;
+     try {
+       const N = await e.paddleService.purchase({
+         operationSessionId: A.operation_session_id,
+@@ -21589,7 +21601,9 @@ function TE(r, e) {
            appUserId: e.appUserId,
            presentedOfferingIdentifier: e.productDetails.presentedOfferingContext.offeringIdentifier,
            customerEmail: e.customerEmail,
@@ -81,7 +94,7 @@ index 2e7bfd9..60aa4f1 100644
          },
          ...o(g) && {
            displayMode: "inline",
-@@ -25704,6 +25717,8 @@ const Pr = class Pr {
+@@ -25704,6 +25718,8 @@ const Pr = class Pr {
        rcPackage: t,
        purchaseOption: n,
        customerEmail: a,
@@ -90,17 +103,17 @@ index 2e7bfd9..60aa4f1 100644
        attributionMetadata: i,
        workflowPurchaseContext: s,
        selectedLocale: l = Or,
-@@ -25740,6 +25755,9 @@ const Pr = class Pr {
+@@ -25740,6 +25756,9 @@ const Pr = class Pr {
          S();
        });
        y || C.addEventListener("popstate", F);
 +      y && (p.rcbCancelCheckout = () => {
-+        v.closeCheckout(), F();
++        v.rcbCompleted || (v.rcbCancelled = !0, v.closeCheckout(), F());
 +      });
        const D = this.createCheckoutOnFinishedHandler(
          E,
          _,
-@@ -25764,6 +25782,8 @@ const Pr = class Pr {
+@@ -25764,6 +25783,8 @@ const Pr = class Pr {
            appUserId: _,
            purchaseOption: f,
            customerEmail: a,

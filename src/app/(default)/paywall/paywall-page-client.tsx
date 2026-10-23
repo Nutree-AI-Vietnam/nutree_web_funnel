@@ -239,6 +239,12 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const [checkoutPreview, setCheckoutPreview] = useState(false);
   // RevenueCat empties and fills this element itself, so React never renders children into it.
   const checkoutHostRef = useRef<HTMLDivElement>(null);
+  // A close tapped before RevenueCat has mounted in the sheet, carried out as soon as it has.
+  const cancelRequestedRef = useRef(false);
+  // The sheet shows the offer the checkout was started with, even if its timer runs out meanwhile.
+  const [checkoutOffer, setCheckoutOffer] = useState<PaywallOfferKind | null>(null);
+  // Once Paddle reports the payment, the sheet can no longer be closed: RevenueCat is confirming it.
+  const [checkoutPaid, setCheckoutPaid] = useState(false);
   // Read once on the client: a gift claimed earlier in this tab, or a plan link that opens checkout, skips the gift.
   const [giftSkipped, setGiftSkipped] = useState(() => typeof window !== 'undefined' && (hasWelcomeVoucherBeenClaimed() || autostartPending()));
   const timeline = useMemo(() => goalTimeline(data), [data]);
@@ -376,6 +382,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         const purchases = checkout.purchases;
         anonymousAppUserIdRef.current = checkout.appUserId;
         purchasesRef.current = purchases;
+        // Branding loads before purchase() can start, so fetch it now rather than on the first tap.
+        void purchases.preload();
         const offerings = await purchases.getOfferings({
           offeringIdentifier: config.offeringIdentifier,
           ...(resolvedCountryCode === 'VN' ? { currency: 'VND' } : { currency: 'USD' }),
@@ -440,7 +448,13 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     const customerEmail = readCheckoutEmail();
     if (customerEmail) identifyMetaUser({ email: customerEmail, externalId: lead.lead_id, firstName: data.name });
     // Mount the sheet now, so its host element exists when RevenueCat starts drawing.
-    if (inlineCheckout && customerEmail) flushSync(() => setCheckoutSheetOpen(true));
+    if (inlineCheckout && customerEmail) {
+      flushSync(() => {
+        setCheckoutOffer(offer);
+        setCheckoutPaid(false);
+        setCheckoutSheetOpen(true);
+      });
+    }
     if (!customerEmail) {
       setError(activeLocale === 'vi' ? 'Vui lòng quay lại bước email để xác nhận địa chỉ thanh toán trước khi mua.' : 'We need your email before checkout. Go back to the email step to add it.');
       return;
@@ -448,6 +462,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     checkoutInFlightRef.current = true;
     paddleOpenedRef.current = false;
     purchaseSucceededRef.current = false;
+    cancelRequestedRef.current = false;
     setBusy(true);
     setError(null);
     const isExitOffer = offer === 'exit';
@@ -459,7 +474,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       checkoutInFlightRef.current = false;
       setBusy(false);
       clearPaywallCheckoutPending();
-      if (isExitOffer || isUserPurchased({ purchased, lead })) return;
+      if (isExitOffer || purchaseSucceededRef.current || isUserPurchased({ purchased, lead })) return;
       dismissCheckoutOverlay(document);
       saveSelectedPaywallPlan(SIX_MONTH_PLAN_ID);
       setSelectedId(SIX_MONTH_PLAN_ID);
@@ -481,6 +496,12 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
 
     watchPaddle = window.setInterval(() => {
       if (purchaseSucceededRef.current) return;
+      const cancelInlineCheckout = (checkoutHostRef.current as (HTMLDivElement & { rcbCancelCheckout?: () => void }) | null)?.rcbCancelCheckout;
+      if (cancelRequestedRef.current && cancelInlineCheckout) {
+        cancelRequestedRef.current = false;
+        cancelInlineCheckout();
+        return;
+      }
       if (paddleCheckoutIsOpen(document)) {
         paddleOpenedRef.current = true;
         window.clearTimeout(abandonTimer);
@@ -495,6 +516,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     const onPaddleMessage = (event: MessageEvent) => {
       if (paddleCheckoutCompleted(event.data)) {
         purchaseSucceededRef.current = true;
+        setCheckoutPaid(true);
         window.clearTimeout(abandonTimer);
         return;
       }
@@ -546,6 +568,14 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         navigate: () => router.push('/postcheckout'),
       });
     } catch (purchaseError) {
+      if (purchaseSucceededRef.current) {
+        // Paddle took the payment but the confirmation did not finish here. Never offer a discount
+        // or another checkout, now or after a reload; point the buyer to the purchase email instead.
+        clearPaywallCheckoutPending();
+        purchaseLeadIdRef.current = lead.lead_id;
+        setRedemption({ kind: 'recovery' });
+        return;
+      }
       const leftPaddleOpen = paddleOpenedRef.current || isUserCancelledPurchase(purchaseError);
       if (leftPaddleOpen && !isAlreadyPurchased(purchaseError)) {
         applyUnfinishedPaddleDiscount();
@@ -596,6 +626,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     }
     if (inlineCheckout && isLocalPreviewHost() && !purchasesRef.current) {
       setCheckoutPreview(true);
+      setCheckoutOffer(activeOffer);
       setCheckoutSheetOpen(true);
       return;
     }
@@ -627,8 +658,31 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     if (!autostart) return;
     autostartRef.current = true;
     document.getElementById('plans')?.scrollIntoView({ block: 'start' });
-    requestCheckoutRef.current();
+    // Outside the effect: flushSync cannot mount the checkout sheet from inside one.
+    const timer = window.setTimeout(() => requestCheckoutRef.current(), 0);
+    return () => window.clearTimeout(timer);
   }, [loadState]);
+
+  // RevenueCat hides its back button inside our element, so closing goes through the patched SDK's cancel hook:
+  // the purchase rejects as cancelled and the usual cleanup runs. After payment it does nothing. Local preview
+  // has no hook and just closes.
+  const closeCheckoutSheet = useCallback(() => {
+    if (purchaseSucceededRef.current) return;
+    const cancel = (checkoutHostRef.current as (HTMLDivElement & { rcbCancelCheckout?: () => void }) | null)?.rcbCancelCheckout;
+    if (cancel) cancel();
+    // RevenueCat is still loading and has not mounted yet: the Paddle watcher cancels once it has.
+    else if (checkoutInFlightRef.current) cancelRequestedRef.current = true;
+    else setCheckoutSheetOpen(false);
+  }, []);
+  // Escape closes the sheet wherever focus is, except inside Paddle's frame, which keeps its keys.
+  useEffect(() => {
+    if (!checkoutSheetOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeCheckoutSheet();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [checkoutSheetOpen, closeCheckoutSheet]);
 
   const priceSummary = isOriginalPricing
     ? copy.paywall.standardPriceSummary(originalTotal, renewalTotal, selectedLabel, renewalCadence)
@@ -734,19 +788,20 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     </div>
   );
 
-  // Welmi-style summary above RevenueCat's in-page checkout: full price, the offer as a line, total today.
+  // The sheet's prices come from the offer the checkout started with, which is the transaction Paddle charges.
+  const sheetOfferProduct = selected ? checkoutPackage(selected, checkoutOffer).webBillingProduct : null;
   const sheetFullPrice = selectedOriginalPrice;
-  const sheetOfferPrice = selectedOfferPrice;
+  const sheetOfferPrice = firstPaymentPrice(sheetOfferProduct);
   const sheetDiscount = sheetFullPrice && sheetOfferPrice && sheetFullPrice.amountMicros > sheetOfferPrice.amountMicros
     ? new Intl.NumberFormat(priceLocale, { style: 'currency', currency: sheetFullPrice.currency }).format((sheetFullPrice.amountMicros - sheetOfferPrice.amountMicros) / 1_000_000)
     : null;
-  // RevenueCat hides its back button inside our element, so closing goes through the patched SDK's cancel hook:
-  // the purchase rejects as cancelled and the usual cleanup runs. Local preview has no hook and just closes.
-  const closeCheckoutSheet = () => {
-    const cancel = (checkoutHostRef.current as (HTMLDivElement & { rcbCancelCheckout?: () => void }) | null)?.rcbCancelCheckout;
-    if (cancel) cancel();
-    else setCheckoutSheetOpen(false);
-  };
+  const sheetNextCharge = nextChargeDate(sheetOfferProduct);
+  const sheetRenewalLine = funnelPaywall.renewal(
+    sheetOfferPrice?.formattedPrice ?? originalTotal,
+    sheetOfferProduct?.price.formattedPrice ?? '…',
+    selectedPeriod ? funnelPaywall.cadence(selectedPeriod.number, periodWord(selectedPeriod)) : renewalCadence,
+    sheetNextCharge ? formatGoalDate(sheetNextCharge, activeLocale) : '',
+  );
   // Our part of the sheet is the discount; RevenueCat draws the order total (with any tax) above Paddle's form.
   const checkoutSheet = (
     <div
@@ -754,19 +809,18 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       role="dialog"
       aria-modal="true"
       aria-labelledby="checkout-sheet-title"
-      onKeyDown={(event) => { if (event.key === 'Escape') closeCheckoutSheet(); }}
     >
       <div className="max-h-[94dvh] w-full max-w-lg overflow-y-auto rounded-t-[1.6rem] bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-18px_50px_rgb(9_22_18_/_0.25)] animate-soft-enter">
         <div className="relative flex min-h-11 items-center justify-center">
           <h2 id="checkout-sheet-title" className="text-[1.1rem] font-extrabold text-forest">{funnelPaywall.checkout.title}</h2>
-          <button type="button" onClick={closeCheckoutSheet} aria-label={funnelPaywall.checkout.close} className="absolute right-[-0.5rem] top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-slate-brand transition hover:bg-mist focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">
+          {!checkoutPaid && <button type="button" autoFocus onClick={closeCheckoutSheet} aria-label={funnelPaywall.checkout.close} className="absolute right-[-0.5rem] top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-slate-brand transition hover:bg-mist focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">
             <Icon name="close" className="h-5 w-5" />
-          </button>
+          </button>}
         </div>
         {selected && (sheetDiscount ? (
           <div className="mt-2 rounded-2xl bg-[#fdecef] px-3.5 py-3">
             <p className="flex items-center justify-between gap-3 text-[0.92rem] font-extrabold text-[#c0263f]">
-              <span className="flex items-center gap-1.5"><Icon name="gift" className="h-4 w-4" />{exitOfferActive ? funnelPaywall.checkout.offerLine(EXIT_DISCOUNT_PERCENT) : funnelPaywall.checkout.discountLine(WELCOME_DISCOUNT_PERCENT)}</span>
+              <span className="flex items-center gap-1.5"><Icon name="gift" className="h-4 w-4" />{checkoutOffer === 'exit' ? funnelPaywall.checkout.offerLine(EXIT_DISCOUNT_PERCENT) : funnelPaywall.checkout.discountLine(WELCOME_DISCOUNT_PERCENT)}</span>
               <span className="tabular-nums">−{sheetDiscount}</span>
             </p>
             <p className="mt-0.5 flex justify-between gap-3 text-[0.8rem] font-semibold text-slate-brand">
@@ -775,15 +829,16 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
             </p>
           </div>
         ) : (
-          <p className="mt-2 flex justify-between gap-3 rounded-2xl bg-mist px-3.5 py-3 text-[0.9rem] font-bold text-forest"><span>{funnelPaywall.checkout.planLine(planName(selected))}</span><span className="tabular-nums">{introTotal}</span></p>
+          <p className="mt-2 flex justify-between gap-3 rounded-2xl bg-mist px-3.5 py-3 text-[0.9rem] font-bold text-forest"><span>{funnelPaywall.checkout.planLine(planName(selected))}</span><span className="tabular-nums">{sheetOfferPrice?.formattedPrice ?? originalTotal}</span></p>
         ))}
-        {/* Paddle's form needs 312px; on the narrowest phones the box borrows the sheet's side padding. */}
-        <div ref={checkoutHostRef} className="mt-3 min-h-[22rem] max-[359px]:-mx-3">
+        {/* Paddle's form needs 312px; on the narrowest phones the box borrows the sheet's side padding.
+            checkout-host lets RevenueCat's layout grow to its content (see globals.css). */}
+        <div ref={checkoutHostRef} className="checkout-host mt-3 min-h-[22rem] max-[359px]:-mx-3.5">
           {checkoutPreview && (
             <p className="grid min-h-[22rem] place-items-center rounded-[1.2rem] border-2 border-dashed border-border-brand px-6 text-center text-sm font-semibold text-muted-brand">{funnelPaywall.checkout.previewFrame}</p>
           )}
         </div>
-        <p className="mt-3 text-center text-[0.72rem] leading-relaxed text-muted-brand">{renewalLine}</p>
+        <p className="mt-3 text-center text-[0.72rem] leading-relaxed text-muted-brand">{sheetRenewalLine}</p>
         <p className="mt-2 flex items-center justify-center gap-1.5 text-[0.72rem] font-bold text-muted-brand"><Icon name="lock" className="h-3.5 w-3.5" />{funnelPaywall.checkout.secure}</p>
         <p className="mt-1.5 flex items-center justify-center gap-1.5 text-[0.78rem] font-extrabold text-forest"><Icon name="shield" className="h-4 w-4 text-teal-brand" />{funnelPaywall.guaranteeTitle}</p>
       </div>

@@ -549,6 +549,55 @@ h2 {
   }
 }
 
+/*
+ * RevenueCat sizes its in-page checkout for a fixed-height parent: height 100% and size containment.
+ * Our checkout sheet grows with its content instead, so without this the order total and Paddle's form
+ * collapse to 0px. Its container queries are width-only, so inline-size keeps them working.
+ * !important because RevenueCat injects its scoped styles after ours.
+ */
+.checkout-host .rcb-ui-container,
+.checkout-host #layout-query-container {
+  height: auto !important;
+}
+.checkout-host #layout-query-container {
+  container-type: inline-size !important;
+}
+
+/* RevenueCat's order summary in Nutree's colours and font, whatever its dashboard theme says. Its theme
+   arrives as inline custom properties, which only !important outranks. */
+.checkout-host,
+.checkout-host * {
+  --rc-color-primary: #17453a !important;
+  --rc-color-primary-hover: #1e5447 !important;
+  --rc-color-primary-pressed: #0c1c17 !important;
+  --rc-color-primary-text: #ffffff !important;
+  --rc-color-accent: #1fa892 !important;
+  --rc-color-accent-primary: #1fa892 !important;
+  --rc-color-focus: #1fa892 !important;
+  --rc-color-background: #ffffff !important;
+  --rc-color-input-background: #ffffff !important;
+  --rc-color-grey-text-dark: #17453a !important;
+  --rc-color-grey-text-light: #6b7b75 !important;
+  --rcb-card-bg: #e8f2ee !important;
+}
+.checkout-host .rcb-ui-container {
+  font-family: inherit !important;
+}
+/* The sheet already has side padding, and Paddle's form needs at least 312px. */
+.checkout-host .layout-content,
+.checkout-host .navbar-body {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+.checkout-host .navbar-body {
+  padding-top: 0 !important;
+}
+/* The order summary in the same shape as the sheet's discount strip above it. */
+.checkout-host .rcb-paddle-summary-card {
+  border-radius: 1rem !important;
+  padding: 1rem 1.1rem !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
