@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { PrimaryButton } from '@/components/primary-button';
 import { QuizShell } from '@/components/quiz-shell';
-import { MacroBars, PlanGoalCard } from '@/components/plan/plan-overview';
+import { PlanGoalCard } from '@/components/plan/plan-overview';
 import { QuizStepFrame } from '@/components/steps/quiz-step-frame';
-import { AppStoreRating, MealIdeas, MealSnapDemo } from '@/components/value-tour/value-tour-demos';
+import { AppStoreRating, MealSnapDemo } from '@/components/value-tour/value-tour-demos';
 import { trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { VALUE_TOUR_STEPS, valueProgressIndex, type ValueTourStep } from '@/lib/quiz/steps';
@@ -60,13 +60,8 @@ export function ValueTourScreen({
       {step === 'plan' && (
         <QuizStepFrame eyebrow={tour.plan.eyebrow}>
           <PlanGoalCard data={data} tdee={tdee} system={system} />
-          {tdee && (
-            <section className="rounded-[1.6rem] bg-white/90 p-4 shadow-[0_10px_30px_rgb(26_71_57_/_0.06)]">
-              <MacroBars tdee={tdee} />
-              {trainingDays != null && trainingDays > 0 && (
-                <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-brand">{copy.valueTour.activity.personalized(trainingDays)}</p>
-              )}
-            </section>
+          {tdee && trainingDays != null && trainingDays > 0 && (
+            <p className="px-1 text-sm font-semibold leading-relaxed text-slate-brand">{copy.valueTour.activity.personalized(trainingDays)}</p>
           )}
           <div className="mt-auto pt-3">
             <PrimaryButton onClick={advance}>{tour.plan.cta}</PrimaryButton>
@@ -75,8 +70,7 @@ export function ValueTourScreen({
       )}
       {step === 'snap' && (
         <QuizStepFrame eyebrow={tour.snap.eyebrow} title={tour.snap.title} description={tour.snap.body}>
-          <MealSnapDemo label={copy.valueTour.snap.videoLabel} compact />
-          {tdee && <MealIdeas title={tour.snap.ideasTitle} tdee={tdee} diet={data.dietary_preferences} />}
+          <MealSnapDemo label={copy.valueTour.snap.videoLabel} />
           <div className="mt-auto pt-3">
             <PrimaryButton onClick={advance}>{tour.snap.cta}</PrimaryButton>
           </div>

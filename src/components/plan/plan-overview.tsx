@@ -102,27 +102,6 @@ export function PlanGoalCard({ data, tdee, system, className }: {
   );
 }
 
-/** Protein, carbs and fat as bars sized from the visitor's own targets. */
-export function MacroBars({ tdee }: { tdee: TdeeResult }) {
-  const copy = useCopy();
-  const rows = [
-    { label: copy.tdee_targets.protein, grams: Math.round(tdee.protein_g), kcal: tdee.protein_g * 4, color: 'bg-protein' },
-    { label: copy.tdee_targets.carbs, grams: Math.round(tdee.carbs_g), kcal: tdee.carbs_g * 4, color: 'bg-carbs' },
-    { label: copy.tdee_targets.fat, grams: Math.round(tdee.fat_g), kcal: tdee.fat_g * 9, color: 'bg-fat' },
-  ];
-  const total = rows.reduce((sum, row) => sum + row.kcal, 0) || 1;
-  return (
-    <div className="grid gap-2.5">
-      {rows.map((row) => (
-        <div key={row.label}>
-          <div className="flex justify-between text-sm font-extrabold text-forest"><span>{row.label}</span><span>{row.grams} g</span></div>
-          <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-forest/8"><div className={cn('h-full rounded-full', row.color)} style={{ width: `${Math.max(6, (row.kcal / total) * 100)}%` }} /></div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /** Three first changes, each next to the answer it comes from. */
 export function FirstChangesCard({ data, tdee, className }: { data: OnboardingPayload; tdee: TdeeResult; className?: string }) {
   const copy = useCopy();

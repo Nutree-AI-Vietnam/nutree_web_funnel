@@ -2,9 +2,7 @@
 
 import Image from 'next/image';
 import { useReducedMotion } from 'motion/react';
-import { useCopy, useLocale } from '@/lib/copy/use-copy';
-import { sampleDay } from '@/lib/quiz/plan-content';
-import type { TdeeResult } from '@/lib/quiz/types';
+import { useCopy } from '@/lib/copy/use-copy';
 import { cn } from '@/lib/utils';
 
 /** A modern iPhone shell. Height is capped so the bezel, title, and button still fit a phone viewport. */
@@ -45,26 +43,6 @@ export function MealSnapDemo({ label, compact = false }: { label: string; compac
         />
       )}
     </IphoneFrame>
-  );
-}
-
-/** Meal ideas from the sample day, so they follow the diet answers. */
-export function MealIdeas({ title, tdee, diet }: { title: string; tdee: TdeeResult; diet: readonly string[] | undefined }) {
-  const copy = useCopy();
-  const locale = useLocale();
-  const format = new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US');
-  return (
-    <section className="rounded-[1.4rem] bg-white/90 p-3.5 shadow-[0_10px_30px_rgb(26_71_57_/_0.06)]">
-      <h2 className="text-sm font-extrabold text-forest">{title}</h2>
-      <ul className="mt-2 grid gap-1.5">
-        {sampleDay(tdee.calories, diet).map((row) => (
-          <li key={row.meal} className="flex items-center justify-between gap-3 text-sm">
-            <span className="min-w-0 font-semibold text-slate-brand">{copy.funnel.plan.dishes[row.dish]}</span>
-            <span className="shrink-0 font-extrabold tabular-nums text-forest">{format.format(row.calories)} kcal</span>
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }
 
