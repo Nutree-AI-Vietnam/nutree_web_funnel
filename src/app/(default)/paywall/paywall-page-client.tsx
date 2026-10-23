@@ -17,7 +17,7 @@ import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
 import { normalizeCountryCode } from '@/lib/market/country';
 import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, dismissCheckoutOverlay, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, hasPaywallCheckoutPending, markExitOfferClaimed, markPaywallCheckoutPending, paddleCheckoutClosedWithoutPayment, paddleCheckoutCompleted, paddleCheckoutIsOpen, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, PAYWALL_WELCOME_OFFER_SECONDS, priceTestVariant, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
-import { firstPaymentCommerce, formatPerDay, planPerDay, savingsVersusPriciest } from '@/lib/revenuecat/plan-pricing';
+import { firstPaymentCommerce, formatPerDay, planPerDay, savingsVersusPriciest, type PlanPerDay } from '@/lib/revenuecat/plan-pricing';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { syncRevenueCatAttribution } from '@/lib/revenuecat/attribution-attributes';
 import { completePurchasedCheckout } from '@/lib/revenuecat/purchase-handoff';
@@ -32,6 +32,7 @@ import { formatWeight } from '@/lib/quiz/units';
 import { FirstChangesCard, GoalStrip, PlanDayCard, PlanGoalCard } from '@/components/plan/plan-overview';
 import { AppStoreRating } from '@/components/value-tour/value-tour-demos';
 import { Icon, type IconName } from '@/components/ui/icons';
+import { WelcomeGiftScreen } from '@/components/welcome-gift-screen';
 import { periodWeeks, planForTimeline } from '@/lib/quiz/plan-content';
 import { formatGoalDate, goalTimeline } from '@/lib/quiz/progress-projection';
 import { localPreviewOffering } from '@/lib/revenuecat/local-preview-offering';
@@ -58,15 +59,75 @@ interface StoredPaywallOffer {
 }
 
 const OFFER_SECONDS = PAYWALL_WELCOME_OFFER_SECONDS;
+// English claims its welcome price on the gift screen and keeps it for 10 minutes before prices return to full.
+const ENGLISH_WELCOME_SECONDS = 600;
 // Icons for the four plan inclusions, in personalIncludes order.
 const INCLUDE_ICONS: IconName[] = ['plate', 'camera', 'calendar', 'chat'];
+
+/**
+ * Wallets show only once they are switched on in Paddle, so the badge never promises a method
+ * checkout lacks: set NEXT_PUBLIC_CHECKOUT_WALLETS=apple_pay,google_pay after enabling them.
+ * The local preview shows both so the layout can be reviewed.
+ */
+const CHECKOUT_WALLETS = (process.env.NEXT_PUBLIC_CHECKOUT_WALLETS ?? '').split(',').map((wallet) => wallet.trim()).filter(Boolean);
+
+function ApplePayBadge() {
+  return (
+    <span className="inline-flex h-7 items-center gap-0.5 rounded-md bg-black px-2 text-[0.8rem] font-semibold text-white" aria-label="Apple Pay">
+      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true"><path d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.18-1.73-1.35-.14-2.64.8-3.33.8-.69 0-1.74-.78-2.86-.76-1.47.02-2.83.86-3.59 2.17-1.53 2.65-.39 6.58 1.1 8.73.73 1.05 1.6 2.23 2.73 2.19 1.1-.04 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.13.84-1.22 1.18-2.4 1.2-2.46-.03-.01-2.3-.88-2.3-3.48ZM14.2 6.13c.6-.73 1.01-1.75.9-2.76-.87.03-1.92.58-2.54 1.31-.56.64-1.05 1.67-.92 2.66.97.08 1.96-.49 2.56-1.21Z" /></svg>
+      <span aria-hidden="true">Pay</span>
+    </span>
+  );
+}
+
+function GooglePayBadge() {
+  return (
+    <span className="inline-flex h-7 items-center gap-1 rounded-md border border-border-brand bg-white px-2 text-[0.8rem] font-semibold text-[#3c4043]" aria-label="Google Pay">
+      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" aria-hidden="true">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09Z" />
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23Z" />
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84Z" />
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53Z" />
+      </svg>
+      <span aria-hidden="true">Pay</span>
+    </span>
+  );
+}
+
+/** A per-day price with the whole amount large and the cents raised beside it. */
+function PerDayPrice({ perDay, locale, label, active }: { perDay: PlanPerDay | null; locale: string; label: string; active: boolean }) {
+  if (!perDay) return null;
+  const parts = new Intl.NumberFormat(locale, { style: 'currency', currency: perDay.currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).formatToParts(perDay.amount);
+  const symbol = parts.filter((part) => part.type === 'currency').map((part) => part.value).join('');
+  const whole = parts.filter((part) => part.type === 'integer' || part.type === 'group').map((part) => part.value).join('');
+  const cents = parts.find((part) => part.type === 'fraction')?.value ?? '';
+  return (
+    <span className={cn('flex min-w-[4.1rem] items-start justify-center rounded-[0.9rem] px-1.5 py-1.5 leading-none transition-colors duration-200', active ? 'bg-forest text-white' : 'bg-mist text-forest')}>
+      <span className="mt-1 text-[0.78rem] font-extrabold">{symbol}</span>
+      <span className="text-[1.8rem] font-extrabold tracking-[-0.04em] tabular-nums">{whole}</span>
+      <span className="ml-0.5 mt-1 flex flex-col">
+        <span className="text-[0.8rem] font-extrabold tabular-nums">{cents}</span>
+        <span className="mt-0.5 text-[0.5rem] font-bold opacity-75">{label}</span>
+      </span>
+    </span>
+  );
+}
 
 function formatCountdown(seconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-function createPaywallOffer(kind: PaywallOfferKind, now = Date.now()): StoredPaywallOffer {
-  return { kind, expiresAt: now + (kind === 'exit' ? PAYWALL_EXIT_OFFER_SECONDS : OFFER_SECONDS) * 1000 };
+function createPaywallOffer(kind: PaywallOfferKind, now = Date.now(), welcomeSeconds = OFFER_SECONDS): StoredPaywallOffer {
+  return { kind, expiresAt: now + (kind === 'exit' ? PAYWALL_EXIT_OFFER_SECONDS : welcomeSeconds) * 1000 };
+}
+
+/** A plan link with start=1 opens checkout directly, so it skips the welcome gift. */
+function autostartPending() {
+  try {
+    return window.sessionStorage.getItem(PAYWALL_AUTOSTART_KEY) === '1';
+  } catch {
+    return false;
+  }
 }
 
 function readStoredPaywallOffer(): StoredPaywallOffer | null {
@@ -163,6 +224,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   // English shows the price people pay as the price: no countdown, crossed-out price or "% off"
   // while the plans renew at the discounted price. Only the exit offer, which really ends, keeps a timer.
   const plainPricing = activeLocale === 'en';
+  const welcomeSeconds = plainPricing ? ENGLISH_WELCOME_SECONDS : OFFER_SECONDS;
+  // Read once on the client: a gift claimed earlier in this tab, or a plan link that opens checkout, skips the gift.
+  const [giftSkipped, setGiftSkipped] = useState(() => typeof window !== 'undefined' && (hasWelcomeVoucherBeenClaimed() || autostartPending()));
   const timeline = useMemo(() => goalTimeline(data), [data]);
   // The header names the goal until the plan picker scrolls into view, then the price.
   const [plansSeen, setPlansSeen] = useState(false);
@@ -229,7 +293,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       exitClaimed: hasExitOfferBeenClaimed(),
       welcomeClaimed: hasWelcomeVoucherBeenClaimed(),
       stored: readStoredPaywallOffer(),
-      welcomeSeconds: OFFER_SECONDS,
+      welcomeSeconds,
       exitSeconds: PAYWALL_EXIT_OFFER_SECONDS,
     });
     if (resumeUnfinishedPaddle) {
@@ -246,7 +310,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       setOfferStateReady(true);
     }, 0);
     return () => window.clearTimeout(readyTimer);
-  }, [exitOfferMode, hydrated]);
+  }, [exitOfferMode, hydrated, welcomeSeconds]);
 
   useEffect(() => {
     if (offerExpiresAt === null) return;
@@ -490,8 +554,10 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const isOriginalPricing = offerKind === 'original';
   const isExitOfferMode = offerKind === 'exit';
   const exitOfferActive = isExitOfferMode && secondsLeft > 0;
-  const welcomeOfferActive = offerKind === 'welcome' && (plainPricing || secondsLeft > 0);
+  const welcomeOfferActive = offerKind === 'welcome' && secondsLeft > 0;
   const activeOffer: PaywallOfferKind | null = exitOfferActive ? 'exit' : welcomeOfferActive ? 'welcome' : null;
+  // English opens on the welcome gift while an unclaimed welcome price is running.
+  const giftOpen = plainPricing && offerStateReady && welcomeOfferActive && !giftSkipped;
   const selectedOriginalPrice = firstPaymentPrice(selected?.rcPackage.webBillingProduct);
   const selectedOfferProduct = selected ? checkoutPackage(selected, activeOffer).webBillingProduct : null;
   const selectedOfferPrice = firstPaymentPrice(selectedOfferProduct);
@@ -592,20 +658,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     const period = plan.rcPackage.webBillingProduct.period;
     return period ? `${period.number} ${periodWord(period)}` : plan.label[activeLocale];
   };
-  const billedLabel = (plan: (typeof plans)[number]) => {
-    const period = plan.rcPackage.webBillingProduct.period;
-    return period ? funnelPaywall.billed(period.number, periodWord(period)) : plan.billingLabel[activeLocale];
-  };
   const cadenceOf = (plan: (typeof plans)[number]) => {
     const period = plan.rcPackage.webBillingProduct.period;
     return period ? funnelPaywall.cadence(period.number, periodWord(period)) : plan.billingLabel[activeLocale].toLowerCase();
-  };
-  /** Monthly cost of a plan that bills for several months, from its first payment. */
-  const monthlyOf = (product: Product) => {
-    const price = firstPaymentPrice(product);
-    const period = product.introPricePhase?.price ? product.introPricePhase.period : product.period;
-    if (!price || !period || period.unit !== 'month' || period.number < 2) return null;
-    return new Intl.NumberFormat(priceLocale, { style: 'currency', currency: price.currency }).format(price.amountMicros / 1_000_000 / period.number);
   };
   const selectedPeriod = selected?.rcPackage.webBillingProduct.period;
   const nextCharge = nextChargeDate(selectedOfferProduct);
@@ -628,15 +683,21 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
 
   if (!hydrated || !lead || !offerStateReady) return null;
 
+  // While a discount runs, the header is just the offer, its countdown and the button; otherwise the plan and its price.
+  const offerRunning = welcomeOfferActive || exitOfferActive;
+  const checkoutWallets = isLocalPreviewHost() ? ['apple_pay', 'google_pay'] : CHECKOUT_WALLETS;
   const englishHeader = (
-    <div className={cn('fixed left-1/2 top-0 z-50 w-full max-w-lg -translate-x-1/2 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-[0_12px_34px_rgb(16_39_32_/_0.12)] backdrop-blur-xl', exitOfferActive ? 'border-[#FDBA74] bg-[#FFF7ED]/95' : 'border-white/55 bg-white/80')}>
-      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
-        <Link href={`/survey/${activeLocale}`} aria-label="Nutree" className="block h-11 w-11 shrink-0"><NutreeLogo priority className="h-11 w-11" /></Link>
+    <div className={cn('fixed left-1/2 top-0 z-50 w-full max-w-lg -translate-x-1/2 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-[0_12px_34px_rgb(16_39_32_/_0.12)] backdrop-blur-xl', exitOfferActive ? 'border-[#FDBA74] bg-[#FFF7ED]/95' : 'border-white/55 bg-white/90')}>
+      <div className={cn('grid items-center gap-3', offerRunning ? 'grid-cols-[1fr_auto]' : 'grid-cols-[auto_1fr_auto]')}>
+        {!offerRunning && <Link href={`/survey/${activeLocale}`} aria-label="Nutree" className="block h-11 w-11 shrink-0"><NutreeLogo priority className="h-11 w-11" /></Link>}
         <div className="min-w-0">
-          {exitOfferActive ? (
+          {offerRunning ? (
             <>
-              <p className="text-[0.74rem] font-bold leading-tight text-[#9A3412]">{funnelPaywall.exitHeader}</p>
-              <strong aria-live="polite" className="mt-0.5 inline-flex rounded-md bg-[#C2410C] px-1.5 py-0.5 text-[1.1rem] font-extrabold leading-none tabular-nums text-white">{countdown}</strong>
+              <p className={cn('flex items-center gap-1 whitespace-nowrap text-[0.74rem] font-bold leading-tight', exitOfferActive ? 'text-[#9A3412]' : 'text-slate-brand')}>
+                <Icon name="gift" className={cn('h-4 w-4', exitOfferActive ? 'text-[#C2410C]' : 'text-[#c0263f]')} />
+                <span>{exitOfferActive ? funnelPaywall.exitHeader : funnelPaywall.welcomeReserved(WELCOME_DISCOUNT_PERCENT)}</span>
+              </p>
+              <strong aria-live="polite" className="mt-0.5 block text-[1.55rem] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-charcoal">{countdown}</strong>
             </>
           ) : (
             <>
@@ -645,16 +706,26 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
             </>
           )}
         </div>
-        <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className={cn('min-h-11 rounded-[1rem] px-3.5 text-[0.82rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50', exitOfferActive ? 'bg-[#C2410C] hover:bg-[#9A3412]' : 'bg-forest hover:bg-emerald-deep')}>{busy ? copy.paywall.loading : funnelPaywall.topCta}</button>
+        <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className={cn('min-h-12 shrink-0 rounded-[1rem] px-4 text-[0.86rem] font-extrabold text-white transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50', exitOfferActive ? 'bg-[#C2410C] shadow-[0_10px_24px_rgb(194_65_12_/_0.25)] hover:bg-[#9A3412]' : 'cta-premium', offerRunning && !busy && 'cta-attention')}><span>{busy ? copy.paywall.loading : funnelPaywall.topCta}</span></button>
       </div>
     </div>
   );
 
   const checkoutButton = (
-    <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className={cn('min-h-14 w-full rounded-2xl px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50', exitOfferActive ? 'bg-[#C2410C] hover:bg-[#9A3412]' : 'cta-premium')}>{busy ? copy.paywall.loading : englishCta}</button>
+    <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className={cn('min-h-14 w-full rounded-2xl px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50', exitOfferActive ? 'bg-[#C2410C] hover:bg-[#9A3412]' : 'cta-premium', (welcomeOfferActive || exitOfferActive) && !busy && 'cta-attention')}><span>{busy ? copy.paywall.loading : englishCta}</span></button>
   );
 
   const planTdee = tdee ?? computeTdeeResult(data);
+  const claimWelcomeGift = () => {
+    markWelcomeVoucherClaimed();
+    const offer = createPaywallOffer('welcome', Date.now(), welcomeSeconds);
+    storePaywallOffer(offer);
+    setOfferKind('welcome');
+    setOfferExpiresAt(offer.expiresAt);
+    setSecondsLeft(welcomeSeconds);
+    setGiftSkipped(true);
+    window.scrollTo({ top: 0 });
+  };
   // The visitor's own plan leads the paywall in both languages: goal, day of meals, and changes from their answers.
   const planTop = (
     <>
@@ -671,12 +742,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       {planTdee && <FirstChangesCard data={data} tdee={planTdee} />}
     </>
   );
-  const includeItems = funnelPaywall.personalIncludes({
-    calories: planTdee ? Math.round(planTdee.calories).toLocaleString(priceLocale) : '',
-    diet: null,
-    date: timeline ? formatGoalDate(timeline.date, activeLocale) : null,
-  });
-  const includeTitles = includeItems.map((item) => item.title);
   const personalIncludeList = (
     <ul className="mt-3 grid gap-3">{funnelPaywall.personalIncludes({
           calories: planTdee ? Math.round(planTdee.calories).toLocaleString(priceLocale) : '',
@@ -705,68 +770,61 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       {planTop}
 
       <section id="plans" ref={observePlans} className="rounded-[1.6rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-5">
-        <p className="text-[0.72rem] font-bold text-muted-brand">{funnelPaywall.includesTitle}</p>
-        <ul className="mt-2 grid grid-cols-2 gap-2">
-          {includeTitles.map((title, index) => (
-            <li key={title} className="flex min-w-0 items-center gap-2 rounded-xl bg-mist/70 px-2.5 py-2 text-[0.8rem] font-bold leading-snug text-forest">
-              <Icon name={INCLUDE_ICONS[index] ?? 'plate'} className="h-[1.1rem] w-[1.1rem] text-teal-brand" />
-              <span className="min-w-0">{title}</span>
-            </li>
-          ))}
-        </ul>
-        <h2 className="mt-4 text-[1.12rem] font-extrabold tracking-[-0.02em] text-forest">{funnelPaywall.choosePlan}</h2>
-        {isExitOfferMode && <p className={cn('mt-3 rounded-[1.15rem] px-3 py-2.5 text-center text-[0.84rem] font-extrabold tabular-nums', exitOfferActive ? 'bg-[#FFF7ED] text-[#9A3412] ring-1 ring-[#FDBA74]' : 'bg-mist text-forest')}>{exitOfferActive ? funnelPaywall.exitTimer(countdown) : funnelPaywall.exitEnded}</p>}
+        {/* One line says which price applies and for how long: the welcome timer, the exit timer, or prices back to normal. */}
+        {exitOfferActive ? (
+          <p className="flex items-center justify-center gap-2 rounded-[1rem] bg-[#FFF7ED] px-3 py-2.5 text-center text-[0.84rem] font-extrabold tabular-nums text-[#9A3412] ring-1 ring-[#FDBA74]"><Icon name="clock" className="h-4 w-4" />{funnelPaywall.exitTimer(countdown)}</p>
+        ) : welcomeOfferActive ? (
+          <p className="flex items-center justify-center gap-2 rounded-[1rem] bg-[#fdecef] px-3 py-2.5 text-center text-[0.84rem] font-extrabold tabular-nums text-[#a3213a]"><Icon name="clock" className="h-4 w-4" />{funnelPaywall.welcomeEnds(WELCOME_DISCOUNT_PERCENT, countdown)}</p>
+        ) : offerStateReady && !isExitOfferMode ? (
+          <p className="rounded-[1rem] bg-mist px-3 py-2.5 text-center text-[0.8rem] font-bold text-forest">{funnelPaywall.welcomeEnded}</p>
+        ) : isExitOfferMode ? (
+          <p className="rounded-[1rem] bg-mist px-3 py-2.5 text-center text-[0.8rem] font-bold text-forest">{funnelPaywall.exitEnded}</p>
+        ) : null}
         <div role="radiogroup" aria-label={copy.paywall.selectPlanAria} className="mt-3 grid gap-2.5">
-          {!plans.length && loadState === 'loading' && [0, 1, 2].map((index) => <div key={index} aria-hidden="true" className="min-h-[4.75rem] animate-pulse rounded-[1.3rem] border-2 border-border-brand bg-mist/40" />)}
+          {!plans.length && loadState === 'loading' && [0, 1, 2].map((index) => <div key={index} aria-hidden="true" className="min-h-[4.5rem] animate-pulse rounded-[1.2rem] border-2 border-border-brand bg-mist/40" />)}
           {plans.map((plan) => {
             const active = plan.id === selected?.id;
             const offerPackage = checkoutPackage(plan, activeOffer);
+            const discounted = offerPackage !== plan.rcPackage;
             const price = firstPaymentPrice(offerPackage.webBillingProduct)?.formattedPrice ?? '…';
-            // During the exit offer the crossed-out price is the price shown a moment ago, which is real.
-            const was = exitOfferActive ? firstPaymentPrice(checkoutPackage(plan, 'welcome').webBillingProduct)?.formattedPrice : null;
-            const perDayLabel = formatPerDay(perDayByPlan[plan.id] ?? null, priceLocale);
+            // The crossed-out price is the plan's full price, which applies once the offer ends.
+            const fullPrice = discounted ? firstPaymentPrice(plan.rcPackage.webBillingProduct)?.formattedPrice : null;
+            const fullPerDay = discounted ? formatPerDay(planPerDay(plan.rcPackage.webBillingProduct), priceLocale) : null;
+            const percent = activeOffer === 'exit' ? EXIT_DISCOUNT_PERCENT : WELCOME_DISCOUNT_PERCENT;
             const fits = plan.id === timelinePlan?.id;
-            // How many payments this plan takes to reach the goal date: 1 for a plan that covers it.
-            const payments = timeline ? Math.max(1, Math.ceil(timeline.weeks / Math.max(1, periodWeeks(plan.rcPackage.webBillingProduct.period) ?? timeline.weeks))) : null;
             return (
-              <button key={plan.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(plan.id); saveSelectedPaywallPlan(plan.id); trackEvent('offer_selected', { offer_id: plan.id, provider: 'revenuecat', ...firstPaymentCommerce(offerPackage.webBillingProduct) }); }} className={cn('overflow-hidden rounded-[1.3rem] border-2 text-left transition-colors duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-forest bg-mist/60 shadow-[0_12px_26px_rgb(23_69_58_/_0.12)]' : 'border-border-brand bg-white hover:border-teal-brand/60')}>
-                {fits && <span className="block bg-forest px-3 py-1 text-center text-[0.66rem] font-extrabold tracking-[0.02em] text-white">{funnelPaywall.fitsTimeline}</span>}
-                <span className="grid min-h-[4.75rem] grid-cols-[auto_1fr_auto] items-center gap-3 px-3.5 py-3">
+              <button key={plan.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(plan.id); saveSelectedPaywallPlan(plan.id); trackEvent('offer_selected', { offer_id: plan.id, provider: 'revenuecat', ...firstPaymentCommerce(offerPackage.webBillingProduct) }); }} className={cn('overflow-hidden rounded-[1.2rem] border-2 text-left transition-colors duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-forest bg-mist/50 shadow-[0_12px_26px_rgb(23_69_58_/_0.12)]' : 'border-border-brand bg-white hover:border-teal-brand/60')}>
+                {fits && <span className="block bg-forest px-3 py-1 text-center text-[0.68rem] font-extrabold text-white">{funnelPaywall.fitsTimeline}</span>}
+                <span className="grid min-h-[4.5rem] grid-cols-[auto_1fr_auto] items-center gap-2 px-3 py-2.5">
                   <span className={cn('grid h-6 w-6 place-items-center rounded-full border-2', active ? 'border-forest' : 'border-border-brand')}>{active && <span className="h-3 w-3 rounded-full bg-forest" />}</span>
                   <span className="min-w-0">
-                    <span className={cn('block text-[1.02rem] font-extrabold leading-tight', active ? 'text-charcoal' : 'text-slate-brand')}>{planName(plan)}</span>
-                    <span className="mt-1 block text-[0.76rem] font-bold leading-snug text-muted-brand">{was && <s className="mr-1 font-semibold opacity-70">{was}</s>}{funnelPaywall.billedFor(price, cadenceOf(plan))}</span>
-                    {monthlyOf(offerPackage.webBillingProduct) && <span className="mt-0.5 block text-[0.74rem] font-extrabold text-teal-brand">{funnelPaywall.perMonth(monthlyOf(offerPackage.webBillingProduct)!)}</span>}
-                    {payments != null && timeline && (
-                      <span className="mt-2 block">
-                        <span aria-hidden="true" className="flex h-1.5 gap-px overflow-hidden rounded-full">
-                          {Array.from({ length: Math.min(payments, 24) }, (_, index) => (
-                            <span key={index} className={cn('h-full flex-1', active ? 'bg-forest' : 'bg-teal-brand/35')} />
-                          ))}
-                        </span>
-                        <span className="mt-1 block text-[0.7rem] font-semibold text-muted-brand">{funnelPaywall.paymentsTo(payments, formatGoalDate(timeline.date, activeLocale, false))}</span>
+                    <span className={cn('block whitespace-nowrap text-[1rem] font-extrabold leading-tight', active ? 'text-charcoal' : 'text-slate-brand')}>{planName(plan)}</span>
+                    {fullPrice && <s className="mt-0.5 block text-[0.74rem] font-semibold text-muted-brand">{fullPrice}</s>}
+                    <span className="block text-[0.84rem] font-extrabold text-slate-brand">{price}</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    {fullPerDay && (
+                      <span className="grid justify-items-end gap-1">
+                        <span className="rounded-md bg-[#fdecef] px-1.5 py-0.5 text-[0.66rem] font-extrabold text-[#a3213a]">{funnelPaywall.percentOff(percent)}</span>
+                        <s className="text-[0.72rem] font-semibold text-muted-brand">{fullPerDay}</s>
                       </span>
                     )}
-                  </span>
-                  <span className={cn('min-w-[5.4rem] rounded-[1rem] px-2.5 py-2 text-center transition-colors duration-200', active ? 'bg-forest text-white' : 'text-muted-brand')}>
-                    <span className="block text-[1.32rem] font-extrabold leading-none tracking-[-0.04em] tabular-nums">{perDayLabel ?? price}</span>
-                    <span className="mt-1 block text-[0.6rem] font-extrabold leading-none opacity-75">{perDayLabel ? copy.paywall.perDay : billedLabel(plan)}</span>
+                    <PerDayPrice perDay={perDayByPlan[plan.id] ?? null} locale={priceLocale} label={copy.paywall.perDay} active={active} />
                   </span>
                 </span>
               </button>
             );
           })}
         </div>
-        {isExitOfferMode && exitOfferActive && <p className="mt-1 text-sm font-medium text-muted-brand">{funnelPaywall.exitNote}</p>}
         <div className="mt-4">{checkoutButton}</div>
-        <div className="mt-3 grid gap-2.5 rounded-[1.1rem] bg-mist/60 p-3 text-[0.78rem] leading-relaxed">
-          <p className="flex gap-2.5"><Icon name="shield" className="mt-0.5 h-[1.05rem] w-[1.05rem] text-teal-brand" /><span className="text-slate-brand"><strong className="font-extrabold text-forest">{funnelPaywall.guaranteeTitle}.</strong> {funnelPaywall.guaranteeBody}</span></p>
-          <p className="flex gap-2.5"><Icon name="renew" className="mt-0.5 h-[1.05rem] w-[1.05rem] text-teal-brand" /><span className="text-muted-brand">{renewalLine}</span></p>
-        </div>
-        <div className="mt-3 flex items-center justify-center gap-2 text-[0.72rem] font-bold text-muted-brand">
-          <span>{funnelPaywall.payWith}</span>
-          <span className="inline-flex items-center gap-1 rounded-md border border-border-brand px-2 py-0.5 font-extrabold text-forest"><Icon name="card" className="h-3.5 w-3.5" />{funnelPaywall.card}</span>
-          <span className="rounded-md border border-border-brand px-2 py-0.5 font-extrabold italic text-[#003087]">Pay<span className="text-[#009cde]">Pal</span></span>
+        <p className="mt-2.5 flex items-center justify-center gap-1.5 text-[0.8rem] font-extrabold text-forest"><Icon name="shield" className="h-4 w-4 text-teal-brand" />{funnelPaywall.guaranteeTitle}</p>
+        <p className="mt-1.5 text-center text-[0.72rem] font-medium leading-relaxed text-muted-brand">{renewalLine}</p>
+        <p className="mt-3 flex items-center justify-center gap-1 text-[0.7rem] font-bold text-muted-brand"><Icon name="lock" className="h-3.5 w-3.5" />{funnelPaywall.payWith}</p>
+        <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1.5">
+          {checkoutWallets.includes('apple_pay') && <ApplePayBadge />}
+          {checkoutWallets.includes('google_pay') && <GooglePayBadge />}
+          <span className="inline-flex h-7 items-center rounded-md border border-border-brand bg-white px-2 text-[0.74rem] font-extrabold italic text-[#003087]">Pay<span className="text-[#009cde]">Pal</span></span>
+          <span className="inline-flex h-7 items-center gap-1 rounded-md border border-border-brand bg-white px-2 text-[0.74rem] font-extrabold text-forest"><Icon name="card" className="h-3.5 w-3.5" />{funnelPaywall.card}</span>
         </div>
       </section>
 
@@ -808,6 +866,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       )}
       className="gap-5"
     >
+      {giftOpen && <WelcomeGiftScreen minutes={Math.round(welcomeSeconds / 60)} onClaim={claimWelcomeGift} />}
       {plainPricing ? englishBody : (
       <div className="pt-[5.75rem]">
         <div className="grid gap-4">

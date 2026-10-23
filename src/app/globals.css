@@ -235,6 +235,32 @@ h2 {
   transform: translateX(120%);
 }
 
+/* The buying button breathes and a shine sweeps across it, so the eye keeps returning to it. */
+@keyframes cta-attention {
+  0%, 100% { transform: scale(1); box-shadow: var(--shadow-cta), 0 0 0 0 rgb(31 168 146 / 0.45); }
+  50% { transform: scale(1.045); box-shadow: var(--shadow-cta), 0 0 0 9px rgb(31 168 146 / 0); }
+}
+
+@keyframes cta-attention-sheen {
+  0%, 55% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
+.cta-attention {
+  animation: cta-attention 2.2s ease-in-out infinite;
+}
+
+.cta-attention::after {
+  animation: cta-attention-sheen 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-attention,
+  .cta-attention::after {
+    animation: none;
+  }
+}
+
 .cta-premium > * {
   position: relative;
   z-index: 2;

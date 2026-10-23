@@ -50,6 +50,18 @@ const PATHS = {
       <path d="M8 11V8a4 4 0 0 1 8 0v3" />
     </>
   ),
+  gift: (
+    <>
+      <rect x="4" y="9" width="16" height="11" rx="1.5" />
+      <path d="M3 9h18M12 9v11M12 9C10.5 6 7 5.6 7 7.8 7 9 12 9 12 9Zm0 0c1.5-3 5-3.4 5-1.2C17 9 12 9 12 9Z" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </>
+  ),
   card: (
     <>
       <rect x="3" y="6" width="18" height="12" rx="2" />
