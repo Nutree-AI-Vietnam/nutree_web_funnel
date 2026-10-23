@@ -1,7 +1,6 @@
 'use client';
 
 import { ErrorCode, Purchases, type Product, type Purchases as PurchasesInstance } from '@revenuecat/purchases-js';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -668,7 +667,12 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   // The guarantee as one row: badge beside the terms, so it reassures without another full card of text.
   const guaranteeRow = (title: string, body: string) => (
     <section className="flex items-center gap-4 rounded-[1.6rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]">
-      <Image src="/guarantee-30day.webp" alt="" width={160} height={160} className="h-16 w-16 shrink-0 object-contain" />
+      <svg viewBox="0 0 64 64" className="h-16 w-16 shrink-0" aria-hidden="true">
+        <path d="M32 4 54 12v18c0 14-9.5 24.5-22 30C19.5 54.5 10 44 10 30V12Z" fill="#17453a" />
+        <path d="M32 9.5 49.5 16v14c0 11-7.3 19.6-17.5 24.4C21.8 49.6 14.5 41 14.5 30V16Z" fill="none" stroke="#34d0b4" strokeWidth="1.5" opacity="0.7" />
+        <text x="32" y="33" textAnchor="middle" fill="#fff" fontSize="17" fontWeight="800">30</text>
+        <text x="32" y="44" textAnchor="middle" fill="#bfeee2" fontSize="7.5" fontWeight="700">days</text>
+      </svg>
       <div className="min-w-0">
         <h2 className="text-[1rem] font-extrabold leading-tight text-forest">{title}</h2>
         <p className="mt-1 text-[0.82rem] font-medium leading-relaxed text-muted-brand">{body}</p>

@@ -123,8 +123,8 @@ export function FirstChangesCard({ data, tdee, className }: { data: OnboardingPa
           <li key={change.id} className="grid grid-cols-[1.75rem_1fr] gap-3 py-3 first:pt-0 last:pb-0">
             <span className="grid h-7 w-7 place-items-center rounded-full bg-mist text-[0.8rem] font-extrabold text-forest">{index + 1}</span>
             <span>
-              <span className="block text-[0.98rem] font-extrabold leading-snug text-forest">{plan.changes[change.id].title(numbers)}</span>
-              <span className="mt-1 inline-block rounded-full bg-[#f1f5f3] px-2 py-0.5 text-[0.72rem] font-bold text-muted-brand">{said.youSaid} {sourceLabel(change.source).toLowerCase()}</span>
+              <span className="block text-[0.76rem] font-bold text-teal-brand">{said.youSaid} {sourceLabel(change.source).toLowerCase()}</span>
+              <span className="mt-0.5 block text-[0.98rem] font-extrabold leading-snug text-forest">{plan.changes[change.id].title(numbers)}</span>
             </span>
           </li>
         ))}
@@ -210,7 +210,10 @@ export function PlanDayCard({ data, tdee, className }: {
           ))}
         </ul>
       </div>
-      <h3 className="mt-5 text-[0.95rem] font-extrabold text-forest">{day.title}</h3>
+      <div className="mt-5 flex items-baseline justify-between gap-3">
+        <h3 className="text-[0.95rem] font-extrabold text-forest">{day.title}</h3>
+        <span className="text-[0.72rem] font-bold text-muted-brand">kcal</span>
+      </div>
       <ul className="mt-2 grid gap-1.5">
         {meals.map((row) => (
           <li key={row.meal} className="flex items-center gap-3 py-1.5">

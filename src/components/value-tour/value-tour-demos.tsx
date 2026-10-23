@@ -67,21 +67,21 @@ export function AppStoreRating({ className }: { className?: string }) {
     <section aria-label={`${rating.line}. ${rating.countValue} ${rating.countLabel}`} className={cn('grid grid-cols-2 border-y border-forest/12 py-4 text-center', className)}>
       <div className="border-r border-forest/12 px-2">
         <p className="flex items-center justify-center gap-1.5" aria-hidden="true">
-          <span className="text-[1.7rem] font-extrabold leading-none tracking-[-0.03em] text-forest">{rating.value}</span>
+          <span className="whitespace-nowrap text-[1.7rem] font-extrabold leading-none tracking-[-0.03em] text-forest">{rating.value}</span>
           <StarRow value={Number(rating.value)} className="text-[0.85rem]" />
         </p>
         <p className="mt-1.5 text-[0.8rem] font-semibold leading-snug text-muted-brand" aria-hidden="true">{rating.label}</p>
       </div>
       <div className="px-2" aria-hidden="true">
-        <p className="flex items-center justify-center gap-2">
-          <span className="flex -space-x-2">
+        <p className="whitespace-nowrap text-[1.7rem] font-extrabold leading-none tracking-[-0.03em] text-forest">{rating.countValue}</p>
+        <p className="mt-1.5 flex items-center justify-center gap-1.5 text-[0.8rem] font-semibold leading-snug text-muted-brand">
+          <span className="flex -space-x-1.5">
             {TRUST_AVATAR_IMAGES.slice(0, 3).map((src) => (
-              <span key={src} className="relative h-7 w-7 overflow-hidden rounded-full border-2 border-white bg-mist"><Image src={src} alt="" fill sizes="28px" className="object-cover" /></span>
+              <span key={src} className="relative h-5 w-5 overflow-hidden rounded-full border-[1.5px] border-white bg-mist"><Image src={src} alt="" fill sizes="20px" className="object-cover" /></span>
             ))}
           </span>
-          <span className="text-[1.7rem] font-extrabold leading-none tracking-[-0.03em] text-forest">{rating.countValue}</span>
+          {rating.countLabel}
         </p>
-        <p className="mt-1.5 text-[0.8rem] font-semibold leading-snug text-muted-brand">{rating.countLabel}</p>
       </div>
     </section>
   );
