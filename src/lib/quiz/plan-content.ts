@@ -115,24 +115,43 @@ const CHANGE_FOR_CHALLENGE: Record<string, ChangeId> = {
   confusion: 'one_number',
 };
 
+/** Which answer a first change answers, so the plan can say "you said X, so Y". */
+export type ChangeSource =
+  | { kind: 'moment'; key: NonNullable<OnboardingPayload['hardest_eating_moment']> }
+  | { kind: 'challenge'; key: string }
+  | { kind: 'cooking' }
+  | { kind: 'goal' };
+
+export interface FirstChange {
+  id: ChangeId;
+  source: ChangeSource;
+}
+
 /**
  * Three first changes built from the answers: the off-plan moment, eating out
  * when they rarely cook, then the blockers in the order they were picked, then
  * protein as the default.
  */
+export function firstChangePlan(
+  data: Pick<OnboardingPayload, 'hardest_eating_moment' | 'pain_points'>,
+  answers: { cooking?: 'home' | 'out' } = {},
+): FirstChange[] {
+  const picks: FirstChange[] = [];
+  const add = (id: ChangeId | undefined, source: ChangeSource) => {
+    if (id && !picks.some((pick) => pick.id === id) && picks.length < 3) picks.push({ id, source });
+  };
+  if (data.hardest_eating_moment) add(data.hardest_eating_moment, { kind: 'moment', key: data.hardest_eating_moment });
+  if (answers.cooking === 'out') add('eating_out', { kind: 'cooking' });
+  for (const challenge of data.pain_points ?? []) add(CHANGE_FOR_CHALLENGE[challenge], { kind: 'challenge', key: challenge });
+  for (const fallback of ['protein', 'photo_logging', 'meal_ideas'] as const) add(fallback, { kind: 'goal' });
+  return picks;
+}
+
 export function firstChanges(
   data: Pick<OnboardingPayload, 'hardest_eating_moment' | 'pain_points'>,
   answers: { cooking?: 'home' | 'out' } = {},
 ): ChangeId[] {
-  const picks: ChangeId[] = [];
-  const add = (id: ChangeId | undefined) => {
-    if (id && !picks.includes(id) && picks.length < 3) picks.push(id);
-  };
-  add(data.hardest_eating_moment);
-  if (answers.cooking === 'out') add('eating_out');
-  for (const challenge of data.pain_points ?? []) add(CHANGE_FOR_CHALLENGE[challenge]);
-  for (const fallback of ['protein', 'photo_logging', 'meal_ideas'] as const) add(fallback);
-  return picks;
+  return firstChangePlan(data, answers).map((change) => change.id);
 }
 
 /** The numbers a change can quote. */

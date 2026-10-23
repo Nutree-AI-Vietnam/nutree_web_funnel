@@ -74,7 +74,8 @@ export function ProgressStep() {
             {stats.map((stat) => (
               <div key={stat.label} className="rounded-2xl bg-mist/70 px-1.5 py-2">
                 <div className={`text-lg font-extrabold leading-tight ${stat.tone}`}>{stat.value}</div>
-                <div className="text-xs font-bold text-muted-brand">{stat.label} · {stat.date}</div>
+                <div className="text-xs font-bold text-muted-brand">{stat.label}</div>
+                <div className="text-[0.7rem] font-semibold text-muted-brand">{stat.date}</div>
                 {stat.note && <div className="mt-0.5 text-[0.68rem] font-extrabold text-teal-brand">{stat.note}</div>}
               </div>
             ))}

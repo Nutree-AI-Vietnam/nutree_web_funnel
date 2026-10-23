@@ -1,7 +1,7 @@
 'use client';
 
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
-import { firstChanges, planNumbers, sampleDay } from '@/lib/quiz/plan-content';
+import { firstChangePlan, planNumbers, sampleDay, type ChangeSource } from '@/lib/quiz/plan-content';
 import { formatGoalDate, goalTimeline, type GoalTimeline } from '@/lib/quiz/progress-projection';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload, TdeeResult } from '@/lib/quiz/types';
@@ -123,55 +123,102 @@ export function MacroBars({ tdee }: { tdee: TdeeResult }) {
   );
 }
 
-/** A day of meals that fits the diet answers and adds up to the calorie target. */
-export function SampleDayCard({ tdee, diet, className }: { tdee: TdeeResult; diet: readonly string[] | undefined; className?: string }) {
+/** Three first changes, each next to the answer it comes from. */
+export function FirstChangesCard({ data, tdee, className }: { data: OnboardingPayload; tdee: TdeeResult; className?: string }) {
+  const copy = useCopy();
+  const answers = useQuizStore((state) => state.planAnswers);
+  const plan = copy.funnel.plan;
+  const said = copy.funnel.answers;
+  const numbers = planNumbers(tdee);
+  const sourceLabel = (source: ChangeSource) => {
+    if (source.kind === 'moment') return copy.eating_pattern.options.find((option) => option.key === source.key)?.label ?? said.yourGoal;
+    if (source.kind === 'challenge') return copy.challenges.options.find((option) => option.key === source.key)?.label ?? said.yourGoal;
+    if (source.kind === 'cooking') return said.eatOut;
+    return said.yourGoal;
+  };
+  return (
+    <section className={cn(CARD, className)}>
+      <h2 className="text-[1.12rem] font-extrabold tracking-[-0.02em] text-forest">{said.title}</h2>
+      <ol className="mt-3 grid gap-4">
+        {firstChangePlan(data, answers).map((change) => (
+          <li key={change.id} className="border-l-[3px] border-teal-brand/70 pl-3.5">
+            <p className="text-[0.78rem] font-bold text-muted-brand">
+              {said.youSaid}: <span className="text-slate-brand">{sourceLabel(change.source)}</span>
+            </p>
+            <p className="mt-0.5 text-[1rem] font-extrabold leading-snug text-forest">{plan.changes[change.id].title}</p>
+            <p className="mt-0.5 text-sm font-semibold leading-relaxed text-slate-brand">{plan.changes[change.id].body(numbers)}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/**
+ * The plan for one day as a plain card, not dressed as an app screen: calorie
+ * target, macros, a day of meals for the diet answers, and the goal date.
+ */
+export function PlanDayCard({ data, tdee, system, className }: {
+  data: OnboardingPayload;
+  tdee: TdeeResult;
+  system: UnitSystem;
+  className?: string;
+}) {
   const copy = useCopy();
   const locale = useLocale();
   const plan = copy.funnel.plan;
+  const day = copy.funnel.day;
   const format = new Intl.NumberFormat(numberLocale(locale));
-  const day = sampleDay(tdee.calories, diet);
-  const total = day.reduce((sum, row) => sum + row.calories, 0);
+  const meals = sampleDay(tdee.calories, data.dietary_preferences);
+  const total = meals.reduce((sum, row) => sum + row.calories, 0);
+  const timeline = goalTimeline(data);
+  const macros = [
+    { label: copy.tdee_targets.protein, grams: Math.round(tdee.protein_g), kcal: tdee.protein_g * 4, color: '#e0803a' },
+    { label: copy.tdee_targets.carbs, grams: Math.round(tdee.carbs_g), kcal: tdee.carbs_g * 4, color: '#1fa892' },
+    { label: copy.tdee_targets.fat, grams: Math.round(tdee.fat_g), kcal: tdee.fat_g * 9, color: '#d7a84d' },
+  ];
+  const macroTotal = macros.reduce((sum, macro) => sum + macro.kcal, 0) || 1;
+
   return (
-    <section className={cn(CARD, className)}>
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[1.12rem] font-extrabold tracking-[-0.02em] text-forest">{plan.dayTitle}</h2>
-        <span className="text-sm font-extrabold text-teal-brand">{plan.dayTotal(format.format(total))}</span>
+    <section className={cn(CARD, 'overflow-hidden p-0 sm:p-0', className)}>
+      <div className="px-4 pb-4 pt-4 sm:px-5">
+        <p className="text-sm font-extrabold text-teal-brand">{day.title}</p>
+        <p className="mt-1 flex items-baseline gap-2">
+          <span className="text-[2.6rem] font-extrabold leading-none tracking-[-0.04em] text-forest tabular-nums">{format.format(total)}</span>
+          <span className="text-sm font-bold text-slate-brand">{day.kcal}</span>
+        </p>
+        <div className="mt-3 flex h-2.5 overflow-hidden rounded-full" aria-hidden="true">
+          {macros.map((macro) => <span key={macro.label} style={{ width: `${(macro.kcal / macroTotal) * 100}%`, background: macro.color }} />)}
+        </div>
+        <ul className="mt-2 grid grid-cols-3 gap-2">
+          {macros.map((macro) => (
+            <li key={macro.label} className="text-sm">
+              <span className="flex items-center gap-1.5 text-[0.74rem] font-bold text-muted-brand"><span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ background: macro.color }} />{macro.label}</span>
+              <span className="font-extrabold text-forest">{macro.grams} g</span>
+            </li>
+          ))}
+        </ul>
       </div>
-      <ul className="mt-3 divide-y divide-border-brand/60">
-        {day.map((row) => (
+      <ul className="divide-y divide-border-brand/60 border-t border-border-brand/60 px-4 sm:px-5">
+        {meals.map((row) => (
           <li key={row.meal} className="flex items-center justify-between gap-3 py-2.5">
             <span className="min-w-0">
-              <span className="block text-[0.7rem] font-extrabold tracking-[0.04em] text-muted-brand">{plan.meals[row.meal]}</span>
+              <span className="block text-[0.72rem] font-bold text-muted-brand">{plan.meals[row.meal]}</span>
               <span className="block text-[0.92rem] font-bold leading-snug text-forest">{plan.dishes[row.dish]}</span>
             </span>
             <span className="shrink-0 text-sm font-extrabold tabular-nums text-slate-brand">{format.format(row.calories)}</span>
           </li>
         ))}
       </ul>
-    </section>
-  );
-}
-
-/** Three first changes built from the blockers and the off-plan moment. */
-export function FirstChangesCard({ data, tdee, className }: { data: OnboardingPayload; tdee: TdeeResult; className?: string }) {
-  const copy = useCopy();
-  const answers = useQuizStore((state) => state.planAnswers);
-  const plan = copy.funnel.plan;
-  const numbers = planNumbers(tdee);
-  return (
-    <section className={cn(CARD, className)}>
-      <h2 className="text-[1.12rem] font-extrabold tracking-[-0.02em] text-forest">{plan.changesTitle}</h2>
-      <ol className="mt-3 grid gap-3">
-        {firstChanges(data, answers).map((id, index) => (
-          <li key={id} className="grid grid-cols-[2rem_1fr] gap-3">
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-forest text-sm font-extrabold text-white">{index + 1}</span>
-            <span>
-              <span className="block text-[0.95rem] font-extrabold leading-snug text-forest">{plan.changes[id].title}</span>
-              <span className="mt-0.5 block text-sm font-semibold leading-relaxed text-slate-brand">{plan.changes[id].body(numbers)}</span>
-            </span>
-          </li>
-        ))}
-      </ol>
+      {timeline && (
+        <div className="bg-forest px-4 py-3 text-white sm:px-5">
+          <div className="flex items-baseline justify-between gap-3 text-sm font-bold">
+            <span className="text-white/75">{formatWeight(timeline.currentKg, system)}</span>
+            <span className="font-extrabold">{day.goal(formatWeight(timeline.targetKg, system), formatGoalDate(timeline.date, locale, false))}</span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/20"><div className="h-full w-[4%] rounded-full bg-[#e7a23a]" /></div>
+        </div>
+      )}
     </section>
   );
 }

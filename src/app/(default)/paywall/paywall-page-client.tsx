@@ -30,7 +30,7 @@ import { hasWelcomeVoucherBeenClaimed, markWelcomeVoucherClaimed, shouldArmExitV
 import { clearCheckoutEmail, readCheckoutEmail } from '@/lib/revenuecat/checkout-email';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { formatWeight } from '@/lib/quiz/units';
-import { FirstChangesCard, PlanGoalCard, SampleDayCard } from '@/components/plan/plan-overview';
+import { FirstChangesCard, PlanDayCard, PlanGoalCard } from '@/components/plan/plan-overview';
 import { AppStoreRating } from '@/components/value-tour/value-tour-demos';
 import { periodWeeks, planForTimeline } from '@/lib/quiz/plan-content';
 import { formatGoalDate, goalTimeline } from '@/lib/quiz/progress-projection';
@@ -608,6 +608,17 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     const period = plan.rcPackage.webBillingProduct.period;
     return period ? funnelPaywall.billed(period.number, periodWord(period)) : plan.billingLabel[activeLocale];
   };
+  const cadenceOf = (plan: (typeof plans)[number]) => {
+    const period = plan.rcPackage.webBillingProduct.period;
+    return period ? funnelPaywall.cadence(period.number, periodWord(period)) : plan.billingLabel[activeLocale].toLowerCase();
+  };
+  /** Monthly cost of a plan that bills for several months, from its first payment. */
+  const monthlyOf = (product: Product) => {
+    const price = firstPaymentPrice(product);
+    const period = product.introPricePhase?.price ? product.introPricePhase.period : product.period;
+    if (!price || !period || period.unit !== 'month' || period.number < 2) return null;
+    return new Intl.NumberFormat(priceLocale, { style: 'currency', currency: price.currency }).format(price.amountMicros / 1_000_000 / period.number);
+  };
   const selectedPeriod = selected?.rcPackage.webBillingProduct.period;
   const nextCharge = nextChargeDate(selectedOfferProduct);
   const renewalLine = funnelPaywall.renewal(
@@ -642,7 +653,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
           ) : (
             <>
               <p className="truncate text-[0.74rem] font-bold leading-tight text-muted-brand">{data.name?.trim() ? copy.funnel.plan.eyebrow(data.name.trim()) : funnelPaywall.header}</p>
-              <p className="mt-0.5 truncate text-[0.95rem] font-extrabold leading-tight text-forest">{selected && pricesReady ? `${planName(selected)} · ${introTotal}` : funnelPaywall.header}</p>
+              <p className="mt-0.5 truncate text-[0.95rem] font-extrabold leading-tight text-forest">{selected && pricesReady ? funnelPaywall.billedFor(introTotal, cadenceOf(selected)) : funnelPaywall.header}</p>
             </>
           )}
         </div>
@@ -658,8 +669,18 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const planTdee = tdee ?? computeTdeeResult(data);
   const englishBody = (
     <div className="grid gap-4 pt-[5.5rem]">
-      <PlanGoalCard data={data} tdee={planTdee} system={system} />
-      {planTdee && <SampleDayCard tdee={planTdee} diet={data.dietary_preferences} />}
+      <section className="px-1 pt-2">
+        <h1 className="text-[2rem] font-extrabold leading-[1.08] tracking-[-0.035em] text-forest [text-wrap:balance]">{data.name?.trim() ? funnelPaywall.heroTitle(data.name.trim()) : funnelPaywall.heroFallback}</h1>
+        {timeline && targetLabel ? (
+          <p className="mt-3 text-[1.02rem] font-semibold leading-relaxed text-slate-brand">
+            <strong className="font-extrabold text-forest">{funnelPaywall.heroGoal(targetLabel, formatGoalDate(timeline.date, activeLocale))}</strong>{' '}
+            {funnelPaywall.heroWin(formatWeight(timeline.week1Kg, system), formatGoalDate(timeline.week1Date, activeLocale, false))}
+          </p>
+        ) : (
+          <p className="mt-3 text-[1.02rem] font-semibold leading-relaxed text-slate-brand">{funnelPaywall.heroSteady}</p>
+        )}
+        {planTdee ? <PlanDayCard data={data} tdee={planTdee} system={system} className="mt-5" /> : <PlanGoalCard data={data} tdee={planTdee} system={system} className="mt-5" />}
+      </section>
       {planTdee && <FirstChangesCard data={data} tdee={planTdee} />}
 
       <section id="plans" className="rounded-[1.6rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-5">
@@ -682,7 +703,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
                   <span className={cn('grid h-6 w-6 place-items-center rounded-full border-2', active ? 'border-forest' : 'border-[#c8cfcc]')}>{active && <span className="h-3 w-3 rounded-full bg-forest" />}</span>
                   <span className="min-w-0">
                     <span className={cn('block text-[1.02rem] font-extrabold leading-tight', active ? 'text-[#111418]' : 'text-[#3f4744]')}>{planName(plan)}</span>
-                    <span className="mt-1 block text-[0.76rem] font-bold leading-snug text-muted-brand">{was && <s className="mr-1 font-semibold opacity-70">{was}</s>}<span className="text-slate-brand">{price}</span> · {billedLabel(plan)}</span>
+                    <span className="mt-1 block text-[0.76rem] font-bold leading-snug text-muted-brand">{was && <s className="mr-1 font-semibold opacity-70">{was}</s>}{funnelPaywall.billedFor(price, cadenceOf(plan))}</span>
+                    {monthlyOf(offerPackage.webBillingProduct) && <span className="mt-0.5 block text-[0.74rem] font-extrabold text-teal-brand">{funnelPaywall.perMonth(monthlyOf(offerPackage.webBillingProduct)!)}</span>}
                   </span>
                   <span className={cn('min-w-[5.4rem] rounded-[1rem] px-2.5 py-2 text-center', active ? 'bg-[#e8f4ef] text-forest' : 'bg-[#f2f2f1] text-[#111418]')}>
                     <span className="block text-[1.32rem] font-extrabold leading-none tracking-[-0.04em] tabular-nums">{perDayLabel ?? price}</span>
@@ -696,7 +718,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         {timeline && timelinePlan && <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-brand">{funnelPaywall.timelineNote(timeline.weeks, planName(timelinePlan))}</p>}
         {isExitOfferMode && exitOfferActive && <p className="mt-1 text-sm font-medium text-muted-brand">{funnelPaywall.exitNote}</p>}
         <div className="mt-4">{checkoutButton}</div>
-        <p className="mt-3 text-center text-[0.8rem] font-semibold leading-relaxed text-slate-brand">{renewalLine}</p>
+        <p className="mt-2.5 flex items-center justify-center gap-1.5 text-[0.82rem] font-extrabold text-forest"><span aria-hidden="true">🛡️</span>{funnelPaywall.guaranteeShort}</p>
+        <p className="mt-2 text-center text-[0.8rem] font-semibold leading-relaxed text-slate-brand">{renewalLine}</p>
         <p className="mt-1.5 text-center text-[0.76rem] font-medium leading-relaxed text-muted-brand">{funnelPaywall.cancelLine}</p>
         <p className="mt-1.5 text-center text-[0.76rem] font-medium leading-relaxed text-muted-brand">{funnelPaywall.accessLine}</p>
         <div className="mt-3 flex items-center justify-center gap-2 text-[0.72rem] font-bold text-muted-brand">
@@ -710,7 +733,12 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
 
       <section className="rounded-[1.6rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-5">
         <h2 className="text-[1.12rem] font-extrabold tracking-[-0.02em] text-forest">{funnelPaywall.includesTitle}</h2>
-        <ul className="mt-3 grid gap-3">{funnelPaywall.includes.map((item, index) => <li key={item.title} className="grid grid-cols-[2.4rem_1fr] gap-3"><span className="grid h-9 w-9 place-items-center rounded-2xl bg-mist text-[1rem]" aria-hidden="true">{benefitEmoji[index] ?? '✅'}</span><span><span className="block text-[0.92rem] font-extrabold text-forest">{item.title}</span><span className="mt-0.5 block text-[0.84rem] leading-relaxed text-muted-brand">{item.body}</span></span></li>)}</ul>
+        <ul className="mt-3 grid gap-3">{funnelPaywall.personalIncludes({
+          calories: planTdee ? Math.round(planTdee.calories).toLocaleString(priceLocale) : '',
+          diet: (data.dietary_preferences ?? []).filter((key) => key !== 'none').map((key) => copy.diet.options.find((option) => option.key === key)?.label).filter(Boolean).join(', ') || null,
+          date: timeline ? formatGoalDate(timeline.date, activeLocale) : null,
+          trainingDays: data.training_days_per_week ?? 0,
+        }).map((item, index) => <li key={item.title} className="grid grid-cols-[2.4rem_1fr] gap-3"><span className="grid h-9 w-9 place-items-center rounded-2xl bg-mist text-[1rem]" aria-hidden="true">{benefitEmoji[index] ?? '✅'}</span><span><span className="block text-[0.92rem] font-extrabold text-forest">{item.title}</span><span className="mt-0.5 block text-[0.84rem] leading-relaxed text-muted-brand">{item.body}</span></span></li>)}</ul>
       </section>
 
       <section className="rounded-[1.6rem] bg-white p-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]">
@@ -732,7 +760,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       </section>
 
       <section className="rounded-[1.6rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]">
-        <p className="text-center text-sm font-extrabold text-forest">{selected ? `${planName(selected)} · ${introTotal}` : ''}</p>
+        <p className="text-center text-sm font-extrabold text-forest">{selected ? funnelPaywall.planFor(planName(selected), introTotal) : ''}</p>
         <div className="mt-3">{checkoutButton}</div>
         <p className="mt-3 text-center text-[0.76rem] font-medium leading-relaxed text-muted-brand">{renewalLine}</p>
       </section>
