@@ -90,6 +90,13 @@ describe('Meta Conversions API route', () => {
     expect(console.warn).not.toHaveBeenCalled();
   });
 
+  it('forwards AddToCart with its plan', async () => {
+    const eventId = 'AddToCart.4f8e2c1a-9a3b-4c55-8d1e-2b7f6a0c9d13';
+    const response = await POST(request({ ...browserEvent, event_name: 'AddToCart', event_id: eventId }));
+    expect(response.status).toBe(204);
+    expect(sentBodies()[0].data[0]).toMatchObject({ event_name: 'AddToCart', event_id: eventId, custom_data: customData });
+  });
+
   it('never marks events as test events', async () => {
     vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE', 'TEST123');
     await POST(request(browserEvent));
@@ -124,7 +131,7 @@ describe('Meta Conversions API route', () => {
   });
 
   it('rejects malformed bodies and events outside the standard list', async () => {
-    for (const body of ['not json', {}, { ...browserEvent, event_name: 'AddToCart' }, { ...browserEvent, event_id: 'bad id' }, 'x'.repeat(20_000)]) {
+    for (const body of ['not json', {}, { ...browserEvent, event_name: 'CompleteRegistration' }, { ...browserEvent, event_id: 'bad id' }, 'x'.repeat(20_000)]) {
       const response = await POST(request(body));
       expect(response.status).toBeGreaterThanOrEqual(400);
     }

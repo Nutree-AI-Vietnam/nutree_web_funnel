@@ -7,6 +7,8 @@ import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { buildProgressProjection, type ProgressDirection } from '@/lib/quiz/progress-projection';
 import { useQuizStore } from '@/lib/quiz/store';
+import { formatWeight } from '@/lib/quiz/units';
+import { useUnits } from '@/lib/quiz/use-units';
 import { computeTdeeResult } from '@/lib/tdee/calculator';
 import { QuizStepFrame } from './quiz-step-frame';
 
@@ -35,6 +37,7 @@ export function ProgressStep() {
   const router = useRouter();
   const copy = useCopy();
   const locale = useLocale();
+  const { system } = useUnits();
   const reduce = useReducedMotion();
   const data = useQuizStore((state) => state.data);
   const storedTdee = useQuizStore((state) => state.tdee);
@@ -88,22 +91,22 @@ export function ProgressStep() {
         {projection.kind === 'weight' ? (
           <div className="mt-2 grid grid-cols-3 gap-2 text-center">
             <div>
-              <div className="text-lg font-extrabold text-forest">{projection.current} kg</div>
+              <div className="text-lg font-extrabold text-forest">{formatWeight(projection.current, system)}</div>
               <div className="text-xs font-semibold text-muted-brand">{copy.progress.startLabel}</div>
             </div>
             <div>
-              <div className="text-lg font-extrabold text-slate-brand">{projection.midpoint} kg</div>
+              <div className="text-lg font-extrabold text-slate-brand">{formatWeight(projection.midpoint, system)}</div>
               <div className="text-xs font-semibold text-muted-brand">{copy.progress.monthNumber(2)}</div>
             </div>
             <div>
-              <div className="text-lg font-extrabold text-teal-brand">{projection.target} kg</div>
+              <div className="text-lg font-extrabold text-teal-brand">{formatWeight(projection.target, system)}</div>
               <div className="text-xs font-semibold text-muted-brand">{copy.progress.goalLabel}</div>
             </div>
           </div>
         ) : (
           <div className="mt-2 grid grid-cols-3 gap-2 text-center">
             <div>
-              <div className="text-lg font-extrabold text-forest">{projection.currentKg != null ? `${projection.currentKg} kg` : copy.progress.missingStat}</div>
+              <div className="text-lg font-extrabold text-forest">{projection.currentKg != null ? formatWeight(projection.currentKg, system) : copy.progress.missingStat}</div>
               <div className="text-xs font-semibold text-muted-brand">{copy.progress.currentStat}</div>
             </div>
             <div>

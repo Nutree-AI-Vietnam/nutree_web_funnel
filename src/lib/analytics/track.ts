@@ -3,16 +3,18 @@
  * Step names use OnboardingScreenId.rcKey slugs to align with the app's
  * analytics taxonomy.
  *
- * Meta Ads optimization uses four standard events only (ViewContent / Lead /
- * InitiateCheckout / Purchase). Quiz-step custom names stay on GA4 so they
- * cannot occupy Aggregated Event Measurement slots. Do not name Meta custom
- * conversions after health conditions. Each of the four also goes to the
+ * Meta Ads optimization uses five standard events only (ViewContent / Lead /
+ * AddToCart / InitiateCheckout / Purchase). Quiz-step custom names stay on GA4
+ * so they cannot occupy Aggregated Event Measurement slots. Do not name Meta
+ * custom conversions after health conditions. Each of the five also goes to the
  * Conversions API through our server with the pixel's eventID, so Meta keeps
  * one copy; it carries the hashed email, first name and lead id saved at email
  * capture, an fbc built from the landing fbclid, and the funnel locale that
  * selects the dataset. The funnel entry sends
  * ViewContent once per tab: on the landing step when that screen is shown,
  * otherwise on the goal step. Ad optimization uses the ViewContent event.
+ * AddToCart goes once per plan per tab: at plan pick, or at checkout for the
+ * preselected plan.
  *
  * TikTok gets the same commercial steps as standard events (CompleteRegistration
  * at email capture, ViewContent on the paywall, AddToCart once per plan,
@@ -42,6 +44,8 @@ import { applyTiktokIdentity, readTiktokIdentity, type TiktokIdentity, type Tikt
 const META_CLICK_KEY = 'nutree_meta_click_v1';
 /** The tab already sent the funnel-entry ViewContent (landing or goal). */
 const META_ENTRY_VIEW_KEY = 'nutree_meta_entry_view_v1';
+/** Plans already sent to Meta as AddToCart in this tab. */
+const META_CART_KEY = 'nutree_meta_cart_v1';
 /** Plans already sent to TikTok as AddToCart in this tab. */
 const TIKTOK_CART_KEY = 'nutree_tiktok_cart_v1';
 /** TikTok item group for the paywall view, where no plan is chosen yet. Plans are its SKUs (package ids). */
@@ -96,26 +100,33 @@ function claimFunnelEntryView(step: string): boolean {
   }
 }
 
-function metaStandardEvent(name: string, params: Record<string, unknown>): MetaStandard | null {
-  if (name === 'email_captured') return { event: 'Lead', params: { content_name: 'email_capture' } };
+function metaStandardEvents(name: string, params: Record<string, unknown>): MetaStandard[] {
+  if (name === 'email_captured') return [{ event: 'Lead', params: { content_name: 'email_capture' } }];
   if (name === 'funnel_step_viewed' && (params.step === 'landing' || params.step === 'goal')) {
     const step = String(params.step);
-    if (!claimFunnelEntryView(step)) return null;
-    return {
+    if (!claimFunnelEntryView(step)) return [];
+    return [{
       event: 'ViewContent',
       params: {
         content_name: step === 'goal' ? 'funnel_quiz_start' : 'funnel_landing',
         content_category: 'onboarding',
       },
-    };
+    }];
+  }
+  if (name === 'offer_selected') {
+    return addToCart(META_CART_KEY, params.offer_id)
+      ? [{ event: 'AddToCart', params: commerceParams({ ...params, plan: params.offer_id }) }]
+      : [];
   }
   if (name === 'revenuecat_checkout_started') {
-    return { event: 'InitiateCheckout', params: commerceParams(params) };
+    const checkout: MetaStandard = { event: 'InitiateCheckout', params: commerceParams(params) };
+    // Keeping the preselected plan never fires offer_selected, so its AddToCart is sent here.
+    return addToCart(META_CART_KEY, params.plan) ? [{ event: 'AddToCart', params: checkout.params }, checkout] : [checkout];
   }
   if (name === 'revenuecat_checkout_completed') {
-    return { event: 'Purchase', params: commerceParams(params) };
+    return [{ event: 'Purchase', params: commerceParams(params) }];
   }
-  return null;
+  return [];
 }
 
 /** Quiz screens collect body and health details, so their names stay off TikTok. */
@@ -129,7 +140,7 @@ function tiktokStandardEvents(name: string, params: Record<string, unknown>): Ti
     return [{ event: 'ViewContent', params: tiktokProductGroupParams() }];
   }
   if (name === 'offer_selected') {
-    return addToTiktokCart(params.offer_id)
+    return addToCart(TIKTOK_CART_KEY, params.offer_id)
       ? [{ event: 'AddToCart', params: tiktokProductParams(params, params.offer_id) }]
       : [];
   }
@@ -137,7 +148,7 @@ function tiktokStandardEvents(name: string, params: Record<string, unknown>): Ti
     const product = tiktokProductParams(params, params.plan);
     const checkout: TiktokStandard = { event: 'InitiateCheckout', params: product };
     // Keeping the preselected plan never fires offer_selected, so its AddToCart is sent here.
-    return addToTiktokCart(params.plan) ? [{ event: 'AddToCart', params: product }, checkout] : [checkout];
+    return addToCart(TIKTOK_CART_KEY, params.plan) ? [{ event: 'AddToCart', params: product }, checkout] : [checkout];
   }
   if (name === 'revenuecat_checkout_completed') {
     return [{ event: 'Purchase', params: tiktokProductParams(params, params.plan) }];
@@ -145,14 +156,14 @@ function tiktokStandardEvents(name: string, params: Record<string, unknown>): Ti
   return [];
 }
 
-/** Records the plan and returns true the first time it reaches the cart in this tab. */
-function addToTiktokCart(productId: unknown): boolean {
+/** Records the plan in the cart under key and returns true the first time it reaches that cart in this tab. */
+function addToCart(key: string, productId: unknown): boolean {
   if (typeof productId !== 'string' || !productId) return true;
   try {
-    const stored = JSON.parse(window.sessionStorage.getItem(TIKTOK_CART_KEY) ?? '[]') as unknown;
+    const stored = JSON.parse(window.sessionStorage.getItem(key) ?? '[]') as unknown;
     const cart = Array.isArray(stored) ? stored : [];
     if (cart.includes(productId)) return false;
-    window.sessionStorage.setItem(TIKTOK_CART_KEY, JSON.stringify([...cart, productId]));
+    window.sessionStorage.setItem(key, JSON.stringify([...cart, productId]));
   } catch {
     // Without session storage every selection is sent, as before.
   }
@@ -208,17 +219,19 @@ function sendMetaServerEvent(event: Omit<MetaBrowserEvent, 'user_data'>, fbc: st
 }
 
 function trackMeta(fbq: AnyWindow['fbq'], name: string, payload: Record<string, unknown>): void {
-  const standard = metaStandardEvent(name, payload);
-  if (!standard) return;
-  const id = eventID(standard.event);
-  fbq?.('track', standard.event, standard.params, { eventID: id });
+  const events = metaStandardEvents(name, payload);
+  if (!events.length) return;
   // The server copy also covers pixels that have not loaded yet or are blocked.
-  if (!isAdPixelHost() || !activeMetaPixelId() || typeof fetch !== 'function') return;
-  const url = pageUrl(window.location?.href);
-  sendMetaServerEvent(
-    { event_name: standard.event, event_id: id, ...(url ? { event_source_url: url } : {}), custom_data: standard.params },
-    metaFbc(payload.fbclid),
-  );
+  const serverCopy = isAdPixelHost() && Boolean(activeMetaPixelId()) && typeof fetch === 'function';
+  const url = serverCopy ? pageUrl(window.location?.href) : null;
+  const fbc = serverCopy ? metaFbc(payload.fbclid) : null;
+  for (const { event, params } of events) {
+    const id = eventID(event);
+    fbq?.('track', event, params, { eventID: id });
+    if (serverCopy) {
+      sendMetaServerEvent({ event_name: event, event_id: id, ...(url ? { event_source_url: url } : {}), custom_data: params }, fbc);
+    }
+  }
 }
 
 /** Server copy of a pixel event; the shared event_id lets TikTok keep only one. */

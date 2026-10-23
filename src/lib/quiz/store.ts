@@ -6,6 +6,7 @@ import { readPendingRedemptionCorrelation } from '@/lib/revenuecat/redemption-ha
 import { goalAfterTargetWeight } from './fitness-goal';
 import { isQuizStep, type QuizStep } from './steps';
 import type { CheckoutResponse, Lead, OnboardingPayload, TdeeResult } from './types';
+import type { UnitSystem } from './units';
 
 export type PayPalCheckout = CheckoutResponse & { offerLabel: string };
 const FUNNEL_SCREENS = ['landing', 'quiz', 'email', 'value', 'paywall', 'exit-offer'] as const;
@@ -21,6 +22,10 @@ interface QuizState {
   currentStep: QuizStep;
   data: OnboardingPayload;
   locale: Locale;
+  /** Body units the visitor chose; unset until they leave the default for their country. */
+  units?: UnitSystem;
+  /** Visitor's country from the request, which sets the default body units. */
+  countryCode?: string;
   tdee: TdeeResult | null;
   tdeeSource: 'api' | 'fallback' | null;
   lead: Lead | null;
@@ -31,6 +36,8 @@ interface QuizState {
   setFunnelScreen: (screen: FunnelScreen) => void;
   setCurrentStep: (step: QuizStep) => void;
   setLocale: (locale: Locale) => void;
+  setUnits: (units: UnitSystem) => void;
+  setCountryCode: (countryCode: string | undefined) => void;
   setTdee: (result: TdeeResult, source: 'api' | 'fallback') => void;
   setLead: (lead: Lead) => void;
   setPayPalCheckout: (checkout: PayPalCheckout | null) => void;
@@ -52,7 +59,10 @@ const initial = {
   purchased: false,
 };
 
-type PersistedQuizState = Pick<QuizState, 'funnelScreen' | 'currentStep' | 'data' | 'locale' | 'tdee' | 'tdeeSource' | 'lead'>;
+type PersistedQuizState = Pick<
+  QuizState,
+  'funnelScreen' | 'currentStep' | 'data' | 'locale' | 'units' | 'countryCode' | 'tdee' | 'tdeeSource' | 'lead'
+>;
 
 function toPersistedQuizState(state: QuizState): PersistedQuizState {
   return {
@@ -60,6 +70,8 @@ function toPersistedQuizState(state: QuizState): PersistedQuizState {
     currentStep: state.currentStep ?? initial.currentStep,
     data: state.data,
     locale: state.locale,
+    units: state.units,
+    countryCode: state.countryCode,
     tdee: state.tdee,
     tdeeSource: state.tdeeSource,
     lead: state.lead ? { lead_id: state.lead.lead_id, masked_email: state.lead.masked_email, status: state.lead.status } : null,
@@ -123,6 +135,8 @@ export function migratePersistedQuizState(persistedState: unknown): PersistedQui
     currentStep,
     data,
     locale: state.locale ?? initial.locale,
+    units: state.units,
+    countryCode: state.countryCode,
     // Calories computed for the old goal would contradict the corrected one; the result step recalculates.
     tdee: goalChanged ? null : state.tdee ?? initial.tdee,
     tdeeSource: goalChanged ? null : state.tdeeSource ?? initial.tdeeSource,
@@ -138,13 +152,16 @@ export const useQuizStore = create<QuizState>()(
       setFunnelScreen: (funnelScreen) => set({ funnelScreen }),
       setCurrentStep: (currentStep) => set({ currentStep }),
       setLocale: (locale) => set({ locale }),
+      setUnits: (units) => set({ units }),
+      setCountryCode: (countryCode) => set({ countryCode }),
       setTdee: (result, source) => set({ tdee: result, tdeeSource: source }),
       setLead: (lead) => set({ lead }),
       setPayPalCheckout: (paypalCheckout) => set({ paypalCheckout }),
       setMomoOrderId: (momoOrderId) => set({ momoOrderId }),
       setPurchased: (purchased) => set({ purchased }),
-      // Language is a UI preference, not quiz data — keep it across a reset.
-      reset: () => set((s) => ({ ...initial, data: { ...initial.data }, locale: s.locale })),
+      // Language, units and country are UI preferences, not quiz data — keep them across a reset.
+      reset: () =>
+        set((s) => ({ ...initial, data: { ...initial.data }, locale: s.locale, units: s.units, countryCode: s.countryCode })),
     }),
     {
       name: STORAGE_KEY,
