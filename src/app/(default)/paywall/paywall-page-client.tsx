@@ -16,6 +16,7 @@ import { identifyFunnelLead } from '@/lib/analytics/posthog';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
+import { normalizeCountryCode } from '@/lib/market/country';
 import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, dismissCheckoutOverlay, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, hasPaywallCheckoutPending, markExitOfferClaimed, markPaywallCheckoutPending, paddleCheckoutClosedWithoutPayment, paddleCheckoutCompleted, paddleCheckoutIsOpen, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, PAYWALL_WELCOME_OFFER_SECONDS, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
 import { firstPaymentCommerce, formatPerDay, planPerDay, savingsVersusPriciest } from '@/lib/revenuecat/plan-pricing';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
@@ -136,6 +137,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const plans = paywall.plans;
 
   const countryCode = initialCountryCode ?? (isLocalPreviewHost() ? getLocalPreviewCountry() : undefined);
+  const resolvedCountryCode = normalizeCountryCode(countryCode) ?? 'VN';
   const selected = useMemo(
     () => plans.find((plan) => plan.id === selectedId) ?? defaultPaywallPlan(plans),
     [plans, selectedId],
@@ -203,16 +205,16 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     }
     setData(localPreviewData);
     setLead(localPreviewLead);
-    setLocale(countryCode === 'VN' ? 'vi' : 'en');
+    setLocale(resolvedCountryCode === 'VN' ? 'vi' : 'en');
     setTdee(localPreviewTdee, 'fallback');
-  }, [countryCode, hydrated, lead, onMissingLead, setData, setLead, setLocale, setTdee]);
+  }, [resolvedCountryCode, hydrated, lead, onMissingLead, setData, setLead, setLocale, setTdee]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadRevenueCatOffering() {
       try {
-        const config = readRevenueCatWebConfig();
+        const config = readRevenueCatWebConfig(undefined, resolvedCountryCode);
         if (!lead) throw new Error('Your checkout draft is unavailable. Return to email capture to continue.');
         const pendingCorrelation = readPendingRedemptionCorrelation();
         const pendingAppUserId = pendingCorrelation?.leadId === lead.lead_id ? pendingCorrelation.appUserId : null;
@@ -230,7 +232,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         purchasesRef.current = purchases;
         const offerings = await purchases.getOfferings({
           offeringIdentifier: config.offeringIdentifier,
-          ...(countryCode === 'VN' ? { currency: 'VND' } : { currency: 'USD' }),
+          ...(resolvedCountryCode === 'VN' ? { currency: 'VND' } : { currency: 'USD' }),
         });
         const offering = offerings.all[config.offeringIdentifier];
         if (!offering) throw new Error('RevenueCat could not find the configured web offering.');
@@ -251,7 +253,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
 
     void loadRevenueCatOffering();
     return () => { cancelled = true; };
-  }, [countryCode, lead]);
+  }, [resolvedCountryCode, lead]);
 
   const correlatePurchasedCustomer = useCallback(async () => {
     if (loadState !== 'ready' || !lead || !anonymousAppUserIdRef.current || !redemptionLinkHashRef.current) return;
@@ -380,7 +382,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         },
         redeemUrl: purchaseResult.redemptionInfo?.redeemUrl,
         operationSessionId: purchaseResult.operationSessionId,
-        apiKey: readRevenueCatWebConfig().apiKey,
+        apiKey: readRevenueCatWebConfig(undefined, resolvedCountryCode).apiKey,
         leadId: lead.lead_id,
         appUserId: anonymousAppUserIdRef.current ?? '',
         correlate: async (hash) => {
@@ -409,7 +411,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       checkoutInFlightRef.current = false;
       setBusy(false);
     }
-  }, [activeLocale, countryCode, correlatePurchasedCustomer, data.name, lead, purchased, router, selected, setPurchased]);
+  }, [activeLocale, countryCode, correlatePurchasedCustomer, data.name, lead, purchased, resolvedCountryCode, router, selected, setPurchased]);
 
   const requestCheckout = () => {
     if (lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id) {
