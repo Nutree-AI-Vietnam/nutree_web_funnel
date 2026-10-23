@@ -17,7 +17,7 @@ export function metaEventsApiUrl(pixelId: string): string {
   return `https://graph.facebook.com/${GRAPH_API_VERSION}/${pixelId}/events`;
 }
 
-const STANDARD_EVENTS = ['ViewContent', 'Lead', 'InitiateCheckout', 'Purchase'] as const;
+const STANDARD_EVENTS = ['ViewContent', 'Lead', 'AddToCart', 'InitiateCheckout', 'Purchase'] as const;
 export type MetaStandardEvent = (typeof STANDARD_EVENTS)[number];
 
 export type MetaContent = { id: string; quantity?: number };
