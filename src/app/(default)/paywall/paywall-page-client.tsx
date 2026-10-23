@@ -12,12 +12,12 @@ import { NutreeLogo } from '@/components/nutree-logo';
 import { PaywallExitVoucher } from '@/components/paywall-exit-voucher';
 import { stripNonAttributionParams } from '@/lib/analytics/attribution';
 import { identifyMetaUser } from '@/lib/analytics/meta-identity';
-import { identifyFunnelLead } from '@/lib/analytics/posthog';
+import { identifyFunnelLead, registerPriceTestVariant } from '@/lib/analytics/posthog';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
 import { normalizeCountryCode } from '@/lib/market/country';
-import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, dismissCheckoutOverlay, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, hasPaywallCheckoutPending, markExitOfferClaimed, markPaywallCheckoutPending, paddleCheckoutClosedWithoutPayment, paddleCheckoutCompleted, paddleCheckoutIsOpen, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, PAYWALL_WELCOME_OFFER_SECONDS, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
+import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, dismissCheckoutOverlay, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, hasPaywallCheckoutPending, markExitOfferClaimed, markPaywallCheckoutPending, paddleCheckoutClosedWithoutPayment, paddleCheckoutCompleted, paddleCheckoutIsOpen, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, PAYWALL_WELCOME_OFFER_SECONDS, priceTestVariant, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
 import { firstPaymentCommerce, formatPerDay, planPerDay, savingsVersusPriciest } from '@/lib/revenuecat/plan-pricing';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { syncRevenueCatAttribution } from '@/lib/revenuecat/attribution-attributes';
@@ -36,6 +36,7 @@ import { periodWeeks, planForTimeline } from '@/lib/quiz/plan-content';
 import { formatGoalDate, goalTimeline } from '@/lib/quiz/progress-projection';
 import { localPreviewOffering } from '@/lib/revenuecat/local-preview-offering';
 import { computeTdeeResult } from '@/lib/tdee/calculator';
+import { PAYWALL_AUTOSTART_KEY } from '@/lib/funnel/plan-link';
 import type { Period } from '@revenuecat/purchases-js';
 import { useUnits } from '@/lib/quiz/use-units';
 import { cn } from '@/lib/utils';
@@ -96,7 +97,12 @@ function goalDate(locale: 'vi' | 'en') {
   return new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
 }
 
-/** The date a plan bought today first renews. */
+/** The date a plan bought today is next charged: after the intro period when there is one. */
+function nextChargeDate(product: Product | null | undefined, from = new Date()): Date | null {
+  const intro = product?.introPricePhase;
+  return renewalDate(intro?.price ? intro.period : product?.period, from);
+}
+
 function renewalDate(period: Period | null | undefined, from = new Date()): Date | null {
   if (!period || !(period.number > 0)) return null;
   const date = new Date(from);
@@ -174,7 +180,12 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
 
   usePostcheckoutRedirect(hydrated && isUserPurchased({ purchased, lead }));
 
-  useEffect(() => trackStepViewed('paywall'), []);
+  useEffect(() => {
+    // Every later event carries the price-test arm, so the test reads in PostHog.
+    const variant = resolvedCountryCode === 'VN' ? null : priceTestVariant();
+    if (variant) registerPriceTestVariant(variant);
+    trackStepViewed('paywall');
+  }, [resolvedCountryCode]);
 
   // The support chat may show on the paywall, but not over Paddle's checkout.
   useEffect(() => {
@@ -461,21 +472,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     }
   }, [activeLocale, countryCode, correlatePurchasedCustomer, data.name, lead, purchased, resolvedCountryCode, router, selected, setPurchased]);
 
-  const requestCheckout = () => {
-    if (lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id) {
-      setRedemption({ kind: 'pending' });
-      return;
-    }
-    if (!purchasesRef.current || !lead || !pricesReady) {
-      setError('RevenueCat checkout is still loading. Please try again in a moment.');
-      return;
-    }
-    setError(null);
-    // English opens Paddle straight from the plan button; the renewal terms sit under that button.
-    if (plainPricing) void openCheckout(activeOffer);
-    else setShowCheckoutConfirm(true);
-  };
-
   const targetWeight = Math.round(data.target_weight_kg ?? data.weight_kg ?? 60);
   const currentWeight = Math.round(data.weight_kg ?? targetWeight + 6);
   const targetDate = goalDate(activeLocale);
@@ -512,6 +508,42 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const perDayByPlan = Object.fromEntries(plans.map((plan) => [plan.id, planPerDay(checkoutPackage(plan, activeOffer).webBillingProduct)]));
   const savingsByPlan = savingsVersusPriciest(perDayByPlan);
   const pricesReady = loadState === 'ready';
+  const requestCheckout = () => {
+    if (lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id) {
+      setRedemption({ kind: 'pending' });
+      return;
+    }
+    if (!purchasesRef.current || !lead || !pricesReady) {
+      setError('RevenueCat checkout is still loading. Please try again in a moment.');
+      return;
+    }
+    setError(null);
+    // English opens Paddle straight from the plan button; the renewal terms sit under that button.
+    if (plainPricing) void openCheckout(activeOffer);
+    else setShowCheckoutConfirm(true);
+  };
+
+  // A plan link with start=1 opens checkout once, as soon as the prices are in.
+  const autostartRef = useRef(false);
+  const requestCheckoutRef = useRef(requestCheckout);
+  useEffect(() => {
+    requestCheckoutRef.current = requestCheckout;
+  });
+  useEffect(() => {
+    if (loadState !== 'ready' || autostartRef.current) return;
+    let autostart = false;
+    try {
+      autostart = window.sessionStorage.getItem(PAYWALL_AUTOSTART_KEY) === '1';
+      window.sessionStorage.removeItem(PAYWALL_AUTOSTART_KEY);
+    } catch {
+      // No storage, no autostart.
+    }
+    if (!autostart) return;
+    autostartRef.current = true;
+    document.getElementById('plans')?.scrollIntoView({ block: 'start' });
+    requestCheckoutRef.current();
+  }, [loadState]);
+
   const offerNote = isOriginalPricing
     ? copy.paywall.standardPriceNote
     : exitOfferActive
@@ -577,7 +609,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     return period ? funnelPaywall.billed(period.number, periodWord(period)) : plan.billingLabel[activeLocale];
   };
   const selectedPeriod = selected?.rcPackage.webBillingProduct.period;
-  const nextCharge = renewalDate(selectedPeriod);
+  const nextCharge = nextChargeDate(selectedOfferProduct);
   const renewalLine = funnelPaywall.renewal(
     introTotal,
     renewalTotal,

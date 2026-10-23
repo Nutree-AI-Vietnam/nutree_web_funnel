@@ -101,7 +101,28 @@ function publicEnvironment(): PublicEnvironment {
     NEXT_PUBLIC_REVENUECAT_WEB_API_KEY: process.env.NEXT_PUBLIC_REVENUECAT_WEB_API_KEY,
     NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID: process.env.NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID,
     NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID_INTL: process.env.NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID_INTL,
+    NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID_INTL_TEST: process.env.NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID_INTL_TEST,
   };
+}
+
+export type PriceTestVariant = 'control' | 'test';
+const PRICE_TEST_BUCKET_KEY = 'nutree.price-test.bucket.v1';
+
+/**
+ * The price-test arm for non-Vietnam visitors, kept per browser so a returning
+ * visitor sees the same prices. Null when no test offering is configured.
+ */
+export function priceTestVariant(source: PublicEnvironment = publicEnvironment(), random = Math.random): PriceTestVariant | null {
+  if (!source.NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID_INTL_TEST?.trim()) return null;
+  try {
+    const stored = window.localStorage.getItem(PRICE_TEST_BUCKET_KEY);
+    if (stored === 'control' || stored === 'test') return stored;
+    const assigned: PriceTestVariant = random() < 0.5 ? 'control' : 'test';
+    window.localStorage.setItem(PRICE_TEST_BUCKET_KEY, assigned);
+    return assigned;
+  } catch {
+    return 'control';
+  }
 }
 
 function required(source: PublicEnvironment, key: keyof PublicEnvironment): string {
@@ -113,9 +134,14 @@ function required(source: PublicEnvironment, key: keyof PublicEnvironment): stri
 /** Reads browser-safe RevenueCat Web configuration. Paddle credentials stay in RevenueCat. */
 export function readRevenueCatWebConfig(source?: PublicEnvironment, countryCode: string = 'VN'): RevenueCatWebConfig {
   const environment = source ?? publicEnvironment();
-  const offeringKey = countryCode.toUpperCase() === 'VN'
+  const vietnam = countryCode.toUpperCase() === 'VN';
+  // The test offering (intro price, higher ladder or $1 first week) replaces the
+  // international one for the test arm only.
+  const offeringKey = vietnam
     ? 'NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID'
-    : 'NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID_INTL';
+    : priceTestVariant(environment) === 'test'
+      ? 'NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID_INTL_TEST'
+      : 'NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID_INTL';
   return {
     apiKey: required(environment, 'NEXT_PUBLIC_REVENUECAT_WEB_API_KEY'),
     offeringIdentifier: required(environment, offeringKey),

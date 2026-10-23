@@ -62,3 +62,12 @@ export function identifyFunnelLead(leadId: string, email?: string | null) {
     ...(email ? { email } : {}),
   });
 }
+
+/** Tags every later event with the price-test arm. */
+export function registerPriceTestVariant(variant: string): void {
+  try {
+    posthog.register({ price_test_variant: variant });
+  } catch {
+    // Analytics must never block checkout.
+  }
+}

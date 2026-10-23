@@ -65,22 +65,28 @@ export async function previewTdee(data: OnboardingPayload): Promise<TdeeResult> 
 }
 
 /** Creates a possession-bound lead through the same-origin BFF. */
-export async function createLead(email: string, payload: OnboardingPayload): Promise<Lead> {
+/** How the plan was shown, so reminder emails use the same language and units. */
+export interface LeadDisplay {
+  locale?: 'vi' | 'en';
+  units?: 'metric' | 'imperial';
+}
+
+export async function createLead(email: string, payload: OnboardingPayload, display: LeadDisplay = {}): Promise<Lead> {
   if (!leadCreation) {
     const requestId = crypto.randomUUID();
-    leadCreation = createLeadOnce(email, payload, requestId).finally(() => { leadCreation = null; });
+    leadCreation = createLeadOnce(email, payload, requestId, display).finally(() => { leadCreation = null; });
   }
   return leadCreation;
 }
 
 let leadCreation: Promise<Lead> | null = null;
 
-async function createLeadOnce(email: string, payload: OnboardingPayload, requestId: string): Promise<Lead> {
+async function createLeadOnce(email: string, payload: OnboardingPayload, requestId: string, display: LeadDisplay): Promise<Lead> {
   await initializeLeadSession();
   const res = await fetch('/api/web-funnel/leads', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Request-ID': requestId },
-    body: JSON.stringify({ email, payload: toWebFunnelSnapshot(payload) }),
+    body: JSON.stringify({ email, payload: toWebFunnelSnapshot(payload), ...display }),
   });
   if (!res.ok) {
     const response = await res.json().catch(() => null) as { detail?: unknown } | null;

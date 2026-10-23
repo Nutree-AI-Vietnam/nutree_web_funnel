@@ -902,7 +902,7 @@ export const en: Copy = {
       body: 'Enter your email to see your plan and save it for the app.',
       estimate: 'Estimate. Results vary.',
       cta: 'See my plan',
-      helper: 'We’ll save your plan and, after you pay, send the link that opens it in the app.',
+      helper: 'We’ll email your plan and a few reminders. Unsubscribe any time. After you pay, we send the link that opens it in the app.',
       trustBody: 'We use your email for your plan and your account. We never sell it.',
     },
     rating: {

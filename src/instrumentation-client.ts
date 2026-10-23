@@ -1,10 +1,12 @@
 import posthog from 'posthog-js';
 import { registerDocumentFunnelLocale } from '@/lib/analytics/posthog';
 import { POSTHOG_PROXY_PATH } from '@/lib/analytics/posthog-proxy';
+import { isFragmentCapabilityRoute } from '@/lib/handoff/fragment-capability-route';
 
 const projectToken = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
 
-if (projectToken) {
+// Pages whose fragment carries a secret never start analytics.
+if (projectToken && !isFragmentCapabilityRoute(window.location.pathname)) {
   posthog.init(projectToken, {
     api_host: POSTHOG_PROXY_PATH,
     ui_host: 'https://us.posthog.com',
@@ -13,6 +15,8 @@ if (projectToken) {
     person_profiles: 'identified_only',
     capture_pageview: 'history_change',
     capture_pageleave: true,
+    // Plan and claim links carry their secret in the fragment; keep it out of every event.
+    disable_capture_url_hashes: true,
     autocapture: true,
     capture_performance: true,
     disable_surveys: true,
