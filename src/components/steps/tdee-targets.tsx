@@ -7,6 +7,7 @@ import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { goToNextQuizStep, goToQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import { bmi, bmiCategory } from '@/lib/tdee/insights';
+import { CalorieRing, macroShares } from '@/components/plan/plan-overview';
 
 const BMI_MIN = 15;
 const BMI_MAX = 35;
@@ -44,12 +45,7 @@ export function TdeeTargetsStep() {
   const bmiValue = bmi(data.weight_kg, data.height_cm);
   const category = bmiCategory(bmiValue);
   const bmiPct = Math.min(Math.max((bmiValue - BMI_MIN) / (BMI_MAX - BMI_MIN), 0), 1) * 100;
-  const macroTotal = tdee.protein_g + tdee.carbs_g + tdee.fat_g;
-  const macroItems = [
-    { label: vi.tdee_targets.protein, value: Math.round(tdee.protein_g), color: 'bg-protein' },
-    { label: vi.tdee_targets.carbs, value: Math.round(tdee.carbs_g), color: 'bg-carbs' },
-    { label: vi.tdee_targets.fat, value: Math.round(tdee.fat_g), color: 'bg-fat' },
-  ];
+  const shares = macroShares(tdee, vi.tdee_targets);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -61,45 +57,18 @@ export function TdeeTargetsStep() {
         <h1 className="relative mt-1 text-[1.45rem] font-extrabold leading-tight text-forest">{vi.tdee_targets.headline}</h1>
         <p className="relative mt-1.5 text-xs font-semibold leading-relaxed text-slate-brand">{vi.tdee_targets.aha}</p>
 
-        <div className="relative mt-3 grid grid-cols-[1fr_auto] items-center gap-3">
-          <div>
-            <div className="text-[3rem] font-extrabold leading-none text-forest">
-              {(displayCalories || Math.round(tdee.calories)).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')}
-            </div>
-            <div className="mt-1 text-sm font-extrabold text-muted-brand">{vi.tdee_targets.calories}</div>
-          </div>
-          <div
-            className="grid h-20 w-20 place-items-center rounded-full p-2 shadow-inner"
-            style={{ background: 'conic-gradient(#29b6a1 0 76%, #e8f2ee 76% 100%)' }}
-          >
-            <div className="grid h-full w-full place-items-center rounded-full bg-white text-center">
-              <span className="text-xs font-extrabold text-forest">kcal</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative mt-3 overflow-hidden rounded-2xl bg-bg-brand/88 p-2 shadow-[inset_0_1px_18px_rgb(26_71_57_/_0.04)]">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-extrabold text-forest">{vi.tdee_targets.macroNote}</span>
-            <span className="text-[0.7rem] font-bold text-muted-brand">{vi.tdee_targets.perDayUnit}</span>
-          </div>
-          <div className="flex h-3 overflow-hidden rounded-full bg-white">
-            {macroItems.map((item) => (
-              <span
-                key={item.label}
-                className={item.color}
-                style={{ width: `${Math.max((item.value / macroTotal) * 100, 12)}%` }}
-              />
+        {/* The same ring as the plan and paywall, drawn in as the calories count up. */}
+        <div className="relative mt-4 flex items-center gap-4">
+          <CalorieRing total={(displayCalories || Math.round(tdee.calories)).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} unit={vi.funnel.day.kcal} macros={shares} draw />
+          <ul className="grid min-w-0 flex-1 gap-2.5">
+            {shares.map((macro) => (
+              <li key={macro.label} className="flex items-center gap-2 text-[0.9rem]">
+                <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: macro.color }} />
+                <span className="min-w-0 flex-1 whitespace-nowrap font-bold text-slate-brand">{macro.label}</span>
+                <span className="whitespace-nowrap font-extrabold tabular-nums text-forest">{macro.grams} g</span>
+              </li>
             ))}
-          </div>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            {macroItems.map((item) => (
-              <div key={item.label} className="rounded-xl bg-white px-2 py-1.5">
-                <div className="text-base font-extrabold text-forest">{item.value}g</div>
-                <div className="text-[0.68rem] font-bold text-muted-brand">{item.label}</div>
-              </div>
-            ))}
-          </div>
+          </ul>
         </div>
       </section>
 
@@ -110,7 +79,9 @@ export function TdeeTargetsStep() {
             {bmiValue.toFixed(1)} - {vi.tdee_targets.bmiCategories[category]}
           </span>
         </div>
-        <div className="relative h-3 rounded-full bg-gradient-to-r from-sky-400 via-emerald-400 to-red-400">
+        {/* Brand track with the healthy range marked, instead of a red-to-blue judgement scale. */}
+        <div className="relative h-3 rounded-full bg-mist">
+          <span aria-hidden="true" className="absolute inset-y-0 rounded-full bg-teal-brand/45" style={{ left: `${((18.5 - BMI_MIN) / (BMI_MAX - BMI_MIN)) * 100}%`, width: `${((24.9 - 18.5) / (BMI_MAX - BMI_MIN)) * 100}%` }} />
           <div
             className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-white bg-forest shadow"
             style={{ left: `${bmiPct}%` }}

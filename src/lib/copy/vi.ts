@@ -514,8 +514,6 @@ export const vi = {
     protein: 'Protein',
     carbs: 'Carb',
     fat: 'Chất béo',
-    macroNote: 'Macro chia sẵn cho từng ngày',
-    perDayUnit: 'g/ngày',
     bmiTitle: 'Chỉ số BMI của bạn',
     bmiCategories: {
       underweight: 'Dưới mức khỏe mạnh',
@@ -527,9 +525,9 @@ export const vi = {
     projectionWeeks: (weeks: number) => `Dự kiến ${weeks} tuần`,
     sourceTitle: 'Vì sao kế hoạch này phù hợp',
     sourceItems: [
-      'Mục tiêu calo đến từ TDEE cá nhân',
-      'Macro được chia theo mục tiêu và cân nặng',
-      'Có thể điều chỉnh khi tiến độ thay đổi',
+      'Calo: mức năng lượng bạn đốt mỗi ngày, chỉnh theo mục tiêu',
+      'Protein: theo cân nặng và mục tiêu của bạn',
+      'Cả hai thay đổi khi cân nặng của bạn thay đổi',
     ],
   },
   care_pause: {
@@ -975,7 +973,6 @@ export const vi = {
       planFor: (plan: string, price: string) => `${plan} giá ${price}`,
       perMonth: (price: string) => `${price} mỗi tháng`,
       billedFor: (price: string, cadence: string) => `${price} thanh toán ${cadence}`,
-      guaranteeShort: 'Hoàn tiền trong 30 ngày',
       header: 'Nutree Premium',
       cta: (weight: string) => `Nhận kế hoạch để đạt ${weight}`,
       ctaFallback: 'Nhận kế hoạch',

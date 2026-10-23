@@ -236,8 +236,26 @@ const DISH_ICON: Record<DishId, string> = {
   hummus_carrots: '🥕',
 };
 
+/** Protein, carbs and fat with their share of the day's calories, in the ring's colours. */
+export function macroShares(tdee: TdeeResult, labels: { protein: string; carbs: string; fat: string }) {
+  const macros = [
+    { label: labels.protein, grams: Math.round(tdee.protein_g), kcal: tdee.protein_g * 4, color: 'var(--color-protein)' },
+    { label: labels.carbs, grams: Math.round(tdee.carbs_g), kcal: tdee.carbs_g * 4, color: 'var(--color-carbs)' },
+    { label: labels.fat, grams: Math.round(tdee.fat_g), kcal: tdee.fat_g * 9, color: 'var(--color-fat)' },
+  ];
+  const total = macros.reduce((sum, macro) => sum + macro.kcal, 0) || 1;
+  return macros.map((macro) => ({ ...macro, share: macro.kcal / total }));
+}
+
 /** The day's calories as a ring split by where they come from: protein, carbs and fat. */
-function CalorieRing({ total, unit, macros }: { total: string; unit: string; macros: ReadonlyArray<{ label: string; share: number; color: string }> }) {
+export function CalorieRing({ total, unit, macros, draw = false }: {
+  total: string;
+  unit: string;
+  macros: ReadonlyArray<{ label: string; share: number; color: string }>;
+  /** Draw the segments in one after another, for the first reveal of the numbers. */
+  draw?: boolean;
+}) {
+  const reduce = useReducedMotion();
   const radius = 50;
   const circumference = 2 * Math.PI * radius;
   const gap = 5;
@@ -246,9 +264,27 @@ function CalorieRing({ total, unit, macros }: { total: string; unit: string; mac
     <div className="relative h-[7.25rem] w-[7.25rem] shrink-0">
       <svg viewBox="0 0 128 128" className="h-full w-full -rotate-90" aria-hidden="true">
         <circle cx="64" cy="64" r={radius} fill="none" stroke="#eef4f1" strokeWidth="12" />
-        {macros.map((macro, index) => (
-          <circle key={macro.label} cx="64" cy="64" r={radius} fill="none" stroke={macro.color} strokeWidth="12" strokeLinecap="round" strokeDasharray={`${Math.max(0, macro.share * circumference - gap)} ${circumference}`} strokeDashoffset={-starts[index]} />
-        ))}
+        {macros.map((macro, index) => {
+          const length = Math.max(0, macro.share * circumference - gap);
+          return draw && !reduce ? (
+            <motion.circle
+              key={macro.label}
+              cx="64"
+              cy="64"
+              r={radius}
+              fill="none"
+              stroke={macro.color}
+              strokeWidth="12"
+              strokeLinecap="round"
+              strokeDashoffset={-starts[index]}
+              initial={{ strokeDasharray: `0 ${circumference}` }}
+              animate={{ strokeDasharray: `${length} ${circumference}` }}
+              transition={{ delay: 0.2 + index * 0.35, duration: 0.55, ease: 'easeOut' }}
+            />
+          ) : (
+            <circle key={macro.label} cx="64" cy="64" r={radius} fill="none" stroke={macro.color} strokeWidth="12" strokeLinecap="round" strokeDasharray={`${length} ${circumference}`} strokeDashoffset={-starts[index]} />
+          );
+        })}
       </svg>
       <p className="absolute inset-0 grid place-content-center text-center">
         <span className="text-[1.6rem] font-extrabold leading-none tracking-[-0.04em] text-forest tabular-nums">{total}</span>
@@ -276,13 +312,7 @@ export function PlanDayCard({ data, tdee, className, reveal }: {
   const format = new Intl.NumberFormat(numberLocale(locale));
   const meals = sampleDay(tdee.calories, data.dietary_preferences);
   const total = meals.reduce((sum, row) => sum + row.calories, 0);
-  const macros = [
-    { label: copy.tdee_targets.protein, grams: Math.round(tdee.protein_g), kcal: tdee.protein_g * 4, color: 'var(--color-protein)' },
-    { label: copy.tdee_targets.carbs, grams: Math.round(tdee.carbs_g), kcal: tdee.carbs_g * 4, color: 'var(--color-carbs)' },
-    { label: copy.tdee_targets.fat, grams: Math.round(tdee.fat_g), kcal: tdee.fat_g * 9, color: 'var(--color-fat)' },
-  ];
-  const macroTotal = macros.reduce((sum, macro) => sum + macro.kcal, 0) || 1;
-  const shares = macros.map((macro) => ({ ...macro, share: macro.kcal / macroTotal }));
+  const shares = macroShares(tdee, copy.tdee_targets);
 
   return (
     <section className={cn(CARD, className)} aria-label={`${format.format(total)} ${day.kcal}`}>

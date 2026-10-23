@@ -517,8 +517,6 @@ export const en: Copy = {
     protein: 'Protein',
     carbs: 'Carbs',
     fat: 'Fat',
-    macroNote: 'Your macros',
-    perDayUnit: 'g/day',
     bmiTitle: 'Your BMI',
     bmiCategories: {
       underweight: 'Below healthy range',
@@ -980,7 +978,6 @@ export const en: Copy = {
       planFor: (plan: string, price: string) => `${plan} for ${price}`,
       perMonth: (price: string) => `${price} a month`,
       billedFor: (price: string, cadence: string) => `${price} billed ${cadence}`,
-      guaranteeShort: '30-day money-back guarantee',
       header: 'Nutree Premium',
       cta: (weight: string) => `Get my plan to reach ${weight}`,
       ctaFallback: 'Get my plan',
