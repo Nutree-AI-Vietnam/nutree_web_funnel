@@ -117,7 +117,8 @@ a quick orientation for developers and documentation updates.
 | `NEXT_PUBLIC_API_BASE_URL` | Public | MealTrack base URL used by the browser |
 | `WEB_FUNNEL_BFF_SHARED_SECRET` | Server | Shared secret for same-origin BFF requests |
 | `NEXT_PUBLIC_REVENUECAT_WEB_API_KEY` | Public | RevenueCat Web API key |
-| `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID` | Public | RevenueCat web offering to load; its packages, order, prices, and metadata copy drive the paywall |
+| `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID` | Public | Existing Vietnam offering; its packages, order, prices, and metadata copy drive the paywall |
+| `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID_INTL` | Public | Required USD offering for every non-Vietnam market |
 | `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED` | Public | Default-off anonymous redemption handoff flag |
 
 ## Commands

@@ -164,6 +164,7 @@ NEXT_PUBLIC_API_BASE_URL=https://<staging-backend-host>
 WEB_FUNNEL_BFF_SHARED_SECRET=<same-staging-bff-secret>
 NEXT_PUBLIC_REVENUECAT_WEB_API_KEY=<sandbox-web-public-key>
 NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID=<sandbox-offering-id>
+NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID_INTL=<sandbox-international-offering-id>
 NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED=true
 NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID=<staging-ios-bundle-id>
 NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME=<staging-android-package-name>
@@ -176,7 +177,8 @@ NEXT_PUBLIC_PLAYSTORE_URL=<staging-android-install-url>
 | `NEXT_PUBLIC_API_BASE_URL` | Staging MealTrack base URL, without trailing slash |
 | `WEB_FUNNEL_BFF_SHARED_SECRET` | Same value as MealTrack staging |
 | `NEXT_PUBLIC_REVENUECAT_WEB_API_KEY` | Sandbox web public key |
-| `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID` | Sandbox offering ID. The paywall shows every package in it, in dashboard order; plan copy comes from the offering metadata (see `src/lib/revenuecat/paywall-plans.ts`) |
+| `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID` | Existing sandbox Vietnam offering ID. The paywall shows its packages in dashboard order. |
+| `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID_INTL` | Required sandbox offering ID containing USD products linked to the new international Paddle prices. |
 | `NEXT_PUBLIC_REVENUECAT_REDEMPTION_ENABLED` | `true` for staging/SIT Preview, `false` everywhere else until production sign-off |
 | `NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID` / `NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME` | Exact staging mobile bundle/package for phone handoff |
 | `NEXT_PUBLIC_APPSTORE_URL` / `NEXT_PUBLIC_PLAYSTORE_URL` | Staging-compatible install destinations |

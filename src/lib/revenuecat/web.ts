@@ -100,6 +100,7 @@ function publicEnvironment(): PublicEnvironment {
   return {
     NEXT_PUBLIC_REVENUECAT_WEB_API_KEY: process.env.NEXT_PUBLIC_REVENUECAT_WEB_API_KEY,
     NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID: process.env.NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID,
+    NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID_INTL: process.env.NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID_INTL,
   };
 }
 
@@ -110,11 +111,14 @@ function required(source: PublicEnvironment, key: keyof PublicEnvironment): stri
 }
 
 /** Reads browser-safe RevenueCat Web configuration. Paddle credentials stay in RevenueCat. */
-export function readRevenueCatWebConfig(source?: PublicEnvironment): RevenueCatWebConfig {
+export function readRevenueCatWebConfig(source?: PublicEnvironment, countryCode: string = 'VN'): RevenueCatWebConfig {
   const environment = source ?? publicEnvironment();
+  const offeringKey = countryCode.toUpperCase() === 'VN'
+    ? 'NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID'
+    : 'NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID_INTL';
   return {
     apiKey: required(environment, 'NEXT_PUBLIC_REVENUECAT_WEB_API_KEY'),
-    offeringIdentifier: required(environment, 'NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID'),
+    offeringIdentifier: required(environment, offeringKey),
   };
 }
 
