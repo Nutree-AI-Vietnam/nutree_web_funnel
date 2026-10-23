@@ -164,3 +164,33 @@ export function rangeLabels(
     max: formatPounds(Math.floor(max / KG_PER_POUND), system),
   };
 }
+
+/** Whether a measure is picked on a scroll wheel in this system: every system but weight in stones. */
+export function usesWheel(measure: Measure, system: UnitSystem): boolean {
+  // Height under stones is still feet and inches, so it keeps the wheel.
+  return measure === 'height' || system !== 'stone';
+}
+
+/** The wheel stop (total inches for height, pounds for weight) that typed boxes stand for. */
+export function boxesToStop(measure: Measure, major: number, minor = 0): number {
+  return measure === 'height' ? major * INCHES_PER_FOOT + minor : major;
+}
+
+/** The boxes a wheel stop reads as: feet and inches, or pounds. */
+export function stopToBoxes(measure: Measure, stop: number): Boxes {
+  return measure === 'height'
+    ? { major: Math.floor(stop / INCHES_PER_FOOT), minor: stop % INCHES_PER_FOOT }
+    : { major: stop };
+}
+
+/** The first and last wheel stop whose metric value still lies inside [min, max]. */
+export function wheelBounds(measure: Measure, min: number, max: number): { min: number; max: number } {
+  const perStop = measure === 'height' ? CM_PER_INCH : KG_PER_POUND;
+  const toMetric = (stop: number) => (measure === 'height' ? Math.round(stop * CM_PER_INCH) : poundsToKg(stop));
+  let first = Math.ceil(min / perStop);
+  let last = Math.floor(max / perStop);
+  // Converting back rounds, which can land one stop outside the range.
+  if (toMetric(first) < min) first += 1;
+  if (toMetric(last) > max) last -= 1;
+  return { min: first, max: last };
+}

@@ -72,7 +72,7 @@ const WheelOption = memo(function WheelOption({
       }}
     >
       <span className={cn('leading-none', hero ? 'text-[3.2rem]' : 'text-[2.5rem]')}>{label}</span>
-      {selected && <span className="text-lg font-bold text-muted-brand">{unit}</span>}
+      {selected && unit && <span className="text-lg font-bold text-muted-brand">{unit}</span>}
     </div>
   );
 });
