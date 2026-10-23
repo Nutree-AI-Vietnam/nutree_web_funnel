@@ -5,7 +5,7 @@ import { PrimaryButton } from '@/components/primary-button';
 import { QuizShell } from '@/components/quiz-shell';
 import { PlanGoalCard } from '@/components/plan/plan-overview';
 import { QuizStepFrame } from '@/components/steps/quiz-step-frame';
-import { AppStoreRating, MealSnapDemo } from '@/components/value-tour/value-tour-demos';
+import { MealSnapDemo } from '@/components/value-tour/value-tour-demos';
 import { trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { VALUE_TOUR_STEPS, valueProgressIndex, type ValueTourStep } from '@/lib/quiz/steps';
@@ -69,28 +69,6 @@ export function ValueTourScreen({
           <MealSnapDemo label={copy.valueTour.snap.videoLabel} />
           <div className="mt-auto pt-3">
             <PrimaryButton onClick={advance}>{tour.snap.cta}</PrimaryButton>
-          </div>
-        </QuizStepFrame>
-      )}
-      {step === 'proof' && (
-        <QuizStepFrame>
-          <AppStoreRating />
-          <section className="rounded-[1.6rem] bg-white/90 p-4 shadow-[0_10px_30px_rgb(26_71_57_/_0.06)]">
-            <h2 className="text-[1.12rem] font-extrabold tracking-[-0.02em] text-forest">{tour.proof.title}</h2>
-            <ul className="mt-3 grid gap-3">
-              {tour.proof.benefits.map((benefit, position) => (
-                <li key={benefit.title} className="grid grid-cols-[2rem_1fr] gap-3">
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-forest text-sm font-extrabold text-white">{position + 1}</span>
-                  <span>
-                    <span className="block text-[0.95rem] font-extrabold text-forest">{benefit.title}</span>
-                    <span className="mt-0.5 block text-sm font-semibold leading-relaxed text-slate-brand">{benefit.body}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-          <div className="mt-auto pt-3">
-            <PrimaryButton onClick={advance}>{tour.proof.cta}</PrimaryButton>
           </div>
         </QuizStepFrame>
       )}

@@ -960,17 +960,7 @@ export const en: Copy = {
         eyebrow: '',
         title: 'Log a meal with one photo',
         body: 'Nutree estimates the calories and protein and counts them toward your daily targets. No weighing or searching.',
-        ideasTitle: 'Meal ideas for your plan',
-        cta: 'Continue',
-      },
-      proof: {
-        title: 'How Nutree keeps you on track',
         cta: 'See my plan',
-        benefits: [
-          { title: 'Know what to eat next', body: 'Meal ideas that fit your calories.' },
-          { title: 'Ask the AI coach', body: 'Answers about food and your plan.' },
-          { title: 'See if you are on pace', body: 'Log your weight once a week and see what is working.' },
-        ],
       },
     },
     day: {

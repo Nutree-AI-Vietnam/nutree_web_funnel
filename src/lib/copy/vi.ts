@@ -955,17 +955,7 @@ export const vi = {
         eyebrow: '',
         title: 'Ghi bữa ăn bằng một bức ảnh',
         body: 'Hướng camera vào đĩa ăn. Nutree ước tính calo và protein, nên bạn không cần cân hay tìm kiếm.',
-        ideasTitle: 'Gợi ý món cho kế hoạch của bạn',
-        cta: 'Tiếp tục',
-      },
-      proof: {
-        title: 'Nutree giúp gì cho kế hoạch này',
         cta: 'Xem kế hoạch',
-        benefits: [
-          { title: 'Biết ăn gì tiếp theo', body: 'Gợi ý món hợp với calo và chế độ ăn của bạn.' },
-          { title: 'Ghi lại trong vài giây', body: 'Chụp ảnh thay vì cân thức ăn.' },
-          { title: 'Thấy được tiến bộ', body: 'Kiểm tra mỗi tuần so với ngày mục tiêu.' },
-        ],
       },
     },
     day: {

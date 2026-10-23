@@ -68,7 +68,7 @@ describe('quiz steps', () => {
 
   it('continues the same progress bar through the value tour', () => {
     expect(valueProgressIndex('plan')).toBe(QUIZ_STEPS.length + 1);
-    expect(valueProgressIndex('proof')).toBe(onboardingStepCount());
-    expect(VALUE_TOUR_STEPS).toEqual(['plan', 'snap', 'proof']);
+    expect(valueProgressIndex('snap')).toBe(onboardingStepCount());
+    expect(VALUE_TOUR_STEPS).toEqual(['plan', 'snap']);
   });
 });
