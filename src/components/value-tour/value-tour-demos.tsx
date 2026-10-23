@@ -57,6 +57,101 @@ export function StarRow({ value, className }: { value: number; className?: strin
   );
 }
 
+/** Leaves along one laurel branch: a curved stem, each leaf angled up and away from it, outer leaves larger. */
+const LAUREL_LEAVES = (() => {
+  const p0 = [30, 88];
+  const p1 = [2, 50];
+  const p2 = [24, 4];
+  const point = (t: number) => [0, 1].map((axis) => (1 - t) ** 2 * p0[axis] + 2 * (1 - t) * t * p1[axis] + t ** 2 * p2[axis]);
+  const unitTangent = (t: number) => {
+    const v = [0, 1].map((axis) => 2 * (1 - t) * (p1[axis] - p0[axis]) + 2 * t * (p2[axis] - p1[axis]));
+    const length = Math.hypot(v[0], v[1]);
+    return [v[0] / length, v[1] / length];
+  };
+  const leaf = (t: number, side: 1 | -1, rx: number, ry: number) => {
+    const [px, py] = point(t);
+    const [tx, ty] = unitTangent(t);
+    // Outward normal (to the left of a stem growing upward), then a direction 48° off the stem.
+    const [nx, ny] = [ty * side, -tx * side];
+    const lean = (48 * Math.PI) / 180;
+    const dx = tx * Math.cos(lean) + nx * Math.sin(lean);
+    const dy = ty * Math.cos(lean) + ny * Math.sin(lean);
+    const rotate = (Math.atan2(dy, dx) * 180) / Math.PI - 90;
+    return { cx: px + dx * ry * 0.92, cy: py + dy * ry * 0.92, rx, ry, rotate };
+  };
+  const outer = [0.08, 0.21, 0.34, 0.47, 0.6, 0.73, 0.85].map((t, index) => leaf(t, 1, 3.1 - index * 0.12, 7.4 - index * 0.25));
+  const inner = [0.15, 0.28, 0.41, 0.54, 0.67, 0.79].map((t, index) => leaf(t, -1, 2.5 - index * 0.1, 6 - index * 0.2));
+  return [...outer, ...inner];
+})();
+
+function Laurel({ flip = false }: { flip?: boolean }) {
+  return (
+    <svg viewBox="-10 -6 50 100" className={cn('h-[5.6rem] w-auto shrink-0 text-gold', flip && '-scale-x-100')} aria-hidden="true">
+      <path d="M30 88 Q 2 50 24 4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      {LAUREL_LEAVES.map((leaf, index) => (
+        <ellipse key={index} cx={leaf.cx} cy={leaf.cy} rx={leaf.rx} ry={leaf.ry} fill="currentColor" transform={`rotate(${leaf.rotate} ${leaf.cx} ${leaf.cy})`} />
+      ))}
+    </svg>
+  );
+}
+
+function AppleMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
+      <path d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.18-1.73-1.35-.14-2.64.8-3.33.8-.69 0-1.74-.78-2.86-.76-1.47.02-2.83.86-3.59 2.17-1.53 2.65-.39 6.58 1.1 8.73.73 1.05 1.6 2.23 2.73 2.19 1.1-.04 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.13.84-1.22 1.18-2.4 1.2-2.46-.03-.01-2.3-.88-2.3-3.48ZM14.2 6.13c.6-.73 1.01-1.75.9-2.76-.87.03-1.92.58-2.54 1.31-.56.64-1.05 1.67-.92 2.66.97.08 1.96-.49 2.56-1.21Z" />
+    </svg>
+  );
+}
+
+function GooglePlayMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path fill="#00D7FE" d="M3.6 2.3 13.4 12 3.6 21.7c-.37-.2-.6-.6-.6-1.07V3.37c0-.47.23-.87.6-1.07Z" />
+      <path fill="#FFCE00" d="m16.8 8.6-3.4 3.4 3.4 3.4 3.83-2.18c.98-.56.98-1.88 0-2.44L16.8 8.6Z" />
+      <path fill="#00F076" d="M3.6 2.3c.33-.18.75-.2 1.14.02l12.06 6.28-3.4 3.4L3.6 2.3Z" />
+      <path fill="#F83A50" d="M13.4 12l3.4 3.4L4.74 21.68c-.39.22-.81.2-1.14.02L13.4 12Z" />
+    </svg>
+  );
+}
+
+/**
+ * The trust card before the plans: the customer count between laurels, then the store ratings.
+ * Only confirmed numbers: 40,000+ customers and the 4.7 App Store rating; Google Play shows
+ * once its real rating is filled in (copy.funnel.rating.googlePlay).
+ */
+export function TrustCard({ className }: { className?: string }) {
+  const copy = useCopy();
+  const rating = copy.funnel.rating;
+  const stores = [
+    { key: 'app-store', mark: <AppleMark className="h-5 w-5 text-charcoal" />, value: rating.value, label: rating.label },
+    ...(rating.googlePlay ? [{ key: 'google-play', mark: <GooglePlayMark className="h-5 w-5" />, value: rating.googlePlay.value, label: rating.googlePlay.label }] : []),
+  ];
+  return (
+    <section aria-label={`${rating.countValue} ${rating.chose}. ${rating.line}`} className={cn('rounded-[1.6rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]', className)}>
+      <div className="flex items-center justify-center gap-2" aria-hidden="true">
+        <Laurel />
+        <p className="text-center">
+          <span className="block text-[2.5rem] font-extrabold leading-none tracking-[-0.04em] tabular-nums text-forest">{rating.countValue}</span>
+          <span className="mt-1.5 block text-[0.95rem] font-bold leading-snug text-slate-brand">{rating.chose}</span>
+        </p>
+        <Laurel flip />
+      </div>
+      <div className={cn('mt-4 grid rounded-[1.2rem] bg-mist/70 py-3.5', stores.length > 1 ? 'grid-cols-2 divide-x divide-forest/10' : 'grid-cols-1')} aria-hidden="true">
+        {stores.map((store) => (
+          <div key={store.key} className="flex flex-col items-center px-2 text-center">
+            <span className="flex items-center gap-2">
+              {store.mark}
+              <StarRow value={Number(store.value)} className="text-[1rem]" />
+            </span>
+            <span className="mt-1.5 text-[1.45rem] font-extrabold leading-none tabular-nums text-forest">{store.value}<span className="text-[0.95rem] text-muted-brand">{rating.outOf}</span></span>
+            <span className="mt-1 text-[0.78rem] font-semibold text-muted-brand">{store.label}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export const TRUST_AVATAR_IMAGES = ['/images/trust-female.webp', '/images/trust-aiony.webp', '/images/trust-good-faces.webp', '/images/trust-ali.webp', '/images/trust-jurica.webp'] as const;
 
 /** The App Store rating beside the customer count, split by a hairline. */

@@ -87,6 +87,10 @@ export function TdeeTargetsStep() {
             style={{ left: `${bmiPct}%` }}
           />
         </div>
+        {/* Says what the teal band is, under the band itself. */}
+        <p className="relative mt-1.5 h-4 text-[0.68rem] font-bold text-teal-brand">
+          <span className="absolute -translate-x-1/2 whitespace-nowrap" style={{ left: `${((18.5 + 24.9) / 2 - BMI_MIN) / (BMI_MAX - BMI_MIN) * 100}%` }}>{vi.tdee_targets.bmiHealthy}</span>
+        </p>
       </section>
 
       <section className="rounded-2xl bg-white/82 p-2.5 shadow-[0_12px_34px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.78)] backdrop-blur">

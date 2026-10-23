@@ -515,6 +515,7 @@ export const vi = {
     carbs: 'Carb',
     fat: 'Chất béo',
     bmiTitle: 'Chỉ số BMI của bạn',
+    bmiHealthy: 'Mức khỏe mạnh 18,5–24,9',
     bmiCategories: {
       underweight: 'Dưới mức khỏe mạnh',
       normal: 'Mức khỏe mạnh',
@@ -903,6 +904,9 @@ export const vi = {
       countValue: '40.000+',
       countLabel: 'khách hàng',
       line: '4.7/5 trên App Store',
+      chose: 'khách hàng đã chọn Nutree',
+      outOf: '/5',
+      googlePlay: null as { value: string; label: string } | null,
     },
     plan: {
       eyebrow: (name: string) => `Kế hoạch của ${name}`,

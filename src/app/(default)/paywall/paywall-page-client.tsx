@@ -30,7 +30,7 @@ import { clearCheckoutEmail, readCheckoutEmail } from '@/lib/revenuecat/checkout
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { formatWeight } from '@/lib/quiz/units';
 import { FirstChangesCard, GoalStrip, PlanDayCard, PlanGoalCard } from '@/components/plan/plan-overview';
-import { AppStoreRating } from '@/components/value-tour/value-tour-demos';
+import { TrustCard } from '@/components/value-tour/value-tour-demos';
 import { Icon, type IconName } from '@/components/ui/icons';
 import { WelcomeGiftScreen } from '@/components/welcome-gift-screen';
 import { periodWeeks, planForTimeline } from '@/lib/quiz/plan-content';
@@ -770,6 +770,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     <div className="grid gap-4 pt-[5.5rem]">
       {planTop}
 
+      <TrustCard />
+
       <section id="plans" ref={observePlans} className="rounded-[1.6rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-5">
         {/* One line says which price applies and for how long: the welcome timer, the exit timer, or prices back to normal. */}
         {exitOfferActive ? (
@@ -829,8 +831,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         </div>
       </section>
 
-      <AppStoreRating />
-
       <section className="rounded-[1.6rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-5">
         <h2 className="text-[1.12rem] font-extrabold tracking-[-0.02em] text-forest">{funnelPaywall.faqTitle}</h2>
         <div className="mt-2 divide-y divide-border-brand/60">
@@ -873,6 +873,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         <div className="grid gap-4">
 {planTop}
         </div>
+        <TrustCard className="mt-5" />
 
         <section className="mt-5 rounded-[2rem] bg-white p-3.5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:mt-6 sm:p-5">
           <h2 className="text-center text-[1.08rem] font-extrabold tracking-[-0.02em] text-forest sm:text-[1.18rem]">{copy.paywall.planTitle}</h2>

@@ -518,6 +518,7 @@ export const en: Copy = {
     carbs: 'Carbs',
     fat: 'Fat',
     bmiTitle: 'Your BMI',
+    bmiHealthy: 'Healthy range 18.5–24.9',
     bmiCategories: {
       underweight: 'Below healthy range',
       normal: 'Healthy range',
@@ -908,6 +909,9 @@ export const en: Copy = {
       countValue: '40,000+',
       countLabel: 'customers',
       line: '4.7 out of 5 on the App Store',
+      chose: 'customers chose Nutree',
+      outOf: '/5',
+      googlePlay: null as { value: string; label: string } | null,
     },
     plan: {
       eyebrow: (name: string) => `${name}’s plan`,
