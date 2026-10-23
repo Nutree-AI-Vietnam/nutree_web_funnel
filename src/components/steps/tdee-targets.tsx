@@ -73,7 +73,7 @@ export function TdeeTargetsStep() {
             style={{ background: 'conic-gradient(#29b6a1 0 76%, #e8f2ee 76% 100%)' }}
           >
             <div className="grid h-full w-full place-items-center rounded-full bg-white text-center">
-              <span className="text-xs font-extrabold text-forest">TDEE</span>
+              <span className="text-xs font-extrabold text-forest">kcal</span>
             </div>
           </div>
         </div>

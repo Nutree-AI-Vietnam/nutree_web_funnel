@@ -16,6 +16,8 @@ export function WelcomeStep() {
   const router = useRouter();
   const copy = useCopy();
   const name = useQuizStore((s) => s.data.name);
+  // Only a weight to lose or gain gets a goal date; other goals are promised their daily targets.
+  const weightGoal = useQuizStore((s) => s.data.fitness_goal === 'cut' || s.data.fitness_goal === 'bulk');
   const greetingName = getGreetingName(name, copy);
 
   return (
@@ -47,7 +49,7 @@ export function WelcomeStep() {
           {copy.welcome.headline.replace('[name]', greetingName)}
         </h1>
         <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-brand">
-          {copy.welcome.body}
+          {weightGoal ? copy.welcome.body : copy.welcome.bodyNoWeightGoal}
         </p>
       </motion.div>
 

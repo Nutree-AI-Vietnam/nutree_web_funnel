@@ -24,10 +24,10 @@ export const en: Copy = {
   },
   exitIntent: {
     messages: [
-      { emoji: '🔥', message: "You're doing great!" },
-      { emoji: '💪', message: 'Almost there!' },
-      { emoji: '✨', message: 'Just a few steps left!' },
-      { emoji: '🎯', message: 'Your goal is close!' },
+      { emoji: '🌱', message: 'Your plan is taking shape' },
+      { emoji: '📝', message: 'Your plan is built from your answers' },
+      { emoji: '✨', message: 'Want to finish your plan?' },
+      { emoji: '🎯', message: 'Your plan follows your goal' },
     ],
     greetingNamed: (name: string) => `${name},`,
     greeting: 'Hey there',
@@ -119,6 +119,7 @@ export const en: Copy = {
   welcome: {
     headline: 'Nice to meet you, [name]',
     body: 'At the end, you’ll see your goal date and the first three changes to make.',
+    bodyNoWeightGoal: 'At the end, you’ll see your daily targets and the first three changes to make.',
     imageAlt: 'A person enjoying a healthy meal',
     stats: [
       { value: '3 min', label: 'to complete' },
@@ -147,9 +148,9 @@ export const en: Copy = {
     bmiTargetLabel: 'Target BMI',
     bmiAgeHint: 'Adult ranges don’t apply under 18',
     bmiCategory: {
-      underweight: 'Underweight',
+      underweight: 'Below healthy range',
       normal: 'Healthy range',
-      overweight: 'Overweight',
+      overweight: 'Above healthy range',
       obese: 'Above healthy range',
     },
     goalBadge: {
@@ -537,7 +538,7 @@ export const en: Copy = {
   care_pause: {
     eyebrow: '',
     headline: 'You don’t need to be perfect to begin',
-    body: 'Your plan starts from your answers and adjusts as your weight changes.',
+    body: 'Your plan starts from where you are now.',
     support: '',
     cta: 'Build my plan',
   },
@@ -966,9 +967,9 @@ export const en: Copy = {
         title: 'How Nutree keeps you on track',
         cta: 'See my plan',
         benefits: [
-          { title: 'Know what to eat next', body: 'Meal ideas that fit your calories and diet.' },
+          { title: 'Know what to eat next', body: 'Meal ideas that fit your calories.' },
           { title: 'Ask the AI coach', body: 'Answers about food and your plan.' },
-          { title: 'See if you are on pace', body: 'Weekly check-ins. Targets adjust as your weight changes.' },
+          { title: 'See if you are on pace', body: 'Log your weight once a week and see what is working.' },
         ],
       },
     },
@@ -1021,7 +1022,7 @@ export const en: Copy = {
         { q: 'How do I get my plan in the app?', a: 'After you pay, we email you a link. Install Nutree, then open the link on the same phone. It signs you in with your plan.' },
       ],
       finePrint: 'Payments are processed securely by Paddle.',
-      exitHeader: 'Lower price for a few minutes',
+      exitHeader: 'Lower price ends in',
       exitNote: 'The lower price applies to every plan.',
       exitEnded: 'The lower price has ended. Prices are back to normal.',
       exitTimer: (time: string) => `Lower price ends in ${time}`,
