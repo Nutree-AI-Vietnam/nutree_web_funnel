@@ -14,6 +14,8 @@ if (projectToken) {
     capture_pageview: 'history_change',
     capture_pageleave: true,
     autocapture: true,
+    // Unhandled errors and rejections. `true` uses this SDK's exception autocapture defaults.
+    capture_exceptions: true,
     capture_performance: true,
     disable_surveys: true,
     advanced_disable_feature_flags: true,

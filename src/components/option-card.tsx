@@ -121,23 +121,41 @@ export function OptionCard({
   compact,
   selected,
   onClick,
+  choiceName,
+  choiceValue,
 }: {
   label: string;
   icon?: string;
   compact?: boolean;
   selected: boolean;
   onClick: () => void;
+  /** Native radio so a tap can stick before React hydrates. */
+  choiceName?: string;
+  choiceValue?: string;
 }) {
   return (
     <GlowingCard active={selected} compact={compact}>
+      {choiceName && choiceValue ? (
+        <input
+          type="radio"
+          name={choiceName}
+          value={choiceValue}
+          data-choice={choiceValue}
+          tabIndex={-1}
+          aria-hidden="true"
+          onChange={onClick}
+          className="absolute inset-0 z-20 m-0 h-full w-full cursor-pointer appearance-none opacity-0"
+        />
+      ) : null}
       <button
         type="button"
+        data-choice={choiceValue}
         onClick={onClick}
         aria-pressed={selected}
         className={cn(
-          'flex w-full items-center justify-between gap-3 text-left font-semibold transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-teal-brand/20 active:scale-[0.99] group-hover:translate-x-0.5',
+          'relative z-10 flex w-full items-center justify-between gap-3 text-left font-semibold transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-teal-brand/20 active:scale-[0.99] group-hover:translate-x-0.5',
           compact ? 'min-h-10 px-3.5 py-2 text-[13px]' : 'min-h-11 px-4 py-2.5 text-[15px]',
-          selected ? 'text-forest' : 'text-charcoal hover:text-forest',
+          selected ? 'text-forest' : 'text-charcoal hover:text-forest group-hover:text-forest',
         )}
       >
         <span className="flex min-w-0 items-center gap-3">
