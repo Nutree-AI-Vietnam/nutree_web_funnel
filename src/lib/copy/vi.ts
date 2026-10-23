@@ -724,8 +724,6 @@ export const vi = {
     trustBody: 'Lưu kế hoạch để có thể quay lại bất cứ lúc nào. Email của bạn chỉ được dùng cho hành trình Nutree này.',
     privacyPrefix: 'Riêng tư',
     privacyLine: 'Thông tin của bạn được giữ riêng tư và không bán cho bên thứ ba.',
-    socialCount: '+5.000',
-    socialLabel: 'người dùng',
     avatars: ['A', 'M', 'L', 'N'],
   },
   welcomeGift: {
@@ -769,9 +767,6 @@ export const vi = {
     perDay: 'mỗi ngày',
     savePerDay: (percent: number) => `Tiết kiệm ${percent}%`,
     perDayFootnote: 'Giá mỗi ngày là ước tính, tính từ số tiền thanh toán kỳ đầu.',
-    appStoreTitle: 'Được người dùng iOS đánh giá cao',
-    appStoreRating: '4.7/5',
-    appStoreReviews: '4k+ đánh giá App Store',
     repeatPlanTitle: 'Chọn kế hoạch cá nhân của bạn',
     guaranteeTitle: 'Đảm bảo hoàn tiền trong 30 ngày',
     guaranteeBody: 'Nếu bạn làm theo kế hoạch trong 4 tuần và vẫn không thấy tiến triển rõ ràng, chúng tôi sẽ hoàn tiền cho bạn.',
@@ -943,12 +938,10 @@ export const vi = {
     },
     rating: {
       value: '4.7',
-      count: '4k+ đánh giá',
-      store: 'App Store Việt Nam',
       label: 'Đánh giá App Store',
-      countValue: '4.000+',
-      countLabel: 'lượt đánh giá tại Việt Nam',
-      line: '4.7/5 từ hơn 4.000 đánh giá trên App Store Việt Nam',
+      countValue: '40.000+',
+      countLabel: 'khách hàng',
+      line: '4.7/5 trên App Store',
     },
     plan: {
       eyebrow: (name: string) => `Kế hoạch của ${name}`,
@@ -1048,7 +1041,6 @@ export const vi = {
       payWith: 'Thanh toán an toàn với',
       card: 'Thẻ',
       paypal: 'PayPal',
-      ratingTitle: 'Đánh giá 4.7 trên App Store Việt Nam',
       includesTitle: 'Premium có gì',
       personalIncludes: (p: { calories: string; diet: string | null; date: string | null }) => [
         { title: 'Biết ăn gì tiếp theo', body: `Gợi ý món vừa ${p.calories} kcal${p.diet ? ` và chế độ ${p.diet.toLowerCase()}` : ''}.` },

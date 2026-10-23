@@ -79,12 +79,14 @@ export function StarRow({ value, className }: { value: number; className?: strin
   );
 }
 
-/** The store rating for this market, with the store named so the number can be checked. */
+export const TRUST_AVATAR_IMAGES = ['/images/trust-female.webp', '/images/trust-aiony.webp', '/images/trust-good-faces.webp', '/images/trust-ali.webp', '/images/trust-jurica.webp'] as const;
+
+/** The App Store rating beside the customer count, split by a hairline. */
 export function AppStoreRating({ className }: { className?: string }) {
   const copy = useCopy();
   const rating = copy.funnel.rating;
   return (
-    <section aria-label={rating.line} className={cn('grid grid-cols-2 border-y border-forest/12 py-4 text-center', className)}>
+    <section aria-label={`${rating.line}. ${rating.countValue} ${rating.countLabel}`} className={cn('grid grid-cols-2 border-y border-forest/12 py-4 text-center', className)}>
       <div className="border-r border-forest/12 px-2">
         <p className="flex items-center justify-center gap-1.5" aria-hidden="true">
           <span className="text-[1.7rem] font-extrabold leading-none tracking-[-0.03em] text-forest">{rating.value}</span>
@@ -93,7 +95,14 @@ export function AppStoreRating({ className }: { className?: string }) {
         <p className="mt-1.5 text-[0.8rem] font-semibold leading-snug text-muted-brand" aria-hidden="true">{rating.label}</p>
       </div>
       <div className="px-2" aria-hidden="true">
-        <p className="text-[1.7rem] font-extrabold leading-none tracking-[-0.03em] text-forest">{rating.countValue}</p>
+        <p className="flex items-center justify-center gap-2">
+          <span className="flex -space-x-2">
+            {TRUST_AVATAR_IMAGES.slice(0, 3).map((src) => (
+              <span key={src} className="relative h-7 w-7 overflow-hidden rounded-full border-2 border-white bg-mist"><Image src={src} alt="" fill sizes="28px" className="object-cover" /></span>
+            ))}
+          </span>
+          <span className="text-[1.7rem] font-extrabold leading-none tracking-[-0.03em] text-forest">{rating.countValue}</span>
+        </p>
         <p className="mt-1.5 text-[0.8rem] font-semibold leading-snug text-muted-brand">{rating.countLabel}</p>
       </div>
     </section>

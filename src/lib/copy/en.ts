@@ -690,8 +690,6 @@ export const en: Copy = {
     privacyPrefix: 'Private',
     privacyLine: 'Your information stays private and is never sold to third parties.',
     // Blank until the user count is confirmed true: the email screen hides the badge when it is empty.
-    socialCount: '',
-    socialLabel: '',
     avatars: ['A', 'M', 'L', 'N'],
   },
   welcomeGift: {
@@ -735,9 +733,6 @@ export const en: Copy = {
     perDay: 'per day',
     savePerDay: (percent: number) => `Save ${percent}%`,
     perDayFootnote: 'Daily price is an estimate based on your first payment.',
-    appStoreTitle: 'Rated on the US App Store',
-    appStoreRating: '4.6/5',
-    appStoreReviews: '59 ratings',
     repeatPlanTitle: 'Grab your Personal Plan',
     guaranteeTitle: '30-day money-back guarantee',
     guaranteeBody: 'Follow your plan for 4 weeks. If you do not see progress, email support@nutreeai.com within 30 days of purchase and we will refund you in full.',
@@ -908,13 +903,11 @@ export const en: Copy = {
       trustBody: 'Your email is only used for your plan. We never sell it.',
     },
     rating: {
-      value: '4.6',
-      count: '59 ratings',
-      store: 'US App Store',
-      label: 'US App Store rating',
-      countValue: '4,000+',
-      countLabel: 'App Store ratings worldwide',
-      line: '4.6 out of 5 on the US App Store, from over 4,000 App Store ratings worldwide',
+      value: '4.7',
+      label: 'App Store rating',
+      countValue: '40,000+',
+      countLabel: 'customers',
+      line: '4.7 out of 5 on the App Store',
     },
     plan: {
       eyebrow: (name: string) => `${name}’s plan`,
@@ -1014,7 +1007,6 @@ export const en: Copy = {
       payWith: 'Pay securely with',
       card: 'Card',
       paypal: 'PayPal',
-      ratingTitle: 'Rated 4.6 on the US App Store',
       includesTitle: 'What’s in Premium',
       personalIncludes: (p: { calories: string; diet: string | null; date: string | null }) => [
         { title: 'Know what to eat next', body: `Meal ideas that fit ${p.calories} kcal${p.diet ? ` and your ${p.diet.toLowerCase()} diet` : ''}.` },
