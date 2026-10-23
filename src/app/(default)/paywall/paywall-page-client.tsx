@@ -66,10 +66,15 @@ const INCLUDE_ICONS: IconName[] = ['plate', 'camera', 'calendar', 'chat'];
 
 /**
  * In-page checkout (English): RevenueCat draws Paddle's payment form inside our checkout sheet
- * instead of the full-screen popup. Off until the live domain is approved in Paddle and tested:
- * NEXT_PUBLIC_INLINE_CHECKOUT=1 turns it on.
+ * instead of the full-screen popup. Previews run Paddle sandbox, so they always show it for testing;
+ * the live quiz shows it once the domain is approved in Paddle and NEXT_PUBLIC_INLINE_CHECKOUT=1.
+ * RevenueCat falls back to the popup unless inline checkout is also on in its Paddle settings.
  */
-const INLINE_CHECKOUT = process.env.NEXT_PUBLIC_INLINE_CHECKOUT === '1';
+function inlineCheckoutEnabled() {
+  if (process.env.NEXT_PUBLIC_INLINE_CHECKOUT === '1') return true;
+  if (process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview') return true;
+  return typeof window !== 'undefined' && window.location.hostname === 'quiz.preview.nutreeai.com';
+}
 
 /**
  * Wallet badges for payment methods switched on in Paddle (Apple Pay and Google Pay are on).
@@ -233,7 +238,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   // while the plans renew at the discounted price. Only the exit offer, which really ends, keeps a timer.
   const plainPricing = activeLocale === 'en';
   const welcomeSeconds = plainPricing ? ENGLISH_WELCOME_SECONDS : OFFER_SECONDS;
-  const inlineCheckout = INLINE_CHECKOUT && plainPricing;
+  const inlineCheckout = plainPricing && inlineCheckoutEnabled();
   const [checkoutSheetOpen, setCheckoutSheetOpen] = useState(false);
   // Local preview has no RevenueCat, so the sheet shows a placeholder frame and its own close button.
   const [checkoutPreview, setCheckoutPreview] = useState(false);
