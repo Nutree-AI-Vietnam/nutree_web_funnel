@@ -860,8 +860,8 @@ export const en: Copy = {
     progress: {
       headline: (name: string, weight: string, date: string) => `${name}, you could reach ${weight} by ${date}`,
       headlineNoName: (weight: string, date: string) => `You could reach ${weight} by ${date}`,
-      week1: 'Week 1',
-      month1: 'Month 1',
+      /** A stage under the forecast chart, counted from today. */
+      stage: (unit: 'week' | 'month', n: number) => `${unit === 'week' ? 'Week' : 'Month'} ${n}`,
       goal: 'Goal',
       estimateAtPace: (rate: string) => `Estimated at about ${rate} a week. Results vary.`,
     },

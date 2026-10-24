@@ -852,8 +852,7 @@ export const vi = {
     progress: {
       headline: (name: string, weight: string, date: string) => `${name} có thể đạt ${weight} vào ${date}`,
       headlineNoName: (weight: string, date: string) => `Bạn có thể đạt ${weight} vào ${date}`,
-      week1: 'Tuần 1',
-      month1: 'Tháng 1',
+      stage: (unit: 'week' | 'month', n: number) => `${unit === 'week' ? 'Tuần' : 'Tháng'} ${n}`,
       goal: 'Mục tiêu',
       estimateAtPace: (rate: string) => `Ước tính theo nhịp khoảng ${rate} mỗi tuần. Kết quả có thể khác.`,
     },

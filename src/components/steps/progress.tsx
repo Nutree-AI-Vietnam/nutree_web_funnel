@@ -65,7 +65,7 @@ export function ProgressStep() {
     return (
       <QuizStepFrame title={name ? funnel.headline(name, target, date) : funnel.headlineNoName(target, date)}>
         <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/86 p-4 shadow-[0_6px_16px_rgb(26_71_57_/_0.07)]">
-          <GoalChart timeline={timeline} system={system} nowLabel={copy.funnel.plan.now} goalLabel={formatGoalDate(timeline.date, locale, false)} animate />
+          <GoalChart timeline={timeline} system={system} nowLabel={copy.funnel.plan.now} stageLabel={funnel.stage} goalLabel={formatGoalDate(timeline.date, locale, false)} goalCaption={funnel.goal} animate />
           {/* The first win, under the path once the goal dot lands: close, small and believable. */}
           <motion.p
             className="mt-2 inline-flex items-center gap-2 rounded-2xl bg-mist px-3 py-1.5 text-[0.8rem] font-extrabold leading-snug tabular-nums text-forest"

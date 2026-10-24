@@ -42,15 +42,19 @@ function labelWidth(text: string, px: number) {
 }
 
 /**
- * The forecast: where you are today, the path at the plan's pace, and the goal in a callout.
- * Weights sit on the axis row and in the callout only, so nothing is drawn over the line.
+ * The forecast in three stages: two waypoints on the way (e.g. month 2 and month 4), then the goal in a callout.
+ * Each waypoint's weight is read off the drawn curve, so the dots, their labels and the line always agree.
  */
-export function GoalChart({ timeline, system, nowLabel, goalLabel, animate = false }: {
+export function GoalChart({ timeline, system, nowLabel, stageLabel, goalLabel, goalCaption, animate = false }: {
   timeline: GoalTimeline;
   system: UnitSystem;
   nowLabel: string;
+  /** Names a waypoint under the axis, e.g. "Month 2". */
+  stageLabel: (unit: 'week' | 'month', n: number) => string;
   /** Under the goal end of the path, usually its date. */
   goalLabel?: string;
+  /** Under the goal date, e.g. "Goal". */
+  goalCaption?: string;
   /** Draw the path in once, then land the goal callout (the progress screen only). */
   animate?: boolean;
 }) {
@@ -70,10 +74,45 @@ export function GoalChart({ timeline, system, nowLabel, goalLabel, animate = fal
   };
   const start = { x: x(0), y: y(timeline.currentKg) };
   const end = { x: x(timeline.days), y: y(timeline.targetKg) };
-  // Fastest early, easing into the goal, the way real progress tends to read.
-  const c1 = { x: start.x + (end.x - start.x) * 0.3, y: start.y + (end.y - start.y) * 0.72 };
-  const c2 = { x: start.x + (end.x - start.x) * 0.62, y: end.y };
+  // A gentle ease into the goal: close to the stated weekly pace, so the waypoint weights read true.
+  const c1 = { x: start.x + (end.x - start.x) * 0.33, y: start.y + (end.y - start.y) * 0.42 };
+  const c2 = { x: start.x + (end.x - start.x) * 0.67, y: start.y + (end.y - start.y) * 0.9 };
   const curve = `M${start.x} ${start.y} C${c1.x} ${c1.y} ${c2.x} ${c2.y} ${end.x} ${end.y}`;
+  const bezier = (t: number, a: number, b: number, c: number, d: number) => (1 - t) ** 3 * a + 3 * (1 - t) ** 2 * t * b + 3 * (1 - t) * t ** 2 * c + t ** 3 * d;
+  const curveY = (px: number) => {
+    let lo = 0;
+    let hi = 1;
+    for (let i = 0; i < 24; i += 1) {
+      const mid = (lo + hi) / 2;
+      if (bezier(mid, start.x, c1.x, c2.x, end.x) < px) lo = mid;
+      else hi = mid;
+    }
+    return bezier(lo, start.y, c1.y, c2.y, end.y);
+  };
+  const kgAt = (py: number) => {
+    const share = timeline.reducing ? (py - top) / (bottom - top) : (bottom - py) / (bottom - top);
+    return Math.round((timeline.currentKg + share * (timeline.targetKg - timeline.currentKg)) * 2) / 2;
+  };
+  // Two waypoints at about a third and two thirds of the way, in whole months (whole weeks for short goals).
+  // Each gets a column on the axis row (weight over "Month N"); a column that would touch its neighbour is dropped.
+  const unit: 'week' | 'month' = timeline.days >= 90 ? 'month' : 'week';
+  const unitDays = unit === 'month' ? 30.44 : 7;
+  const totalUnits = timeline.days / unitDays;
+  const columnHalf = (weight: string, caption: string) => Math.max(labelWidth(weight, 12.5), labelWidth(caption, 10.5)) * 0.45;
+  const startEdge = start.x - 2 + columnHalf(formatWeight(timeline.currentKg, system, locale), nowLabel) * 2;
+  const endEdge = end.x + 2 - columnHalf(goalLabel ?? '', goalCaption ?? '') * 2;
+  const stages: { n: number; x: number; y: number; kg: number }[] = [];
+  if (timeline.days >= 21) {
+    for (const n of new Set([Math.max(1, Math.round(totalUnits / 3)), Math.round((totalUnits * 2) / 3)])) {
+      if (n < 1 || n >= totalUnits) continue;
+      const sx = x(n * unitDays);
+      const sy = curveY(sx);
+      const kg = kgAt(sy);
+      const half = columnHalf(formatWeight(kg, system, locale), stageLabel(unit, n));
+      const previousEdge = stages.length ? stages[stages.length - 1].x + half + 6 : startEdge + 6;
+      if (sx - half > previousEdge && sx + half < endEdge - 6) stages.push({ n, x: sx, y: sy, kg });
+    }
+  }
 
   const goalText = formatWeight(timeline.targetKg, system, locale);
   const bubbleW = Math.round(labelWidth(goalText, 13) + 22);
@@ -135,6 +174,18 @@ export function GoalChart({ timeline, system, nowLabel, goalLabel, animate = fal
         transition={draw}
       />
       <circle cx={start.x} cy={start.y} r="6.5" fill="white" stroke="#7fbfb0" strokeWidth="3" />
+      {stages.map((stage, index) => (
+        <motion.g
+          key={stage.n}
+          initial={play ? { opacity: 0, scale: 0.6 } : false}
+          animate={play ? { opacity: 1, scale: 1 } : undefined}
+          transition={{ delay: 0.45 + index * 0.25, duration: 0.3 }}
+          style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+        >
+          <path d={`M${stage.x} ${stage.y + 7}V${axis}`} stroke="#1fa892" strokeOpacity="0.3" strokeWidth="1.2" strokeDasharray="2 4" strokeLinecap="round" />
+          <circle cx={stage.x} cy={stage.y} r="5.5" fill="#1fa892" stroke="white" strokeWidth="2.5" />
+        </motion.g>
+      ))}
       {play && (
         // One pulse once the goal dot has landed.
         <motion.circle
@@ -161,9 +212,16 @@ export function GoalChart({ timeline, system, nowLabel, goalLabel, animate = fal
         <path d={`M${pointerX - 6} ${bubbleY + bubbleH - 0.5} L${pointerX} ${bubbleY + bubbleH + 6} L${pointerX + 6} ${bubbleY + bubbleH - 0.5} Z`} fill="#17453a" />
         <text x={bubbleX + bubbleW / 2} y={bubbleY + 17.5} textAnchor="middle" className="fill-white text-[13px] font-extrabold tabular-nums">{goalText}</text>
       </motion.g>
-      <text x={start.x - 2} y="196" textAnchor="start" className="fill-forest text-[13px] font-extrabold tabular-nums">{formatWeight(timeline.currentKg, system, locale)}</text>
+      <text x={start.x - 2} y="196" textAnchor="start" className="fill-forest text-[12.5px] font-extrabold tabular-nums">{formatWeight(timeline.currentKg, system, locale)}</text>
       <text x={start.x - 2} y="211" textAnchor="start" className="fill-muted-brand text-[10.5px] font-bold">{nowLabel}</text>
-      {goalLabel && <text x={end.x + 2} y="196" textAnchor="end" className="fill-forest text-[12px] font-extrabold">{goalLabel}</text>}
+      {stages.map((stage) => (
+        <g key={stage.n}>
+          <text x={stage.x} y="196" textAnchor="middle" className="fill-forest text-[12.5px] font-extrabold tabular-nums">{formatWeight(stage.kg, system, locale)}</text>
+          <text x={stage.x} y="211" textAnchor="middle" className="fill-muted-brand text-[10.5px] font-bold">{stageLabel(unit, stage.n)}</text>
+        </g>
+      ))}
+      {goalLabel && <text x={end.x + 2} y="196" textAnchor="end" className="fill-forest text-[12.5px] font-extrabold">{goalLabel}</text>}
+      {goalCaption && <text x={end.x + 2} y="211" textAnchor="end" className="fill-muted-brand text-[10.5px] font-bold">{goalCaption}</text>}
     </svg>
   );
 }
@@ -283,7 +341,7 @@ export function PlanGoalCard({ data, tdee, system, className }: {
       {timeline && (
         <>
           <p className="mt-1 text-sm font-bold text-slate-brand">{plan.firstWin(formatWeight(timeline.week1Kg, system, locale), formatGoalDate(timeline.week1Date, locale, false))}</p>
-          <GoalChart timeline={timeline} system={system} nowLabel={plan.now} goalLabel={formatGoalDate(timeline.date, locale, false)} />
+          <GoalChart timeline={timeline} system={system} nowLabel={plan.now} stageLabel={copy.funnel.progress.stage} goalLabel={formatGoalDate(timeline.date, locale, false)} goalCaption={copy.funnel.progress.goal} />
         </>
       )}
       {tdee && (
