@@ -12,36 +12,45 @@ export type DishId =
   | 'chia_pudding'
   | 'chicken_rice_bowl'
   | 'tuna_salad'
+  | 'tempeh_bowl'
   | 'chickpea_quinoa'
   | 'salmon_potatoes'
   | 'beef_stir_fry'
+  | 'tofu_stir_fry'
   | 'lentil_curry'
-  | 'apple_peanut_butter'
   | 'yogurt_berries'
+  | 'protein_shake'
+  | 'apple_peanut_butter'
   | 'hummus_carrots';
 
-/** Candidates per meal, most common first. The last one in each list fits every diet answer. */
-const DISHES: Record<Meal, ReadonlyArray<{ id: DishId; contains: readonly Ingredient[] }>> = {
+/**
+ * Candidates per meal, most common first. `proteinPer100` is the estimated grams of protein per
+ * 100 kcal of the dish as Nutree portions it. The last one in each list fits every diet answer.
+ */
+const DISHES: Record<Meal, ReadonlyArray<{ id: DishId; contains: readonly Ingredient[]; proteinPer100: number }>> = {
   breakfast: [
-    { id: 'eggs_toast', contains: ['egg', 'gluten'] },
-    { id: 'yogurt_oats', contains: ['dairy', 'gluten'] },
-    { id: 'tofu_scramble', contains: [] },
-    { id: 'chia_pudding', contains: [] },
+    { id: 'eggs_toast', contains: ['egg', 'gluten'], proteinPer100: 6 },
+    { id: 'yogurt_oats', contains: ['dairy', 'gluten'], proteinPer100: 7.5 },
+    { id: 'tofu_scramble', contains: [], proteinPer100: 9 },
+    { id: 'chia_pudding', contains: [], proteinPer100: 4 },
   ],
   lunch: [
-    { id: 'chicken_rice_bowl', contains: ['meat'] },
-    { id: 'tuna_salad', contains: ['fish'] },
-    { id: 'chickpea_quinoa', contains: [] },
+    { id: 'chicken_rice_bowl', contains: ['meat'], proteinPer100: 8 },
+    { id: 'tuna_salad', contains: ['fish'], proteinPer100: 10 },
+    { id: 'tempeh_bowl', contains: [], proteinPer100: 9.5 },
+    { id: 'chickpea_quinoa', contains: [], proteinPer100: 4.5 },
   ],
   dinner: [
-    { id: 'salmon_potatoes', contains: ['fish'] },
-    { id: 'beef_stir_fry', contains: ['meat', 'gluten'] },
-    { id: 'lentil_curry', contains: [] },
+    { id: 'salmon_potatoes', contains: ['fish'], proteinPer100: 7 },
+    { id: 'beef_stir_fry', contains: ['meat', 'gluten'], proteinPer100: 7.5 },
+    { id: 'tofu_stir_fry', contains: [], proteinPer100: 9.5 },
+    { id: 'lentil_curry', contains: [], proteinPer100: 5 },
   ],
   snack: [
-    { id: 'yogurt_berries', contains: ['dairy'] },
-    { id: 'apple_peanut_butter', contains: ['nuts'] },
-    { id: 'hummus_carrots', contains: [] },
+    { id: 'yogurt_berries', contains: ['dairy'], proteinPer100: 9 },
+    { id: 'protein_shake', contains: [], proteinPer100: 13 },
+    { id: 'apple_peanut_butter', contains: ['nuts'], proteinPer100: 3 },
+    { id: 'hummus_carrots', contains: [], proteinPer100: 3.5 },
   ],
 };
 
@@ -63,29 +72,51 @@ function excludedIngredients(diet: readonly string[] | undefined): Set<Ingredien
   return new Set((diet ?? []).flatMap((answer) => EXCLUDED_BY_DIET[answer] ?? []));
 }
 
-export function dishFor(meal: Meal, diet: readonly string[] | undefined): DishId {
+function allowedDishes(meal: Meal, diet: readonly string[] | undefined) {
   const excluded = excludedIngredients(diet);
-  const options = DISHES[meal];
-  return (options.find((dish) => dish.contains.every((item) => !excluded.has(item))) ?? options[options.length - 1]).id;
+  const options = DISHES[meal].filter((dish) => dish.contains.every((item) => !excluded.has(item)));
+  return options.length ? options : [DISHES[meal][DISHES[meal].length - 1]];
+}
+
+export function dishFor(meal: Meal, diet: readonly string[] | undefined): DishId {
+  return allowedDishes(meal, diet)[0].id;
 }
 
 export interface SampleMeal {
   meal: Meal;
   dish: DishId;
   calories: number;
+  /** Estimated grams of protein in this portion. */
+  proteinG: number;
 }
 
-/** A day of meals that fits the diet answers and adds up to the calorie target. */
-export function sampleDay(calories: number, diet: readonly string[] | undefined): SampleMeal[] {
+/**
+ * A day of meals that fits the diet answers, adds up to the calorie target, and comes as close
+ * as the dishes allow to the protein target. Ties go to the more common dishes.
+ */
+export function sampleDay(calories: number, diet: readonly string[] | undefined, proteinTarget?: number): SampleMeal[] {
   const total = Math.round(calories);
-  const rows = MEALS.map((meal) => ({
-    meal,
-    dish: dishFor(meal, diet),
-    calories: meal === 'dinner' ? 0 : Math.round((total * MEAL_SHARE[meal]) / 10) * 10,
-  }));
-  const dinner = rows.find((row) => row.meal === 'dinner')!;
-  dinner.calories = total - rows.reduce((sum, row) => sum + row.calories, 0);
-  return rows;
+  const portions = MEALS.map((meal) => (meal === 'dinner' ? 0 : Math.round((total * MEAL_SHARE[meal]) / 10) * 10));
+  portions[MEALS.indexOf('dinner')] = total - portions.reduce((sum, kcal) => sum + kcal, 0);
+  const options = MEALS.map((meal) => allowedDishes(meal, diet));
+  const protein = (choice: readonly number[]) => choice.reduce((sum, pick, index) => sum + (portions[index] * options[index][pick].proteinPer100) / 100, 0);
+  let best = MEALS.map(() => 0);
+  if (proteinTarget) {
+    let bestGap = Math.abs(protein(best) - proteinTarget);
+    const visit = (index: number, choice: number[]) => {
+      if (index === MEALS.length) {
+        const gap = Math.abs(protein(choice) - proteinTarget);
+        if (gap < bestGap - 0.5) { best = [...choice]; bestGap = gap; }
+        return;
+      }
+      for (let pick = 0; pick < options[index].length; pick += 1) visit(index + 1, [...choice, pick]);
+    };
+    visit(0, []);
+  }
+  return MEALS.map((meal, index) => {
+    const dish = options[index][best[index]];
+    return { meal, dish: dish.id, calories: portions[index], proteinG: Math.round((portions[index] * dish.proteinPer100) / 100) };
+  });
 }
 
 export type ChangeId =

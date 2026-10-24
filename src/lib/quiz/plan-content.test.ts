@@ -27,11 +27,20 @@ describe('sampleDay', () => {
   });
 
   it('keeps meat, fish, dairy and eggs out of a vegan day', () => {
-    expect(sampleDay(1600, ['vegan']).map((meal) => meal.dish)).toEqual(['tofu_scramble', 'chickpea_quinoa', 'apple_peanut_butter', 'lentil_curry']);
+    expect(sampleDay(1600, ['vegan']).map((meal) => meal.dish)).toEqual(['tofu_scramble', 'tempeh_bowl', 'protein_shake', 'tofu_stir_fry']);
+  });
+
+  it('lands the day within 10% of the protein target when the dishes allow it', () => {
+    for (const [calories, protein, diet] of [[1540, 147, ['vegan']], [1540, 147, []], [2200, 150, []], [1800, 110, []], [1800, 110, ['vegan']], [2600, 180, ['gluten_free']]] as const) {
+      const day = sampleDay(calories, diet, protein);
+      const total = day.reduce((sum, meal) => sum + meal.proteinG, 0);
+      expect(Math.abs(total - protein) / protein).toBeLessThanOrEqual(0.1);
+      expect(day.reduce((sum, meal) => sum + meal.calories, 0)).toBe(calories);
+    }
   });
 
   it('honours combined answers', () => {
-    expect(dishFor('snack', ['dairy_free', 'nut_free'])).toBe('hummus_carrots');
+    expect(dishFor('snack', ['dairy_free', 'nut_free'])).toBe('protein_shake');
     expect(dishFor('breakfast', ['egg_free'])).toBe('yogurt_oats');
     expect(dishFor('breakfast', ['gluten_free'])).toBe('tofu_scramble');
   });

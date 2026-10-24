@@ -32,7 +32,7 @@ import type { Copy } from '@/lib/copy';
 import { goToNextQuizStep, goToQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
-import { deriveAge } from '@/lib/quiz/dob';
+import { deriveAge, MIN_AGE } from '@/lib/quiz/dob';
 import { goalAfterTargetWeight } from '@/lib/quiz/fitness-goal';
 import { formatGoalDate, goalTimeline } from '@/lib/quiz/progress-projection';
 import type { QuizStep } from '@/lib/quiz/steps';
@@ -60,7 +60,7 @@ export function BodyBasicsStep() {
   const data = useQuizStore((s) => s.data);
   const setData = useQuizStore((s) => s.setData);
   const [age, setAge] = useDraftNumber('birth_year');
-  const ageValid = isMetricValueValid(age, 1900, new Date().getFullYear() - 12);
+  const ageValid = isMetricValueValid(age, 1900, new Date().getFullYear() - MIN_AGE);
 
   return (
     <QuizStepFrame title={copy.body_basics.question} hint={copy.body_basics.hint}>
@@ -83,7 +83,7 @@ export function BodyBasicsStep() {
         max={100}
         step={1}
         hint={copy.age.hint}
-        error={age && !ageValid ? copy.metric.rangeError(copy.age.label, 12, 100, copy.age.unit) : undefined}
+        error={age && !ageValid ? copy.metric.rangeError(copy.age.label, MIN_AGE, 100, copy.age.unit) : undefined}
         onChange={setAge}
         onBlur={() => null}
       />

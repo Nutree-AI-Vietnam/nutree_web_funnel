@@ -20,11 +20,14 @@ export function deriveAge(value: BirthDate & { age?: number }, today = new Date(
   return age;
 }
 
+/** The youngest age the funnel accepts. */
+export const MIN_AGE = 13;
+
 export function validateAge(age: number): boolean {
-  return Number.isInteger(age) && age >= 12 && age <= 100;
+  return Number.isInteger(age) && age >= MIN_AGE && age <= 100;
 }
 
 export function validateBirthDate(value: BirthDate, today = new Date()): { valid: boolean; age?: number } {
   const age = deriveAge(value, today);
-  return age != null && age >= 12 && age <= 100 ? { valid: true, age } : { valid: false };
+  return age != null && age >= MIN_AGE && age <= 100 ? { valid: true, age } : { valid: false };
 }

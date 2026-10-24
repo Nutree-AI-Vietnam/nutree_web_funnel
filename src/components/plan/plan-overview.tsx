@@ -515,8 +515,9 @@ export function PlanDayCard({ data, tdee, className, reveal, targets = true }: {
   const plan = copy.funnel.plan;
   const day = copy.funnel.day;
   const format = new Intl.NumberFormat(numberLocale(locale));
-  const meals = sampleDay(tdee.calories, data.dietary_preferences);
+  const meals = sampleDay(tdee.calories, data.dietary_preferences, tdee.protein_g);
   const total = meals.reduce((sum, row) => sum + row.calories, 0);
+  const totalProtein = meals.reduce((sum, row) => sum + row.proteinG, 0);
   // Vegan is the only diet answer the heading names; the others are allergy needs.
   const vegan = (data.dietary_preferences ?? []).includes('vegan');
 
@@ -527,7 +528,7 @@ export function PlanDayCard({ data, tdee, className, reveal, targets = true }: {
           <DailyLabel tdee={tdee} size="sm" />
           <div className="mt-1 flex items-baseline justify-between gap-3 border-t-2 border-forest pt-3">
             <h3 className="text-[0.95rem] font-extrabold text-forest">{day.title}</h3>
-            <span className="text-[0.72rem] font-bold text-muted-brand">kcal</span>
+            <span className="grid grid-cols-[3rem_2.75rem] gap-x-2 text-right text-[0.72rem] font-bold text-muted-brand"><span>{day.protein}</span><span>kcal</span></span>
           </div>
         </>
       ) : (
@@ -535,10 +536,11 @@ export function PlanDayCard({ data, tdee, className, reveal, targets = true }: {
       )}
       <ul className="mt-2 grid">
         {meals.map((row, index) => (
-          <li key={row.meal} className="grid grid-cols-[4rem_1fr_auto] items-baseline gap-x-3 py-1.5">
+          <li key={row.meal} className="grid grid-cols-[3.6rem_1fr_3rem_2.75rem] items-baseline gap-x-2 py-1.5">
             <span className="text-[0.76rem] font-semibold text-muted-brand">{plan.meals[row.meal]}</span>
             {/* Block, so a dish that wraps keeps the meal name and kcal on its first line. */}
             <span className="text-[0.92rem] font-extrabold leading-snug text-forest"><Reveal on={reveal} index={index + 3} className="block">{plan.dishes[row.dish]}</Reveal></span>
+            <span className="whitespace-nowrap text-right text-[0.84rem] font-bold tabular-nums text-protein">{row.proteinG} g</span>
             <span className="text-right text-[0.9rem] font-extrabold tabular-nums text-slate-brand">{format.format(row.calories)}</span>
           </li>
         ))}
@@ -546,7 +548,7 @@ export function PlanDayCard({ data, tdee, className, reveal, targets = true }: {
       {targets && (
         <p className="mt-1.5 flex items-baseline justify-between gap-3 border-t-2 border-forest pt-2.5 text-forest">
           <span className="text-[0.9rem] font-extrabold">{day.total}</span>
-          <span className="text-[1rem] font-extrabold tabular-nums">{format.format(total)}</span>
+          <span className="grid grid-cols-[3rem_2.75rem] gap-x-2 text-right tabular-nums"><span className="whitespace-nowrap text-[0.92rem] font-extrabold text-protein">{totalProtein} g</span><span className="text-[1rem] font-extrabold">{format.format(total)}</span></span>
         </p>
       )}
     </section>

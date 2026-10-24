@@ -72,7 +72,7 @@ function PlanTeaser({ data, tdee }: { data: OnboardingPayload; tdee: TdeeResult 
       </ol>
       <div className="mt-2.5 border-t border-border-brand/60 pt-2.5">
         <p className="text-[0.76rem] font-bold text-teal-brand">{email.teaserDayFor(format.format(numbers.calories), diet)}</p>
-        <BlurLine index={3} oneLine>{sampleDay(tdee.calories, data.dietary_preferences).map((row) => plan.dishes[row.dish]).join(', ')}</BlurLine>
+        <BlurLine index={3} oneLine>{sampleDay(tdee.calories, data.dietary_preferences, tdee.protein_g).map((row) => plan.dishes[row.dish]).join(', ')}</BlurLine>
       </div>
     </section>
   );
