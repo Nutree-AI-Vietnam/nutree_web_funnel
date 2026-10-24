@@ -17,6 +17,9 @@ const nextConfig: NextConfig = {
       { source: '/open-nutree', headers },
       { source: '/redeem', headers },
       { source: '/auth/email-link', headers },
+      // These pages run client code to redeem the fragment, so they keep the default script policy.
+      { source: '/plan', headers: headers.slice(0, 2) },
+      { source: '/unsubscribe', headers: headers.slice(0, 2) },
     ];
   },
 };

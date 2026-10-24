@@ -4,8 +4,9 @@
  * analytics taxonomy.
  *
  * Meta Ads optimization uses five standard events only (ViewContent / Lead /
- * AddToCart / InitiateCheckout / Purchase). Quiz-step custom names stay on GA4
- * so they cannot occupy Aggregated Event Measurement slots. Do not name Meta
+ * AddToCart / InitiateCheckout / Purchase), plus one custom PaywallView so the
+ * step between Lead and checkout shows in Events Manager. Quiz-step custom
+ * names stay on GA4. Do not name Meta
  * custom conversions after health conditions. Each of the five also goes to the
  * Conversions API through our server with the pixel's eventID, so Meta keeps
  * one copy; it carries the hashed email, first name and lead id saved at email
@@ -33,7 +34,7 @@ import { isQuizStep } from '@/lib/quiz/steps';
 import { isAdPixelHost } from './ad-pixel-host';
 import { getAttribution } from './attribution';
 import { pageUrl } from './events-api';
-import { META_EVENTS_PATH, type MetaBrowserEvent, type MetaCustomData, type MetaStandardEvent } from './meta-events-api';
+import { CUSTOM_EVENTS, META_EVENTS_PATH, type MetaBrowserEvent, type MetaCustomData, type MetaStandardEvent } from './meta-events-api';
 import { readLockedFunnelLocale } from './funnel-locale';
 import { activeMetaPixelId, hashMetaIdentity, readMetaIdentity } from './meta-identity';
 import { TIKTOK_EVENTS_PATH, type TiktokBrowserEvent, type TiktokProperties, type TiktokStandardEvent } from './tiktok-events-api';
@@ -44,6 +45,10 @@ import { applyTiktokIdentity, readTiktokIdentity, type TiktokIdentity, type Tikt
 const META_CLICK_KEY = 'nutree_meta_click_v1';
 /** The tab already sent the funnel-entry ViewContent (landing or goal). */
 const META_ENTRY_VIEW_KEY = 'nutree_meta_entry_view_v1';
+/** Leads already sent to Meta in this tab, so a second submit of the same email is not a second Lead. */
+const META_LEAD_KEY = 'nutree_meta_lead_v1';
+/** The tab already sent PaywallView. */
+const META_PAYWALL_VIEW_KEY = 'nutree_meta_paywall_view_v1';
 /** Plans already sent to Meta as AddToCart in this tab. */
 const META_CART_KEY = 'nutree_meta_cart_v1';
 /** Plans already sent to TikTok as AddToCart in this tab. */
@@ -88,6 +93,17 @@ function commerceParams(params: Record<string, unknown>): MetaCustomData {
   };
 }
 
+/** True the first time a key is claimed in this tab. */
+function claimOnce(key: string): boolean {
+  try {
+    if (window.sessionStorage.getItem(key)) return false;
+    window.sessionStorage.setItem(key, '1');
+  } catch {
+    // Without session storage the event is still sent.
+  }
+  return true;
+}
+
 /** First landing or goal view in this tab wins, so the entry event is not sent twice. */
 function claimFunnelEntryView(step: string): boolean {
   try {
@@ -101,14 +117,20 @@ function claimFunnelEntryView(step: string): boolean {
 }
 
 function metaStandardEvents(name: string, params: Record<string, unknown>): MetaStandard[] {
-  if (name === 'email_captured') return [{ event: 'Lead', params: { content_name: 'email_capture' } }];
-  if (name === 'funnel_step_viewed' && (params.step === 'landing' || params.step === 'goal')) {
+  if (name === 'email_captured') {
+    return claimOnce(META_LEAD_KEY) ? [{ event: 'Lead', params: { content_name: 'email_capture' } }] : [];
+  }
+  if (name === 'funnel_step_viewed' && params.step === 'paywall') {
+    return claimOnce(META_PAYWALL_VIEW_KEY) ? [{ event: 'PaywallView', params: { content_name: 'paywall', content_category: 'checkout' } }] : [];
+  }
+  // An ad link that names the goal opens on name_ask, which is then the quiz start.
+  if (name === 'funnel_step_viewed' && (params.step === 'landing' || params.step === 'goal' || params.step === 'name_ask')) {
     const step = String(params.step);
     if (!claimFunnelEntryView(step)) return [];
     return [{
       event: 'ViewContent',
       params: {
-        content_name: step === 'goal' ? 'funnel_quiz_start' : 'funnel_landing',
+        content_name: step === 'landing' ? 'funnel_landing' : 'funnel_quiz_start',
         content_category: 'onboarding',
       },
     }];
@@ -227,7 +249,7 @@ function trackMeta(fbq: AnyWindow['fbq'], name: string, payload: Record<string, 
   const fbc = serverCopy ? metaFbc(payload.fbclid) : null;
   for (const { event, params } of events) {
     const id = eventID(event);
-    fbq?.('track', event, params, { eventID: id });
+    fbq?.((CUSTOM_EVENTS as readonly string[]).includes(event) ? 'trackCustom' : 'track', event, params, { eventID: id });
     if (serverCopy) {
       sendMetaServerEvent({ event_name: event, event_id: id, ...(url ? { event_source_url: url } : {}), custom_data: params }, fbc);
     }

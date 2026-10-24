@@ -184,9 +184,24 @@ describe('analytics', () => {
     trackEvent('email_captured', {});
     vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
     trackStepViewed('height');
-    trackStepViewed('paywall');
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('sends the paywall view to Meta once per tab as the custom PaywallView', () => {
+    trackStepViewed('paywall');
+    trackStepViewed('paywall');
+    const w = window as unknown as TestWindow;
+    expect(w.fbq.mock.calls.filter(([, event]) => event === 'PaywallView')).toEqual([
+      ['trackCustom', 'PaywallView', { content_name: 'paywall', content_category: 'checkout' }, { eventID: 'PaywallView.test-event-id' }],
+    ]);
+  });
+
+  it('sends one Lead per tab when the email form is sent twice', () => {
+    trackEvent('email_captured', {});
+    trackEvent('email_captured', {});
+    const w = window as unknown as TestWindow;
+    expect(w.fbq.mock.calls.filter(([, event]) => event === 'Lead')).toHaveLength(1);
   });
 
   it('sends the plan pick to Meta as AddToCart once per plan', () => {
@@ -198,11 +213,11 @@ describe('analytics', () => {
     expect(w.fbq.mock.calls.filter(([, event]) => event === 'AddToCart').map(([, , params]) => params.content_ids)).toEqual([['12-week'], ['4-week']]);
   });
 
-  it('sends AddToCart to Meta at checkout for the preselected plan, never the paywall view', () => {
+  it('sends AddToCart to Meta at checkout for the preselected plan, not at the paywall view', () => {
     trackStepViewed('paywall');
     trackEvent('revenuecat_checkout_started', { plan: '12-week', value: 249000, currency: 'VND' });
     const w = window as unknown as TestWindow;
-    expect(w.fbq.mock.calls.map(([, event]) => event)).toEqual(['AddToCart', 'InitiateCheckout']);
+    expect(w.fbq.mock.calls.map(([, event]) => event)).toEqual(['PaywallView', 'AddToCart', 'InitiateCheckout']);
     expect(w.fbq).toHaveBeenCalledWith('track', 'AddToCart', planCommerce, { eventID: 'AddToCart.test-event-id' });
   });
 

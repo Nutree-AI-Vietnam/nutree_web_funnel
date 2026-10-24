@@ -48,6 +48,30 @@ export function firstPaymentCommerce(product: Product | null | undefined): { val
   return {};
 }
 
+/**
+ * The whole percent saved by paying `offerMicros` instead of `fullMicros`, rounded down so a
+ * claim never rounds up past the real saving. 0 when there is no saving or a price is unusable.
+ */
+export function discountPercent(fullMicros: number, offerMicros: number): number {
+  if (!(fullMicros > 0) || !(offerMicros >= 0) || offerMicros >= fullMicros) return 0;
+  return Math.floor(((fullMicros - offerMicros) * 100) / fullMicros);
+}
+
+/**
+ * What an offer may claim across plans: its largest real discount, "up to" when the plans differ,
+ * including when a plan has no discount at all (then "every plan" would be false).
+ */
+export interface OfferClaim {
+  percent: number;
+  upTo: boolean;
+}
+
+export function offerClaim(percents: number[]): OfferClaim | null {
+  const max = Math.max(0, ...percents);
+  if (!(max > 0)) return null;
+  return { percent: max, upTo: percents.some((percent) => percent !== max) };
+}
+
 export function formatPerDay(perDay: PlanPerDay | null, locale: string): string | null {
   if (!perDay) return null;
   const isVnd = perDay.currency === 'VND';
