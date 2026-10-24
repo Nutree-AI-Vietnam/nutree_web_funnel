@@ -224,6 +224,7 @@ export function TargetWeightStep() {
           <span className="text-[0.95rem] font-extrabold leading-none tracking-tight text-slate-brand">
             {data.weight_kg != null ? formatWeight(data.weight_kg, system, locale) : '—'}
           </span>
+          <span aria-hidden="true" className="ml-1 text-[1.15rem] font-extrabold leading-none text-[#e6a0a8]">»</span>
         </div>
         <div className="relative flex w-56 max-w-[58vw] flex-1 flex-col">
           <UnitFields
@@ -284,16 +285,6 @@ export function TargetWeightStep() {
         </section>
       )}
       <div className="quiz-number-actions mt-auto flex flex-col gap-2 pt-3">
-        <button
-          type="button"
-          onClick={() => {
-            setData({ target_weight_kg: undefined, target_weight_unsure: true });
-            goToNextQuizStep(router, 'target_weight');
-          }}
-          className="min-h-11 rounded-xl px-4 text-[15px] font-semibold text-teal-brand active:opacity-60"
-        >
-          {copy.target_weight.unsure}
-        </button>
         <PrimaryButton
           disabled={!valid || tooLow}
           onClick={() => {
