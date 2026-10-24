@@ -725,6 +725,7 @@ export const en: Copy = {
     renewal: 'Renewal',
     recommendedTag: 'Most popular',
     discountTag: (percent: number) => `${percent}% off`,
+    offerChip: (percent: number) => `${percent}% off`,
     perDay: 'per day',
     perDayFootnote: 'Daily price is an estimate based on your first payment.',
     repeatPlanTitle: 'Grab your Personal Plan',

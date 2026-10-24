@@ -717,6 +717,7 @@ export const vi = {
     renewal: 'Gia hạn',
     recommendedTag: 'Nutree đề xuất',
     discountTag: (percent: number) => `Giảm ${percent}%`,
+    offerChip: (percent: number) => `Giảm ${percent}%`,
     perDay: 'ngày',
     perDayFootnote: 'Giá mỗi ngày là ước tính, tính từ số tiền thanh toán kỳ đầu.',
     repeatPlanTitle: 'Chọn kế hoạch cá nhân của bạn',
