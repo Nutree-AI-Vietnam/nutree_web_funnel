@@ -110,16 +110,19 @@ export function MetricWheelPicker({
   const syncedItemHeightRef = useRef(0);
   const valueRef = useRef(value);
   const onChangeRef = useRef(onChange);
-  valueRef.current = value;
-  onChangeRef.current = onChange;
 
   const available = useWheelAvailableHeight(frameRef);
   const { itemHeight, height, padding } = wheelSize(available, variant);
   const options = useMemo(() => buildOptions(min, max, step), [min, max, step]);
   const itemHeightRef = useRef(itemHeight);
   const optionsRef = useRef(options);
-  itemHeightRef.current = itemHeight;
-  optionsRef.current = options;
+  // The latest props for the scroll and click handlers, updated before any other layout effect reads them.
+  useLayoutEffect(() => {
+    valueRef.current = value;
+    onChangeRef.current = onChange;
+    itemHeightRef.current = itemHeight;
+    optionsRef.current = options;
+  });
   const activeIndex = value == null
     ? -1
     : Math.max(0, options.findIndex((option) => Math.abs(option - value) < step / 2 + 0.001));

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
-import { validateAge } from '@/lib/quiz/dob';
+import { MIN_AGE, validateAge } from '@/lib/quiz/dob';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import { MetricInput, parseMetricDraft } from './metric-input';
@@ -40,12 +40,12 @@ export function BirthDateStep() {
           label={copy.age.label}
           unit={copy.age.unit}
           value={age}
-          min={12}
+          min={MIN_AGE}
           max={100}
           step={1}
           bare
           variant="hero"
-          error={attempted && age && !valid ? copy.metric.rangeError(copy.age.label, 12, 100, copy.age.unit) : undefined}
+          error={attempted && age && !valid ? copy.metric.rangeError(copy.age.label, MIN_AGE, 100, copy.age.unit) : undefined}
           onChange={setAge}
           onBlur={() => null}
         />

@@ -113,8 +113,14 @@ export function formatHeight(cm: number, system: UnitSystem): string {
   return system === 'metric' ? `${cm} cm` : formatFeetInches(Math.round(cm / CM_PER_INCH));
 }
 
-export function formatWeight(kg: number, system: UnitSystem): string {
-  return system === 'metric' ? `${kg} kg` : `${kgToPounds(kg)} lb`;
+/**
+ * Kilograms to one decimal in the locale's own format, so Vietnamese reads "70,3 kg" and
+ * English "70.3 kg"; pounds are whole. Pass the active locale at every call site.
+ */
+export function formatWeight(kg: number, system: UnitSystem, locale = 'en'): string {
+  if (system !== 'metric') return `${kgToPounds(kg)} lb`;
+  const number = new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { maximumFractionDigits: 1 });
+  return `${number.format(Math.round(kg * 10) / 10)} kg`;
 }
 
 /** The ends of [min, max] (metric) as the whole units a visitor can type, for error text. */

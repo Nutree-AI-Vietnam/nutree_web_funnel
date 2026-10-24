@@ -97,7 +97,7 @@ export function MetricInput({
   }
 
   return (
-    <div className="surface-grain overflow-hidden rounded-[1.7rem] bg-white/82 p-4 shadow-[0_16px_46px_rgb(26_71_57_/_0.10),inset_0_1px_0_rgb(255_255_255_/_0.82)] backdrop-blur">
+    <div className="surface-grain overflow-hidden rounded-[1.7rem] bg-white/82 p-4 shadow-[0_6px_16px_rgb(26_71_57_/_0.07),inset_0_1px_0_rgb(255_255_255_/_0.82)] backdrop-blur">
       {(label || hint) && (
         <div className="mb-3">
           <div className="text-base font-extrabold text-forest">{label}</div>

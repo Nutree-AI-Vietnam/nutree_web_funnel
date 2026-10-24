@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { NutreeLogo } from '@/components/nutree-logo';
 import { BackgroundBeams } from '@/components/ui/background-beams';
 import { ExitIntentModal } from '@/components/exit-intent-modal';
+import { GoalLanguageMenu } from '@/components/goal-entry-footer';
 import { trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
@@ -67,8 +68,11 @@ export function QuizShell({
       )}
     >
       <BackgroundBeams className="opacity-70" />
-      <div className="quiz-shell-header enter-item relative z-10 mb-3 flex shrink-0 items-center justify-between gap-3" style={enterStyle(0)}>
-        {step === 'calculating' || hideBack ? (
+      {/* z-20 keeps the language dropdown above the progress bar and the step below it. */}
+      <div className="quiz-shell-header enter-item relative z-20 mb-3 flex shrink-0 items-center justify-between gap-3" style={enterStyle(0)}>
+        {hideBack ? (
+          <div aria-hidden="true" className="w-14" />
+        ) : step === 'calculating' ? (
           <div aria-hidden="true" className="min-w-11" />
         ) : (
           <button
@@ -81,7 +85,14 @@ export function QuizShell({
           </button>
         )}
         <NutreeLogo alt="Nutree" priority className="h-11 w-11" />
-        <div aria-hidden="true" className="min-w-11" />
+        {/* Equal side widths keep the logo centred. */}
+        {hideBack ? (
+          <div className="flex w-14 justify-end">
+            <GoalLanguageMenu />
+          </div>
+        ) : (
+          <div aria-hidden="true" className="min-w-11" />
+        )}
       </div>
       <div
         role="progressbar"

@@ -17,7 +17,7 @@ export default async function RedeemPage() {
   return (
     <main className="grid min-h-dvh place-items-center bg-[#f6faf7] px-5 text-charcoal">
       <ClearFragmentBeforeRender path="/redeem" />
-      <RedemptionEmailGuide copy={copyFor(locale).redeem} />
+      <RedemptionEmailGuide copy={copyFor(locale).redeem} locale={locale} />
     </main>
   );
 }

@@ -64,3 +64,52 @@ export function buildProgressProjection(data: OnboardingPayload, tdee: TdeeResul
     trainingDays: finiteNumber(data.training_days_per_week),
   };
 }
+
+const DAY_MS = 86_400_000;
+
+/** The one goal date and milestones every screen shows, from the same pace as the projected path. */
+export interface GoalTimeline {
+  currentKg: number;
+  targetKg: number;
+  days: number;
+  weeks: number;
+  reducing: boolean;
+  date: Date;
+  week1Date: Date;
+  month1Date: Date;
+  week1Kg: number;
+  month1Kg: number;
+  kgPerWeek: number;
+}
+
+/** Null when there is no locked weight gap to project. */
+export function goalTimeline(data: OnboardingPayload, now = new Date()): GoalTimeline | null {
+  const projection = buildProgressProjection(data, null);
+  if (projection.kind !== 'weight') return null;
+  const { current, target, days, reducing } = projection;
+  const gap = Math.abs(target - current);
+  const after = (elapsedDays: number) => current + (reducing ? -1 : 1) * Math.min(gap, (KG_PER_WEEK * elapsedDays) / 7);
+  const at = (elapsedDays: number) => new Date(now.getTime() + elapsedDays * DAY_MS);
+  return {
+    currentKg: current,
+    targetKg: target,
+    days,
+    weeks: Math.ceil(days / 7),
+    reducing,
+    date: at(days),
+    week1Date: at(Math.min(7, days)),
+    month1Date: at(Math.min(30, days)),
+    week1Kg: after(7),
+    month1Kg: after(30),
+    kgPerWeek: KG_PER_WEEK,
+  };
+}
+
+/** "Mar 31, 2027" in English, "31 thg 3, 2027" in Vietnamese. */
+export function formatGoalDate(date: Date, locale: string, withYear = true): string {
+  return new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
+    day: 'numeric',
+    month: 'short',
+    ...(withYear ? { year: 'numeric' } : {}),
+  }).format(date);
+}

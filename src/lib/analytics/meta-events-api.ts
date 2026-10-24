@@ -18,7 +18,9 @@ export function metaEventsApiUrl(pixelId: string): string {
 }
 
 const STANDARD_EVENTS = ['ViewContent', 'Lead', 'AddToCart', 'InitiateCheckout', 'Purchase'] as const;
-export type MetaStandardEvent = (typeof STANDARD_EVENTS)[number];
+/** Custom events: the pixel sends them with trackCustom. PaywallView marks where people stop between Lead and checkout. */
+export const CUSTOM_EVENTS = ['PaywallView'] as const;
+export type MetaStandardEvent = (typeof STANDARD_EVENTS)[number] | (typeof CUSTOM_EVENTS)[number];
 
 export type MetaContent = { id: string; quantity?: number };
 
@@ -103,10 +105,10 @@ function fbCookie(value: unknown, maxLength: number): string | undefined {
   return cookie && FB_COOKIE.test(cookie) ? cookie : undefined;
 }
 
-/** Validates the browser body; null for anything that is not one of our standard events. */
+/** Validates the browser body; null for anything that is not one of our standard or custom events. */
 export function parseMetaBrowserEvent(input: unknown): MetaBrowserEvent | null {
   if (!isRecord(input)) return null;
-  const eventName = STANDARD_EVENTS.find((name) => name === input.event_name);
+  const eventName = [...STANDARD_EVENTS, ...CUSTOM_EVENTS].find((name) => name === input.event_name);
   const eventId = text(input.event_id, 128, TOKEN);
   if (!eventName || !eventId) return null;
   const user = isRecord(input.user_data) ? input.user_data : {};

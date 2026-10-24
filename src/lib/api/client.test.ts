@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   createLead,
+  rejectsDisplayHints,
   correlateRevenueCatCustomer,
   previewTdee,
   toWebFunnelSnapshot,
@@ -153,6 +154,26 @@ describe('createLead', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ detail: [{ loc: ['body', 'payload', 'goal'], msg: 'Field required' }] }), { status: 422 }));
 
     await expect(createLead('person@example.com', payload)).rejects.toThrow('[{"loc":["body","payload","goal"],"msg":"Field required"}]');
+  });
+
+  it('retries without the display hints when an older backend rejects them', async () => {
+    const extra = (field: string) => ({ type: 'extra_forbidden', loc: ['body', field], msg: 'Extra inputs are not permitted' });
+    (fetch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ready: true }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ detail: [extra('locale'), extra('units'), extra('off_plan_moment')] }), { status: 422 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ lead_id: 'lead-2', masked_email: 'p***@example.com', status: 'payment_pending' }), { status: 201 }));
+
+    await expect(createLead('person@example.com', payload, { locale: 'vi', units: 'metric', off_plan_moment: 'late_night' })).resolves.toMatchObject({ lead_id: 'lead-2' });
+    const leadBodies = (fetch as ReturnType<typeof vi.fn>).mock.calls.filter(([url]) => url === '/api/web-funnel/leads').map(([, init]) => JSON.parse(init.body));
+    expect(leadBodies).toHaveLength(2);
+    expect(leadBodies[0]).toMatchObject({ locale: 'vi', units: 'metric', off_plan_moment: 'late_night' });
+    expect(leadBodies[1]).not.toHaveProperty('locale');
+    expect(leadBodies[1]).not.toHaveProperty('off_plan_moment');
+  });
+
+  it('does not retry when the 422 is about the onboarding data itself', () => {
+    expect(rejectsDisplayHints([{ type: 'extra_forbidden', loc: ['body', 'locale'] }, { type: 'missing', loc: ['body', 'payload', 'goal'] }])).toBe(false);
+    expect(rejectsDisplayHints([{ type: 'extra_forbidden', loc: ['body', 'units'] }])).toBe(true);
   });
 });
 

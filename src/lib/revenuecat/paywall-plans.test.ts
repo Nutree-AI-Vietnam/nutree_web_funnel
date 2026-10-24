@@ -51,7 +51,7 @@ describe('buildRevenueCatPaywall', () => {
     expect(paywall.plans[0]).toMatchObject({
       label: { en: 'Nutree Weekly', vi: 'Nutree Weekly' },
       description: { en: 'Weekly access', vi: 'Weekly access' },
-      billingLabel: { en: 'Every 1 week', vi: 'Mỗi 1 tuần' },
+      billingLabel: { en: 'Every week', vi: 'Mỗi tuần' },
       recommended: false,
     });
     expect(paywall.plans[1]?.description).toEqual({ en: '', vi: '' });
@@ -107,7 +107,7 @@ describe('offer packages', () => {
 
 describe('billingLabelFromPeriod', () => {
   it('formats singular and plural periods in both locales', () => {
-    expect(billingLabelFromPeriod({ number: 1, unit: 'week' } as never)).toEqual({ en: 'Every 1 week', vi: 'Mỗi 1 tuần' });
+    expect(billingLabelFromPeriod({ number: 1, unit: 'week' } as never)).toEqual({ en: 'Every week', vi: 'Mỗi tuần' });
     expect(billingLabelFromPeriod({ number: 3, unit: 'month' } as never)).toEqual({ en: 'Every 3 months', vi: 'Mỗi 3 tháng' });
     expect(billingLabelFromPeriod(null)).toEqual({ en: '', vi: '' });
   });

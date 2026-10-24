@@ -1,31 +1,32 @@
 import type { Copy } from '../copy';
 import type { OnboardingPayload } from './types';
 
-const label = (
-  options: ReadonlyArray<{ readonly key: string; readonly label: string }>,
-  key: string | undefined,
-): string | undefined => options.find((o) => o.key === key)?.label;
+type ChallengeKey = keyof Copy['reflection']['fixes'];
+
+const isChallengeKey = (key: string, copy: Copy): key is ChallengeKey => Object.hasOwn(copy.reflection.fixes, key);
 
 /**
- * Fills the reflection template with the user's earlier answers (lowercased inline).
+ * The reflection headline, picked by the motivation answer. The name goes in front when
+ * given; otherwise the phrase stands alone with a capital first letter.
  * Copy is passed in so the sentence follows the active locale.
  */
-export function buildReflection(data: OnboardingPayload, copy: Copy): string {
-  const goal = label(copy.goal.options, data.fitness_goal)?.toLowerCase() ?? copy.reflection.goalInlineFallback;
-  const duration = label(copy.duration.options, data.challenge_duration)?.toLowerCase() ?? copy.reflection.durationInlineFallback;
-  const challenges =
-    (data.pain_points ?? [])
-    .slice(0, 3)
-    .map((k) => label(copy.challenges.options, k))
-    .filter((v): v is string => Boolean(v))
-      .join(', ')
-      .toLowerCase() || copy.reflection.challengeInlineFallback;
+export function reflectionHeadline(data: OnboardingPayload, copy: Copy): string {
+  const phrase = copy.reflection.headline[data.motivation ?? 'fallback'] ?? copy.reflection.headline.fallback;
+  const name = data.name?.trim();
+  return name ? `${name}, ${phrase}` : phrase.charAt(0).toUpperCase() + phrase.slice(1);
+}
 
-  return copy.reflection.template
-    .replace('[name]', data.name || copy.reflection.fallbackName)
-    .replace('[goal]', goal)
-    .replace('[challenges]', challenges)
-    .replace('[duration]', duration);
+/**
+ * Up to three "you said → your plan does" rows, one per challenge in pick order.
+ * Keys with no label or fix (stale or unknown answers) are skipped.
+ */
+export function reflectionRows(data: OnboardingPayload, copy: Copy): { key: string; label: string; fix: string }[] {
+  return (data.pain_points ?? [])
+    .flatMap((key) => {
+      const label = copy.challenges.options.find((o) => o.key === key)?.label;
+      return label && isChallengeKey(key, copy) ? [{ key, label, fix: copy.reflection.fixes[key] }] : [];
+    })
+    .slice(0, 3);
 }
 
 export function getGreetingName(name: string | undefined, copy: Copy): string {

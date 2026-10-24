@@ -18,11 +18,3 @@ export function markWelcomeVoucherClaimed(): void {
   }
 }
 
-/** The voucher interrupts an exit only while no discount is currently applied. */
-export function shouldArmExitVoucher(input: {
-  discountActive: boolean;
-  checkoutOpen: boolean;
-  purchased: boolean;
-}): boolean {
-  return !input.discountActive && !input.checkoutOpen && !input.purchased;
-}

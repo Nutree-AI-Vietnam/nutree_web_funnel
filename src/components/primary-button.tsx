@@ -23,7 +23,8 @@ export const PrimaryButton = forwardRef<HTMLButtonElement, {
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'cta-premium group relative min-h-14 w-full overflow-hidden rounded-2xl px-5 py-4 text-base font-extrabold tracking-tight text-white transition-transform duration-300 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/30 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0',
+        // An iOS filled button: flat fill, 14px corners, 17pt semibold, dims while pressed.
+        'group relative min-h-[3.25rem] w-full rounded-[14px] bg-forest px-5 py-3.5 text-[17px] font-semibold tracking-[-0.01em] text-white transition-opacity duration-150 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/30 active:opacity-70 disabled:cursor-not-allowed disabled:opacity-40',
         className,
       )}
     >

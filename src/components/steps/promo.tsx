@@ -15,7 +15,7 @@ function PromoIcon({ variant }: { variant: 'science' | 'macro' | 'meals' }) {
   }[variant];
 
   return (
-    <div className="relative mb-5 flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-white shadow-[0_18px_45px_rgb(26_71_57_/_0.14)]">
+    <div className="relative mb-5 flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-white shadow-[0_6px_16px_rgb(26_71_57_/_0.07)]">
       <div className="absolute inset-2 rounded-[1.35rem] bg-mist" />
       <svg className="relative h-14 w-14" viewBox="0 0 64 64" role="img" aria-label="">
         <circle cx="32" cy="32" r="25" fill="none" stroke={colors[0]} strokeWidth="2" opacity="0.25" />
@@ -65,9 +65,9 @@ export function PromoStep({
   const router = useRouter();
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <div className="quiz-step-body min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain">
+      <div className="quiz-step-body -mx-5 min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain px-5">
       <div className="quiz-step-stack flex min-h-full flex-col justify-center gap-5">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/86 p-5 shadow-[0_26px_80px_rgb(26_71_57_/_0.14)] backdrop-blur">
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/86 p-5 shadow-[0_6px_16px_rgb(26_71_57_/_0.07)] backdrop-blur">
         <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-teal-brand/15 blur-2xl" />
         <div className="relative h-1 w-16 rounded-full bg-teal-brand" />
         <div className="relative mt-5">
@@ -88,7 +88,7 @@ export function PromoStep({
 
       </div>
       </div>
-      <div className="quiz-step-cta relative z-20 shrink-0 bg-[linear-gradient(180deg,rgb(244_250_247_/_0),#f3faf7_32%)] pt-3">
+      <div className="quiz-step-cta relative z-20 shrink-0 pt-3">
         <PrimaryButton onClick={() => goToNextQuizStep(router, step)}>{vi.common.continue}</PrimaryButton>
       </div>
     </div>

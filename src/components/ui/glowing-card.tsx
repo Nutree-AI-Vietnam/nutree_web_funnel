@@ -20,26 +20,14 @@ export function GlowingCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        'surface-grain group relative overflow-hidden rounded-[1.25rem] bg-white/80 shadow-[inset_0_0_0_1px_rgb(255_255_255_/_0.6),0_2px_6px_rgb(16_39_32_/_0.05),0_14px_36px_rgb(16_39_32_/_0.10)] backdrop-blur-md transition-[transform,box-shadow,background-color] duration-300 hover:-translate-y-px',
+        // iOS grouped-row look: white fill and a hairline, no large drop shadow (a big blur gets clipped by the scrolling list into a grey band).
+        'group relative overflow-hidden rounded-[1.25rem] bg-white shadow-[0_0_0_1px_rgb(16_39_32_/_0.06),0_1px_2px_rgb(16_39_32_/_0.04)] transition-[box-shadow,background-color] duration-200',
         compact && 'rounded-[1rem]',
         active &&
-          'bg-mist/88 shadow-[inset_0_0_0_1.5px_rgb(31_168_146_/_0.7),0_6px_16px_rgb(31_168_146_/_0.14),0_18px_44px_rgb(31_168_146_/_0.16)]',
+          'bg-mist shadow-[inset_0_0_0_1.5px_rgb(23_69_58_/_0.55)]',
         className,
       )}
     >
-      <div
-        aria-hidden="true"
-        className={cn(
-          'absolute inset-y-3 left-0 w-1 rounded-r-full bg-transparent transition duration-300',
-          active && 'bg-teal-brand',
-        )}
-      />
-      <div
-        className={cn(
-          'absolute inset-px rounded-[calc(1.25rem-1px)] bg-[linear-gradient(135deg,rgb(255_255_255_/_0.58),transparent_70%)]',
-          compact && 'rounded-[calc(1rem-1px)]',
-        )}
-      />
       <div className="relative">{children}</div>
     </motion.div>
   );
