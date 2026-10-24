@@ -57,11 +57,11 @@ export function GoalChart({ timeline, system, nowLabel, goalLabel, animate = fal
   const locale = useLocale();
   const reduce = useReducedMotion();
   const play = animate && !reduce;
-  const left = 20;
-  const right = 306;
-  const top = 48;
-  const bottom = 142;
-  const axis = 156;
+  const left = 22;
+  const right = 300;
+  const top = 50;
+  const bottom = 156;
+  const axis = 176;
   const x = (day: number) => left + ((right - left) * Math.min(Math.max(day, 0), timeline.days)) / timeline.days;
   const y = (kg: number) => {
     const span = timeline.targetKg - timeline.currentKg;
@@ -75,98 +75,95 @@ export function GoalChart({ timeline, system, nowLabel, goalLabel, animate = fal
   const c2 = { x: start.x + (end.x - start.x) * 0.62, y: end.y };
   const curve = `M${start.x} ${start.y} C${c1.x} ${c1.y} ${c2.x} ${c2.y} ${end.x} ${end.y}`;
 
-  // Month ticks between today and the goal, each kept clear of its neighbours and of the two end labels.
-  const startDate = new Date(timeline.date.getTime() - timeline.days * 86_400_000);
-  const monthFormat = new Intl.DateTimeFormat(numberLocale(locale), { month: 'short' });
-  // Vietnamese months read like the dates around them ("thg 12"), not the longer "Tháng 12".
-  const monthLabel = (month: Date) => (locale === 'vi' ? `thg ${month.getMonth() + 1}` : monthFormat.format(month));
-  const startLabelEnd = start.x - 2 + Math.max(labelWidth(formatWeight(timeline.currentKg, system, locale), 13), labelWidth(nowLabel, 10.5));
-  const endLabelStart = end.x + 2 - (goalLabel ? labelWidth(goalLabel, 12) : 0);
-  const ticks: { x: number; label: string }[] = [];
-  for (let month = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1); month < timeline.date; month = new Date(month.getFullYear(), month.getMonth() + 1, 1)) {
-    const tx = x((month.getTime() - startDate.getTime()) / 86_400_000);
-    const label = monthLabel(month);
-    const half = labelWidth(label, 10.5) / 2 + 8;
-    const previous = ticks[ticks.length - 1];
-    if (tx - half > startLabelEnd && tx + half < endLabelStart && (!previous || tx - half > previous.x + labelWidth(previous.label, 10.5) / 2)) ticks.push({ x: tx, label });
-  }
-
   const goalText = formatWeight(timeline.targetKg, system, locale);
   const bubbleW = Math.round(labelWidth(goalText, 13) + 22);
   const bubbleH = 26;
   const bubbleX = Math.min(Math.max(end.x - bubbleW / 2, 2), 324 - bubbleW);
-  const bubbleY = end.y - bubbleH - 13;
+  const bubbleY = end.y - bubbleH - 15;
   const pointerX = Math.min(Math.max(end.x, bubbleX + 10), bubbleX + bubbleW - 10);
+  const draw = { duration: 1, ease: [0.22, 1, 0.36, 1] as const, delay: 0.15 };
 
   return (
-    <svg viewBox="0 0 326 196" className="mt-1 h-auto w-full" role="img" aria-label={`${formatWeight(timeline.currentKg, system, locale)} → ${goalText}`}>
+    <svg viewBox="0 0 326 214" className="mt-1 h-auto w-full overflow-visible" role="img" aria-label={`${formatWeight(timeline.currentKg, system, locale)} → ${goalText}`}>
       <defs>
         <linearGradient id="plan-fill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="#1fa892" stopOpacity="0.2" />
+          <stop offset="0" stopColor="#1fa892" stopOpacity="0.26" />
+          <stop offset="0.7" stopColor="#1fa892" stopOpacity="0.06" />
           <stop offset="1" stopColor="#1fa892" stopOpacity="0" />
         </linearGradient>
         <linearGradient id="plan-line" x1="0" x2="1" y1="0" y2="0">
-          <stop offset="0" stopColor="#8fd9c8" />
-          <stop offset="0.5" stopColor="#1fa892" />
+          <stop offset="0" stopColor="#7fd6c4" />
+          <stop offset="0.55" stopColor="#1fa892" />
           <stop offset="1" stopColor="#17453a" />
         </linearGradient>
+        <filter id="plan-glow" x="-10%" y="-40%" width="120%" height="180%">
+          <feGaussianBlur stdDeviation="5" />
+        </filter>
       </defs>
-      {[top, (top + bottom) / 2, bottom].map((gy) => (
-        <path key={gy} d={`M${left} ${gy}H${right}`} stroke="#e4ece8" strokeWidth="1" strokeDasharray="3 5" />
-      ))}
+      {/* The goal level, so the eye reads how far the line still has to travel. */}
+      <path d={`M${left} ${end.y}H${end.x}`} stroke="#1fa892" strokeOpacity="0.35" strokeWidth="1.2" strokeDasharray="2 5" strokeLinecap="round" />
       <path d={`M${left} ${axis}H${right}`} stroke="#d5e1dc" strokeWidth="1.2" />
       <motion.path
         d={`${curve} L${end.x} ${axis} L${start.x} ${axis} Z`}
         fill="url(#plan-fill)"
         initial={play ? { opacity: 0 } : false}
         animate={play ? { opacity: 1 } : undefined}
-        transition={{ duration: 0.5, delay: 0.5 }}
+        transition={{ duration: 0.6, delay: 0.55 }}
+      />
+      <path d={`M${end.x} ${end.y + 8}V${axis}`} stroke="#17453a" strokeOpacity="0.28" strokeWidth="1.2" strokeDasharray="2 4" strokeLinecap="round" />
+      {/* A soft glow under the line gives it depth without a shadow box. */}
+      <motion.path
+        d={curve}
+        fill="none"
+        stroke="#1fa892"
+        strokeOpacity="0.35"
+        strokeWidth="10"
+        strokeLinecap="round"
+        filter="url(#plan-glow)"
+        initial={play ? { pathLength: 0 } : false}
+        animate={play ? { pathLength: 1 } : undefined}
+        transition={draw}
       />
       <motion.path
         d={curve}
         fill="none"
         stroke="url(#plan-line)"
-        strokeWidth="5"
+        strokeWidth="5.5"
         strokeLinecap="round"
         initial={play ? { pathLength: 0 } : false}
         animate={play ? { pathLength: 1 } : undefined}
-        transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+        transition={draw}
       />
-      <circle cx={start.x} cy={start.y} r="6" fill="white" stroke="#8fb3a8" strokeWidth="3" />
+      <circle cx={start.x} cy={start.y} r="6.5" fill="white" stroke="#7fbfb0" strokeWidth="3" />
       {play && (
         // One pulse once the goal dot has landed.
         <motion.circle
           cx={end.x}
           cy={end.y}
-          r="7"
+          r="8"
           fill="none"
           stroke="#1fa892"
           strokeWidth="2"
           initial={{ scale: 1, opacity: 0 }}
           animate={{ scale: 2.4, opacity: [0, 0.4, 0] }}
-          transition={{ duration: 0.9, delay: 1.15, opacity: { duration: 0.9, delay: 1.15, times: [0, 0.01, 1] } }}
+          transition={{ duration: 0.9, delay: 1.2, opacity: { duration: 0.9, delay: 1.2, times: [0, 0.01, 1] } }}
           style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
         />
       )}
       <motion.g
         initial={play ? { opacity: 0, y: 6 } : false}
         animate={play ? { opacity: 1, y: 0 } : undefined}
-        transition={{ delay: 0.95, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ delay: 1, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       >
-        <circle cx={end.x} cy={end.y} r="7" fill="#17453a" stroke="white" strokeWidth="3" />
+        <circle cx={end.x} cy={end.y} r="13" fill="#1fa892" fillOpacity="0.16" />
+        <circle cx={end.x} cy={end.y} r="7.5" fill="#17453a" stroke="white" strokeWidth="3" />
         <rect x={bubbleX} y={bubbleY} width={bubbleW} height={bubbleH} rx="13" fill="#17453a" />
         <path d={`M${pointerX - 6} ${bubbleY + bubbleH - 0.5} L${pointerX} ${bubbleY + bubbleH + 6} L${pointerX + 6} ${bubbleY + bubbleH - 0.5} Z`} fill="#17453a" />
         <text x={bubbleX + bubbleW / 2} y={bubbleY + 17.5} textAnchor="middle" className="fill-white text-[13px] font-extrabold tabular-nums">{goalText}</text>
       </motion.g>
-      <text x={start.x - 2} y="176" textAnchor="start" className="fill-forest text-[13px] font-extrabold tabular-nums">{formatWeight(timeline.currentKg, system, locale)}</text>
-      <text x={start.x - 2} y="191" textAnchor="start" className="fill-muted-brand text-[10.5px] font-bold">{nowLabel}</text>
-      {ticks.map((tick) => (
-        <g key={tick.label}>
-          <path d={`M${tick.x} ${axis - 3}V${axis + 3}`} stroke="#c3d3cd" strokeWidth="1.2" />
-          <text x={tick.x} y="176" textAnchor="middle" className="fill-muted-brand text-[10.5px] font-bold">{tick.label}</text>
-        </g>
-      ))}
-      {goalLabel && <text x={end.x + 2} y="176" textAnchor="end" className="fill-forest text-[12px] font-extrabold">{goalLabel}</text>}
+      <text x={start.x - 2} y="196" textAnchor="start" className="fill-forest text-[13px] font-extrabold tabular-nums">{formatWeight(timeline.currentKg, system, locale)}</text>
+      <text x={start.x - 2} y="211" textAnchor="start" className="fill-muted-brand text-[10.5px] font-bold">{nowLabel}</text>
+      {goalLabel && <text x={end.x + 2} y="196" textAnchor="end" className="fill-forest text-[12px] font-extrabold">{goalLabel}</text>}
     </svg>
   );
 }
