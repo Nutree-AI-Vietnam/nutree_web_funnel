@@ -15,6 +15,7 @@ const patchMarkers = [
   'v.rcbCompleted || (v.rcbCancelled = !0, v.closeCheckout(), F());',
   'this.rcbCompleted = !0, u == null || u()',
   'if (e.paddleService.rcbCancelled) return;',
+  'displayMode: "inline",\n    variant: "express",',
 ];
 
 /**
@@ -50,6 +51,14 @@ const cancelHook = `      y && (p.rcbCancelCheckout = () => {
       });
 `;
 const upgrades = [
+  {
+    // In-page checkout uses Paddle's express variant: one-tap wallet buttons, then "Pay another way" for the card form.
+    from: `    displayMode: "inline",
+    frameTarget: ig,`,
+    to: `    displayMode: "inline",
+    variant: "express",
+    frameTarget: ig,`,
+  },
   {
     // Paddle discount removal.
     from: `showAddDiscounts: !0,

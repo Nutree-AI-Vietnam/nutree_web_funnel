@@ -155,8 +155,27 @@ function storePaywallOffer(offer: StoredPaywallOffer) {
   }
 }
 
+/**
+ * RevenueCat formats prices in the browser's language, so an English phone shows "₫59,000".
+ * Each market's currency is shown its own way instead: VND as "59.000 ₫", USD as "$7.99".
+ */
+function marketPrice<T extends { amountMicros: number; currency: string; formattedPrice: string }>(price: T): T {
+  const vnd = price.currency === 'VND';
+  const formattedPrice = new Intl.NumberFormat(vnd ? 'vi-VN' : 'en-US', {
+    style: 'currency',
+    currency: price.currency,
+    ...(vnd ? { maximumFractionDigits: 0 } : {}),
+  }).format(price.amountMicros / 1_000_000);
+  return { ...price, formattedPrice };
+}
+
 function firstPaymentPrice(product: Product | null | undefined) {
-  return product?.introPricePhase?.price ?? product?.price ?? null;
+  const price = product?.introPricePhase?.price ?? product?.price ?? null;
+  return price ? marketPrice(price) : null;
+}
+
+function renewalPrice(product: Product | null | undefined) {
+  return product?.price ? marketPrice(product.price) : null;
 }
 
 /** The real saving on a plan's first payment under an offer, read from the package prices. */
@@ -617,14 +636,12 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const exitOfferActive = isExitOfferMode && secondsLeft > 0;
   const welcomeOfferActive = offerKind === 'welcome' && secondsLeft > 0;
   const activeOffer: PaywallOfferKind | null = exitOfferActive ? 'exit' : welcomeOfferActive ? 'welcome' : null;
-  // The paywall opens on the welcome gift while an unclaimed welcome price is running.
-  const giftOpen = offerStateReady && welcomeOfferActive && !giftSkipped;
   const selectedOriginalPrice = firstPaymentPrice(selected?.rcPackage.webBillingProduct);
   const selectedOfferProduct = selected ? checkoutPackage(selected, activeOffer).webBillingProduct : null;
   const selectedOfferPrice = firstPaymentPrice(selectedOfferProduct);
   const originalTotal = selectedOriginalPrice?.formattedPrice ?? '…';
   const introTotal = selectedOfferPrice?.formattedPrice ?? originalTotal;
-  const renewalTotal = selectedOfferProduct?.price.formattedPrice ?? '…';
+  const renewalTotal = renewalPrice(selectedOfferProduct)?.formattedPrice ?? '…';
   const offerDiscountPercent = selectedOfferProduct !== selected?.rcPackage.webBillingProduct
     ? (activeOffer === 'exit' ? EXIT_DISCOUNT_PERCENT : WELCOME_DISCOUNT_PERCENT)
     : 0;
@@ -634,6 +651,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const pricesReady = loadState === 'ready';
   // Discount claims come from the real package prices, never a fixed percent: null until they load.
   const welcomeClaim = pricesReady ? offerClaimFor(plans, 'welcome') : null;
+  // The paywall opens on the welcome gift while an unclaimed welcome price is running. Once prices are in,
+  // a gift with no real discount behind it (no welcome packages in the offering) is never shown.
+  const giftOpen = offerStateReady && welcomeOfferActive && !giftSkipped && (!pricesReady || welcomeClaim != null);
   const activeClaim = pricesReady ? offerClaimFor(plans, activeOffer) : null;
   useEffect(() => {
     if (!offerStateReady || loadState === 'loading' || !autoAppliedPendingRef.current) return;
@@ -835,7 +855,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const sheetNextCharge = nextChargeDate(sheetOfferProduct);
   const sheetRenewalLine = funnelPaywall.renewal(
     sheetOfferPrice?.formattedPrice ?? originalTotal,
-    sheetOfferProduct?.price.formattedPrice ?? '…',
+    renewalPrice(sheetOfferProduct)?.formattedPrice ?? '…',
     selectedPeriod ? funnelPaywall.cadence(selectedPeriod.number, periodWord(selectedPeriod)) : renewalCadence,
     sheetNextCharge ? formatGoalDate(sheetNextCharge, activeLocale) : '',
   );

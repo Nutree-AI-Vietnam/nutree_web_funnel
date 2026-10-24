@@ -1,8 +1,8 @@
 diff --git a/node_modules/@revenuecat/purchases-js/dist/Purchases.es.js b/node_modules/@revenuecat/purchases-js/dist/Purchases.es.js
-index 2e7bfd9..6382126 100644
+index 2e7bfd9..9cab4e0 100644
 --- a/node_modules/@revenuecat/purchases-js/dist/Purchases.es.js
 +++ b/node_modules/@revenuecat/purchases-js/dist/Purchases.es.js
-@@ -20751,16 +20751,18 @@ function iE({
+@@ -20751,19 +20751,22 @@ function iE({
    locale: e,
    customerEmail: t,
    displayMode: n = "overlay",
@@ -24,7 +24,11 @@ index 2e7bfd9..6382126 100644
    }, s = n === "inline" ? {
      ...i,
      displayMode: "inline",
-@@ -20774,7 +20776,9 @@ function iE({
++    variant: "express",
+     frameTarget: ig,
+     frameInitialHeight: aE,
+     frameStyle: oE
+@@ -20774,7 +20777,9 @@ function iE({
    return {
      transactionId: r,
      settings: s,
@@ -35,7 +39,7 @@ index 2e7bfd9..6382126 100644
    };
  }
  class sE {
-@@ -20902,12 +20906,17 @@ class sE {
+@@ -20902,12 +20907,17 @@ class sE {
          eventCallback: async (h) => {
            const v = h.name, w = h.data;
            try {
@@ -55,7 +59,7 @@ index 2e7bfd9..6382126 100644
                const y = await this.pollOperationStatus(e);
                g(y);
              } else v === Ia.CHECKOUT_CLOSED && (w != null && w.status) && a();
-@@ -20931,7 +20940,9 @@ class sE {
+@@ -20931,7 +20941,9 @@ class sE {
          locale: _,
          customerEmail: p,
          displayMode: s,
@@ -66,7 +70,7 @@ index 2e7bfd9..6382126 100644
        });
        try {
          d.Checkout.open(b);
-@@ -21530,7 +21541,7 @@ function TE(r, e) {
+@@ -21530,7 +21542,7 @@ function TE(r, e) {
    let c = /* @__PURE__ */ ne(!1), u = /* @__PURE__ */ ne(null), d = /* @__PURE__ */ ne(null), p = /* @__PURE__ */ ne("waiting"), _ = /* @__PURE__ */ ne(!1), f = /* @__PURE__ */ ne(null);
    const g = /* @__PURE__ */ m(() => {
      var J;
@@ -75,7 +79,7 @@ index 2e7bfd9..6382126 100644
    });
    let k = /* @__PURE__ */ ne(null);
    const b = (J) => {
-@@ -21577,6 +21588,7 @@ function TE(r, e) {
+@@ -21577,6 +21589,7 @@ function TE(r, e) {
        q(d, Z, !0), q(p, "error"), e.onError(Z);
        return;
      }
@@ -83,7 +87,7 @@ index 2e7bfd9..6382126 100644
      try {
        const N = await e.paddleService.purchase({
          operationSessionId: A.operation_session_id,
-@@ -21589,7 +21601,9 @@ function TE(r, e) {
+@@ -21589,7 +21602,9 @@ function TE(r, e) {
            appUserId: e.appUserId,
            presentedOfferingIdentifier: e.productDetails.presentedOfferingContext.offeringIdentifier,
            customerEmail: e.customerEmail,
@@ -94,7 +98,7 @@ index 2e7bfd9..6382126 100644
          },
          ...o(g) && {
            displayMode: "inline",
-@@ -25704,6 +25718,8 @@ const Pr = class Pr {
+@@ -25704,6 +25719,8 @@ const Pr = class Pr {
        rcPackage: t,
        purchaseOption: n,
        customerEmail: a,
@@ -103,7 +107,7 @@ index 2e7bfd9..6382126 100644
        attributionMetadata: i,
        workflowPurchaseContext: s,
        selectedLocale: l = Or,
-@@ -25740,6 +25756,9 @@ const Pr = class Pr {
+@@ -25740,6 +25757,9 @@ const Pr = class Pr {
          S();
        });
        y || C.addEventListener("popstate", F);
@@ -113,7 +117,7 @@ index 2e7bfd9..6382126 100644
        const D = this.createCheckoutOnFinishedHandler(
          E,
          _,
-@@ -25764,6 +25783,8 @@ const Pr = class Pr {
+@@ -25764,6 +25784,8 @@ const Pr = class Pr {
            appUserId: _,
            purchaseOption: f,
            customerEmail: a,
