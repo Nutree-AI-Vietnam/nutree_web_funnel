@@ -71,7 +71,13 @@ export function QuizStepFrame({
     const observer = new ResizeObserver(measure);
     observer.observe(scroller);
     if (header) observer.observe(header);
-    return () => observer.disconnect();
+    // The stack keeps the scroller's height, so watch its rows: a reply that appears under
+    // the options changes the lift, and a stale lift would push the first row out of view.
+    const watchRows = () => [...stack.children].forEach((row) => observer.observe(row));
+    watchRows();
+    const rows = new MutationObserver(() => { watchRows(); measure(); });
+    rows.observe(stack, { childList: true });
+    return () => { observer.disconnect(); rows.disconnect(); };
   }, [title, description]);
 
   return (

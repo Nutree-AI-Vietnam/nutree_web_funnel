@@ -39,7 +39,16 @@ function OfferText({ text, percent, animate }: { text: string; percent: number |
   return <>{before}<CountUp value={percent} format={(value) => `${Math.round(value)}`} delay={0.15} duration={0.8} />{after}</>;
 }
 
-export function WelcomeGiftScreen({ name, claim, minutes, onClaim }: { name: string | null; claim: OfferClaim | null; minutes: number; onClaim: () => void }) {
+export function WelcomeGiftScreen({ name, claim, ready = true, minutes, variant = 'welcome', onClaim }: {
+  name: string | null;
+  claim: OfferClaim | null;
+  /** False while prices load: the card stays covered and cannot be scratched yet. */
+  ready?: boolean;
+  minutes: number;
+  /** `exit` is the last-chance price after checkout was closed without paying. */
+  variant?: 'welcome' | 'exit';
+  onClaim: () => void;
+}) {
   const copy = useCopy();
   const gift = copy.welcomeGift;
   const revealTriggered = useRef(false);
@@ -48,14 +57,16 @@ export function WelcomeGiftScreen({ name, claim, minutes, onClaim }: { name: str
   const reduce = useReducedMotion();
   const celebrate = revealed && !reduce;
 
-  useEffect(() => trackStepViewed('welcome_gift'), []);
+  const source = variant === 'exit' ? 'checkout_closed' : 'welcome';
+
+  useEffect(() => trackStepViewed(variant === 'exit' ? 'exit_gift' : 'welcome_gift'), [variant]);
 
   const finishReveal = () => {
-    if (revealTriggered.current) return;
+    if (revealTriggered.current || !ready) return;
     revealTriggered.current = true;
     setRevealed(true);
     if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) navigator.vibrate?.(18);
-    trackEvent('welcome_gift_revealed', { discount_percent: claim?.percent });
+    trackEvent('welcome_gift_revealed', { discount_percent: claim?.percent, source });
   };
 
   const claimGift = () => {
@@ -63,7 +74,7 @@ export function WelcomeGiftScreen({ name, claim, minutes, onClaim }: { name: str
       finishReveal();
       return;
     }
-    trackEvent('welcome_gift_claimed', { discount_percent: claim?.percent });
+    trackEvent('welcome_gift_claimed', { discount_percent: claim?.percent, source });
     onClaim();
   };
 
@@ -76,7 +87,7 @@ export function WelcomeGiftScreen({ name, claim, minutes, onClaim }: { name: str
         </div>
         <section className="flex flex-1 flex-col justify-center py-6 text-center">
           <h1 id="welcome-gift-title" className="mx-auto max-w-[20rem] text-[1.9rem] font-extrabold leading-[1.08] tracking-[-0.035em] text-forest [text-wrap:balance]">
-            {revealed ? gift.revealedTitle(claim) : gift.headline(name)}
+            {revealed ? gift.revealedTitle(claim) : variant === 'exit' ? gift.lastChanceHeadline(name) : gift.headline(name)}
           </h1>
           {/* Empty until the reveal, but it keeps its line so the card does not jump. */}
           <p className="mx-auto mt-3 min-h-[1.75rem] max-w-[20rem] text-[1rem] font-semibold leading-relaxed text-slate-brand">
@@ -129,14 +140,15 @@ export function WelcomeGiftScreen({ name, claim, minutes, onClaim }: { name: str
                 transition={{ duration: 0.9, delay: 0.35, ease: 'easeInOut' }}
               />
             )}
-            <ScratchTicketCover revealed={revealed} hint={gift.scratchHint} onScratchStart={() => trackEvent('welcome_reward_scratch_started', {})} onReveal={finishReveal} hintClassName="text-base" />
+            <ScratchTicketCover revealed={revealed} disabled={!ready} hint={gift.scratchHint} onScratchStart={() => trackEvent('welcome_reward_scratch_started', {})} onReveal={finishReveal} hintClassName="text-base" />
           </motion.div>
           </div>
         </section>
         <button
           type="button"
           onClick={claimGift}
-          className={`cta-premium min-h-14 w-full rounded-2xl px-6 text-base font-extrabold text-white transition active:scale-[0.99] focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/30 ${revealed ? 'cta-attention' : ''}`}
+          disabled={!ready}
+          className={`cta-premium disabled:opacity-60 min-h-14 w-full rounded-2xl px-6 text-base font-extrabold text-white transition active:scale-[0.99] focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/30 ${revealed ? 'cta-attention' : ''}`}
         >
           {revealed ? gift.cta(claim) : gift.lockedCta}
         </button>

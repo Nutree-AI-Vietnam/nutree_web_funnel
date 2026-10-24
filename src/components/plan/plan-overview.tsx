@@ -36,68 +36,80 @@ function numberLocale(locale: string) {
   return locale === 'vi' ? 'vi-VN' : 'en-US';
 }
 
-/** Straight path at the plan's weekly pace, with the week-1 and month-1 milestones on it. */
-export function GoalChart({ timeline, system, nowLabel, week1Label, month1Label, goalLabel, animate = false }: {
+/** Rough width of a short SVG label, for placing the goal callout without measuring the DOM. */
+function labelWidth(text: string, px: number) {
+  return text.length * px * 0.58;
+}
+
+/**
+ * The forecast: where you are today, the path at the plan's pace, and the goal in a callout.
+ * Weights sit on the axis row and in the callout only, so nothing is drawn over the line.
+ */
+export function GoalChart({ timeline, system, nowLabel, goalLabel, animate = false }: {
   timeline: GoalTimeline;
   system: UnitSystem;
   nowLabel: string;
-  week1Label: string;
-  month1Label: string;
   /** Under the goal end of the path, usually its date. */
   goalLabel?: string;
-  /** Draw the path in once, then land the goal dot with one pulse (the progress screen only). */
+  /** Draw the path in once, then land the goal callout (the progress screen only). */
   animate?: boolean;
 }) {
   const locale = useLocale();
   const reduce = useReducedMotion();
   const play = animate && !reduce;
-  const left = 26;
-  const right = 300;
-  const top = 26;
-  const bottom = 112;
-  const x = (day: number) => left + ((right - left) * Math.min(day, timeline.days)) / timeline.days;
+  const left = 20;
+  const right = 306;
+  const top = 48;
+  const bottom = 142;
+  const axis = 156;
+  const x = (day: number) => left + ((right - left) * Math.min(Math.max(day, 0), timeline.days)) / timeline.days;
   const y = (kg: number) => {
     const span = timeline.targetKg - timeline.currentKg;
     const share = span === 0 ? 0 : (kg - timeline.currentKg) / span;
     return timeline.reducing ? top + (bottom - top) * share : bottom - (bottom - top) * share;
   };
-  const milestones = [
-    { day: 7, kg: timeline.week1Kg, label: week1Label },
-    { day: 30, kg: timeline.month1Kg, label: month1Label },
-  ].filter((milestone) => milestone.day < timeline.days * 0.8 && x(milestone.day) - x(0) >= 16);
   const start = { x: x(0), y: y(timeline.currentKg) };
   const end = { x: x(timeline.days), y: y(timeline.targetKg) };
-  // A curve that moves fastest early and eases into the goal, the way real progress tends to read.
+  // Fastest early, easing into the goal, the way real progress tends to read.
   const c1 = { x: start.x + (end.x - start.x) * 0.3, y: start.y + (end.y - start.y) * 0.72 };
   const c2 = { x: start.x + (end.x - start.x) * 0.62, y: end.y };
-  const bezier = (t: number, a: number, b: number, c: number, d: number) => (1 - t) ** 3 * a + 3 * (1 - t) ** 2 * t * b + 3 * (1 - t) * t ** 2 * c + t ** 3 * d;
-  const onCurve = (px: number) => {
-    let lo = 0;
-    let hi = 1;
-    for (let i = 0; i < 24; i += 1) {
-      const mid = (lo + hi) / 2;
-      if (bezier(mid, start.x, c1.x, c2.x, end.x) < px) lo = mid;
-      else hi = mid;
-    }
-    return bezier(lo, start.y, c1.y, c2.y, end.y);
-  };
   const curve = `M${start.x} ${start.y} C${c1.x} ${c1.y} ${c2.x} ${c2.y} ${end.x} ${end.y}`;
 
+  // Month ticks between today and the goal, kept clear of the two end labels.
+  const startDate = new Date(timeline.date.getTime() - timeline.days * 86_400_000);
+  const monthFormat = new Intl.DateTimeFormat(numberLocale(locale), { month: 'short' });
+  const ticks: { x: number; label: string }[] = [];
+  for (let month = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1); month < timeline.date; month = new Date(month.getFullYear(), month.getMonth() + 1, 1)) {
+    const tx = x((month.getTime() - startDate.getTime()) / 86_400_000);
+    if (tx > left + 62 && tx < right - 62 && (!ticks.length || tx - ticks[ticks.length - 1].x >= 44)) ticks.push({ x: tx, label: monthFormat.format(month) });
+  }
+
+  const goalText = formatWeight(timeline.targetKg, system, locale);
+  const bubbleW = Math.round(labelWidth(goalText, 13) + 22);
+  const bubbleH = 26;
+  const bubbleX = Math.min(Math.max(end.x - bubbleW / 2, 2), 324 - bubbleW);
+  const bubbleY = end.y - bubbleH - 13;
+  const pointerX = Math.min(Math.max(end.x, bubbleX + 10), bubbleX + bubbleW - 10);
+
   return (
-    <svg viewBox="0 0 326 150" className="mt-3 h-auto w-full" role="img" aria-label={`${formatWeight(timeline.currentKg, system, locale)} → ${formatWeight(timeline.targetKg, system, locale)}`}>
+    <svg viewBox="0 0 326 196" className="mt-1 h-auto w-full" role="img" aria-label={`${formatWeight(timeline.currentKg, system, locale)} → ${goalText}`}>
       <defs>
         <linearGradient id="plan-fill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="#1fa892" stopOpacity="0.22" />
+          <stop offset="0" stopColor="#1fa892" stopOpacity="0.2" />
           <stop offset="1" stopColor="#1fa892" stopOpacity="0" />
         </linearGradient>
         <linearGradient id="plan-line" x1="0" x2="1" y1="0" y2="0">
-          <stop offset="0" stopColor="#d7a84d" />
-          <stop offset="0.45" stopColor="#1fa892" />
+          <stop offset="0" stopColor="#8fd9c8" />
+          <stop offset="0.5" stopColor="#1fa892" />
           <stop offset="1" stopColor="#17453a" />
         </linearGradient>
       </defs>
+      {[top, (top + bottom) / 2, bottom].map((gy) => (
+        <path key={gy} d={`M${left} ${gy}H${right}`} stroke="#e4ece8" strokeWidth="1" strokeDasharray="3 5" />
+      ))}
+      <path d={`M${left} ${axis}H${right}`} stroke="#d5e1dc" strokeWidth="1.2" />
       <motion.path
-        d={`${curve} L${end.x} 124 L${start.x} 124 Z`}
+        d={`${curve} L${end.x} ${axis} L${start.x} ${axis} Z`}
         fill="url(#plan-fill)"
         initial={play ? { opacity: 0 } : false}
         animate={play ? { opacity: 1 } : undefined}
@@ -107,47 +119,47 @@ export function GoalChart({ timeline, system, nowLabel, week1Label, month1Label,
         d={curve}
         fill="none"
         stroke="url(#plan-line)"
-        strokeWidth="4.5"
+        strokeWidth="5"
         strokeLinecap="round"
         initial={play ? { pathLength: 0 } : false}
         animate={play ? { pathLength: 1 } : undefined}
         transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
       />
-      <circle cx={start.x} cy={start.y} r="6" fill="#d7a84d" stroke="white" strokeWidth="3" />
-      <text x={start.x + 10} y={start.y - 8} className="fill-slate-brand text-[11px] font-bold">{formatWeight(timeline.currentKg, system, locale)}</text>
-      {milestones.map((milestone) => (
-        <circle key={milestone.label} cx={x(milestone.day)} cy={onCurve(x(milestone.day))} r="4.5" fill="#238d78" stroke="white" strokeWidth="2.5" />
-      ))}
+      <circle cx={start.x} cy={start.y} r="6" fill="white" stroke="#8fb3a8" strokeWidth="3" />
       {play && (
-        // One pulse once the goal dot has landed; hidden until then, so no ring waits ahead of the line.
+        // One pulse once the goal dot has landed.
         <motion.circle
           cx={end.x}
           cy={end.y}
           r="7"
           fill="none"
-          stroke="#238d78"
+          stroke="#1fa892"
           strokeWidth="2"
           initial={{ scale: 1, opacity: 0 }}
-          animate={{ scale: 2.2, opacity: [0, 0.35, 0] }}
-          transition={{ duration: 0.8, delay: 1.15, opacity: { duration: 0.8, delay: 1.15, times: [0, 0.01, 1] } }}
+          animate={{ scale: 2.4, opacity: [0, 0.4, 0] }}
+          transition={{ duration: 0.9, delay: 1.15, opacity: { duration: 0.9, delay: 1.15, times: [0, 0.01, 1] } }}
           style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
         />
       )}
-      <motion.circle
-        cx={end.x}
-        cy={end.y}
-        r="7"
-        fill="#17453a"
-        stroke="white"
-        strokeWidth="3"
-        initial={play ? { scale: 0 } : false}
-        animate={play ? { scale: 1 } : undefined}
-        transition={{ delay: 0.95, duration: 0.3 }}
-        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-      />
-      <text x={end.x} y={end.y - 12} textAnchor="end" className="fill-forest text-[12px] font-extrabold">{formatWeight(timeline.targetKg, system, locale)}</text>
-      <text x={start.x} y="142" textAnchor="start" className="fill-muted-brand text-[10px] font-bold">{nowLabel}</text>
-      {goalLabel && <text x={end.x} y="142" textAnchor="end" className="fill-muted-brand text-[10px] font-bold">{goalLabel}</text>}
+      <motion.g
+        initial={play ? { opacity: 0, y: 6 } : false}
+        animate={play ? { opacity: 1, y: 0 } : undefined}
+        transition={{ delay: 0.95, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <circle cx={end.x} cy={end.y} r="7" fill="#17453a" stroke="white" strokeWidth="3" />
+        <rect x={bubbleX} y={bubbleY} width={bubbleW} height={bubbleH} rx="13" fill="#17453a" />
+        <path d={`M${pointerX - 6} ${bubbleY + bubbleH - 0.5} L${pointerX} ${bubbleY + bubbleH + 6} L${pointerX + 6} ${bubbleY + bubbleH - 0.5} Z`} fill="#17453a" />
+        <text x={bubbleX + bubbleW / 2} y={bubbleY + 17.5} textAnchor="middle" className="fill-white text-[13px] font-extrabold tabular-nums">{goalText}</text>
+      </motion.g>
+      <text x={start.x - 2} y="176" textAnchor="start" className="fill-forest text-[13px] font-extrabold tabular-nums">{formatWeight(timeline.currentKg, system, locale)}</text>
+      <text x={start.x - 2} y="191" textAnchor="start" className="fill-muted-brand text-[10.5px] font-bold">{nowLabel}</text>
+      {ticks.map((tick) => (
+        <g key={tick.label}>
+          <path d={`M${tick.x} ${axis - 3}V${axis + 3}`} stroke="#c3d3cd" strokeWidth="1.2" />
+          <text x={tick.x} y="176" textAnchor="middle" className="fill-muted-brand text-[10.5px] font-bold">{tick.label}</text>
+        </g>
+      ))}
+      {goalLabel && <text x={end.x + 2} y="176" textAnchor="end" className="fill-forest text-[12px] font-extrabold">{goalLabel}</text>}
     </svg>
   );
 }
@@ -254,7 +266,6 @@ export function PlanGoalCard({ data, tdee, system, className }: {
   const copy = useCopy();
   const locale = useLocale();
   const plan = copy.funnel.plan;
-  const progress = copy.funnel.progress;
   const timeline = goalTimeline(data);
   const name = data.name?.trim();
   const format = new Intl.NumberFormat(numberLocale(locale));
@@ -268,7 +279,7 @@ export function PlanGoalCard({ data, tdee, system, className }: {
       {timeline && (
         <>
           <p className="mt-1 text-sm font-bold text-slate-brand">{plan.firstWin(formatWeight(timeline.week1Kg, system, locale), formatGoalDate(timeline.week1Date, locale, false))}</p>
-          <GoalChart timeline={timeline} system={system} nowLabel={plan.now} week1Label={progress.week1} month1Label={progress.month1} goalLabel={formatGoalDate(timeline.date, locale, false)} />
+          <GoalChart timeline={timeline} system={system} nowLabel={plan.now} goalLabel={formatGoalDate(timeline.date, locale, false)} />
         </>
       )}
       {tdee && (

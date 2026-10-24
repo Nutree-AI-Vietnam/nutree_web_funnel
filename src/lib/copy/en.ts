@@ -694,31 +694,20 @@ export const en: Copy = {
     avatars: ['A', 'M', 'L', 'N'],
   },
   welcomeGift: {
-    eyebrow: 'Welcome gift',
     // The gift's claim comes from the real plan prices: one percent when every plan has it, else "up to" the largest.
     headline: (name: string | null) => (name ? `${name}, your plan comes with a gift` : 'Your plan comes with a gift'),
     revealedTitle: (claim: { percent: number; upTo: boolean } | null) =>
       claim ? (claim.upTo ? `Up to ${claim.percent}% off your plan` : `${claim.percent}% off your plan`) : 'Your welcome price is unlocked',
-    revealedHeadline: 'You unlocked 50% off',
     heldFor: (minutes: number) => `Held for ${minutes} minutes.`,
     // The ticket reads lead, offer, note: "50% off / every plan", or "Up to / 50% / off your plan" so the big line fits.
     ticketLead: (claim: { percent: number; upTo: boolean } | null) => (claim?.upTo ? 'Up to' : ''),
     ticketOffer: (claim: { percent: number; upTo: boolean } | null) => (claim ? (claim.upTo ? `${claim.percent}%` : `${claim.percent}% off`) : 'Welcome'),
     ticketNote: (claim: { percent: number; upTo: boolean } | null) => (claim ? (claim.upTo ? 'off your plan' : 'every plan') : 'price unlocked'),
-    ticketAria: 'The 50 percent welcome price is unlocked',
     scratchAria: 'Scratch the card to reveal your gift',
     scratchHint: 'Scratch or tap to reveal',
-    revealButton: 'Reveal 50% price',
-    ticketLabel: 'WELCOME50',
-    discount: '50%',
-    ticketValue: '50% off',
-    priceLine: (amount: string, plan: string) => `${amount} for ${plan}.`,
     cta: (claim: { percent: number; upTo: boolean } | null) => (claim && !claim.upTo ? `Claim my ${claim.percent}% off` : 'Claim my discount'),
     lockedCta: 'Reveal my gift',
-    exitHeadline: 'Wait — keep this plan',
-    exitSubhead: 'Scratch to open your welcome price, then continue choosing a plan.',
-    exitContinue: 'Continue with this offer',
-    exitContinueHint: 'The welcome price is now applied to the plans below.',
+    lastChanceHeadline: (name: string | null) => (name ? `Wait, ${name}! One last offer for you` : 'Wait! One last offer for you'),
   },
   paywall: {
     offerReserved: 'welcome offer reserved for:',

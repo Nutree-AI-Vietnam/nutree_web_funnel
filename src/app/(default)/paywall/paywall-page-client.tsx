@@ -4,11 +4,10 @@ import { ErrorCode, Purchases, type Product, type Purchases as PurchasesInstance
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal, flushSync } from 'react-dom';
+import { createPortal, flushSync, preconnect, preload } from 'react-dom';
 import { BoCongThuongBadge } from '@/components/bo-cong-thuong-badge';
 import { ConversionShell } from '@/components/conversion-shell';
 import { NutreeLogo } from '@/components/nutree-logo';
-import { PaywallExitVoucher } from '@/components/paywall-exit-voucher';
 import { stripNonAttributionParams } from '@/lib/analytics/attribution';
 import { identifyMetaUser } from '@/lib/analytics/meta-identity';
 import { identifyFunnelLead, registerPriceTestVariant } from '@/lib/analytics/posthog';
@@ -25,7 +24,7 @@ import { clearPendingRedemptionCorrelation, readPendingRedemptionCorrelation, re
 import { usePostcheckoutRedirect } from '@/lib/revenuecat/use-postcheckout-redirect';
 import { resolvePaywallPricing } from '@/lib/revenuecat/paywall-offer-state';
 import { buildRevenueCatPaywall, checkoutPackage, defaultPaywallPlan, SIX_MONTH_PLAN_ID, type PaywallOfferKind, type RevenueCatPaywall, type RevenueCatPaywallPlan } from '@/lib/revenuecat/paywall-plans';
-import { hasWelcomeVoucherBeenClaimed, markWelcomeVoucherClaimed, shouldArmExitVoucher } from '@/lib/revenuecat/welcome-voucher';
+import { hasWelcomeVoucherBeenClaimed, markWelcomeVoucherClaimed } from '@/lib/revenuecat/welcome-voucher';
 import { clearCheckoutEmail, readCheckoutEmail } from '@/lib/revenuecat/checkout-email';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { formatWeight } from '@/lib/quiz/units';
@@ -266,7 +265,20 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const plainPricing = activeLocale === 'en';
   const welcomeSeconds = plainPricing ? ENGLISH_WELCOME_SECONDS : OFFER_SECONDS;
   const inlineCheckout = INLINE_CHECKOUT;
+  // Paddle's script and checkout frame otherwise start loading only after the first tap. Fetch the script
+  // and open the connections while the plans are read, so the sheet's payment buttons appear sooner.
+  // Only fetched, not run: RevenueCat injects the same script tag later and the browser reuses this copy.
+  if (inlineCheckout) {
+    preconnect('https://cdn.paddle.com');
+    // The RevenueCat key decides live or sandbox Paddle, so warm both frame hosts.
+    preconnect('https://buy.paddle.com');
+    preconnect('https://sandbox-buy.paddle.com');
+    preconnect('https://api.revenuecat.com');
+    preload('https://cdn.paddle.com/paddle/v2/paddle.js', { as: 'script' });
+  }
   const [checkoutSheetOpen, setCheckoutSheetOpen] = useState(false);
+  // Closing checkout without paying applies the exit price under a scratch card, so the person uncovers it.
+  const [exitGiftOpen, setExitGiftOpen] = useState(false);
   // Local preview has no RevenueCat, so the sheet shows a placeholder frame and its own close button.
   const [checkoutPreview, setCheckoutPreview] = useState(false);
   // RevenueCat empties and fills this element itself, so React never renders children into it.
@@ -540,7 +552,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       setShowCheckoutConfirm(false);
       setError(null);
       trackEvent('revenuecat_checkout_cancelled', { plan: plan.id, paddle_opened: true });
-      trackEvent('exit_offer_claimed', { discount_percent: offerClaimFor(plans, 'exit')?.percent, plan: SIX_MONTH_PLAN_ID });
+      const exitClaim = offerClaimFor(plans, 'exit');
+      trackEvent('exit_offer_claimed', { discount_percent: exitClaim?.percent, plan: SIX_MONTH_PLAN_ID });
+      if (exitClaim) setExitGiftOpen(true);
     };
     const rcPackage = checkoutPackage(plan, offer);
     const checkoutCommerce = firstPaymentCommerce(rcPackage.webBillingProduct);
@@ -672,9 +686,11 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const pricesReady = loadState === 'ready';
   // Discount claims come from the real package prices, never a fixed percent: null until they load.
   const welcomeClaim = pricesReady ? offerClaimFor(plans, 'welcome') : null;
-  // The paywall opens on the welcome gift while an unclaimed welcome price is running. Once prices are in,
-  // a gift with no real discount behind it (no welcome packages in the offering) is never shown.
+  // The paywall opens on the welcome gift while an unclaimed welcome price is running. The card cannot be
+  // scratched until the prices are in, so it never reveals a discount the plans do not have; an offering
+  // without welcome packages closes it once the prices show that.
   const giftOpen = offerStateReady && welcomeOfferActive && !giftSkipped && (!pricesReady || welcomeClaim != null);
+  const exitClaim = pricesReady ? offerClaimFor(plans, 'exit') : null;
   const activeClaim = pricesReady ? offerClaimFor(plans, activeOffer) : null;
   useEffect(() => {
     if (!offerStateReady || loadState === 'loading' || !autoAppliedPendingRef.current) return;
@@ -936,13 +952,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
           </div>
         </div>
         <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[0.76rem] text-muted-brand"><Icon name="lock" className="h-3.5 w-3.5 shrink-0" />{funnelPaywall.checkout.ssl}</p>
-        <p className="mt-3 flex items-center justify-center gap-2 text-[0.94rem] font-extrabold text-charcoal">
-          <span className="whitespace-nowrap">{funnelPaywall.guaranteeTitle}</span>
-          <svg viewBox="0 0 64 64" className="h-8 w-8 shrink-0" aria-hidden="true">
-            <path d="M32 4 54 12v18c0 14-9.5 24.5-22 30C19.5 54.5 10 44 10 30V12Z" fill="#17453a" />
-            <text x="32" y="36" textAnchor="middle" fill="#fff" fontSize="20" fontWeight="800">30</text>
-          </svg>
-        </p>
       </div>
     </div>
   );
@@ -1076,7 +1085,10 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     >
       {/* On <body>, so the page's animated wrappers don't pin this fixed sheet to themselves. */}
       {inlineCheckout && checkoutSheetOpen && createPortal(checkoutSheet, document.body)}
-      {giftOpen && <WelcomeGiftScreen name={data.name?.trim() || null} claim={welcomeClaim} minutes={Math.round(welcomeSeconds / 60)} onClaim={claimWelcomeGift} />}
+      {giftOpen && <WelcomeGiftScreen name={data.name?.trim() || null} claim={welcomeClaim} ready={pricesReady} minutes={Math.round(welcomeSeconds / 60)} onClaim={claimWelcomeGift} />}
+      {exitGiftOpen && exitClaim && (
+        <WelcomeGiftScreen variant="exit" name={data.name?.trim() || null} claim={exitClaim} ready minutes={Math.round(PAYWALL_WELCOME_OFFER_SECONDS / 60)} onClaim={() => { setExitGiftOpen(false); window.scrollTo({ top: 0 }); }} />
+      )}
       {plainPricing ? englishBody : (
       <div className="pt-[5.75rem]">
         {planTop}
@@ -1128,21 +1140,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         <p className="mx-auto mt-3 max-w-[38rem] px-4 text-center text-xs font-medium leading-relaxed text-muted-brand">{copy.paywall.termsIntro} {copy.paywall.secure}</p>
       </div>
       )}
-      <PaywallExitVoucher
-        armed={!plainPricing && shouldArmExitVoucher({
-          discountActive: welcomeOfferActive || exitOfferActive,
-          checkoutOpen: showCheckoutConfirm || busy || checkoutSheetOpen,
-          purchased: checkoutUnavailable,
-        })}
-        onClaimed={() => {
-          markWelcomeVoucherClaimed();
-          const offer = createPaywallOffer('welcome');
-          storePaywallOffer(offer);
-          setOfferKind('welcome');
-          setOfferExpiresAt(offer.expiresAt);
-          setSecondsLeft(PAYWALL_WELCOME_OFFER_SECONDS);
-        }}
-      />
       {typeof document !== 'undefined' && createPortal(
         <>
       {showCheckoutConfirm && (
