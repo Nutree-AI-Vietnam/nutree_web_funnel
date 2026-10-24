@@ -34,10 +34,8 @@ import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
 import { deriveAge, MIN_AGE } from '@/lib/quiz/dob';
 import { goalAfterTargetWeight } from '@/lib/quiz/fitness-goal';
-import { formatGoalDate, goalTimeline } from '@/lib/quiz/progress-projection';
 import type { QuizStep } from '@/lib/quiz/steps';
 import { formatHeight, formatWeight } from '@/lib/quiz/units';
-import { computeTdeeResult } from '@/lib/tdee/calculator';
 import { useUnits } from '@/lib/quiz/use-units';
 import { bmi, bmiCategory } from '@/lib/tdee/insights';
 import { cn } from '@/lib/utils';
@@ -186,9 +184,6 @@ export function TargetWeightStep() {
   const healthyHighKg = adultHeight ? weightAtBmi(HEALTHY_BMI_HIGH, adultHeight) : null;
   const floorKg = healthyLowKg != null ? Math.ceil(healthyLowKg) : null;
   const tooLow = targetValue != null && floorKg != null && targetValue < floorKg && targetValue < (currentValue ?? Infinity);
-  const forecastData = targetValue != null ? { ...data, target_weight_kg: targetValue, fitness_goal: goalAfterTargetWeight(data.fitness_goal, data.weight_kg, targetValue) } : null;
-  const forecast = forecastData ? goalTimeline(forecastData) : null;
-  const forecastCalories = forecastData ? computeTdeeResult(forecastData) : null;
   const goalBadge = (() => {
     const goal = data.fitness_goal;
     if (!goal || currentValue == null || targetValue == null || data.target_weight_unsure) return null;
@@ -222,17 +217,15 @@ export function TargetWeightStep() {
 
   return (
     <QuizStepFrame title={copy.target_weight.question} description={copy.funnel.targetHint} className="gap-2">
-      <div className="flex flex-1 flex-col items-center">
+      <div className="relative flex flex-1 flex-col items-center">
+        {/* Where they start, beside the wheel's selected row, so the target reads as a move from it. */}
+        <div className="pointer-events-none absolute left-0 top-[calc(50%+1.6rem)] -translate-y-1/2 whitespace-nowrap">
+          <span className="block text-[0.68rem] font-bold text-muted-brand">{copy.target_weight.currentLabel}</span>
+          <span className="text-[0.95rem] font-extrabold leading-none tracking-tight text-slate-brand">
+            {data.weight_kg != null ? formatWeight(data.weight_kg, system, locale) : '—'}
+          </span>
+        </div>
         <div className="relative flex w-56 max-w-[58vw] flex-1 flex-col">
-          <div className="mb-2 flex items-center justify-center gap-2 sm:pointer-events-none sm:absolute sm:right-full sm:top-1/2 sm:mb-0 sm:mr-3 sm:-translate-y-1/2 sm:justify-start sm:whitespace-nowrap">
-            <div className="text-center">
-              <span className="sr-only">{copy.target_weight.currentLabel}</span>
-              <span className="text-lg font-extrabold leading-none tracking-tight text-slate-brand">
-                {data.weight_kg != null ? formatWeight(data.weight_kg, system, locale) : '—'}
-              </span>
-            </div>
-            <span aria-hidden="true" className="text-2xl font-extrabold leading-none tracking-tight text-[#e6a0a8]">»</span>
-          </div>
           <UnitFields
             measure="weight"
             id="target-weight"
@@ -251,12 +244,6 @@ export function TargetWeightStep() {
       {tooLow && floorKg != null ? (
         <p role="alert" className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-extrabold leading-snug text-amber-900">
           {copy.funnel.targetTooLow(formatWeight(floorKg, system, locale))}
-        </p>
-      ) : forecast ? (
-        <p className="rounded-2xl bg-white/86 px-4 py-3 text-sm font-extrabold leading-snug text-forest shadow-sm">
-          {forecastCalories
-            ? copy.funnel.targetForecast(formatGoalDate(forecast.date, locale), Math.round(forecastCalories.calories).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US'))
-            : copy.funnel.targetForecastDate(formatGoalDate(forecast.date, locale))}
         </p>
       ) : null}
       {healthyLowKg != null && healthyHighKg != null && (
@@ -303,7 +290,7 @@ export function TargetWeightStep() {
             setData({ target_weight_kg: undefined, target_weight_unsure: true });
             goToNextQuizStep(router, 'target_weight');
           }}
-          className="rounded-2xl border border-border-brand bg-white/78 px-4 py-2.5 text-left text-sm font-extrabold text-forest shadow-sm"
+          className="min-h-11 rounded-xl px-4 text-[15px] font-semibold text-teal-brand active:opacity-60"
         >
           {copy.target_weight.unsure}
         </button>

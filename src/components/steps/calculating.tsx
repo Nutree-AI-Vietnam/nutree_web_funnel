@@ -207,10 +207,11 @@ export function CalculatingStep() {
         <section aria-label={vi.calculating.testimonialsLabel} className="mt-1">
           <p className="text-center text-[1rem] font-extrabold text-forest">{rating.countValue} {rating.chose}</p>
           <p className="mt-0.5 flex items-center justify-center gap-1 text-[0.76rem] font-bold text-muted-brand"><span className="text-[#f2a33a]" aria-hidden="true">★★★★★</span>{rating.line}</p>
-          <div className="mt-2.5 -mx-5 overflow-hidden px-5">
+          <div className="mt-2.5 overflow-hidden">
             <motion.ol
               className="flex gap-[2.5%]"
-              animate={{ x: `${-slideIndex * 88.5}%` }}
+              // 7% = half the space beside an 86% card, so the active card sits centered and both neighbours peek.
+              animate={{ x: `${7 - slideIndex * 88.5}%` }}
               transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 120, damping: 22 }}
             >
               {slides.map((slide, index) => (
