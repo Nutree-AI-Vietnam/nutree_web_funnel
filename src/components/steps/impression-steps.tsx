@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'motion/react';
 import { PrimaryButton } from '@/components/primary-button';
@@ -29,12 +30,22 @@ export function WelcomeStep() {
   ];
 
   return (
-    <QuizStepFrame className="justify-center gap-6">
+    <QuizStepFrame className="justify-center gap-5">
+      {/* A warm photo first, so the screen greets the visitor before it asks anything. */}
+      <motion.div
+        initial={reduce ? false : { opacity: 0, scale: 1.04 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        className="relative h-[9.5rem] shrink-0 overflow-hidden rounded-[1.7rem] shadow-[0_18px_46px_rgb(23_69_58_/_0.16)]"
+      >
+        <Image src="/images/welcome-meal.webp" alt="" fill priority sizes="(max-width: 512px) 100vw, 512px" className="object-cover" />
+        <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-forest/35 via-transparent to-transparent" />
+      </motion.div>
       <motion.h1
         initial={reduce ? false : { opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="text-center text-[2rem] font-extrabold leading-tight text-forest"
+        className="text-center text-[1.85rem] font-extrabold leading-tight text-forest"
       >
         {copy.welcome.headline}
       </motion.h1>

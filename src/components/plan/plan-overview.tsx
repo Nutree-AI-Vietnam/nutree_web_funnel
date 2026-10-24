@@ -67,6 +67,21 @@ export function GoalChart({ timeline, system, nowLabel, week1Label, month1Label,
   ].filter((milestone) => milestone.day < timeline.days * 0.8 && x(milestone.day) - x(0) >= 16);
   const start = { x: x(0), y: y(timeline.currentKg) };
   const end = { x: x(timeline.days), y: y(timeline.targetKg) };
+  // A curve that moves fastest early and eases into the goal, the way real progress tends to read.
+  const c1 = { x: start.x + (end.x - start.x) * 0.3, y: start.y + (end.y - start.y) * 0.72 };
+  const c2 = { x: start.x + (end.x - start.x) * 0.62, y: end.y };
+  const bezier = (t: number, a: number, b: number, c: number, d: number) => (1 - t) ** 3 * a + 3 * (1 - t) ** 2 * t * b + 3 * (1 - t) * t ** 2 * c + t ** 3 * d;
+  const onCurve = (px: number) => {
+    let lo = 0;
+    let hi = 1;
+    for (let i = 0; i < 24; i += 1) {
+      const mid = (lo + hi) / 2;
+      if (bezier(mid, start.x, c1.x, c2.x, end.x) < px) lo = mid;
+      else hi = mid;
+    }
+    return bezier(lo, start.y, c1.y, c2.y, end.y);
+  };
+  const curve = `M${start.x} ${start.y} C${c1.x} ${c1.y} ${c2.x} ${c2.y} ${end.x} ${end.y}`;
 
   return (
     <svg viewBox="0 0 326 150" className="mt-3 h-auto w-full" role="img" aria-label={`${formatWeight(timeline.currentKg, system, locale)} → ${formatWeight(timeline.targetKg, system, locale)}`}>
@@ -75,18 +90,24 @@ export function GoalChart({ timeline, system, nowLabel, week1Label, month1Label,
           <stop offset="0" stopColor="#1fa892" stopOpacity="0.22" />
           <stop offset="1" stopColor="#1fa892" stopOpacity="0" />
         </linearGradient>
+        <linearGradient id="plan-line" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0" stopColor="#d7a84d" />
+          <stop offset="0.45" stopColor="#1fa892" />
+          <stop offset="1" stopColor="#17453a" />
+        </linearGradient>
       </defs>
       <motion.path
-        d={`M${start.x} ${start.y} L${end.x} ${end.y} L${end.x} 124 L${start.x} 124 Z`}
+        d={`${curve} L${end.x} 124 L${start.x} 124 Z`}
         fill="url(#plan-fill)"
         initial={play ? { opacity: 0 } : false}
         animate={play ? { opacity: 1 } : undefined}
         transition={{ duration: 0.5, delay: 0.5 }}
       />
       <motion.path
-        d={`M${start.x} ${start.y} L${end.x} ${end.y}`}
-        stroke="#238d78"
-        strokeWidth="4"
+        d={curve}
+        fill="none"
+        stroke="url(#plan-line)"
+        strokeWidth="4.5"
         strokeLinecap="round"
         initial={play ? { pathLength: 0 } : false}
         animate={play ? { pathLength: 1 } : undefined}
@@ -95,7 +116,7 @@ export function GoalChart({ timeline, system, nowLabel, week1Label, month1Label,
       <circle cx={start.x} cy={start.y} r="6" fill="#d7a84d" stroke="white" strokeWidth="3" />
       <text x={start.x + 10} y={start.y - 8} className="fill-slate-brand text-[11px] font-bold">{formatWeight(timeline.currentKg, system, locale)}</text>
       {milestones.map((milestone) => (
-        <circle key={milestone.label} cx={x(milestone.day)} cy={y(milestone.kg)} r="4.5" fill="#238d78" stroke="white" strokeWidth="2.5" />
+        <circle key={milestone.label} cx={x(milestone.day)} cy={onCurve(x(milestone.day))} r="4.5" fill="#238d78" stroke="white" strokeWidth="2.5" />
       ))}
       {play && (
         // One pulse once the goal dot has landed; hidden until then, so no ring waits ahead of the line.

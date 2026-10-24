@@ -17,8 +17,6 @@ import { cn } from '@/lib/utils';
 
 // Deliberately paced so the "building your plan" moment feels substantial.
 const TOTAL_MS = 10000;
-const RING_R = 52;
-const RING_C = 2 * Math.PI * RING_R;
 
 
 function usePrefersReducedMotion() {
@@ -142,7 +140,6 @@ export function CalculatingStep() {
 
   const testimonials = vi.calculating.testimonials;
   const [testimonialIndex, setTestimonialIndex] = useState(0);
-  const frac = Math.min(1, elapsed / TOTAL_MS);
   const stage = Math.min(items.length, Math.floor(elapsed / stageMs));
 
   useEffect(() => {
@@ -178,62 +175,33 @@ export function CalculatingStep() {
 
       {/* No min-h-0: on short screens this block must keep its height and scroll, not center up into the header. */}
       <div className="flex flex-1 flex-col justify-center gap-3 py-1">
-        {/* Hero ring: counts up to the user's real target */}
-        <div className="flex flex-col items-center">
-          <div className="relative grid h-[clamp(8.5rem,21vh,11rem)] w-[clamp(8.5rem,21vh,11rem)] place-items-center">
-            <div
-              className={cn('absolute inset-4 rounded-full bg-teal-brand/14 blur-2xl', !complete && 'motion-safe:animate-pulse')}
-              aria-hidden="true"
-            />
-            <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90" aria-hidden="true">
-              <defs>
-                <linearGradient id="calcRing" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stopColor="#17453a" />
-                  <stop offset="1" stopColor="#34d0b4" />
-                </linearGradient>
-              </defs>
-              <circle cx="60" cy="60" r={RING_R} fill="none" strokeWidth="8" stroke="currentColor" className="text-forest/8" />
-              <circle
-                cx="60"
-                cy="60"
-                r={RING_R}
-                fill="none"
-                stroke="url(#calcRing)"
-                strokeWidth="8"
-                strokeLinecap="round"
-                strokeDasharray={RING_C}
-                strokeDashoffset={RING_C * (1 - frac)}
-              />
-            </svg>
-            <div className="absolute inset-0 grid place-items-center text-center">
-              <div className="text-[clamp(1.9rem,5.2vh,2.6rem)] font-extrabold leading-none tabular-nums text-forest">
-                {Math.round(frac * 100)}%
-              </div>
-            </div>
-          </div>
-
-          {/* The visitor's answers, ticked off as the plan is built. */}
-          <ol className="mt-4 grid w-full max-w-[20rem] gap-2">
+        {/* One bar per answer, filling in turn, so the plan visibly builds from what the visitor said. */}
+        <section className="rounded-[1.6rem] bg-white/90 p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.1),inset_0_1px_0_rgb(255_255_255_/_0.8)]">
+          <ol className="grid gap-3.5">
             {items.map((item, index) => {
-              const done = complete || index < stage;
-              const active = index === stage && !complete;
+              const progress = complete ? 1 : Math.min(1, Math.max(0, (elapsed - index * stageMs) / stageMs));
+              const done = progress >= 1;
+              const waiting = progress <= 0;
               return (
-                <li key={item} className={cn('flex items-center gap-2.5 text-sm font-bold transition-colors duration-300', done ? 'text-forest' : active ? 'text-slate-brand' : 'text-muted-brand/60')}>
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      'grid h-5 w-5 shrink-0 place-items-center rounded-full text-[0.65rem] font-black',
-                      done ? 'bg-teal-brand text-white' : active ? 'border-2 border-teal-brand/40 border-t-teal-brand motion-safe:animate-spin' : 'border-2 border-forest/12',
-                    )}
-                  >
-                    {done ? '✓' : ''}
-                  </span>
-                  <span className="ph-mask min-w-0">{item}</span>
+                <li key={item}>
+                  <div className={cn('flex items-center justify-between gap-3 text-[0.86rem] font-bold transition-colors duration-300', waiting ? 'text-muted-brand/70' : 'text-forest')}>
+                    <span className="ph-mask flex min-w-0 items-center gap-2">
+                      <span aria-hidden="true" className={cn('grid h-4.5 w-4.5 shrink-0 place-items-center rounded-full text-[0.6rem] font-black transition-colors duration-300', done ? 'bg-teal-brand text-white' : 'bg-forest/8 text-transparent')}>✓</span>
+                      <span className="min-w-0">{item}</span>
+                    </span>
+                    <span className="shrink-0 tabular-nums text-[0.78rem] text-muted-brand">{Math.round(progress * 100)}%</span>
+                  </div>
+                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-forest/8" aria-hidden="true">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-forest to-teal-bright"
+                      style={{ width: `${progress * 100}%` }}
+                    />
+                  </div>
                 </li>
               );
             })}
           </ol>
-        </div>
+        </section>
 
         {testimonial && (
           <div>

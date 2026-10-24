@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'motion/react';
 import { CARD } from '@/components/plan/plan-overview';
@@ -19,6 +20,15 @@ export function ReflectionStep() {
 
   return (
     <QuizStepFrame className="gap-5">
+      {/* The outcome they asked for, as a picture; it settles in slowly, once. */}
+      <motion.div
+        initial={reduce ? false : { opacity: 0, scale: 1.08 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+        className="relative h-[11rem] shrink-0 overflow-hidden rounded-[1.7rem] shadow-[0_18px_46px_rgb(23_69_58_/_0.16)]"
+      >
+        <Image src="/images/reflection-walk.webp" alt="" fill priority sizes="(max-width: 512px) 100vw, 512px" className="object-cover object-[70%_30%]" />
+      </motion.div>
       <p className="ph-mask max-w-[22rem] text-[1.7rem] font-extrabold leading-[1.2] tracking-tight text-forest [text-wrap:balance]">
         {reflectionHeadline(data, copy)}
       </p>
