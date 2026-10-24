@@ -219,12 +219,14 @@ export function TargetWeightStep() {
     <QuizStepFrame title={copy.target_weight.question} description={copy.funnel.targetHint} className="gap-2">
       <div className="relative flex flex-1 flex-col items-center">
         {/* Where they start, beside the wheel's selected row, so the target reads as a move from it. */}
-        <div className="pointer-events-none absolute right-[calc(50%+4.75rem)] top-[calc(50%+1.6rem)] -translate-y-1/2 whitespace-nowrap text-right">
-          <span className="block text-[0.68rem] font-bold text-muted-brand">{copy.target_weight.currentLabel}</span>
-          <span className="text-[0.95rem] font-extrabold leading-none tracking-tight text-slate-brand">
-            {data.weight_kg != null ? formatWeight(data.weight_kg, system, locale) : '—'}
+        <div className="pointer-events-none absolute right-[calc(50%+4.75rem)] top-[calc(50%+1.6rem)] flex -translate-y-1/2 items-end gap-1 whitespace-nowrap">
+          <span>
+            <span className="block text-[0.68rem] font-bold text-muted-brand">{copy.target_weight.currentLabel}</span>
+            <span className="text-[0.95rem] font-extrabold leading-none tracking-tight text-slate-brand">
+              {data.weight_kg != null ? formatWeight(data.weight_kg, system, locale) : '—'}
+            </span>
           </span>
-          <span aria-hidden="true" className="ml-1 text-[1.15rem] font-extrabold leading-none text-[#e6a0a8]">»</span>
+          <span aria-hidden="true" className="text-[1.15rem] font-extrabold leading-tight text-[#e6a0a8]">»</span>
         </div>
         <div className="relative flex w-56 max-w-[58vw] flex-1 flex-col">
           <UnitFields

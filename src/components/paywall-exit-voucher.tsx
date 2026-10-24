@@ -19,9 +19,12 @@ export function PaywallExitVoucher({ armed, onClaimed }: { armed: boolean; onCla
   const pendingExit = useRef(false);
   const historyArmed = useRef(false);
 
-  useEffect(() => {
+  // Disarming closes the voucher; adjusted during render rather than in an effect.
+  const [wasArmed, setWasArmed] = useState(armed);
+  if (armed !== wasArmed) {
+    setWasArmed(armed);
     if (!armed) setOpen(false);
-  }, [armed]);
+  }
 
   useEffect(() => {
     if (!armed) return;

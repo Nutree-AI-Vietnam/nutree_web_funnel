@@ -331,12 +331,12 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     });
     if (resumeUnfinishedPaddle) {
       saveSelectedPaywallPlan(SIX_MONTH_PLAN_ID);
-      setSelectedId(SIX_MONTH_PLAN_ID);
       markExitOfferClaimed();
     }
     if (pricing.mode !== 'original') storePaywallOffer({ kind: pricing.mode, expiresAt: pricing.expiresAt });
     if (pricing.mode === 'welcome' && pricing.autoApplied) autoAppliedPendingRef.current = true;
     const readyTimer = window.setTimeout(() => {
+      if (resumeUnfinishedPaddle) setSelectedId(SIX_MONTH_PLAN_ID);
       setOfferKind(pricing.mode);
       setOfferExpiresAt(pricing.mode === 'original' ? null : pricing.expiresAt);
       setSecondsLeft(pricing.mode === 'original' ? 0 : Math.max(0, Math.ceil((pricing.expiresAt - Date.now()) / 1000)));
