@@ -509,8 +509,8 @@ export const vi = {
   },
   tdee_targets: {
     eyebrow: '',
-    headline: 'Hôm nay bạn nên ăn bao nhiêu',
-    aha: 'Tập trung vào hai con số: calo và protein.',
+    headline: 'Con số mỗi ngày của bạn',
+    aha: 'Chỉ cần đạt calo và protein, phần còn lại sẽ theo sau. Chụp ảnh bữa ăn, Nutree đếm giúp bạn.',
     calories: 'Calo',
     summary: (calories: string, protein: number, carbs: number, fat: number) =>
       `${calories} kcal mỗi ngày, ${protein} g protein, ${carbs} g carb và ${fat} g chất béo.`,

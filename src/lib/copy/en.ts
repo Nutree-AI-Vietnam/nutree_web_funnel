@@ -512,8 +512,8 @@ export const en: Copy = {
   },
   tdee_targets: {
     eyebrow: '',
-    headline: 'How much to eat today',
-    aha: 'Focus on two numbers: calories and protein.',
+    headline: 'Your numbers for every day',
+    aha: 'Hit your calories and protein and the rest follows. Snap a photo of each meal and Nutree counts both for you.',
     calories: 'Calories',
     summary: (calories: string, protein: number, carbs: number, fat: number) =>
       `${calories} kcal a day, ${protein} g protein, ${carbs} g carbs and ${fat} g fat.`,
