@@ -227,3 +227,31 @@ export function AppStoreRating({ className }: { className?: string }) {
     </section>
   );
 }
+
+const REFERENCE_LOGOS: Record<string, string> = {
+  WHO: '/images/source-who.webp',
+  UNICEF: '/images/source-unicef.webp',
+  NIH: '/images/source-nih.svg',
+  EFSA: '/images/source-efsa.webp',
+};
+
+/** The organizations whose nutrition guidelines the plan follows: the name, then the logo, rows sliding in one by one. */
+export function ReferenceSources({ sources }: { sources: readonly { acronym: string; name: string }[] }) {
+  const reduce = useReducedMotion();
+  return (
+    <ul className="divide-y divide-border-brand overflow-hidden rounded-[1.4rem] border border-border-brand bg-white shadow-[0_14px_40px_rgb(26_71_57_/_0.07)]">
+      {sources.map((source, index) => (
+        <motion.li
+          key={source.acronym}
+          initial={reduce ? false : { opacity: 0, x: 16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.15 + index * 0.12, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          className="flex min-h-[4.5rem] items-center justify-between gap-3 px-4 py-3"
+        >
+          <span className="text-[0.95rem] font-bold leading-snug text-forest">{source.name}{source.name !== source.acronym && ` (${source.acronym})`}</span>
+          <Image src={REFERENCE_LOGOS[source.acronym]} alt="" width={128} height={56} className="h-14 w-28 shrink-0 object-contain object-right" />
+        </motion.li>
+      ))}
+    </ul>
+  );
+}

@@ -17,6 +17,7 @@ export const QUIZ_STEPS = [
   'training_duration',
   'eating_pattern',
   'diet',
+  'not_alone',
   'calculating',
   'result',
   'progress',
@@ -26,7 +27,7 @@ export const QUIZ_STEPS = [
 export type QuizStep = (typeof QUIZ_STEPS)[number];
 
 /** Product tour after email: the plan, then photo logging. Same onboarding bar as the quiz. The rating and feature list live on the paywall. */
-export const VALUE_TOUR_STEPS = ['plan', 'snap'] as const;
+export const VALUE_TOUR_STEPS = ['plan', 'sources', 'snap'] as const;
 
 export type ValueTourStep = (typeof VALUE_TOUR_STEPS)[number];
 
@@ -58,6 +59,7 @@ export const STEP_CHAPTERS: Record<QuizStep, QuizChapter> = {
   training_duration: 'routine',
   eating_pattern: 'routine',
   diet: 'routine',
+  not_alone: 'routine',
   calculating: 'plan',
   result: 'plan',
   progress: 'plan',

@@ -5,7 +5,7 @@ import { PrimaryButton } from '@/components/primary-button';
 import { QuizShell } from '@/components/quiz-shell';
 import { FirstChangesCard, PlanDayCard, PlanGoalCard } from '@/components/plan/plan-overview';
 import { QuizStepFrame } from '@/components/steps/quiz-step-frame';
-import { MealSnapDemo } from '@/components/value-tour/value-tour-demos';
+import { MealSnapDemo, ReferenceSources } from '@/components/value-tour/value-tour-demos';
 import { trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
 import { VALUE_TOUR_STEPS, valueProgressIndex, type ValueTourStep } from '@/lib/quiz/steps';
@@ -69,6 +69,14 @@ export function ValueTourScreen({
           )}
           <div className="mt-auto pt-3">
             <PrimaryButton onClick={advance}>{tour.plan.cta}</PrimaryButton>
+          </div>
+        </QuizStepFrame>
+      )}
+      {step === 'sources' && (
+        <QuizStepFrame title={tour.sources.title} description={tour.sources.body}>
+          <ReferenceSources sources={copy.science.sources} />
+          <div className="mt-auto pt-3">
+            <PrimaryButton onClick={advance}>{tour.sources.cta}</PrimaryButton>
           </div>
         </QuizStepFrame>
       )}

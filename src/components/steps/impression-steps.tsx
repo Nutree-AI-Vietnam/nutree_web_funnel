@@ -106,3 +106,39 @@ export function WelcomeStep() {
     </QuizStepFrame>
   );
 }
+
+/** A breath before the plan builds: a beating heart and one line of support. */
+export function NotAloneStep() {
+  const router = useRouter();
+  const copy = useCopy();
+  const reduce = useReducedMotion();
+
+  return (
+    <QuizStepFrame className="gap-7 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center gap-8">
+        <motion.svg
+          viewBox="0 0 120 120"
+          className="h-28 w-28 drop-shadow-[0_14px_24px_rgb(240_79_98_/_0.35)]"
+          aria-hidden="true"
+          initial={reduce ? false : { scale: 0.6, opacity: 0 }}
+          animate={reduce ? { scale: 1, opacity: 1 } : { scale: [1, 1.08, 1], opacity: 1 }}
+          transition={reduce ? { duration: 0 } : { scale: { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }, opacity: { duration: 0.4 } }}
+        >
+          <path d="M60 98 18 55C-2 34 13 8 35 14c12 3 19 13 25 21 6-8 13-18 25-21 22-6 37 20 17 41L60 98Z" fill="#f04f62" />
+          <path d="M30 31c4-6 10-9 17-9" fill="none" stroke="#ffb7c1" strokeLinecap="round" strokeWidth="7" />
+        </motion.svg>
+        <motion.h1
+          initial={reduce ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="mx-auto max-w-[21rem] text-[1.75rem] font-extrabold leading-tight text-forest [text-wrap:balance]"
+        >
+          {copy.funnel.notAlone.title}
+        </motion.h1>
+      </div>
+      <div className="w-full pt-5">
+        <PrimaryButton onClick={() => goToNextQuizStep(router, 'not_alone')}>{copy.funnel.notAlone.cta}</PrimaryButton>
+      </div>
+    </QuizStepFrame>
+  );
+}

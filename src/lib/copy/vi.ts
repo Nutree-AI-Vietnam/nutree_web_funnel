@@ -953,8 +953,17 @@ export const vi = {
         one_number: { title: (n: { calories: number; proteinG: number; snackCalories: number }) => `Theo hai con số: ${n.calories.toLocaleString('vi-VN')} kcal và ${n.proteinG} g protein`, body: (n: { calories: number; proteinG: number; snackCalories: number }) => `${n.calories.toLocaleString('vi-VN')} kcal và ${n.proteinG} g protein mỗi ngày. Tạm bỏ qua phần còn lại.` },
       },
     },
+    notAlone: {
+      title: 'Bạn không đơn độc. Nutree đồng hành cùng bạn trên từng bước.',
+      cta: 'Tiếp tục',
+    },
     tour: {
       plan: { eyebrow: '', cta: 'Tiếp tục' },
+      sources: {
+        title: 'Dựa trên khoa học',
+        body: 'Kế hoạch của bạn dựa trên nghiên cứu và hướng dẫn từ các tổ chức y tế hàng đầu:',
+        cta: 'Tiếp tục',
+      },
       snap: {
         eyebrow: '',
         title: 'Ghi bữa ăn bằng một bức ảnh',
@@ -1006,6 +1015,8 @@ export const vi = {
         title: 'Thanh toán',
         close: 'Đóng thanh toán',
         planLine: (plan: string) => `Gói ${plan}`,
+        total: 'Tổng:',
+        totalFor: (price: string, count: number, unit: string) => `${price} cho ${count === 1 ? unit : `${count} ${unit}`} đầu tiên`,
         discountLine: (percent: number) => `Giảm ${percent}% chào mừng`,
         offerLine: (percent: number) => `Ưu đãi giảm ${percent}%`,
         secure: 'Thanh toán được Paddle xử lý an toàn.',

@@ -959,8 +959,17 @@ export const en: Copy = {
         one_number: { title: (n: { calories: number; proteinG: number; snackCalories: number }) => `Follow two numbers: ${n.calories.toLocaleString('en-US')} kcal and ${n.proteinG} g protein`, body: (n: { calories: number; proteinG: number; snackCalories: number }) => `${n.calories.toLocaleString('en-US')} kcal and ${n.proteinG} g protein a day. Ignore the rest for now.` },
       },
     },
+    notAlone: {
+      title: 'You’re not in this alone. Nutree is with you every step of the way.',
+      cta: 'Continue',
+    },
     tour: {
       plan: { eyebrow: '', cta: 'Continue' },
+      sources: {
+        title: 'A science-based approach',
+        body: 'Your plan follows research and guidelines from leading health organizations:',
+        cta: 'Continue',
+      },
       snap: {
         eyebrow: '',
         title: 'Log a meal with one photo',
@@ -1013,7 +1022,9 @@ export const en: Copy = {
       checkout: {
         title: 'Checkout',
         close: 'Close checkout',
-        planLine: (plan: string) => `${plan} plan`,
+        planLine: (plan: string) => `${plan} plan subscription`,
+        total: 'Total:',
+        totalFor: (price: string, count: number, unit: string) => `${price} for the first ${count === 1 ? unit : `${count} ${unit}`}`,
         discountLine: (percent: number) => `${percent}% welcome discount`,
         offerLine: (percent: number) => `${percent}% offer`,
         secure: 'Payments are processed securely by Paddle.',

@@ -617,8 +617,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const exitOfferActive = isExitOfferMode && secondsLeft > 0;
   const welcomeOfferActive = offerKind === 'welcome' && secondsLeft > 0;
   const activeOffer: PaywallOfferKind | null = exitOfferActive ? 'exit' : welcomeOfferActive ? 'welcome' : null;
-  // English opens on the welcome gift while an unclaimed welcome price is running.
-  const giftOpen = plainPricing && offerStateReady && welcomeOfferActive && !giftSkipped;
+  // The paywall opens on the welcome gift while an unclaimed welcome price is running.
+  const giftOpen = offerStateReady && welcomeOfferActive && !giftSkipped;
   const selectedOriginalPrice = firstPaymentPrice(selected?.rcPackage.webBillingProduct);
   const selectedOfferProduct = selected ? checkoutPackage(selected, activeOffer).webBillingProduct : null;
   const selectedOfferPrice = firstPaymentPrice(selectedOfferProduct);
@@ -841,35 +841,36 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   // Our part of the sheet is the discount; RevenueCat draws the order total (with any tax) above Paddle's form.
   const checkoutSheet = (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-[rgb(9_22_18_/_0.45)] backdrop-blur-[2px]"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgb(9_22_18_/_0.5)] px-3 py-4 backdrop-blur-[2px]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="checkout-sheet-title"
     >
-      <div className="max-h-[94dvh] w-full max-w-lg overflow-y-auto rounded-t-[1.6rem] bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-18px_50px_rgb(9_22_18_/_0.25)] animate-soft-enter">
+      <div className="max-h-full w-full max-w-md overflow-y-auto rounded-[1.6rem] bg-[#f6f8f7] px-4 pb-4 pt-2.5 shadow-[0_24px_60px_rgb(9_22_18_/_0.3)] animate-soft-enter">
         <div className="relative flex min-h-11 items-center justify-center">
           <h2 id="checkout-sheet-title" className="text-[1.1rem] font-extrabold text-forest">{funnelPaywall.checkout.title}</h2>
           {!checkoutPaid && <button type="button" autoFocus onClick={closeCheckoutSheet} aria-label={funnelPaywall.checkout.close} className="absolute right-[-0.5rem] top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-slate-brand transition hover:bg-mist focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">
             <Icon name="close" className="h-5 w-5" />
           </button>}
         </div>
-        {selected && (sheetDiscount ? (
-          <div className="mt-2 rounded-2xl bg-[#fdecef] px-3.5 py-3">
-            <p className="flex items-center justify-between gap-3 text-[0.92rem] font-extrabold text-[#c0263f]">
-              <span className="flex items-center gap-1.5"><Icon name="gift" className="h-4 w-4" />{checkoutOffer === 'exit' ? funnelPaywall.checkout.offerLine(sheetPercent) : funnelPaywall.checkout.discountLine(sheetPercent)}</span>
-              <span className="tabular-nums">−{sheetDiscount}</span>
-            </p>
-            <p className="mt-0.5 flex justify-between gap-3 text-[0.8rem] font-semibold text-slate-brand">
-              <span>{funnelPaywall.checkout.planLine(planName(selected))}</span>
-              <span className="tabular-nums"><s className="text-muted-brand">{sheetFullPrice?.formattedPrice}</s> {sheetOfferPrice?.formattedPrice}</span>
+        {/* The order as plain lines: the plan at full price, the discount, then what today's charge covers. */}
+        {selected && (
+          <div className="mt-1 text-[0.9rem] text-slate-brand">
+            <p className="flex justify-between gap-3 py-1"><span>{funnelPaywall.checkout.planLine(planName(selected))}</span><span className="tabular-nums">{sheetFullPrice?.formattedPrice ?? originalTotal}</span></p>
+            {sheetDiscount && (
+              <p className="flex justify-between gap-3 py-1"><span>{checkoutOffer === 'exit' ? funnelPaywall.checkout.offerLine(sheetPercent) : funnelPaywall.checkout.discountLine(sheetPercent)}</span><span className="font-extrabold tabular-nums text-[#d6455a]">−{sheetDiscount}</span></p>
+            )}
+            <p className="mt-2 flex items-baseline justify-between gap-3 border-y border-border-brand py-2.5 text-forest">
+              <span className="font-extrabold">{funnelPaywall.checkout.total}</span>
+              <span className="text-right">{selectedPeriod
+                ? <><strong className="text-[1.05rem] tabular-nums">{sheetOfferPrice?.formattedPrice ?? originalTotal}</strong>{funnelPaywall.checkout.totalFor('', selectedPeriod.number, periodWord(selectedPeriod))}</>
+                : <strong className="tabular-nums">{sheetOfferPrice?.formattedPrice ?? originalTotal}</strong>}</span>
             </p>
           </div>
-        ) : (
-          <p className="mt-2 flex justify-between gap-3 rounded-2xl bg-mist px-3.5 py-3 text-[0.9rem] font-bold text-forest"><span>{funnelPaywall.checkout.planLine(planName(selected))}</span><span className="tabular-nums">{sheetOfferPrice?.formattedPrice ?? originalTotal}</span></p>
-        ))}
+        )}
         {/* Paddle's form needs 312px; on the narrowest phones the box borrows the sheet's side padding.
             checkout-host lets RevenueCat's layout grow to its content (see globals.css). */}
-        <div ref={checkoutHostRef} className="checkout-host mt-3 min-h-[22rem] max-[359px]:-mx-3.5">
+        <div ref={checkoutHostRef} className="checkout-host mt-3 min-h-[22rem] max-[359px]:-mx-2.5">
           {checkoutPreview && (
             <p className="grid min-h-[22rem] place-items-center rounded-[1.2rem] border-2 border-dashed border-border-brand px-6 text-center text-sm font-semibold text-muted-brand">{funnelPaywall.checkout.previewFrame}</p>
           )}
