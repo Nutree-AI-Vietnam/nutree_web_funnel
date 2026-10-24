@@ -10,6 +10,8 @@ const eslintConfig = defineConfig([
     // Default ignores of eslint-config-next:
     ".next/**",
     ".claude/**",
+    // Agent tooling scripts (CommonJS), not app code.
+    ".codex/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
