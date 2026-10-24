@@ -117,7 +117,7 @@ export const en: Copy = {
     placeholder: 'Your first name',
   },
   welcome: {
-    headline: 'Let’s build your plan',
+    headline: '3 minutes to a plan that fits your life',
     labels: {
       goalDate: 'Goal date',
       calories: 'Calories a day',
@@ -847,7 +847,7 @@ export const en: Copy = {
     loader: {
       title: (name: string) => `Building ${name}'s plan`,
       titleFallback: 'Building your plan',
-      body: 'Nutree is turning your answers into calories, protein and first steps.',
+      body: 'Matching your body, goal and routine to the calories and protein that get you there.',
       goal: (goal: string) => `Goal: ${goal.toLowerCase()}`,
       weights: (current: string, target: string) => `${current} to ${target}`,
       training: (days: number) => `${days} training ${days === 1 ? 'day' : 'days'} a week`,

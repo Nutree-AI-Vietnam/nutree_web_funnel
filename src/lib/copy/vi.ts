@@ -114,7 +114,7 @@ export const vi = {
     placeholder: 'Nhập tên của bạn',
   },
   welcome: {
-    headline: 'Cùng lập kế hoạch cho bạn nhé',
+    headline: '3 phút để có kế hoạch hợp với bạn',
     labels: {
       goalDate: 'Ngày đạt mục tiêu',
       calories: 'Calo mỗi ngày',
@@ -841,7 +841,7 @@ export const vi = {
     loader: {
       title: (name: string) => `Đang tạo kế hoạch cho ${name}`,
       titleFallback: 'Đang tạo kế hoạch của bạn',
-      body: 'Nutree đang biến câu trả lời của bạn thành calo, protein và những bước đầu tiên.',
+      body: 'Đang ghép cơ thể, mục tiêu và nhịp sống của bạn thành lượng calo và protein giúp bạn đạt mục tiêu.',
       goal: (goal: string) => `Mục tiêu: ${goal.toLowerCase()}`,
       weights: (current: string, target: string) => `${current} đến ${target}`,
       training: (days: number) => `${days} ngày tập mỗi tuần`,
