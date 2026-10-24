@@ -17,6 +17,7 @@ export const QUIZ_STEPS = [
   'training_duration',
   'eating_pattern',
   'diet',
+  'step_goal',
   'not_alone',
   'calculating',
   'result',
@@ -59,6 +60,7 @@ export const STEP_CHAPTERS: Record<QuizStep, QuizChapter> = {
   training_duration: 'routine',
   eating_pattern: 'routine',
   diet: 'routine',
+  step_goal: 'routine',
   not_alone: 'routine',
   calculating: 'plan',
   result: 'plan',
@@ -82,6 +84,7 @@ const QUESTION_STEPS: readonly QuizStep[] = [
   'training_duration',
   'eating_pattern',
   'diet',
+  'step_goal',
   'confidence',
 ];
 

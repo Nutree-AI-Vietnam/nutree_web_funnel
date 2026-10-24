@@ -12,7 +12,7 @@ import {
   BodyReviewStep,
   TargetWeightStep,
 } from './final-web-steps';
-import { NotAloneStep, WelcomeStep } from './impression-steps';
+import { NotAloneStep, StepGoalStep, WelcomeStep } from './impression-steps';
 import { MultiChoiceStep } from './multi-choice';
 import { NumberInputStep } from './number-input-step';
 import { ReflectionStep } from './reflection';
@@ -55,6 +55,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
   name_ask: () => <NameAskStep step="name_ask" />,
   welcome: () => <WelcomeStep />,
   not_alone: () => <NotAloneStep />,
+  step_goal: () => <StepGoalStep />,
   challenges: function ChallengesStep() {
     const c = useCopy();
     // A retired option saved in an older session stays on screen while picked, so it can be cleared.

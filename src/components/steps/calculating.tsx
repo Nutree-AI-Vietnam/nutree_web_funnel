@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Image from 'next/image';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { previewTdee } from '@/lib/api/client';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
@@ -138,19 +137,19 @@ export function CalculatingStep() {
     goToNextQuizStep(routerRef.current, 'calculating');
   }, [complete, outcome, setTdee]);
 
-  const testimonials = vi.calculating.testimonials;
-  const [testimonialIndex, setTestimonialIndex] = useState(0);
+  const rating = vi.funnel.rating;
+  const slides = useMemo(() => (vi.calculating.testimonials.length
+    ? vi.calculating.testimonials.map((item) => ({ kind: 'review' as const, key: item.name, quote: item.quote, name: item.name, title: '', body: '' }))
+    : vi.calculating.highlights.map((item) => ({ kind: 'highlight' as const, key: item.title, quote: '', name: '', title: item.title, body: item.body }))), [vi]);
+  const [slideIndex, setSlideIndex] = useState(0);
   const stage = Math.min(items.length, Math.floor(elapsed / stageMs));
 
   useEffect(() => {
-    if (reduce || testimonials.length < 2) return;
-    const id = window.setInterval(() => {
-      setTestimonialIndex((index) => (index + 1) % testimonials.length);
-    }, 2600);
+    if (reduce || slides.length < 2) return;
+    const id = window.setInterval(() => setSlideIndex((index) => (index + 1) % slides.length), 2800);
     return () => window.clearInterval(id);
-  }, [reduce, testimonials.length]);
+  }, [reduce, slides.length]);
 
-  const testimonial = testimonials[testimonialIndex] ?? testimonials[0];
   const subtitle = ready ? loader.done : complete ? vi.calculating.preparing : items[Math.min(stage, items.length - 1)];
   const name = data.name?.trim();
 
@@ -203,45 +202,41 @@ export function CalculatingStep() {
           </ol>
         </section>
 
-        {testimonial && (
-          <div>
-            <AnimatePresence mode="wait">
-              <motion.figure
-                key={testimonial.name}
-                initial={reduce ? false : { opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reduce ? undefined : { opacity: 0, y: -10 }}
-                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                aria-label={vi.calculating.testimonialsLabel}
-                className="rounded-[1.4rem] bg-white/85 px-4 py-3.5 shadow-[0_14px_40px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.8)]"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <Image src={testimonial.avatar} alt="" width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
-                    <div>
-                      <figcaption className="text-sm font-extrabold text-forest">
-                        {testimonial.name} <span aria-hidden="true">{testimonial.flag}</span>
-                      </figcaption>
-                      <p className="text-[0.68rem] font-bold text-muted-brand">{testimonial.goal}</p>
-                    </div>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-teal-brand/12 px-2.5 py-1 text-[0.68rem] font-extrabold text-teal-brand">{testimonial.result}</span>
-                </div>
-                <div className="mt-2.5 flex gap-0.5 text-[#e7a23a]" aria-label="5">
-                  {Array.from({ length: 5 }, (_, index) => (
-                    <span key={index} aria-hidden="true">★</span>
-                  ))}
-                </div>
-                <blockquote className="mt-1.5 min-h-[3.6rem] text-sm font-semibold leading-relaxed text-slate-brand">“{testimonial.quote}”</blockquote>
-              </motion.figure>
-            </AnimatePresence>
-            <div className="mt-2.5 flex justify-center gap-1.5" aria-hidden="true">
-              {testimonials.map((item, index) => (
-                <span key={item.name} className={cn('h-1.5 rounded-full transition-all duration-300', index === testimonialIndex ? 'w-5 bg-teal-brand' : 'w-1.5 bg-forest/15')} />
+        {/* Proof while the plan builds: the real rating and customer count, then a carousel that peeks the next card.
+            It shows verified reviews once the copy has them; until then, what the app does. */}
+        <section aria-label={vi.calculating.testimonialsLabel} className="mt-1">
+          <p className="text-center text-[1rem] font-extrabold text-forest">{rating.countValue} {rating.chose}</p>
+          <p className="mt-0.5 flex items-center justify-center gap-1 text-[0.76rem] font-bold text-muted-brand"><span className="text-[#f2a33a]" aria-hidden="true">★★★★★</span>{rating.line}</p>
+          <div className="mt-2.5 -mx-5 overflow-hidden px-5">
+            <motion.ol
+              className="flex gap-[2.5%]"
+              animate={{ x: `${-slideIndex * 88.5}%` }}
+              transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 120, damping: 22 }}
+            >
+              {slides.map((slide, index) => (
+                <li key={slide.key} aria-hidden={index !== slideIndex} className="w-[86%] shrink-0 rounded-[1.3rem] bg-white/90 px-4 py-3.5 text-center shadow-[0_12px_32px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.8)]">
+                  {slide.kind === 'review' ? (
+                    <>
+                      <p className="text-[#f2a33a]" aria-label="5/5">★★★★★</p>
+                      <blockquote className="mt-1.5 text-[0.88rem] font-semibold leading-snug text-slate-brand">“{slide.quote}”</blockquote>
+                      <p className="mt-1.5 text-[0.74rem] font-bold text-muted-brand">{slide.name}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[0.92rem] font-extrabold leading-snug text-forest">{slide.title}</p>
+                      <p className="mt-1 text-[0.8rem] font-semibold leading-snug text-muted-brand">{slide.body}</p>
+                    </>
+                  )}
+                </li>
               ))}
-            </div>
+            </motion.ol>
           </div>
-        )}
+          <div className="mt-2.5 flex justify-center gap-1.5" aria-hidden="true">
+            {slides.map((slide, index) => (
+              <span key={slide.key} className={cn('h-1.5 rounded-full transition-all duration-300', index === slideIndex ? 'w-5 bg-teal-brand' : 'w-1.5 bg-forest/15')} />
+            ))}
+          </div>
+        </section>
       </div>
 
       {paused && (

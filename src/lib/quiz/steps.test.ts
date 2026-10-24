@@ -21,6 +21,7 @@ describe('quiz steps', () => {
       'training_duration',
       'eating_pattern',
       'diet',
+      'step_goal',
       'not_alone',
       'calculating',
       'result',
@@ -38,7 +39,8 @@ describe('quiz steps', () => {
   it('navigates forward through quiz screens without creating subroutes', () => {
     expect(nextStep('goal')).toBe('name_ask');
     expect(nextStep('name_ask')).toBe('welcome');
-    expect(nextStep('diet')).toBe('not_alone');
+    expect(nextStep('diet')).toBe('step_goal');
+    expect(nextStep('step_goal')).toBe('not_alone');
     expect(nextStep('not_alone')).toBe('calculating');
     expect(nextStep('body_review')).toBe('activity_level');
   });
@@ -50,7 +52,7 @@ describe('quiz steps', () => {
   });
 
   it('counts the questions the welcome screen promises', () => {
-    expect(questionCount()).toBe(15);
+    expect(questionCount()).toBe(16);
   });
 
   it('navigates backward, landing page before first screen', () => {
@@ -62,7 +64,7 @@ describe('quiz steps', () => {
   it('exposes 1-based progress index', () => {
     expect(stepIndex('goal')).toBe(1);
     expect(stepIndex('height')).toBe(9);
-    expect(stepIndex('result')).toBe(20);
+    expect(stepIndex('result')).toBe(21);
     expect(STEP_CHAPTERS.training_days).toBe('routine');
   });
 

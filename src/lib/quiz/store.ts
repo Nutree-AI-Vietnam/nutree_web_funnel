@@ -14,6 +14,8 @@ export type PayPalCheckout = CheckoutResponse & { offerLabel: string };
 export interface PlanAnswers {
   cooking?: 'home' | 'out';
   confidence?: 'very' | 'somewhat' | 'unsure';
+  /** Daily step goal from the step-goal screen. */
+  stepGoal?: number;
 }
 const FUNNEL_SCREENS = ['landing', 'quiz', 'email', 'value', 'paywall', 'exit-offer'] as const;
 export type FunnelScreen = (typeof FUNNEL_SCREENS)[number];

@@ -4,10 +4,12 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'motion/react';
 import { PrimaryButton } from '@/components/primary-button';
-import { useCopy } from '@/lib/copy/use-copy';
+import { useCopy, useLocale } from '@/lib/copy/use-copy';
+import { recommendedStepGoal, STEP_GOAL } from '@/lib/quiz/step-goal';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
+import { MetricWheelPicker } from './metric-wheel-picker';
 import { QuizStepFrame } from './quiz-step-frame';
 
 /**
@@ -139,6 +141,49 @@ export function NotAloneStep() {
       <div className="w-full pt-5">
         <PrimaryButton onClick={() => goToNextQuizStep(router, 'not_alone')}>{copy.funnel.notAlone.cta}</PrimaryButton>
       </div>
+    </QuizStepFrame>
+  );
+}
+
+/** The daily step goal on an iOS wheel, starting on a goal set from the visitor's age and job. */
+export function StepGoalStep() {
+  const router = useRouter();
+  const copy = useCopy();
+  const locale = useLocale();
+  const data = useQuizStore((s) => s.data);
+  const saved = useQuizStore((s) => s.planAnswers.stepGoal);
+  const setPlanAnswers = useQuizStore((s) => s.setPlanAnswers);
+  const recommended = recommendedStepGoal(data);
+  const goal = saved ?? recommended;
+  const text = copy.funnel.stepGoal;
+  const format = new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US');
+
+  return (
+    <QuizStepFrame title={text.title} className="gap-3">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <MetricWheelPicker
+          id="step-goal"
+          label={text.title}
+          value={goal}
+          unit={text.unit}
+          min={STEP_GOAL.min}
+          max={STEP_GOAL.max}
+          step={STEP_GOAL.step}
+          onChange={(next) => setPlanAnswers({ stepGoal: next })}
+          formatValue={(next) => format.format(next)}
+          variant="hero"
+        />
+      </div>
+      <div className={cn('flex gap-3 rounded-[1.1rem] p-3.5 transition-colors duration-300', goal === recommended ? 'bg-[#e9f7ef]' : 'bg-white/80')}>
+        <span aria-hidden="true" className={cn('mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-white transition-colors duration-300', goal === recommended ? 'bg-[#34c759]' : 'bg-[#c7c7cc]')}>
+          <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2.5 6.2 2.3 2.3 4.7-5" /></svg>
+        </span>
+        <p className="text-[0.86rem] leading-snug text-slate-brand">
+          <span className="block font-extrabold text-forest">{text.recommendedTitle}: {format.format(recommended)} {text.unit}</span>
+          {text.recommendedBody}
+        </p>
+      </div>
+      <PrimaryButton onClick={() => { setPlanAnswers({ stepGoal: goal }); goToNextQuizStep(router, 'step_goal'); }}>{text.cta}</PrimaryButton>
     </QuizStepFrame>
   );
 }

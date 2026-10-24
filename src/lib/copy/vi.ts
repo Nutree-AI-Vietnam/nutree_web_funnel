@@ -503,6 +503,12 @@ export const vi = {
       'Gói lại thành kế hoạch',
     ],
     testimonialsLabel: 'Người dùng Nutree',
+    highlights: [
+      { title: 'Chụp món ăn, có ngay con số', body: 'Nutree ước tính calo và protein từ một tấm ảnh.' },
+      { title: 'Gợi ý món hợp kế hoạch', body: 'Món ăn khớp calo và chế độ ăn của bạn.' },
+      { title: 'Hỏi AI Coach bất cứ lúc nào', body: 'Coach dựa trên những gì bạn đã ghi hôm nay.' },
+      { title: 'Mục tiêu theo kịp bạn', body: 'Kiểm tra mỗi tuần, kế hoạch tự điều chỉnh theo cân nặng.' },
+    ],
     // No confirmed Vietnamese reviews yet: the loader hides the review card while this is empty.
     // Add only real, verified reviews here (name, flag, quote, result, goal, avatar); never placeholders.
     testimonials: [] as readonly { name: string; flag: string; quote: string; result: string; goal: string; avatar: string }[],
@@ -952,6 +958,13 @@ export const vi = {
         most_days: { title: () => 'Nhắm đến phần lớn các ngày', body: () => 'Đạt mục tiêu 5 trên 7 ngày. Kế hoạch tự điều chỉnh phần còn lại.' },
         one_number: { title: (n: { calories: number; proteinG: number; snackCalories: number }) => `Theo hai con số: ${n.calories.toLocaleString('vi-VN')} kcal và ${n.proteinG} g protein`, body: (n: { calories: number; proteinG: number; snackCalories: number }) => `${n.calories.toLocaleString('vi-VN')} kcal và ${n.proteinG} g protein mỗi ngày. Tạm bỏ qua phần còn lại.` },
       },
+    },
+    stepGoal: {
+      title: 'Đặt mục tiêu bước chân',
+      unit: 'bước',
+      recommendedTitle: 'Mục tiêu gợi ý cho bạn',
+      recommendedBody: 'Dựa trên tuổi và mức vận động hằng ngày, để tiến bộ đều và bền. Nutree đếm bước chân cho bạn trong app.',
+      cta: 'Tiếp tục',
     },
     notAlone: {
       title: 'Bạn không đơn độc. Nutree đồng hành cùng bạn trên từng bước.',

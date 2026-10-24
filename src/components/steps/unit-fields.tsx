@@ -15,8 +15,8 @@ import {
   type UnitSystem,
 } from '@/lib/quiz/units';
 import { useUnits } from '@/lib/quiz/use-units';
-import { cn } from '@/lib/utils';
 import { MetricInput, parseMetricDraft } from './metric-input';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { MetricWheelPicker, type WheelVariant } from './metric-wheel-picker';
 
 function clamp(value: number, min: number, max: number): number {
@@ -117,28 +117,13 @@ export function UnitFields({
   return (
     <>
       {options.length > 1 && (
-        <div
-          role="group"
-          aria-label={label}
-          className="mb-3 inline-flex shrink-0 self-center rounded-full border border-white/80 bg-white/70 p-1 shadow-sm backdrop-blur"
-        >
-          {options.map((option) => (
-            <button
-              key={option}
-              type="button"
-              aria-pressed={option === system}
-              className={cn(
-                'min-h-11 min-w-11 rounded-full px-4 text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-brand',
-                option === system ? 'bg-forest text-white shadow-sm' : 'text-muted-brand hover:text-slate-brand',
-              )}
-              onClick={() => {
-                if (option !== system) setSystem(option);
-              }}
-            >
-              {boxUnits(measure, option).join('·')}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label={label}
+          className="mb-3 shrink-0 self-center"
+          options={options.map((option) => ({ value: option, label: boxUnits(measure, option).join('·') }))}
+          value={system}
+          onChange={setSystem}
+        />
       )}
       {system === 'metric' ? (
         <MetricInput

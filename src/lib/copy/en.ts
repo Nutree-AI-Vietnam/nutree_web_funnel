@@ -506,6 +506,13 @@ export const en: Copy = {
       'Packaging your plan',
     ],
     testimonialsLabel: 'Nutree members',
+    // Shown in the loader carousel until verified reviews are added below.
+    highlights: [
+      { title: 'Snap a meal, get the numbers', body: 'Nutree estimates calories and protein from one photo.' },
+      { title: 'Meal ideas that fit your plan', body: 'Suggestions that match your calories and your diet.' },
+      { title: 'Ask the AI coach anytime', body: 'It sees what you’ve logged today before it answers.' },
+      { title: 'Targets that keep up with you', body: 'Weekly check-ins adjust your plan as your weight changes.' },
+    ],
     // Real English customer reviews are pending: the loader hides the review card while this is empty.
     // Add verified reviews here (name, flag, quote, result, goal, avatar); never placeholders.
     testimonials: [],
@@ -958,6 +965,13 @@ export const en: Copy = {
         most_days: { title: () => 'Aim for most days, not every day', body: () => 'Hit your target 5 days out of 7. The plan adjusts to the rest.' },
         one_number: { title: (n: { calories: number; proteinG: number; snackCalories: number }) => `Follow two numbers: ${n.calories.toLocaleString('en-US')} kcal and ${n.proteinG} g protein`, body: (n: { calories: number; proteinG: number; snackCalories: number }) => `${n.calories.toLocaleString('en-US')} kcal and ${n.proteinG} g protein a day. Ignore the rest for now.` },
       },
+    },
+    stepGoal: {
+      title: 'Let’s set a step goal',
+      unit: 'steps',
+      recommendedTitle: 'Your recommended goal',
+      recommendedBody: 'Set from your age and daily activity for steady, sustainable progress. Nutree counts your steps in the app.',
+      cta: 'Continue',
     },
     notAlone: {
       title: 'You’re not in this alone. Nutree is with you every step of the way.',
