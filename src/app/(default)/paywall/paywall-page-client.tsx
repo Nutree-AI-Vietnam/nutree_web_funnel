@@ -209,7 +209,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const hydrated = useHydrated();
   const lead = useQuizStore((state) => state.lead);
   const data = useQuizStore((state) => state.data);
-  const unsure = useQuizStore((state) => state.planAnswers.confidence === 'unsure');
   const activeLocale = useQuizStore((state) => state.locale);
   const tdee = useQuizStore((state) => state.tdee);
   const purchased = useQuizStore((state) => state.purchased);
@@ -882,13 +881,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     </div>
   );
 
-  // Answered "Not sure yet" on the confidence screen: the week-1 check-in and refund terms sit on the price table.
-  const unsureNote = unsure ? (
-    <div className="mt-4 flex gap-2.5 rounded-2xl bg-mist/60 p-3 text-left">
-      <Icon name="shield" className="mt-0.5 h-4.5 w-4.5 shrink-0 text-teal-brand" />
-      <p className="text-[0.82rem] leading-snug text-slate-brand"><span className="font-extrabold text-forest">{funnelPaywall.unsureTitle}</span> {funnelPaywall.unsureBody}</p>
-    </div>
-  ) : null;
   const checkoutButton = (
     <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className={cn('min-h-14 w-full rounded-2xl px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50', exitOfferActive ? 'bg-[#C2410C] hover:bg-[#9A3412]' : 'cta-premium', (welcomeOfferActive || exitOfferActive) && !busy && 'cta-attention')}><span>{busy ? copy.paywall.loading : englishCta}</span></button>
   );
@@ -980,7 +972,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
             );
           })}
         </div>
-        {unsureNote}
         <div className="mt-4">{checkoutButton}</div>
         <p className="mt-2.5 text-center text-[0.72rem] font-medium leading-relaxed text-muted-brand">{renewalLine}</p>
         <p className="mt-3 flex items-center justify-center gap-1 text-[0.7rem] font-bold text-muted-brand"><Icon name="lock" className="h-3.5 w-3.5" />{funnelPaywall.payWith}</p>
@@ -1059,8 +1050,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
           </div>
           <p className="mt-3 text-center text-[0.7rem] font-semibold leading-snug text-muted-brand">{copy.paywall.perDayFootnote}</p>
           {paywall.recommendationNote?.[activeLocale] && <p className="mt-5 text-[0.94rem] leading-relaxed text-slate-brand">{paywall.recommendationNote[activeLocale]}</p>}
-          {unsureNote}
-          <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta()}</button>
+            <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta()}</button>
           <p className="mt-4 text-center text-sm leading-relaxed text-muted-brand">{priceSummary}</p>
         </section>
 

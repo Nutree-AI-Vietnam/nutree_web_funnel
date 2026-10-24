@@ -994,9 +994,6 @@ export const en: Copy = {
         training: 'Built around your reason: seeing real training results.',
         clarity: 'Built around your reason: no more guessing what to eat.',
       },
-      // For visitors who answered "Not sure yet" on the confidence screen.
-      unsureTitle: 'Not sure yet? That’s fine.',
-      unsureBody: 'You start with three small changes, check in after week 1, and have 30 days to ask for a full refund.',
       perMonth: (price: string) => `${price} a month`,
       billedFor: (price: string, cadence: string) => `${price} billed ${cadence}`,
       header: 'Nutree Premium',

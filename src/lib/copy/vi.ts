@@ -987,8 +987,6 @@ export const vi = {
         training: 'Xây quanh lý do của bạn: thấy kết quả tập luyện thật.',
         clarity: 'Xây quanh lý do của bạn: hết phải đoán nên ăn gì.',
       },
-      unsureTitle: 'Chưa chắc lắm? Không sao.',
-      unsureBody: 'Bạn bắt đầu với ba thay đổi nhỏ, kiểm tra tiến độ sau tuần đầu, và có 30 ngày để yêu cầu hoàn tiền toàn bộ.',
       perMonth: (price: string) => `${price} mỗi tháng`,
       billedFor: (price: string, cadence: string) => `${price} thanh toán ${cadence}`,
       header: 'Nutree Premium',
