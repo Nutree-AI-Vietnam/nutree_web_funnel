@@ -175,7 +175,7 @@ export function CalculatingStep() {
       {/* No min-h-0: on short screens this block must keep its height and scroll, not center up into the header. */}
       <div className="flex flex-1 flex-col justify-center gap-3 py-1">
         {/* One bar per answer, filling in turn, so the plan visibly builds from what the visitor said. */}
-        <section className="rounded-[1.6rem] bg-white/90 p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.1),inset_0_1px_0_rgb(255_255_255_/_0.8)]">
+        <section className="rounded-[1.6rem] bg-white/90 p-4 shadow-[0_6px_16px_rgb(23_69_58_/_0.07),inset_0_1px_0_rgb(255_255_255_/_0.8)]">
           <ol className="grid gap-3.5">
             {items.map((item, index) => {
               const progress = complete ? 1 : Math.min(1, Math.max(0, (elapsed - index * stageMs) / stageMs));

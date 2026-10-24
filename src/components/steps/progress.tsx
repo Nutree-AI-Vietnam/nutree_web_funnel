@@ -64,7 +64,7 @@ export function ProgressStep() {
     const rate = system === 'imperial' ? `${(timeline.kgPerWeek / 0.45359237).toFixed(1)} lb` : formatWeight(timeline.kgPerWeek, 'metric', locale);
     return (
       <QuizStepFrame title={name ? funnel.headline(name, target, date) : funnel.headlineNoName(target, date)}>
-        <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/86 p-4 shadow-[0_18px_50px_rgb(26_71_57_/_0.11)]">
+        <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/86 p-4 shadow-[0_6px_16px_rgb(26_71_57_/_0.07)]">
           <GoalChart timeline={timeline} system={system} nowLabel={copy.funnel.plan.now} week1Label={funnel.week1} month1Label={funnel.month1} goalLabel={formatGoalDate(timeline.date, locale, false)} animate />
           {/* The first win, under the path once the goal dot lands: close, small and believable. */}
           <motion.p
@@ -86,7 +86,7 @@ export function ProgressStep() {
 
   return (
     <QuizStepFrame title={copy.progress.question} hint={copy.progress.hint} eyebrow={copy.progress.eyebrow}>
-      <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/86 p-4 shadow-[0_18px_50px_rgb(26_71_57_/_0.11)]">
+      <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/86 p-4 shadow-[0_6px_16px_rgb(26_71_57_/_0.07)]">
         <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-teal-brand/15 blur-2xl" />
         {projection.kind === 'plan' && (
           <p className="relative text-base font-extrabold leading-snug text-forest">{copy.progress.planHeadline[projection.goal]}</p>

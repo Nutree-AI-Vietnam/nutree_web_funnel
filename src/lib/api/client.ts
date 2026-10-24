@@ -85,11 +85,18 @@ let leadCreation: Promise<Lead> | null = null;
 
 async function createLeadOnce(email: string, payload: OnboardingPayload, requestId: string, display: LeadDisplay): Promise<Lead> {
   await initializeLeadSession();
-  const res = await fetch('/api/web-funnel/leads', {
+  const post = (body: Record<string, unknown>, id: string) => fetch('/api/web-funnel/leads', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Request-ID': requestId },
-    body: JSON.stringify({ email, payload: toWebFunnelSnapshot(payload), ...display }),
+    headers: { 'Content-Type': 'application/json', 'X-Request-ID': id },
+    body: JSON.stringify(body),
   });
+  const snapshot = { email, payload: toWebFunnelSnapshot(payload) };
+  let res = await post({ ...snapshot, ...display }, requestId);
+  // A backend that predates the display hints rejects them as extra fields; the lead matters more than the hints.
+  if (res.status === 422 && Object.keys(display).length > 0) {
+    const rejected = await res.clone().json().catch(() => null) as { detail?: unknown } | null;
+    if (rejectsDisplayHints(rejected?.detail)) res = await post(snapshot, crypto.randomUUID());
+  }
   if (!res.ok) {
     const response = await res.json().catch(() => null) as { detail?: unknown } | null;
     const detail = typeof response?.detail === 'string'
@@ -100,6 +107,18 @@ async function createLeadOnce(email: string, payload: OnboardingPayload, request
     throw new Error(detail);
   }
   return res.json() as Promise<Lead>;
+}
+
+const DISPLAY_HINT_FIELDS = new Set(['locale', 'units', 'off_plan_moment']);
+
+/** True when a 422 only objects to the display hints being present (pydantic `extra_forbidden`). */
+export function rejectsDisplayHints(detail: unknown): boolean {
+  if (!Array.isArray(detail) || detail.length === 0) return false;
+  return detail.every((issue) => {
+    const entry = issue as { type?: unknown; loc?: unknown };
+    const field = Array.isArray(entry.loc) ? entry.loc[entry.loc.length - 1] : null;
+    return entry.type === 'extra_forbidden' && typeof field === 'string' && DISPLAY_HINT_FIELDS.has(field);
+  });
 }
 
 /** Maps quiz field names to the backend's strict mobile onboarding contract. */

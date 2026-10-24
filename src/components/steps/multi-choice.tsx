@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { NutreeLogo } from '@/components/nutree-logo';
 import { OptionCard } from '@/components/option-card';
@@ -147,9 +148,13 @@ export function MultiChoiceStep({
           {ctaLabel ?? vi.common.continue}
         </PrimaryButton>
       </div>
-      {showCareModal && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 px-5 py-6 backdrop-blur-sm" role="presentation">
-          <section
+      {/* Portaled to the body so the blur covers the whole screen, not just the quiz frame (a transformed parent traps fixed elements). */}
+      {showCareModal && typeof document !== 'undefined' && createPortal(
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[80] grid place-items-center bg-[rgb(16_39_32_/_0.35)] px-5 py-6 backdrop-blur-md" role="presentation">
+          <motion.section
+            initial={reduce ? false : { opacity: 0, y: 16, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 28 }}
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
@@ -157,8 +162,7 @@ export function MultiChoiceStep({
             className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-[0_28px_90px_rgb(16_39_32_/_0.25)]"
           >
             <NutreeLogo className="mx-auto h-16 w-16" />
-            <p className="mt-5 text-center text-xs font-extrabold tracking-[0.02em] text-teal-brand">{vi.careModal.eyebrow}</p>
-            <h2 id="care-modal-title" className="mt-3 text-center text-2xl font-extrabold leading-tight text-forest">{vi.careModal.title}</h2>
+            <h2 id="care-modal-title" className="mt-5 text-center text-2xl font-extrabold leading-tight text-forest">{vi.careModal.title}</h2>
             <p className="mt-4 text-center text-base font-semibold leading-relaxed text-muted-brand">{vi.careModal.body}</p>
             <p className="mt-4 text-center text-sm font-medium leading-relaxed text-muted-brand">{vi.careModal.disclaimer}</p>
             <PrimaryButton
@@ -178,8 +182,9 @@ export function MultiChoiceStep({
             >
               {vi.careModal.editCta}
             </button>
-          </section>
-        </div>
+          </motion.section>
+        </motion.div>,
+        document.body,
       )}
     </QuizStepFrame>
   );
