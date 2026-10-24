@@ -75,13 +75,20 @@ export function GoalChart({ timeline, system, nowLabel, goalLabel, animate = fal
   const c2 = { x: start.x + (end.x - start.x) * 0.62, y: end.y };
   const curve = `M${start.x} ${start.y} C${c1.x} ${c1.y} ${c2.x} ${c2.y} ${end.x} ${end.y}`;
 
-  // Month ticks between today and the goal, kept clear of the two end labels.
+  // Month ticks between today and the goal, each kept clear of its neighbours and of the two end labels.
   const startDate = new Date(timeline.date.getTime() - timeline.days * 86_400_000);
   const monthFormat = new Intl.DateTimeFormat(numberLocale(locale), { month: 'short' });
+  // Vietnamese months read like the dates around them ("thg 12"), not the longer "Tháng 12".
+  const monthLabel = (month: Date) => (locale === 'vi' ? `thg ${month.getMonth() + 1}` : monthFormat.format(month));
+  const startLabelEnd = start.x - 2 + Math.max(labelWidth(formatWeight(timeline.currentKg, system, locale), 13), labelWidth(nowLabel, 10.5));
+  const endLabelStart = end.x + 2 - (goalLabel ? labelWidth(goalLabel, 12) : 0);
   const ticks: { x: number; label: string }[] = [];
   for (let month = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1); month < timeline.date; month = new Date(month.getFullYear(), month.getMonth() + 1, 1)) {
     const tx = x((month.getTime() - startDate.getTime()) / 86_400_000);
-    if (tx > left + 62 && tx < right - 62 && (!ticks.length || tx - ticks[ticks.length - 1].x >= 44)) ticks.push({ x: tx, label: monthFormat.format(month) });
+    const label = monthLabel(month);
+    const half = labelWidth(label, 10.5) / 2 + 8;
+    const previous = ticks[ticks.length - 1];
+    if (tx - half > startLabelEnd && tx + half < endLabelStart && (!previous || tx - half > previous.x + labelWidth(previous.label, 10.5) / 2)) ticks.push({ x: tx, label });
   }
 
   const goalText = formatWeight(timeline.targetKg, system, locale);

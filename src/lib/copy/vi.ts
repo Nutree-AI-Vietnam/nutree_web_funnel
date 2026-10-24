@@ -901,7 +901,7 @@ export const vi = {
       eyebrow: (name: string) => `Kế hoạch của ${name}`,
       eyebrowFallback: 'Kế hoạch của bạn',
       goalHeadline: (weight: string, date: string) => `${weight} vào ${date}`,
-      firstWin: (weight: string, date: string) => `Cột mốc đầu: ${weight} vào ${date}`,
+      firstWin: (weight: string, date: string) => `Mốc đầu: ${weight} vào ${date}`,
       steadyHeadline: 'Mục tiêu mỗi ngày',
       calories: (kcal: string) => `${kcal} kcal mỗi ngày`,
       protein: (grams: number) => `${grams} g protein`,
