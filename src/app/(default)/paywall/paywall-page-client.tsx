@@ -503,6 +503,25 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     return () => window.clearTimeout(retry);
   }, [correlatePurchasedCustomer, lead, redemption]);
 
+  // Closing checkout without paying (our X, or Paddle's own close) moves every plan to the exit price
+  // and, when the offering has exit packages, uncovers that price on a scratch card first.
+  const applyExitOffer = useCallback(() => {
+    dismissCheckoutOverlay(document);
+    saveSelectedPaywallPlan(SIX_MONTH_PLAN_ID);
+    setSelectedId(SIX_MONTH_PLAN_ID);
+    markExitOfferClaimed();
+    const expiresAt = Date.now() + PAYWALL_WELCOME_OFFER_SECONDS * 1000;
+    storePaywallOffer({ kind: 'exit', expiresAt });
+    setOfferKind('exit');
+    setOfferExpiresAt(expiresAt);
+    setSecondsLeft(PAYWALL_WELCOME_OFFER_SECONDS);
+    setShowCheckoutConfirm(false);
+    setError(null);
+    const exitClaim = offerClaimFor(plans, 'exit');
+    trackEvent('exit_offer_claimed', { discount_percent: exitClaim?.percent, plan: SIX_MONTH_PLAN_ID });
+    if (exitClaim) setExitGiftOpen(true);
+  }, [plans]);
+
   const openCheckout = useCallback(async (offer: PaywallOfferKind | null) => {
     const plan = selected;
     if (checkoutInFlightRef.current || purchaseLeadIdRef.current === lead?.lead_id) return;
@@ -540,21 +559,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       setBusy(false);
       clearPaywallCheckoutPending();
       if (isExitOffer || purchaseSucceededRef.current || isUserPurchased({ purchased, lead })) return;
-      dismissCheckoutOverlay(document);
-      saveSelectedPaywallPlan(SIX_MONTH_PLAN_ID);
-      setSelectedId(SIX_MONTH_PLAN_ID);
-      markExitOfferClaimed();
-      const expiresAt = Date.now() + PAYWALL_WELCOME_OFFER_SECONDS * 1000;
-      storePaywallOffer({ kind: 'exit', expiresAt });
-      setOfferKind('exit');
-      setOfferExpiresAt(expiresAt);
-      setSecondsLeft(PAYWALL_WELCOME_OFFER_SECONDS);
-      setShowCheckoutConfirm(false);
-      setError(null);
-      trackEvent('revenuecat_checkout_cancelled', { plan: plan.id, paddle_opened: true });
-      const exitClaim = offerClaimFor(plans, 'exit');
-      trackEvent('exit_offer_claimed', { discount_percent: exitClaim?.percent, plan: SIX_MONTH_PLAN_ID });
-      if (exitClaim) setExitGiftOpen(true);
+      trackEvent('revenuecat_checkout_cancelled', { plan: plan.id, paddle_opened: paddleOpenedRef.current });
+      applyExitOffer();
     };
     const rcPackage = checkoutPackage(plan, offer);
     const checkoutCommerce = firstPaymentCommerce(rcPackage.webBillingProduct);
@@ -658,7 +664,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       setBusy(false);
       setCheckoutSheetOpen(false);
     }
-  }, [activeLocale, countryCode, correlatePurchasedCustomer, data.name, inlineCheckout, lead, plans, purchased, resolvedCountryCode, router, selected, setPurchased]);
+  }, [activeLocale, applyExitOffer, countryCode, correlatePurchasedCustomer, data.name, inlineCheckout, lead, purchased, resolvedCountryCode, router, selected, setPurchased]);
 
   const countdown = formatCountdown(secondsLeft);
   const persistedCorrelation = Boolean(lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id);
@@ -756,16 +762,19 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   }, [loadState]);
 
   // RevenueCat hides its back button inside our element, so closing goes through the patched SDK's cancel hook:
-  // the purchase rejects as cancelled and the usual cleanup runs. After payment it does nothing. Local preview
-  // has no hook and just closes.
+  // the purchase rejects as cancelled and the usual cleanup runs, which applies the exit price. After payment
+  // it does nothing. Local preview has no RevenueCat: it closes and applies the exit price directly.
   const closeCheckoutSheet = useCallback(() => {
     if (purchaseSucceededRef.current) return;
     const cancel = (checkoutHostRef.current as (HTMLDivElement & { rcbCancelCheckout?: () => void }) | null)?.rcbCancelCheckout;
     if (cancel) cancel();
     // RevenueCat is still loading and has not mounted yet: the Paddle watcher cancels once it has.
     else if (checkoutInFlightRef.current) cancelRequestedRef.current = true;
-    else setCheckoutSheetOpen(false);
-  }, []);
+    else {
+      setCheckoutSheetOpen(false);
+      if (checkoutPreview && checkoutOffer !== 'exit') applyExitOffer();
+    }
+  }, [applyExitOffer, checkoutOffer, checkoutPreview]);
   // Escape closes the sheet wherever focus is, except inside Paddle's frame, which keeps its keys.
   useEffect(() => {
     if (!checkoutSheetOpen) return;
