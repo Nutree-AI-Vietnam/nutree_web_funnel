@@ -16,7 +16,7 @@ import { useCopy } from '@/lib/copy/use-copy';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
 import { normalizeCountryCode } from '@/lib/market/country';
 import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, dismissCheckoutOverlay, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, hasPaywallCheckoutPending, markExitOfferClaimed, markPaywallCheckoutPending, paddleCheckoutClosedWithoutPayment, paddleCheckoutCompleted, paddleCheckoutIsOpen, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, PAYWALL_WELCOME_OFFER_SECONDS, priceTestVariant, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
-import { discountPercent, firstPaymentCommerce, formatPerDay, offerClaim, planPerDay, savingsVersusPriciest, type OfferClaim, type PlanPerDay } from '@/lib/revenuecat/plan-pricing';
+import { firstPaymentCommerce, formatPerDay, planPerDay, type OfferClaim, type PlanPerDay } from '@/lib/revenuecat/plan-pricing';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { syncRevenueCatAttribution } from '@/lib/revenuecat/attribution-attributes';
 import { completePurchasedCheckout } from '@/lib/revenuecat/purchase-handoff';
@@ -177,17 +177,17 @@ function renewalPrice(product: Product | null | undefined) {
   return product?.price ? marketPrice(product.price) : null;
 }
 
-/** The real saving on a plan's first payment under an offer, read from the package prices. */
-function planDiscountPercent(plan: RevenueCatPaywallPlan, offer: PaywallOfferKind | null): number {
-  return discountPercent(
-    firstPaymentPrice(plan.rcPackage.webBillingProduct)?.amountMicros ?? 0,
-    firstPaymentPrice(checkoutPackage(plan, offer).webBillingProduct)?.amountMicros ?? 0,
-  );
+/** The offer's headline percent (50% welcome, 75% exit), the figure every label shows. */
+function offerPercent(offer: PaywallOfferKind): number {
+  return offer === 'exit' ? EXIT_DISCOUNT_PERCENT : WELCOME_DISCOUNT_PERCENT;
 }
 
-/** What an offer may claim across the plans: its largest real saving, "up to" when the plans differ. */
+/** What an offer claims: its headline percent, once at least one plan has a lower price under it. */
 function offerClaimFor(plans: RevenueCatPaywallPlan[], offer: PaywallOfferKind | null): OfferClaim | null {
-  return offer ? offerClaim(plans.map((plan) => planDiscountPercent(plan, offer))) : null;
+  if (!offer) return null;
+  const cheaper = plans.some((plan) => (firstPaymentPrice(checkoutPackage(plan, offer).webBillingProduct)?.amountMicros ?? Infinity)
+    < (firstPaymentPrice(plan.rcPackage.webBillingProduct)?.amountMicros ?? 0));
+  return cheaper ? { percent: offerPercent(offer), upTo: false } : null;
 }
 
 /** The date a plan bought today is next charged: after the intro period when there is one. */
@@ -688,7 +688,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     : 0;
   const priceLocale = activeLocale === 'vi' ? 'vi-VN' : 'en-US';
   const perDayByPlan = Object.fromEntries(plans.map((plan) => [plan.id, planPerDay(checkoutPackage(plan, activeOffer).webBillingProduct)]));
-  const savingsByPlan = savingsVersusPriciest(perDayByPlan);
   const pricesReady = loadState === 'ready';
   // Discount claims come from the real package prices, never a fixed percent: null until they load.
   const welcomeClaim = pricesReady ? offerClaimFor(plans, 'welcome') : null;
@@ -897,30 +896,23 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const sheetDiscount = sheetFullPrice && sheetOfferPrice && sheetFullPrice.amountMicros > sheetOfferPrice.amountMicros
     ? formatMajor((sheetFullPrice.amountMicros - sheetOfferPrice.amountMicros) / 1_000_000, sheetFullPrice.currency)
     : null;
-  // The selected plan's own saving, from the same two prices as the amount beside it.
-  const sheetPercent = sheetFullPrice && sheetOfferPrice ? discountPercent(sheetFullPrice.amountMicros, sheetOfferPrice.amountMicros) : 0;
-  const sheetNextCharge = nextChargeDate(sheetOfferProduct);
+  const sheetPercent = checkoutOffer ? offerPercent(checkoutOffer) : 0;
+  // Paddle may charge in the visitor's local currency (e.g. VND on an English page), while the plan prices are
+  // RevenueCat's (USD). Then the plan and discount amounts are left out rather than mixing two currencies.
+  const mixedCurrency = paddleTotals != null && sheetFullPrice != null && paddleTotals.currencyCode !== sheetFullPrice.currency;
   // Paddle's total wins once it arrives (it includes any tax); until then, the offer price.
   const sheetTotalLabel = paddleTotals ? formatMajor(paddleTotals.totalAmount, paddleTotals.currencyCode) : (sheetOfferPrice?.formattedPrice ?? originalTotal);
-  const sheetTaxLabel = paddleTotals && paddleTotals.taxAmount > 0 ? formatMajor(paddleTotals.taxAmount, paddleTotals.currencyCode) : null;
-  // The sentence under the total uses the same figures, so "today" always matches the total and the renewal
-  // amount is Paddle's own charge (tax included) once Paddle has reported it.
-  const sheetRenewalLine = funnelPaywall.renewal(
-    sheetTotalLabel,
-    paddleTotals?.recurringTotalAmount != null
-      ? formatMajor(paddleTotals.recurringTotalAmount, paddleTotals.currencyCode)
-      : (renewalPrice(sheetOfferProduct)?.formattedPrice ?? '…'),
-    selectedPeriod ? funnelPaywall.cadence(selectedPeriod.number, periodWord(selectedPeriod)) : renewalCadence,
-    sheetNextCharge ? formatGoalDate(sheetNextCharge, activeLocale) : '',
-  );
   const checkoutSheet = (
+    // The overlay itself scrolls, so when Paddle's card form grows taller than the screen the whole sheet moves,
+    // including from a swipe that starts on Paddle's frame (an inner scroll box would not take that swipe on iOS).
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgb(9_22_18_/_0.5)] px-3 py-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[70] overflow-y-auto overscroll-contain bg-[rgb(9_22_18_/_0.5)] backdrop-blur-[2px]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="checkout-sheet-title"
     >
-      <div className="max-h-full w-full max-w-md overflow-y-auto rounded-[1.75rem] bg-[#f2f4f3] px-5 pb-5 pt-3 shadow-[0_24px_60px_rgb(9_22_18_/_0.3)] animate-soft-enter">
+      <div className="flex min-h-full items-center justify-center px-3 py-4">
+      <div className="w-full max-w-md rounded-[1.75rem] bg-[#f2f4f3] px-5 pb-5 pt-3 shadow-[0_24px_60px_rgb(9_22_18_/_0.3)] animate-soft-enter">
         <div className="relative flex min-h-12 items-center justify-center">
           {!checkoutPaid && <button type="button" autoFocus onClick={closeCheckoutSheet} aria-label={funnelPaywall.checkout.close} className="absolute left-[-0.6rem] top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-charcoal transition hover:bg-black/[0.05] focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">
             <Icon name="close" className="h-5 w-5" />
@@ -931,9 +923,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
             Once Paddle reports its totals, the total is Paddle's own figure, tax included. */}
         {selected && (
           <div className="mt-2 text-[0.95rem] text-slate-brand">
-            <p className="flex justify-between gap-3 py-1"><span>{funnelPaywall.checkout.planLine(plainPricing ? planName(selected) : selected.label[activeLocale])}</span><span className="tabular-nums">{sheetFullPrice?.formattedPrice ?? originalTotal}</span></p>
+            <p className="flex justify-between gap-3 py-1"><span>{funnelPaywall.checkout.planLine(plainPricing ? planName(selected) : selected.label[activeLocale])}</span>{!mixedCurrency && <span className="tabular-nums">{sheetFullPrice?.formattedPrice ?? originalTotal}</span>}</p>
             {sheetDiscount && (
-              <p className="flex justify-between gap-3 py-1"><span>{checkoutOffer === 'exit' ? funnelPaywall.checkout.offerLine(sheetPercent) : funnelPaywall.checkout.discountLine(sheetPercent)}</span><span className="font-extrabold tabular-nums text-[#e5484d]">−{sheetDiscount}</span></p>
+              <p className="flex justify-between gap-3 py-1"><span>{checkoutOffer === 'exit' ? funnelPaywall.checkout.offerLine(sheetPercent) : funnelPaywall.checkout.discountLine(sheetPercent)}</span>{!mixedCurrency && <span className="font-extrabold tabular-nums text-[#e5484d]">−{sheetDiscount}</span>}</p>
             )}
             <div className="mt-2.5 border-y border-black/10 py-3 text-charcoal">
               <p className="flex items-baseline justify-between gap-3">
@@ -943,9 +935,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
                   {selectedPeriod && funnelPaywall.checkout.totalFor('', selectedPeriod.number, periodWord(selectedPeriod))}
                 </span>
               </p>
-              {sheetTaxLabel && <p className="mt-0.5 text-right text-[0.76rem] text-muted-brand">{funnelPaywall.checkout.taxIncluded(sheetTaxLabel)}</p>}
             </div>
-            <p className="mt-2.5 text-center text-[0.76rem] leading-relaxed text-muted-brand">{sheetRenewalLine}</p>
+            {/* Paddle's form states the charge and renewal date itself ("… now, then … every 6 months from …"). */}
+            <p className="mt-2.5 text-center text-[0.76rem] leading-relaxed text-muted-brand">{funnelPaywall.checkout.futurePayments}</p>
           </div>
         )}
         <h3 className="mt-4 text-center text-[1.02rem] font-extrabold text-charcoal">{funnelPaywall.checkout.methodTitle}</h3>
@@ -961,6 +953,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
           </div>
         </div>
         <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[0.76rem] text-muted-brand"><Icon name="lock" className="h-3.5 w-3.5 shrink-0" />{funnelPaywall.checkout.ssl}</p>
+      </div>
       </div>
     </div>
   );
@@ -1030,8 +1023,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
             const price = firstPaymentPrice(offerPackage.webBillingProduct)?.formattedPrice ?? '…';
             // The crossed-out price is the plan's full price, which applies once the offer ends.
             const fullPrice = discounted ? firstPaymentPrice(plan.rcPackage.webBillingProduct)?.formattedPrice : null;
-            // Each plan's own saving from its two prices: the plans' discounts differ, so the chip is never a shared figure.
-            const percent = discounted ? planDiscountPercent(plan, activeOffer) : 0;
             const fits = plan.id === timelinePlan?.id;
             return (
               <button key={plan.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(plan.id); saveSelectedPaywallPlan(plan.id); if (inlineCheckout) window.setTimeout(() => requestCheckoutRef.current(), 0); trackEvent('offer_selected', { offer_id: plan.id, provider: 'revenuecat', ...firstPaymentCommerce(offerPackage.webBillingProduct) }); }} className={cn('overflow-hidden rounded-[1.2rem] border-2 text-left transition-colors duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-forest bg-mist/50 shadow-[0_12px_26px_rgb(23_69_58_/_0.12)]' : 'border-border-brand bg-white hover:border-teal-brand/60')}>
@@ -1046,11 +1037,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
                       <span className="font-extrabold text-slate-brand">{price}</span>
                     </span>
                   </span>
-                  {/* The chip sits on the per-day price, so it adds height but no width. */}
-                  <span className="grid justify-items-center gap-1">
-                    {percent > 0 && <span className="rounded-md bg-[#fdecef] px-1.5 py-0.5 text-[0.66rem] font-extrabold leading-tight text-[#a3213a]">{funnelPaywall.percentOff(percent)}</span>}
-                    <PerDayPrice perDay={perDayByPlan[plan.id] ?? null} locale={priceLocale} label={copy.paywall.perDay} active={active} />
-                  </span>
+                  <PerDayPrice perDay={perDayByPlan[plan.id] ?? null} locale={priceLocale} label={copy.paywall.perDay} active={active} />
                 </span>
               </button>
             );
@@ -1114,7 +1101,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
               const original = firstPaymentPrice(plan.rcPackage.webBillingProduct)?.formattedPrice ?? '…';
               const intro = firstPaymentPrice(offerPackage.webBillingProduct)?.formattedPrice ?? original;
               const perDayLabel = formatPerDay(perDayByPlan[plan.id] ?? null, priceLocale);
-              const savings = savingsByPlan[plan.id];
               return <button key={plan.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(plan.id); saveSelectedPaywallPlan(plan.id); if (inlineCheckout) window.setTimeout(() => requestCheckoutRef.current(), 0); trackEvent('offer_selected', { offer_id: plan.id, provider: 'revenuecat', ...firstPaymentCommerce(offerPackage.webBillingProduct) }); }} className={cn('overflow-hidden rounded-[1.4rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-[#ff5b1f] shadow-[0_12px_26px_rgb(255_106_31_/_0.10)]' : 'border-[#dfe7e3] hover:border-teal-brand/60')}>
                 {plan.recommended && <span className="block bg-gradient-to-r from-[#ef4d59] to-[#ff781f] px-3 py-1.5 text-center text-[0.62rem] font-extrabold tracking-[0.02em] text-white">{copy.paywall.recommendedTag}</span>}
                 <span className={cn('grid min-h-[5.6rem] grid-cols-[auto_1fr_auto] items-center gap-3 px-3.5 py-3.5', active && 'bg-[#fffafa]')}>
@@ -1122,7 +1108,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
                   <span className="min-w-0">
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span className={cn('text-[1rem] font-extrabold leading-tight', active ? 'text-[#111418]' : 'text-[#5f6764]')}>{plan.label[activeLocale]}</span>
-                      {savings !== undefined && <span className="rounded-full bg-[#e3f5ec] px-2 py-0.5 text-[0.64rem] font-extrabold leading-tight text-[#0f6b4a]">{copy.paywall.savePerDay(savings)}</span>}
                     </span>
                     {plan.description[activeLocale] && <span className="mt-1 block text-[0.76rem] font-semibold leading-snug text-muted-brand">{plan.description[activeLocale]}</span>}
                     <span className="mt-1.5 block text-[0.74rem] font-bold leading-snug text-muted-brand">{hasOffer && <><s className="font-semibold opacity-70">{original}</s>{' '}</>}<span className="text-slate-brand">{intro}</span> · {plan.billingLabel[activeLocale]}</span>

@@ -728,7 +728,6 @@ export const en: Copy = {
     recommendedTag: 'Most popular',
     discountTag: (percent: number) => `${percent}% off`,
     perDay: 'per day',
-    savePerDay: (percent: number) => `Save ${percent}%`,
     perDayFootnote: 'Daily price is an estimate based on your first payment.',
     repeatPlanTitle: 'Grab your Personal Plan',
     guaranteeTitle: '30-day money-back guarantee',
@@ -902,7 +901,7 @@ export const en: Copy = {
       line: '4.7 out of 5 on the App Store',
       chose: 'customers chose Nutree',
       outOf: '/5',
-      googlePlay: null as { value: string; label: string } | null,
+      googlePlay: { value: '4.8', label: 'Google Play rating' } as { value: string; label: string } | null,
       googlePlayListing: { name: 'Google Play', label: 'Available on Android' },
     },
     plan: {
@@ -1017,7 +1016,6 @@ export const en: Copy = {
       billed: (count: number, unit: string) => (count === 1 ? `Billed every ${unit}` : `Billed every ${count} ${unit}`),
       cadence: (count: number, unit: string) => (count === 1 ? `every ${unit}` : `every ${count} ${unit}`),
       fitsTimeline: 'Fits your timeline',
-      percentOff: (percent: number) => `${percent}% off`,
       welcomeEnded: 'Your welcome price has ended. Prices are back to normal.',
       // No claim yet while the prices load; "up to" when the plans' real discounts differ.
       welcomeReserved: (claim: { percent: number; upTo: boolean } | null) =>
@@ -1033,7 +1031,7 @@ export const en: Copy = {
         secure: 'Payments are processed securely by Paddle.',
         methodTitle: 'Select a payment method',
         ssl: 'Your payment information is protected by SSL/TLS encryption.',
-        taxIncluded: (tax: string) => `Includes ${tax} tax`,
+        futurePayments: 'Nutree will use your payment details for seamless future payments.',
         previewFrame: 'Paddle’s payment buttons load here: Apple Pay, Google Pay, PayPal, then “Pay another way” for card.',
       },
       paymentsTo: (count: number, date: string) => `${count} ${count === 1 ? 'payment' : 'payments'} to ${date}`,

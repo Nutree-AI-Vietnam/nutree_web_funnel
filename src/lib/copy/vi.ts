@@ -720,7 +720,6 @@ export const vi = {
     recommendedTag: 'Nutree đề xuất',
     discountTag: (percent: number) => `Giảm ${percent}%`,
     perDay: 'ngày',
-    savePerDay: (percent: number) => `Tiết kiệm ${percent}%`,
     perDayFootnote: 'Giá mỗi ngày là ước tính, tính từ số tiền thanh toán kỳ đầu.',
     repeatPlanTitle: 'Chọn kế hoạch cá nhân của bạn',
     guaranteeTitle: 'Đảm bảo hoàn tiền trong 30 ngày',
@@ -893,7 +892,7 @@ export const vi = {
       line: '4.7/5 trên App Store',
       chose: 'khách hàng đã chọn Nutree',
       outOf: '/5',
-      googlePlay: null as { value: string; label: string } | null,
+      googlePlay: { value: '4.8', label: 'Đánh giá CH Play' } as { value: string; label: string } | null,
       googlePlayListing: { name: 'CH Play', label: 'Có trên Android' },
     },
     plan: {
@@ -1007,7 +1006,6 @@ export const vi = {
       billed: (count: number, unit: string) => (count === 1 ? `Thanh toán mỗi ${unit}` : `Thanh toán mỗi ${count} ${unit}`),
       cadence: (count: number, unit: string) => (count === 1 ? `mỗi ${unit}` : `mỗi ${count} ${unit}`),
       fitsTimeline: 'Vừa với lộ trình',
-      percentOff: (percent: number) => `Giảm ${percent}%`,
       welcomeEnded: 'Giá chào mừng đã kết thúc. Giá đã trở lại bình thường.',
       welcomeReserved: (claim: { percent: number; upTo: boolean } | null) =>
         claim ? (claim.upTo ? `Ưu đãi giảm đến ${claim.percent}% giữ cho bạn trong:` : `Ưu đãi giảm ${claim.percent}% giữ cho bạn trong:`) : 'Ưu đãi của bạn được giữ trong:',
@@ -1022,7 +1020,7 @@ export const vi = {
         secure: 'Thanh toán được Paddle xử lý an toàn.',
         methodTitle: 'Chọn phương thức thanh toán',
         ssl: 'Thông tin thanh toán của bạn được bảo vệ bằng mã hoá SSL/TLS.',
-        taxIncluded: (tax: string) => `Đã gồm ${tax} thuế`,
+        futurePayments: 'Nutree sẽ dùng thông tin thanh toán của bạn cho các lần gia hạn tiếp theo.',
         previewFrame: 'Nút thanh toán của Paddle hiện ở đây: Apple Pay, Google Pay, PayPal, và “Pay another way” để trả bằng thẻ.',
       },
       paymentsTo: (count: number, date: string) => `${count} lần thanh toán đến ${date}`,

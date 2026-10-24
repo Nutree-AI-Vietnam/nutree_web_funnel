@@ -152,8 +152,8 @@ export function GooglePlayMark({ className }: { className?: string }) {
 
 /**
  * The trust card before the plans: the customer count between laurels, then the store ratings.
- * Only confirmed numbers: 40,000+ customers and the 4.7 App Store rating; Google Play shows
- * once its real rating is filled in (copy.funnel.rating.googlePlay).
+ * Only confirmed numbers: 40,000+ customers, the 4.7 App Store rating and the 4.8 Google Play rating
+ * (copy.funnel.rating.googlePlay; set it to null to show the plain "available on Android" tile instead).
  */
 export function TrustCard({ className }: { className?: string }) {
   const copy = useCopy();

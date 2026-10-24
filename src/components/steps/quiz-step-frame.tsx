@@ -71,11 +71,10 @@ export function QuizStepFrame({
     const observer = new ResizeObserver(measure);
     observer.observe(scroller);
     if (header) observer.observe(header);
-    // The stack keeps the scroller's height, so watch its rows: a reply that appears under
-    // the options changes the lift, and a stale lift would push the first row out of view.
-    const watchRows = () => [...stack.children].forEach((row) => observer.observe(row));
-    watchRows();
-    const rows = new MutationObserver(() => { watchRows(); measure(); });
+    // A row that appears later (the reply under the confidence options) changes the lift, and a stale lift
+    // would push the first row out of view. Only added or removed rows trigger this: watching row sizes would
+    // loop on screens whose rows fill the height, because the fade's bottom padding resizes them again.
+    const rows = new MutationObserver(measure);
     rows.observe(stack, { childList: true });
     return () => { observer.disconnect(); rows.disconnect(); };
   }, [title, description]);
