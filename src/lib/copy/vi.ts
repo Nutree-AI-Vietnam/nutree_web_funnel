@@ -692,9 +692,7 @@ export const vi = {
     revealedTitle: (claim: { percent: number; upTo: boolean } | null) =>
       claim ? (claim.upTo ? `Giảm đến ${claim.percent}% cho kế hoạch của bạn` : `Giảm ${claim.percent}% cho kế hoạch của bạn`) : 'Giá chào mừng của bạn đã được mở',
     heldFor: (minutes: number) => `Giữ giá trong ${minutes} phút.`,
-    ticketLead: (claim: { percent: number; upTo: boolean } | null): string => (claim?.upTo ? 'Giảm đến' : ''),
-    ticketOffer: (claim: { percent: number; upTo: boolean } | null) => (claim ? (claim.upTo ? `${claim.percent}%` : `Giảm ${claim.percent}%`) : 'Giá chào mừng'),
-    ticketNote: (claim: { percent: number; upTo: boolean } | null): string => (claim ? (claim.upTo ? 'cho kế hoạch của bạn' : 'mọi gói') : 'đã được mở'),
+    ticketOffer: (claim: { percent: number; upTo: boolean } | null) => (claim ? `${claim.percent}%` : ''),
     scratchAria: 'Cào thẻ để mở ưu đãi của bạn',
     scratchHint: 'Cào hoặc chạm để mở',
     cta: (claim: { percent: number; upTo: boolean } | null) => (claim && !claim.upTo ? `Nhận ưu đãi ${claim.percent}%` : 'Nhận ưu đãi'),

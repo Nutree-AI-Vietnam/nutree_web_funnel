@@ -53,7 +53,6 @@ export function WelcomeGiftScreen({ name, claim, ready = true, minutes, variant 
   const gift = copy.welcomeGift;
   const revealTriggered = useRef(false);
   const [revealed, setRevealed] = useState(false);
-  const ticketLead = gift.ticketLead(claim);
   const reduce = useReducedMotion();
   const celebrate = revealed && !reduce;
 
@@ -127,9 +126,8 @@ export function WelcomeGiftScreen({ name, claim, ready = true, minutes, variant 
           >
             <span aria-hidden="true" className="absolute left-0 top-1/2 h-12 w-6 -translate-x-1/2 -translate-y-1/2 rounded-r-full bg-[#eaf6f1]" />
             <span aria-hidden="true" className="absolute right-0 top-1/2 h-12 w-6 -translate-y-1/2 translate-x-1/2 rounded-l-full bg-[#eaf6f1]" />
-            {ticketLead && <span className="relative mb-1.5 text-[0.95rem] font-extrabold text-white/90">{ticketLead}</span>}
-            <span className="relative whitespace-nowrap text-[2.5rem] font-extrabold leading-none tracking-[-0.05em] tabular-nums"><OfferText text={gift.ticketOffer(claim)} percent={claim?.percent ?? null} animate={celebrate} /></span>
-            <span className="relative mt-2 text-[0.85rem] font-bold text-white/90">{gift.ticketNote(claim)}</span>
+            {/* The ticket is the percentage alone; the headline above says what it is off. */}
+            <span className="relative whitespace-nowrap text-[4.75rem] font-extrabold leading-none tracking-[-0.05em] tabular-nums"><OfferText text={gift.ticketOffer(claim)} percent={claim?.percent ?? null} animate={celebrate} /></span>
             {/* A shine sweeps across once the foil is gone. */}
             {celebrate && (
               <motion.span

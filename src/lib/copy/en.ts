@@ -699,10 +699,8 @@ export const en: Copy = {
     revealedTitle: (claim: { percent: number; upTo: boolean } | null) =>
       claim ? (claim.upTo ? `Up to ${claim.percent}% off your plan` : `${claim.percent}% off your plan`) : 'Your welcome price is unlocked',
     heldFor: (minutes: number) => `Held for ${minutes} minutes.`,
-    // The ticket reads lead, offer, note: "50% off / every plan", or "Up to / 50% / off your plan" so the big line fits.
-    ticketLead: (claim: { percent: number; upTo: boolean } | null) => (claim?.upTo ? 'Up to' : ''),
-    ticketOffer: (claim: { percent: number; upTo: boolean } | null) => (claim ? (claim.upTo ? `${claim.percent}%` : `${claim.percent}% off`) : 'Welcome'),
-    ticketNote: (claim: { percent: number; upTo: boolean } | null) => (claim ? (claim.upTo ? 'off your plan' : 'every plan') : 'price unlocked'),
+    // The ticket shows the percentage alone, e.g. "75%".
+    ticketOffer: (claim: { percent: number; upTo: boolean } | null) => (claim ? `${claim.percent}%` : ''),
     scratchAria: 'Scratch the card to reveal your gift',
     scratchHint: 'Scratch or tap to reveal',
     cta: (claim: { percent: number; upTo: boolean } | null) => (claim && !claim.upTo ? `Claim my ${claim.percent}% off` : 'Claim my discount'),
