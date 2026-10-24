@@ -164,7 +164,6 @@ export function MultiChoiceStep({
             <NutreeLogo className="mx-auto h-16 w-16" />
             <h2 id="care-modal-title" className="mt-5 text-center text-2xl font-extrabold leading-tight text-forest">{vi.careModal.title}</h2>
             <p className="mt-4 text-center text-base font-semibold leading-relaxed text-muted-brand">{vi.careModal.body}</p>
-            <p className="mt-4 text-center text-sm font-medium leading-relaxed text-muted-brand">{vi.careModal.disclaimer}</p>
             <PrimaryButton
               ref={modalConfirmRef}
               onClick={() => {
