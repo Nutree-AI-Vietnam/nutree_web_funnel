@@ -219,7 +219,7 @@ export function TargetWeightStep() {
     <QuizStepFrame title={copy.target_weight.question} description={copy.funnel.targetHint} className="gap-2">
       <div className="relative flex flex-1 flex-col items-center">
         {/* Where they start, beside the wheel's selected row, so the target reads as a move from it. */}
-        <div className="pointer-events-none absolute left-0 top-[calc(50%+1.6rem)] -translate-y-1/2 whitespace-nowrap">
+        <div className="pointer-events-none absolute right-[calc(50%+4.75rem)] top-[calc(50%+1.6rem)] -translate-y-1/2 whitespace-nowrap text-right">
           <span className="block text-[0.68rem] font-bold text-muted-brand">{copy.target_weight.currentLabel}</span>
           <span className="text-[0.95rem] font-extrabold leading-none tracking-tight text-slate-brand">
             {data.weight_kg != null ? formatWeight(data.weight_kg, system, locale) : '—'}
