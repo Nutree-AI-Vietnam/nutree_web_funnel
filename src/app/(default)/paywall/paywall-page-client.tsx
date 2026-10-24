@@ -231,6 +231,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const anonymousAppUserIdRef = useRef<string | null>(null);
   const checkoutRef = useRef<{ leadId: string; purchases: PurchasesInstance; appUserId: string | null } | null>(null);
   const checkoutInFlightRef = useRef(false);
+  const showRunRef = useRef<(() => void) | null>(null);
   const paddleOpenedRef = useRef(false);
   const purchaseSucceededRef = useRef(false);
   const purchaseLeadIdRef = useRef<string | null>(null);
@@ -258,6 +259,12 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     preload('https://cdn.paddle.com/paddle/v2/paddle.js', { as: 'script' });
   }
   const [checkoutSheetOpen, setCheckoutSheetOpen] = useState(false);
+  // A checkout started in the background before the tap, so Paddle's buttons are already drawn when the sheet opens.
+  // The sheet is mounted (hidden) while it loads; `shown` turns true when the visitor taps the buy button.
+  const [prestarting, setPrestarting] = useState(false);
+  const checkoutRunRef = useRef<{ key: string; shown: boolean; discarded: boolean } | null>(null);
+  const openAfterDiscardRef = useRef(false);
+  const sheetMounted = checkoutSheetOpen || prestarting;
   // Closing checkout without paying applies the exit price under a scratch card, so the person uncovers it.
   const [exitGiftOpen, setExitGiftOpen] = useState(false);
   // Local preview has no RevenueCat, so the sheet shows a placeholder frame and its own close button.
@@ -273,7 +280,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   // Paddle's own totals for the open checkout (tax included), reported by the patched RevenueCat SDK.
   const [paddleTotals, setPaddleTotals] = useState<{ currencyCode: string; taxAmount: number; totalAmount: number; recurringTotalAmount: number | null } | null>(null);
   useEffect(() => {
-    if (!checkoutSheetOpen) return;
+    if (!sheetMounted) return;
     const onTotals = (event: Event) => {
       const detail = (event as CustomEvent<{ currencyCode?: unknown; taxAmount?: unknown; totalAmount?: unknown; recurringTotalAmount?: unknown }>).detail;
       if (typeof detail?.currencyCode === 'string' && typeof detail.totalAmount === 'number') {
@@ -290,7 +297,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       window.removeEventListener('rcb-checkout-totals', onTotals);
       setPaddleTotals(null);
     };
-  }, [checkoutSheetOpen]);
+  }, [sheetMounted]);
   // Read once on the client: a gift claimed earlier in this tab, or a plan link that opens checkout, skips the gift.
   const [giftSkipped, setGiftSkipped] = useState(() => typeof window !== 'undefined' && (hasWelcomeVoucherBeenClaimed() || autostartPending()));
   const timeline = useMemo(() => goalTimeline(data), [data]);
@@ -503,32 +510,37 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     if (exitClaim) setExitGiftOpen(true);
   }, [plans]);
 
-  const openCheckout = useCallback(async (offer: PaywallOfferKind | null) => {
+  const openCheckout = useCallback(async (offer: PaywallOfferKind | null, background = false) => {
     const plan = selected;
-    if (checkoutInFlightRef.current || purchaseLeadIdRef.current === lead?.lead_id) return;
+    // One checkout at a time: a run (shown or background) clears its slot only once RevenueCat has settled it.
+    if (checkoutInFlightRef.current || checkoutRunRef.current || purchaseLeadIdRef.current === lead?.lead_id) return;
     if (!purchasesRef.current || !lead || !plan || !anonymousAppUserIdRef.current) {
-      setError('RevenueCat checkout is still loading. Please try again in a moment.');
+      if (!background) setError('RevenueCat checkout is still loading. Please try again in a moment.');
       return;
     }
     const customerEmail = readCheckoutEmail();
     if (customerEmail) identifyMetaUser({ email: customerEmail, externalId: lead.lead_id, firstName: data.name });
-    // Mount the sheet now, so its host element exists when RevenueCat starts drawing.
+    if (background && (!inlineCheckout || !customerEmail)) return;
+    // Mount the sheet now, so its host element exists when RevenueCat starts drawing (hidden for a background start).
     if (inlineCheckout && customerEmail) {
       flushSync(() => {
         setCheckoutOffer(offer);
         setCheckoutPaid(false);
-        setCheckoutSheetOpen(true);
+        if (background) setPrestarting(true);
+        else setCheckoutSheetOpen(true);
       });
     }
     if (!customerEmail) {
       setError(activeLocale === 'vi' ? 'Vui lòng quay lại bước email để xác nhận địa chỉ thanh toán trước khi mua.' : 'We need your email before checkout. Go back to the email step to add it.');
       return;
     }
+    const run = { key: `${plan.id}|${offer ?? 'original'}`, shown: !background, discarded: false };
+    checkoutRunRef.current = run;
     checkoutInFlightRef.current = true;
     paddleOpenedRef.current = false;
     purchaseSucceededRef.current = false;
     cancelRequestedRef.current = false;
-    setBusy(true);
+    if (!background) setBusy(true);
     setError(null);
     const isExitOffer = offer === 'exit';
     let watchPaddle = 0;
@@ -539,13 +551,24 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       checkoutInFlightRef.current = false;
       setBusy(false);
       clearPaywallCheckoutPending();
+      // A background start the visitor never saw (or one replaced by another plan) ends quietly.
+      if (!run.shown || run.discarded) return;
       if (isExitOffer || purchaseSucceededRef.current || isUserPurchased({ purchased, lead })) return;
       trackEvent('revenuecat_checkout_cancelled', { plan: plan.id, paddle_opened: paddleOpenedRef.current });
       applyExitOffer();
     };
     const rcPackage = checkoutPackage(plan, offer);
     const checkoutCommerce = firstPaymentCommerce(rcPackage.webBillingProduct);
-    trackEvent('revenuecat_checkout_started', { plan: plan.id, package_id: rcPackage.identifier, offer_kind: offer ?? 'original', offer_auto_applied: offer === 'welcome' && !hasWelcomeVoucherBeenClaimed(), country_code: countryCode ?? 'auto', ...checkoutCommerce });
+    // What a shown checkout records, run on the tap for a background start.
+    const markShown = () => {
+      trackEvent('revenuecat_checkout_started', { plan: plan.id, package_id: rcPackage.identifier, offer_kind: offer ?? 'original', offer_auto_applied: offer === 'welcome' && !hasWelcomeVoucherBeenClaimed(), country_code: countryCode ?? 'auto', ...checkoutCommerce });
+      markPaywallCheckoutPending();
+    };
+    showRunRef.current = () => {
+      run.shown = true;
+      markShown();
+    };
+    if (run.shown) markShown();
     void syncRevenueCatAttribution(purchasesRef.current);
 
     watchPaddle = window.setInterval(() => {
@@ -574,7 +597,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         window.clearTimeout(abandonTimer);
         return;
       }
-      if (!paddleCheckoutClosedWithoutPayment(event.data)) return;
+      if (!paddleCheckoutClosedWithoutPayment(event.data) || !run.shown) return;
       paddleOpenedRef.current = true;
       window.clearTimeout(abandonTimer);
       applyUnfinishedPaddleDiscount();
@@ -586,7 +609,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       window.removeEventListener('message', onPaddleMessage);
     };
     try {
-      markPaywallCheckoutPending();
       const purchaseParameters = {
         rcPackage,
         customerEmail,
@@ -636,14 +658,23 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         return;
       }
       clearPaywallCheckoutPending();
-      if (!isUserCancelledPurchase(purchaseError)) {
+      // A background start that failed stays silent; the tap then starts a fresh checkout as before.
+      if (run.shown && !isUserCancelledPurchase(purchaseError)) {
         setError(purchaseError instanceof Error ? purchaseError.message : 'RevenueCat could not complete checkout. Please try again.');
       }
     } finally {
       stopWatchingPaddle();
       checkoutInFlightRef.current = false;
+      if (checkoutRunRef.current === run) checkoutRunRef.current = null;
+      showRunRef.current = null;
       setBusy(false);
       setCheckoutSheetOpen(false);
+      setPrestarting(false);
+      // The visitor tapped buy while a background start for another plan was being replaced: open theirs now.
+      if (openAfterDiscardRef.current) {
+        openAfterDiscardRef.current = false;
+        window.setTimeout(() => requestCheckoutRef.current(), 0);
+      }
     }
   }, [activeLocale, applyExitOffer, countryCode, correlatePurchasedCustomer, data.name, inlineCheckout, lead, purchased, resolvedCountryCode, router, selected, setPurchased]);
 
@@ -683,9 +714,34 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     autoAppliedPendingRef.current = false;
     trackEvent('welcome_offer_auto_applied', { discount_percent: welcomeClaim?.percent, offer_auto_applied: true });
   }, [loadState, offerStateReady, welcomeClaim?.percent]);
+  // Ends a background start the visitor has not seen (its plan or offer changed); its cleanup stays quiet.
+  const discardBackgroundCheckout = () => {
+    const run = checkoutRunRef.current;
+    if (!run || run.shown || run.discarded) return;
+    run.discarded = true;
+    const cancel = (checkoutHostRef.current as (HTMLDivElement & { rcbCancelCheckout?: () => void }) | null)?.rcbCancelCheckout;
+    if (cancel) cancel();
+    else cancelRequestedRef.current = true;
+  };
+  const prestartKey = selected ? `${selected.id}|${activeOffer ?? 'original'}` : null;
   const requestCheckout = () => {
     if (lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id) {
       setRedemption({ kind: 'pending' });
+      return;
+    }
+    // A background start for this plan and price is already drawn: show it, no wait.
+    const run = checkoutRunRef.current;
+    if (inlineCheckout && run && !run.shown) {
+      if (!run.discarded && run.key === prestartKey) {
+        showRunRef.current?.();
+        setBusy(true);
+        setError(null);
+        setCheckoutSheetOpen(true);
+        return;
+      }
+      // It was for another plan or price: end it and open the right one as soon as it has.
+      openAfterDiscardRef.current = true;
+      discardBackgroundCheckout();
       return;
     }
     if (inlineCheckout && isLocalPreviewHost() && !purchasesRef.current) {
@@ -724,6 +780,23 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   useEffect(() => {
     requestCheckoutRef.current = requestCheckout;
   });
+
+  // Start the selected plan's checkout in the background once the visitor settles on it, so the buy button opens a
+  // sheet whose payment buttons are already drawn. A change of plan or price replaces it. Each start is a Paddle
+  // draft checkout, not a charge.
+  const canPrestart = inlineCheckout && pricesReady && !checkoutUnavailable && !purchased && !exitGiftOpen && !giftOpen && Boolean(lead);
+  useEffect(() => {
+    if (!canPrestart || !prestartKey || checkoutSheetOpen) return;
+    const run = checkoutRunRef.current;
+    if (run) {
+      if (!run.shown && run.key !== prestartKey) discardBackgroundCheckout();
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      if (!checkoutRunRef.current && !checkoutInFlightRef.current) void openCheckout(activeOffer, true);
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [activeOffer, canPrestart, checkoutSheetOpen, openCheckout, prestartKey, prestarting]);
   useEffect(() => {
     if (loadState !== 'ready' || autostartRef.current) return;
     let autostart = false;
@@ -755,6 +828,11 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       if (checkoutPreview && checkoutOffer !== 'exit') applyExitOffer();
     }
   }, [applyExitOffer, checkoutOffer, checkoutPreview]);
+  // Focus the close button when the sheet appears (a background start mounted it hidden, where focus cannot land).
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (checkoutSheetOpen) closeButtonRef.current?.focus();
+  }, [checkoutSheetOpen]);
   // Escape closes the sheet wherever focus is, except inside Paddle's frame, which keeps its keys.
   useEffect(() => {
     if (!checkoutSheetOpen) return;
@@ -896,16 +974,18 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const checkoutSheet = (
     // The overlay itself scrolls, so when Paddle's card form grows taller than the screen the whole sheet moves,
     // including from a swipe that starts on Paddle's frame (an inner scroll box would not take that swipe on iOS).
+    // While a background start loads, the sheet is laid out (so Paddle can size its frame) but invisible and inert.
     <div
-      className="fixed inset-0 z-[70] overflow-y-auto overscroll-contain bg-[rgb(9_22_18_/_0.5)] backdrop-blur-[2px]"
+      className={cn('fixed inset-0 z-[70] overflow-y-auto overscroll-contain bg-[rgb(9_22_18_/_0.5)] backdrop-blur-[2px]', !checkoutSheetOpen && 'invisible pointer-events-none')}
       role="dialog"
       aria-modal="true"
+      aria-hidden={!checkoutSheetOpen || undefined}
       aria-labelledby="checkout-sheet-title"
     >
       <div className="flex min-h-full items-center justify-center px-3 py-4">
       <div className="w-full max-w-md rounded-[1.75rem] bg-[#f2f4f3] px-5 pb-5 pt-3 shadow-[0_24px_60px_rgb(9_22_18_/_0.3)] animate-soft-enter">
         <div className="relative flex min-h-12 items-center justify-center">
-          {!checkoutPaid && <button type="button" autoFocus onClick={closeCheckoutSheet} aria-label={funnelPaywall.checkout.close} className="absolute left-[-0.6rem] top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-charcoal transition hover:bg-black/[0.05] focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">
+          {!checkoutPaid && <button ref={closeButtonRef} type="button" onClick={closeCheckoutSheet} aria-label={funnelPaywall.checkout.close} className="absolute left-[-0.6rem] top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-charcoal transition hover:bg-black/[0.05] focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">
             <Icon name="close" className="h-5 w-5" />
           </button>}
           <h2 id="checkout-sheet-title" className="text-[1.2rem] font-extrabold text-charcoal">{funnelPaywall.checkout.title}</h2>
@@ -1077,7 +1157,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       className="gap-5"
     >
       {/* On <body>, so the page's animated wrappers don't pin this fixed sheet to themselves. */}
-      {inlineCheckout && checkoutSheetOpen && createPortal(checkoutSheet, document.body)}
+      {inlineCheckout && sheetMounted && createPortal(checkoutSheet, document.body)}
       {giftOpen && <WelcomeGiftScreen name={data.name?.trim() || null} claim={welcomeClaim} ready={pricesReady} minutes={Math.round(welcomeSeconds / 60)} onClaim={claimWelcomeGift} />}
       {exitGiftOpen && exitClaim && (
         <WelcomeGiftScreen variant="exit" name={data.name?.trim() || null} claim={exitClaim} ready minutes={Math.round(PAYWALL_WELCOME_OFFER_SECONDS / 60)} onClaim={() => { setExitGiftOpen(false); window.scrollTo({ top: 0 }); }} />
