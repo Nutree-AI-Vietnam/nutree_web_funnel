@@ -9,6 +9,7 @@ import { BoCongThuongBadge } from '@/components/bo-cong-thuong-badge';
 import { ConversionShell } from '@/components/conversion-shell';
 import { NutreeLogo } from '@/components/nutree-logo';
 import { stripNonAttributionParams } from '@/lib/analytics/attribution';
+import { useBrowserBack } from '@/lib/funnel/browser-back';
 import { identifyMetaUser } from '@/lib/analytics/meta-identity';
 import { identifyFunnelLead, registerPriceTestVariant } from '@/lib/analytics/posthog';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
@@ -67,6 +68,9 @@ const ENGLISH_WELCOME_SECONDS = 600;
  * RevenueCat falls back to the popup unless inline checkout is also on in its Paddle settings.
  */
 const INLINE_CHECKOUT = process.env.NEXT_PUBLIC_INLINE_CHECKOUT !== '0';
+
+/** The longest a checkout start waits for the customer's attribution to be saved first. */
+const ATTRIBUTION_WAIT_MS = 2000;
 
 /**
  * Wallet badges for payment methods switched on in Paddle (Apple Pay and Google Pay are on).
@@ -235,6 +239,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const paddleOpenedRef = useRef(false);
   const purchaseSucceededRef = useRef(false);
   const purchaseLeadIdRef = useRef<string | null>(null);
+  const attributionSyncRef = useRef<{ appUserId: string; done: Promise<boolean> } | null>(null);
   const redemptionLinkHashRef = useRef<string | null>(null);
   // An automatically applied welcome offer is reported once the prices are in, with its real discount.
   const autoAppliedPendingRef = useRef(false);
@@ -332,16 +337,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     if (variant) registerPriceTestVariant(variant);
     trackStepViewed('paywall');
   }, [resolvedCountryCode]);
-
-  // The support chat may show on the paywall, but not over Paddle's checkout.
-  useEffect(() => {
-    const root = document.documentElement;
-    if (busy || showCheckoutConfirm) delete root.dataset.supportChat;
-    else root.dataset.supportChat = 'on';
-    return () => {
-      delete root.dataset.supportChat;
-    };
-  }, [busy, showCheckoutConfirm]);
 
   useEffect(() => {
     if (!hydrated || !lead?.lead_id) return;
@@ -569,7 +564,13 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       markShown();
     };
     if (run.shown) markShown();
-    void syncRevenueCatAttribution(purchasesRef.current);
+    // The attribution write goes first, once per customer: it and the purchase both create the new RevenueCat
+    // customer, and run together one of them could fail (a first checkout start that worked on retry, details unsaved).
+    const appUserId = purchasesRef.current.getAppUserId();
+    if (attributionSyncRef.current?.appUserId !== appUserId) {
+      attributionSyncRef.current = { appUserId, done: syncRevenueCatAttribution(purchasesRef.current) };
+    }
+    const attributionSaved = attributionSyncRef.current.done;
 
     watchPaddle = window.setInterval(() => {
       if (purchaseSucceededRef.current) return;
@@ -609,6 +610,10 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       window.removeEventListener('message', onPaddleMessage);
     };
     try {
+      // Capped, so a slow write never holds the checkout up; it never throws.
+      await Promise.race([attributionSaved, new Promise((resolve) => window.setTimeout(resolve, ATTRIBUTION_WAIT_MS))]);
+      // A background start replaced while it waited has nothing to open.
+      if (run.discarded) return;
       const purchaseParameters = {
         rcPackage,
         customerEmail,
@@ -659,8 +664,16 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       }
       clearPaywallCheckoutPending();
       // A background start that failed stays silent; the tap then starts a fresh checkout as before.
-      if (run.shown && !isUserCancelledPurchase(purchaseError)) {
-        setError(purchaseError instanceof Error ? purchaseError.message : 'RevenueCat could not complete checkout. Please try again.');
+      if (!isUserCancelledPurchase(purchaseError)) {
+        trackEvent('revenuecat_checkout_start_failed', {
+          plan: plan.id,
+          shown: run.shown,
+          error_code: purchaseErrorCode(purchaseError),
+          error_message: purchaseError instanceof Error ? purchaseError.message.slice(0, 200) : String(purchaseError).slice(0, 200),
+        });
+        // The SDK's own message is English and technical; the visitor reads one line in their language.
+        // An already-bought plan keeps the SDK's message, which says so.
+        if (run.shown) setError(isAlreadyPurchased(purchaseError) && purchaseError instanceof Error ? purchaseError.message : copy.funnel.paywall.checkout.startFailed);
       }
     } finally {
       stopWatchingPaddle();
@@ -676,7 +689,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         window.setTimeout(() => requestCheckoutRef.current(), 0);
       }
     }
-  }, [activeLocale, applyExitOffer, countryCode, correlatePurchasedCustomer, data.name, inlineCheckout, lead, purchased, resolvedCountryCode, router, selected, setPurchased]);
+  }, [activeLocale, applyExitOffer, copy, countryCode, correlatePurchasedCustomer, data.name, inlineCheckout, lead, purchased, resolvedCountryCode, router, selected, setPurchased]);
 
   const countdown = formatCountdown(secondsLeft);
   const persistedCorrelation = Boolean(lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id);
@@ -707,6 +720,17 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   // scratched until the prices are in, so it never reveals a discount the plans do not have; an offering
   // without welcome packages closes it once the prices show that.
   const giftOpen = offerStateReady && welcomeOfferActive && !giftSkipped && (!pricesReady || welcomeClaim != null);
+  // The support chat may show on the paywall, but not over Paddle's checkout or over the full-screen gift cards,
+  // whose button runs the full width of the bottom edge where the chat bubble sits.
+  const supportChatHidden = busy || showCheckoutConfirm || checkoutSheetOpen || giftOpen || exitGiftOpen;
+  useEffect(() => {
+    const root = document.documentElement;
+    if (supportChatHidden) delete root.dataset.supportChat;
+    else root.dataset.supportChat = 'on';
+    return () => {
+      delete root.dataset.supportChat;
+    };
+  }, [supportChatHidden]);
   const exitClaim = pricesReady ? offerClaimFor(plans, 'exit') : null;
   const activeClaim = pricesReady ? offerClaimFor(plans, activeOffer) : null;
   useEffect(() => {
@@ -842,6 +866,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [checkoutSheetOpen, closeCheckoutSheet]);
+  // The phone's Back button closes what is open over the paywall first: the checkout sheet, or the last-chance card.
+  useBrowserBack(checkoutSheetOpen ? closeCheckoutSheet : exitGiftOpen ? () => setExitGiftOpen(false) : null, 2);
 
   const priceSummary = isOriginalPricing
     ? copy.paywall.standardPriceSummary(originalTotal, renewalTotal, selectedLabel, renewalCadence)
@@ -1067,11 +1093,15 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const planTdee = tdee ?? computeTdeeResult(data);
   const claimWelcomeGift = () => {
     markWelcomeVoucherClaimed();
-    const offer = createPaywallOffer('welcome', Date.now(), welcomeSeconds);
+    // The welcome countdown started when the paywall opened; claiming keeps it running instead of starting it over.
+    const now = Date.now();
+    const offer = offerKind === 'welcome' && offerExpiresAt != null && offerExpiresAt > now
+      ? { kind: 'welcome' as const, expiresAt: offerExpiresAt }
+      : createPaywallOffer('welcome', now, welcomeSeconds);
     storePaywallOffer(offer);
     setOfferKind('welcome');
     setOfferExpiresAt(offer.expiresAt);
-    setSecondsLeft(welcomeSeconds);
+    setSecondsLeft(Math.max(0, Math.ceil((offer.expiresAt - now) / 1000)));
     setGiftSkipped(true);
     window.scrollTo({ top: 0 });
   };
@@ -1158,7 +1188,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     >
       {/* On <body>, so the page's animated wrappers don't pin this fixed sheet to themselves. */}
       {inlineCheckout && sheetMounted && createPortal(checkoutSheet, document.body)}
-      {giftOpen && <WelcomeGiftScreen name={data.name?.trim() || null} claim={welcomeClaim} ready={pricesReady} minutes={Math.round(welcomeSeconds / 60)} onClaim={claimWelcomeGift} />}
+      {giftOpen && <WelcomeGiftScreen name={data.name?.trim() || null} claim={welcomeClaim} ready={pricesReady} minutes={secondsLeft > 0 ? Math.ceil(secondsLeft / 60) : Math.round(welcomeSeconds / 60)} onClaim={claimWelcomeGift} />}
       {exitGiftOpen && exitClaim && (
         <WelcomeGiftScreen variant="exit" name={data.name?.trim() || null} claim={exitClaim} ready minutes={Math.round(PAYWALL_WELCOME_OFFER_SECONDS / 60)} onClaim={() => { setExitGiftOpen(false); window.scrollTo({ top: 0 }); }} />
       )}

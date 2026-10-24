@@ -6,11 +6,12 @@ import { PrimaryButton } from '@/components/primary-button';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { goToNextQuizStep, goToQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
-import { bmi, bmiCategory } from '@/lib/tdee/insights';
+import { bmi, bmiCategory, formatBmi, wholePercents } from '@/lib/tdee/insights';
 import Image from 'next/image';
 import { CountUp } from '@/components/ui/count-up';
 import { Icon } from '@/components/ui/icons';
 import type { TdeeResult } from '@/lib/quiz/types';
+import { workoutCredit } from '@/lib/tdee/calculator';
 import { motion, useReducedMotion } from 'motion/react';
 import { cn } from '@/lib/utils';
 
@@ -30,8 +31,6 @@ const toPct = (value: number) => (Math.min(Math.max(value, BMI_MIN), BMI_MAX) - 
 /** A BMI gauge: soft zones coloured blue, green, yellow and red, tick values, and a marker that slides to the visitor's value. */
 function BmiGauge({ value, healthyLabel, locale }: { value: number; healthyLabel: string; locale: string }) {
   const reduce = useReducedMotion();
-  // Decimal comma in Vietnamese, matching the healthy-range line under the gauge.
-  const decimal = new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const position = `${toPct(value)}%`;
   return (
     <div className="pt-8">
@@ -50,14 +49,14 @@ function BmiGauge({ value, healthyLabel, locale }: { value: number; healthyLabel
           style={{ left: position }}
         >
           <span className="absolute bottom-[calc(100%+0.45rem)] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg px-2 py-0.5 text-[0.78rem] font-extrabold tabular-nums text-white shadow-[0_6px_16px_rgb(23_69_58_/_0.25)]" style={{ background: bmiColor(value) }}>
-            {decimal.format(value)}
+            {formatBmi(value, locale)}
           </span>
           <span className="block h-5 w-5 rounded-full border-[3px] border-white shadow-[0_4px_12px_rgb(23_69_58_/_0.3)]" style={{ background: bmiColor(value) }} />
         </motion.div>
       </div>
       <div className="relative mt-1.5 h-4 text-[0.64rem] font-bold tabular-nums text-muted-brand" aria-hidden="true">
         {[18.5, 25, 30].map((tick) => (
-          <span key={tick} className="absolute -translate-x-1/2" style={{ left: `${toPct(tick)}%` }}>{Number.isInteger(tick) ? tick : decimal.format(tick)}</span>
+          <span key={tick} className="absolute -translate-x-1/2" style={{ left: `${toPct(tick)}%` }}>{Number.isInteger(tick) ? tick : formatBmi(tick, locale)}</span>
         ))}
       </div>
       <p className="mt-1 flex items-center gap-1.5 text-[0.72rem] font-bold text-[#1f8f5f]">
@@ -81,7 +80,8 @@ function ResultHero({ tdee, locale }: { tdee: TdeeResult; locale: string }) {
   const labels = copy.tdee_targets;
   const format = (value: number) => new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US').format(Math.round(value));
   const grams = { protein: tdee.protein_g, carbs: tdee.carbs_g, fat: tdee.fat_g };
-  const total = MACROS.reduce((sum, m) => sum + grams[m.key] * m.kcalPerGram, 0) || 1;
+  // Shares of the day's calories, as whole percents that add up to 100.
+  const percents = wholePercents(MACROS.map((m) => grams[m.key] * m.kcalPerGram));
   return (
     <div className="mt-4">
       <p className="sr-only">{labels.summary(format(tdee.calories), Math.round(tdee.protein_g), Math.round(tdee.carbs_g), Math.round(tdee.fat_g))}</p>
@@ -103,7 +103,7 @@ function ResultHero({ tdee, locale }: { tdee: TdeeResult; locale: string }) {
       </div>
       <div aria-hidden="true" className="mt-2.5 grid grid-cols-3 gap-2">
         {MACROS.map((macro, index) => {
-          const share = (grams[macro.key] * macro.kcalPerGram) / total;
+          const percent = percents[index];
           return (
             <motion.div
               key={macro.key}
@@ -121,11 +121,11 @@ function ResultHero({ tdee, locale }: { tdee: TdeeResult; locale: string }) {
                 <motion.span
                   className={cn('block h-full rounded-full', macro.bar)}
                   initial={reduce ? false : { width: 0 }}
-                  animate={{ width: `${Math.round(share * 100)}%` }}
+                  animate={{ width: `${percent}%` }}
                   transition={{ delay: 0.7 + index * 0.1, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                 />
               </span>
-              <span className="mt-1 block text-[0.66rem] font-bold tabular-nums text-muted-brand">{Math.round(share * 100)}%</span>
+              <span className="mt-1 block text-[0.66rem] font-bold tabular-nums text-muted-brand">{percent}%</span>
             </motion.div>
           );
         })}
@@ -151,6 +151,7 @@ export function TdeeTargetsStep() {
 
   const bmiValue = bmi(data.weight_kg, data.height_cm);
   const category = bmiCategory(bmiValue);
+  const trainingMinutes = data.training_days_per_week ? data.training_minutes_per_session ?? 0 : 0;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -161,6 +162,15 @@ export function TdeeTargetsStep() {
         <h1 className="text-[1.45rem] font-extrabold leading-tight text-forest">{vi.tdee_targets.headline}</h1>
         <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-brand">{vi.tdee_targets.aha}</p>
         <ResultHero tdee={tdee} locale={locale} />
+        {/* Training never raises the daily target: as in the app, a logged workout adds what it burns to that day. */}
+        <p className="mt-3 flex items-start gap-2 rounded-2xl bg-mist px-3 py-2.5 text-[0.78rem] font-semibold leading-snug text-forest">
+          <Icon name="dumbbell" className="mt-px h-4 w-4 shrink-0 text-teal-brand" />
+          <span>
+            {trainingMinutes > 0
+              ? vi.tdee_targets.trainingCredit(new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US').format(workoutCredit(data.weight_kg, trainingMinutes)), trainingMinutes)
+              : vi.tdee_targets.trainingCreditNone}
+          </span>
+        </p>
       </section>
 
       <section className="rounded-[1.4rem] bg-white/88 p-3.5 shadow-[0_12px_34px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.78)] backdrop-blur">

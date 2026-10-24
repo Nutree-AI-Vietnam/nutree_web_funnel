@@ -69,3 +69,15 @@ export function computeTdeeResult(data: OnboardingPayload): TdeeResult | null {
     fat_g,
   };
 }
+
+/** The MET the app gives a logged workout of no listed type ("Other"); the quiz does not ask the kind of training. */
+const WORKOUT_MET = 5;
+
+/**
+ * About how many calories the app adds to a day for one logged workout of this length, by the app's own
+ * formula net of rest: (MET - 1) x 3.5 x kg x minutes / 200, rounded to 10 kcal. Workouts are credited
+ * when logged instead of raising the daily target, so training answers change this figure, not the target.
+ */
+export function workoutCredit(weightKg: number, minutes: number): number {
+  return Math.round(((WORKOUT_MET - 1) * 3.5 * weightKg * minutes) / 200 / 10) * 10;
+}

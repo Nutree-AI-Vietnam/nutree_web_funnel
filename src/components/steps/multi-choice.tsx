@@ -87,10 +87,11 @@ export function MultiChoiceStep({
 
   const toggle = (key: string) => {
     let next = values.includes(key) ? values.filter((v) => v !== key) : [...values, key];
+    // Every need stays picked (an allergy must never drop out); "No restrictions" clears the rest, and any need clears it.
     if (field === 'dietary_preferences') {
       next = key === 'none' && !values.includes('none')
         ? ['none']
-        : next.filter((v) => v !== 'none').slice(-2);
+        : next.filter((v) => v !== 'none');
     }
     setData({ [field]: next } as Partial<OnboardingPayload>);
   };

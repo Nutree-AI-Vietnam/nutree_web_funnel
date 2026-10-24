@@ -49,6 +49,8 @@ interface QuizState {
   paypalCheckout: PayPalCheckout | null;
   momoOrderId: string | null;
   purchased: boolean;
+  /** Where an answer opened from the review screen returns once it is saved; kept for this page view only. */
+  editReturn: QuizStep | null;
   setData: (patch: Partial<OnboardingPayload>) => void;
   setPlanAnswers: (patch: Partial<PlanAnswers>) => void;
   setFunnelScreen: (screen: FunnelScreen) => void;
@@ -61,6 +63,7 @@ interface QuizState {
   setPayPalCheckout: (checkout: PayPalCheckout | null) => void;
   setMomoOrderId: (orderId: string | null) => void;
   setPurchased: (v: boolean) => void;
+  setEditReturn: (step: QuizStep | null) => void;
   reset: () => void;
 }
 
@@ -76,6 +79,7 @@ const initial = {
   paypalCheckout: null,
   momoOrderId: null,
   purchased: false,
+  editReturn: null,
 };
 
 type PersistedQuizState = Pick<
@@ -181,6 +185,7 @@ export const useQuizStore = create<QuizState>()(
       setPayPalCheckout: (paypalCheckout) => set({ paypalCheckout }),
       setMomoOrderId: (momoOrderId) => set({ momoOrderId }),
       setPurchased: (purchased) => set({ purchased }),
+      setEditReturn: (editReturn) => set({ editReturn }),
       // Language, units and country are UI preferences, not quiz data — keep them across a reset.
       reset: () =>
         set((s) => ({ ...initial, data: { ...initial.data }, planAnswers: {}, locale: s.locale, units: s.units, countryCode: s.countryCode })),

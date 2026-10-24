@@ -6,7 +6,7 @@ import { PrimaryButton } from '@/components/primary-button';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { GoalChart } from '@/components/plan/plan-overview';
-import { buildProgressProjection, formatGoalDate, goalTimeline, type ProgressDirection } from '@/lib/quiz/progress-projection';
+import { buildProgressProjection, firstWin, formatGoalDate, goalTimeline, type ProgressDirection } from '@/lib/quiz/progress-projection';
 import { useQuizStore } from '@/lib/quiz/store';
 import { formatWeight } from '@/lib/quiz/units';
 import { useUnits } from '@/lib/quiz/use-units';
@@ -61,6 +61,7 @@ export function ProgressStep() {
     const target = formatWeight(timeline.targetKg, system, locale);
     const date = formatGoalDate(timeline.date, locale);
     const name = data.name?.trim();
+    const win = firstWin(timeline, system, locale);
     const rate = system === 'imperial' ? `${(timeline.kgPerWeek / 0.45359237).toFixed(1)} lb` : formatWeight(timeline.kgPerWeek, 'metric', locale);
     return (
       <QuizStepFrame title={name ? funnel.headline(name, target, date) : funnel.headlineNoName(target, date)}>
@@ -74,7 +75,7 @@ export function ProgressStep() {
             transition={{ delay: 1.0, duration: 0.35 }}
           >
             <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-teal-brand" />
-            {copy.funnel.plan.firstWin(formatWeight(timeline.week1Kg, system, locale), formatGoalDate(timeline.week1Date, locale, false))}
+            {copy.funnel.plan.firstWin(formatWeight(win.kg, system, locale), formatGoalDate(win.date, locale, false))}
           </motion.p>
           <p className="mt-2 text-[0.75rem] font-semibold leading-snug text-muted-brand">{funnel.estimateAtPace(rate)}</p>
         </section>

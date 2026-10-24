@@ -61,6 +61,11 @@ describe('quiz steps', () => {
     expect(previousStep('goal')).toBeNull();
   });
 
+  it('skips the loader on the way back from the plan', () => {
+    expect(previousStep('result')).toBe('not_alone');
+    expect(previousStep('calculating')).toBe('not_alone');
+  });
+
   it('exposes 1-based progress index', () => {
     expect(stepIndex('goal')).toBe(1);
     expect(stepIndex('height')).toBe(9);

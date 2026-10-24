@@ -7,7 +7,7 @@ import { Icon, type IconName } from '@/components/ui/icons';
 import { AppleMark, GooglePlayMark } from '@/components/value-tour/value-tour-demos';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { appIncludeSources, firstChangePlan, planNumbers, sampleDay, type ChangeSource } from '@/lib/quiz/plan-content';
-import { formatGoalDate, goalTimeline, type GoalTimeline } from '@/lib/quiz/progress-projection';
+import { firstWin, formatGoalDate, goalTimeline, type GoalTimeline } from '@/lib/quiz/progress-projection';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload, TdeeResult } from '@/lib/quiz/types';
 import { formatWeight, type UnitSystem } from '@/lib/quiz/units';
@@ -244,6 +244,7 @@ export function GoalStrip({ data, system, targets, className }: {
   const progress = copy.funnel.progress;
   const timeline = goalTimeline(data);
   if (!timeline) return null;
+  const win = firstWin(timeline, system, locale);
   const path = timeline.reducing ? 'M8 14 C 120 22, 210 52, 318 62' : 'M8 62 C 120 54, 210 24, 318 14';
   const end = timeline.reducing ? { x: 318, y: 62 } : { x: 318, y: 14 };
 
@@ -293,7 +294,7 @@ export function GoalStrip({ data, system, targets, className }: {
         />
       </svg>
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="rounded-full bg-white/12 px-2.5 py-1 text-[0.8rem] font-bold">{plan.firstWin(formatWeight(timeline.week1Kg, system, locale), formatGoalDate(timeline.week1Date, locale, false))}</span>
+        <span className="rounded-full bg-white/12 px-2.5 py-1 text-[0.8rem] font-bold">{plan.firstWin(formatWeight(win.kg, system, locale), formatGoalDate(win.date, locale, false))}</span>
         <span className="text-[0.72rem] font-semibold text-white/60">{plan.estimate}</span>
       </div>
       {targets && (
@@ -329,6 +330,7 @@ export function PlanGoalCard({ data, tdee, system, className }: {
   const locale = useLocale();
   const plan = copy.funnel.plan;
   const timeline = goalTimeline(data);
+  const win = timeline ? firstWin(timeline, system, locale) : null;
   const name = data.name?.trim();
   const format = new Intl.NumberFormat(numberLocale(locale));
 
@@ -340,7 +342,7 @@ export function PlanGoalCard({ data, tdee, system, className }: {
       </h2>
       {timeline && (
         <>
-          <p className="mt-1 text-sm font-bold text-slate-brand">{plan.firstWin(formatWeight(timeline.week1Kg, system, locale), formatGoalDate(timeline.week1Date, locale, false))}</p>
+          {win && <p className="mt-1 text-sm font-bold text-slate-brand">{plan.firstWin(formatWeight(win.kg, system, locale), formatGoalDate(win.date, locale, false))}</p>}
           <GoalChart timeline={timeline} system={system} nowLabel={plan.now} stageLabel={copy.funnel.progress.stage} goalLabel={formatGoalDate(timeline.date, locale, false)} goalCaption={copy.funnel.progress.goal} />
         </>
       )}

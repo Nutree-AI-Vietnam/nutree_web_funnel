@@ -3,6 +3,30 @@ export function bmi(weightKg: number, heightCm: number): number {
   return weightKg / (m * m);
 }
 
+/** BMI to one decimal in the locale's own format: "26.0" in English, "26,0" in Vietnamese. */
+export function formatBmi(value: number, locale: string): string {
+  return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
+}
+
+/**
+ * Whole percentages of the parts that add up to exactly 100: each share is rounded down, then the points
+ * left over go to the largest remainders. Rounding each share alone can total 99 or 101.
+ */
+export function wholePercents(parts: number[]): number[] {
+  const total = parts.reduce((sum, part) => sum + Math.max(0, part), 0);
+  if (total <= 0) return parts.map(() => 0);
+  const exact = parts.map((part) => (Math.max(0, part) / total) * 100);
+  const percents = exact.map(Math.floor);
+  let left = 100 - percents.reduce((sum, value) => sum + value, 0);
+  const byRemainder = exact.map((value, index) => ({ index, remainder: value - Math.floor(value) })).sort((a, b) => b.remainder - a.remainder);
+  for (const { index } of byRemainder) {
+    if (left <= 0) break;
+    percents[index] += 1;
+    left -= 1;
+  }
+  return percents;
+}
+
 export type BmiCategory = 'underweight' | 'normal' | 'overweight' | 'obese';
 
 export function bmiCategory(value: number): BmiCategory {

@@ -14,10 +14,13 @@ import { useUnits } from '@/lib/quiz/use-units';
 import { computeTdeeResult } from '@/lib/tdee/calculator';
 
 export function ValueTourScreen({
+  initialStep = 'plan',
   onComplete,
   onBack,
   onMissingLead,
 }: {
+  /** The tour screen to open on: the last one when the visitor comes back from the paywall. */
+  initialStep?: ValueTourStep;
   onComplete: () => void;
   onBack: () => void;
   onMissingLead: () => void;
@@ -28,7 +31,7 @@ export function ValueTourScreen({
   const lead = useQuizStore((state) => state.lead);
   const data = useQuizStore((state) => state.data);
   const storedTdee = useQuizStore((state) => state.tdee);
-  const [step, setStep] = useState<ValueTourStep>('plan');
+  const [step, setStep] = useState<ValueTourStep>(initialStep);
   const tdee = storedTdee ?? computeTdeeResult(data);
   const tour = copy.funnel.tour;
 

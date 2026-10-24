@@ -9,13 +9,15 @@ import { QuizShell } from '@/components/quiz-shell';
 import { captureAttribution, stripNonAttributionParams } from '@/lib/analytics/attribution';
 import { RouteLocaleProvider } from '@/lib/copy/use-copy';
 import { goalFromSearch } from '@/lib/funnel/ad-goal';
+import { useBrowserBack } from '@/lib/funnel/browser-back';
 import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
-import { startQuizFromLanding } from '@/lib/quiz/navigation';
+import { goToQuizStep, startQuizFromLanding } from '@/lib/quiz/navigation';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { useSeedCountry } from '@/lib/quiz/use-units';
 import { isPurchaseHandoffInFlight } from '@/lib/revenuecat/purchase-handoff';
 import { usePostcheckoutRedirect } from '@/lib/revenuecat/use-postcheckout-redirect';
 import type { FunnelScreen } from '@/lib/quiz/store';
+import type { ValueTourStep } from '@/lib/quiz/steps';
 import type { Locale } from '@/lib/copy';
 
 // Screens after the quiz load on demand, so the first screen does not wait for the
@@ -91,6 +93,23 @@ function SurveyPageContent({ language, countryCode }: { language: Locale; countr
     router.replace(`/survey/${nextLocale}`);
   }, [router, setLocale]);
 
+  // Back from the paywall reopens the tour on its last screen; from the email screen, the tour starts over.
+  const [tourStart, setTourStart] = useState<ValueTourStep>('plan');
+  // Screens without a ← still answer the phone's Back button with the screen before them; the quiz and the tour handle their own.
+  const screenBack = !hydrated
+    ? null
+    : screen === 'email'
+      ? () => goToQuizStep(router, 'confidence')
+      : screen === 'paywall' && !isUserPurchased({ purchased, lead })
+        ? () => {
+          setTourStart('snap');
+          goToScreen('value');
+        }
+        : screen === 'exit-offer'
+          ? () => goToScreen('paywall')
+          : null;
+  useBrowserBack(screenBack);
+
   if (!SKIP_LANDING && (!hydrated || screen === 'landing')) {
     return (
       <LandingPage
@@ -114,9 +133,12 @@ function SurveyPageContent({ language, countryCode }: { language: Locale; countr
     case 'quiz':
       return <QuizShell step={currentStep}><StepRenderer step={currentStep} /></QuizShell>;
     case 'email':
-      return <EmailCaptureScreen onComplete={() => goToScreen('value')} />;
+      return <EmailCaptureScreen onComplete={() => {
+        setTourStart('plan');
+        goToScreen('value');
+      }} />;
     case 'value':
-      return <ValueTourScreen onComplete={() => goToScreen('paywall')} onBack={() => goToScreen('email')} onMissingLead={() => goToScreen('email')} />;
+      return <ValueTourScreen initialStep={tourStart} onComplete={() => goToScreen('paywall')} onBack={() => goToScreen('email')} onMissingLead={() => goToScreen('email')} />;
     case 'exit-offer': {
       if (isUserPurchased({ purchased, lead }) && !isPurchaseHandoffInFlight()) {
         return null;

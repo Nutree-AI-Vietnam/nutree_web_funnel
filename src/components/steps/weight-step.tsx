@@ -2,7 +2,7 @@
 
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { useQuizStore } from '@/lib/quiz/store';
-import { bmi, bmiCategory } from '@/lib/tdee/insights';
+import { bmi, bmiCategory, formatBmi } from '@/lib/tdee/insights';
 import { NumberInputStep } from './number-input-step';
 
 /** Start the English wheel near a typical adult (about 159 lb); Vietnam keeps its own default. */
@@ -28,7 +28,7 @@ export function WeightStep() {
         const value = bmi(weightKg, heightCm);
         return (
           <p aria-live="polite" className="mx-auto shrink-0 rounded-full bg-white/86 px-4 py-1.5 text-center text-sm font-extrabold text-forest shadow-sm">
-            {copy.funnel.weightBmi(value.toFixed(1), copy.funnel.bmiCategory[bmiCategory(value)])}
+            {copy.funnel.weightBmi(formatBmi(value, locale), copy.funnel.bmiCategory[bmiCategory(value)])}
           </p>
         );
       }}

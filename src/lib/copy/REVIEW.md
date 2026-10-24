@@ -39,7 +39,7 @@ Applied symmetrically to `vi` and `en`.
 - **Zero-price effect / Reciprocity** — proof stat "Free / 0đ to see your first result" keeps the first result free.
 - **Goal-gradient / Activation energy** — "3 min" framing lowers the perceived effort to start.
 
-**Quiz microcopy** — Clarity over cleverness, customer language, low friction: "Not sure what to eat", "Can't stick to a diet", "Stop guessing" / "Không muốn đoán mò nữa". Hints cap choices ("Pick up to 2") to fight the **Paradox of Choice / Hick's Law**.
+**Quiz microcopy** — Clarity over cleverness, customer language, low friction: "Not sure what to eat", "Can't stick to a diet", "Stop guessing" / "Không muốn đoán mò nữa". Hints keep choices light to fight the **Paradox of Choice / Hick's Law**, but dietary needs are never capped: a cap silently dropped an earlier pick, which could be an allergy.
 
 **Reflection line** — left to the in-flight agent (see follow-ups); EN mirror is a single, confident sentence ("your goal is clear — and genuinely doable with the right plan").
 

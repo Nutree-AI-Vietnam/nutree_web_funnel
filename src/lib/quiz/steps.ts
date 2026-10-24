@@ -104,10 +104,12 @@ export function nextStep(step: QuizStep): QuizStep | null {
   return i === QUIZ_STEPS.length - 1 ? null : QUIZ_STEPS[i + 1];
 }
 
-/** Returns the previous in-app screen, or null when the landing page precedes it. */
+/** Returns the previous in-app screen, or null when the landing page precedes it. The loader only plays on the way forward. */
 export function previousStep(step: QuizStep): QuizStep | null {
   const i = QUIZ_STEPS.indexOf(step);
-  return i === 0 ? null : QUIZ_STEPS[i - 1];
+  if (i <= 0) return null;
+  const previous = QUIZ_STEPS[i - 1];
+  return previous === 'calculating' ? QUIZ_STEPS[i - 2] : previous;
 }
 
 /** 1-based index for the progress bar. */

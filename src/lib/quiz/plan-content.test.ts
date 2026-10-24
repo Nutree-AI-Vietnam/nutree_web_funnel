@@ -1,17 +1,42 @@
 import { describe, expect, it } from 'vitest';
 import { goalFromSearch } from '@/lib/funnel/ad-goal';
 import { appIncludeSources, dishFor, firstChanges, periodWeeks, planForTimeline, sampleDay } from './plan-content';
-import { goalTimeline } from './progress-projection';
+import { firstWin, goalTimeline } from './progress-projection';
 
 describe('goalTimeline', () => {
-  it('gives the one goal date every screen shows: 180 to 155 lb is 159 days', () => {
+  it('gives the one goal date every screen shows, at the pace of the calorie plan: 180 to 155 lb is 292 days', () => {
     const now = new Date(Date.UTC(2026, 9, 23));
-    const timeline = goalTimeline({ measurement_unit: 'metric', fitness_goal: 'cut', weight_kg: 81.6466, target_weight_kg: 70.307 }, now)!;
-    expect(timeline.days).toBe(159);
-    expect(timeline.weeks).toBe(23);
-    expect(timeline.date.toISOString().slice(0, 10)).toBe('2027-03-31');
-    expect(timeline.week1Kg).toBeCloseTo(81.1466, 3);
+    // A 30-year-old man, 178 cm, desk job: maintenance 2,140.8 kcal, target 1,840.9 kcal, so 299.9 kcal a day under.
+    const timeline = goalTimeline({
+      measurement_unit: 'metric',
+      fitness_goal: 'cut',
+      gender: 'male',
+      age: 30,
+      height_cm: 178,
+      job_type: 'desk',
+      weight_kg: 81.6466,
+      target_weight_kg: 70.307,
+    }, now)!;
+    expect(timeline.days).toBe(292);
+    expect(timeline.weeks).toBe(42);
+    expect(timeline.date.toISOString().slice(0, 10)).toBe('2027-08-11');
+    expect(timeline.kgPerWeek).toBeCloseTo((299.9 * 7) / 7700, 4);
+    expect(timeline.week1Kg).toBeCloseTo(81.6466 - (299.9 * 7) / 7700, 3);
     expect(timeline.month1Kg).toBeLessThan(timeline.week1Kg);
+  });
+
+  it('names a first win that reads as a change: month one when a week rounds to the same pounds', () => {
+    const timeline = goalTimeline({
+      measurement_unit: 'metric', fitness_goal: 'cut', gender: 'female', age: 30, height_cm: 165, job_type: 'desk', weight_kg: 80, target_weight_kg: 70,
+    }, new Date(Date.UTC(2026, 9, 24)))!;
+    // About 0.26 kg in week one: 176 lb either way, so the first win moves to month one.
+    expect(firstWin(timeline, 'imperial', 'en').date).toEqual(timeline.month1Date);
+    // In kilograms to one decimal the first week already shows.
+    expect(firstWin(timeline, 'metric', 'vi').date).toEqual(timeline.week1Date);
+  });
+
+  it('has no date while the answers behind the calorie targets are missing', () => {
+    expect(goalTimeline({ measurement_unit: 'metric', fitness_goal: 'cut', weight_kg: 81, target_weight_kg: 70 })).toBeNull();
   });
 
   it('has no date without a weight gap', () => {

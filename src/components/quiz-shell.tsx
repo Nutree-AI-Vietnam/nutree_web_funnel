@@ -9,6 +9,7 @@ import { ExitIntentModal } from '@/components/exit-intent-modal';
 import { GoalLanguageMenu } from '@/components/goal-entry-footer';
 import { trackStepViewed } from '@/lib/analytics/track';
 import { useCopy } from '@/lib/copy/use-copy';
+import { useBrowserBack } from '@/lib/funnel/browser-back';
 import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
 import { goToPreviousQuizStep } from '@/lib/quiz/navigation';
 import { QUIZ_STEPS, VALUE_TOUR_STEPS, stepIndex, type QuizStep } from '@/lib/quiz/steps';
@@ -44,6 +45,10 @@ export function QuizShell({
   const hydrated = useHydrated();
   const totalSteps = QUIZ_STEPS.length + VALUE_TOUR_STEPS.length;
   const currentStep = progressIndex ?? stepIndex(step);
+  const hideBack = SKIP_LANDING && step === 'goal' && progressIndex == null && !onBack;
+  const goBack = () => (onBack ? onBack() : goToPreviousQuizStep(router, step));
+  // The phone's Back button does what ← does, also on the loader, which has no ←.
+  useBrowserBack(hideBack ? null : goBack, 1);
 
   useEffect(() => {
     // Saved progress is applied before `hydrated` flips, so this is the restored step.
@@ -58,7 +63,6 @@ export function QuizShell({
 
   const progress = (currentStep / totalSteps) * 100;
   const fitViewport = FIT_VIEWPORT_STEPS.includes(step);
-  const hideBack = SKIP_LANDING && step === 'goal' && progressIndex == null && !onBack;
 
   return (
     <main
@@ -77,7 +81,7 @@ export function QuizShell({
         ) : (
           <button
             type="button"
-            onClick={() => (onBack ? onBack() : goToPreviousQuizStep(router, step))}
+            onClick={goBack}
             aria-label={copy.common.back}
             className="-ml-5 grid h-11 w-11 place-items-center text-xl font-bold text-slate-brand transition active:scale-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25"
           >

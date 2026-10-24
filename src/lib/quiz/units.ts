@@ -38,6 +38,9 @@ export function resolveUnitSystem(
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
 
+/** A no-break space keeps a number on the same line as its unit, so a headline never ends in "70" over "kg". */
+export const NBSP = '\u00A0';
+
 export function cmToFeetInches(cm: number): { feet: number; inches: number } {
   const totalInches = Math.round(cm / CM_PER_INCH);
   return { feet: Math.floor(totalInches / INCHES_PER_FOOT), inches: totalInches % INCHES_PER_FOOT };
@@ -105,12 +108,12 @@ export function boxesToMetric(
 function formatFeetInches(totalInches: number): string {
   const feet = Math.floor(totalInches / INCHES_PER_FOOT);
   const inches = totalInches % INCHES_PER_FOOT;
-  return inches ? `${feet} ft ${inches} in` : `${feet} ft`;
+  return inches ? `${feet}${NBSP}ft${NBSP}${inches}${NBSP}in` : `${feet}${NBSP}ft`;
 }
 
 /** Metric values print as they are, so the Vietnamese funnel reads exactly as before. */
 export function formatHeight(cm: number, system: UnitSystem): string {
-  return system === 'metric' ? `${cm} cm` : formatFeetInches(Math.round(cm / CM_PER_INCH));
+  return system === 'metric' ? `${cm}${NBSP}cm` : formatFeetInches(Math.round(cm / CM_PER_INCH));
 }
 
 /**
@@ -118,9 +121,9 @@ export function formatHeight(cm: number, system: UnitSystem): string {
  * English "70.3 kg"; pounds are whole. Pass the active locale at every call site.
  */
 export function formatWeight(kg: number, system: UnitSystem, locale = 'en'): string {
-  if (system !== 'metric') return `${kgToPounds(kg)} lb`;
+  if (system !== 'metric') return `${kgToPounds(kg)}${NBSP}lb`;
   const number = new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { maximumFractionDigits: 1 });
-  return `${number.format(Math.round(kg * 10) / 10)} kg`;
+  return `${number.format(Math.round(kg * 10) / 10)}${NBSP}kg`;
 }
 
 /** The ends of [min, max] (metric) as the whole units a visitor can type, for error text. */
