@@ -1033,7 +1033,10 @@ export const vi = {
         discountLine: (percent: number) => `Giảm ${percent}% chào mừng`,
         offerLine: (percent: number) => `Ưu đãi giảm ${percent}%`,
         secure: 'Thanh toán được Paddle xử lý an toàn.',
-        previewFrame: 'Tổng đơn hàng và biểu mẫu thanh toán của Paddle hiện ở đây: Apple Pay, Google Pay, PayPal và thẻ.',
+        methodTitle: 'Chọn phương thức thanh toán',
+        ssl: 'Thông tin thanh toán của bạn được bảo vệ bằng mã hoá SSL/TLS.',
+        taxIncluded: (tax: string) => `Đã gồm ${tax} thuế`,
+        previewFrame: 'Nút thanh toán của Paddle hiện ở đây: Apple Pay, Google Pay, PayPal, và “Pay another way” để trả bằng thẻ.',
       },
       paymentsTo: (count: number, date: string) => `${count} lần thanh toán đến ${date}`,
       renewal: (today: string, renewal: string, cadence: string, date: string) =>

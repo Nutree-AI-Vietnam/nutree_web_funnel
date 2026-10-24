@@ -570,10 +570,11 @@ h2 {
 .checkout-host .navbar-body {
   padding-top: 0 !important;
 }
-/* The order summary in the same shape as the sheet's discount strip above it. */
-.checkout-host .rcb-paddle-summary-card {
-  border-radius: 1rem !important;
-  padding: 1rem 1.1rem !important;
+/* The sheet shows its own order lines and total (Paddle's figure, tax included), so RevenueCat's summary card
+   and its yellow sandbox strip stay hidden; only Paddle's payment form shows in the white payment card. */
+.checkout-host .rcb-paddle-summary,
+.checkout-host .rcb-ui-sandbox-banner {
+  display: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

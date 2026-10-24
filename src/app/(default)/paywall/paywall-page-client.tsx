@@ -277,6 +277,22 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const [checkoutOffer, setCheckoutOffer] = useState<PaywallOfferKind | null>(null);
   // Once Paddle reports the payment, the sheet can no longer be closed: RevenueCat is confirming it.
   const [checkoutPaid, setCheckoutPaid] = useState(false);
+  // Paddle's own totals for the open checkout (tax included), reported by the patched RevenueCat SDK.
+  const [paddleTotals, setPaddleTotals] = useState<{ currencyCode: string; taxAmount: number; totalAmount: number } | null>(null);
+  useEffect(() => {
+    if (!checkoutSheetOpen) return;
+    const onTotals = (event: Event) => {
+      const detail = (event as CustomEvent<{ currencyCode?: unknown; taxAmount?: unknown; totalAmount?: unknown }>).detail;
+      if (typeof detail?.currencyCode === 'string' && typeof detail.totalAmount === 'number') {
+        setPaddleTotals({ currencyCode: detail.currencyCode, taxAmount: typeof detail.taxAmount === 'number' ? detail.taxAmount : 0, totalAmount: detail.totalAmount });
+      }
+    };
+    window.addEventListener('rcb-checkout-totals', onTotals);
+    return () => {
+      window.removeEventListener('rcb-checkout-totals', onTotals);
+      setPaddleTotals(null);
+    };
+  }, [checkoutSheetOpen]);
   // Read once on the client: a gift claimed earlier in this tab, or a plan link that opens checkout, skips the gift.
   const [giftSkipped, setGiftSkipped] = useState(() => typeof window !== 'undefined' && (hasWelcomeVoucherBeenClaimed() || autostartPending()));
   const timeline = useMemo(() => goalTimeline(data), [data]);
@@ -859,7 +875,10 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     selectedPeriod ? funnelPaywall.cadence(selectedPeriod.number, periodWord(selectedPeriod)) : renewalCadence,
     sheetNextCharge ? formatGoalDate(sheetNextCharge, activeLocale) : '',
   );
-  // Our part of the sheet is the discount; RevenueCat draws the order total (with any tax) above Paddle's form.
+  // Paddle's total wins once it arrives (it includes any tax); until then, the offer price.
+  const formatMajor = (amount: number, currency: string) => new Intl.NumberFormat(currency === 'VND' ? 'vi-VN' : 'en-US', { style: 'currency', currency, ...(currency === 'VND' ? { maximumFractionDigits: 0 } : {}) }).format(amount);
+  const sheetTotalLabel = paddleTotals ? formatMajor(paddleTotals.totalAmount, paddleTotals.currencyCode) : (sheetOfferPrice?.formattedPrice ?? originalTotal);
+  const sheetTaxLabel = paddleTotals && paddleTotals.taxAmount > 0 ? formatMajor(paddleTotals.taxAmount, paddleTotals.currencyCode) : null;
   const checkoutSheet = (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgb(9_22_18_/_0.5)] px-3 py-4 backdrop-blur-[2px]"
@@ -867,38 +886,53 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       aria-modal="true"
       aria-labelledby="checkout-sheet-title"
     >
-      <div className="max-h-full w-full max-w-md overflow-y-auto rounded-[1.6rem] bg-[#f6f8f7] px-4 pb-4 pt-2.5 shadow-[0_24px_60px_rgb(9_22_18_/_0.3)] animate-soft-enter">
-        <div className="relative flex min-h-11 items-center justify-center">
-          <h2 id="checkout-sheet-title" className="text-[1.1rem] font-extrabold text-forest">{funnelPaywall.checkout.title}</h2>
-          {!checkoutPaid && <button type="button" autoFocus onClick={closeCheckoutSheet} aria-label={funnelPaywall.checkout.close} className="absolute right-[-0.5rem] top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-slate-brand transition hover:bg-mist focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">
+      <div className="max-h-full w-full max-w-md overflow-y-auto rounded-[1.75rem] bg-[#f2f4f3] px-5 pb-5 pt-3 shadow-[0_24px_60px_rgb(9_22_18_/_0.3)] animate-soft-enter">
+        <div className="relative flex min-h-12 items-center justify-center">
+          {!checkoutPaid && <button type="button" autoFocus onClick={closeCheckoutSheet} aria-label={funnelPaywall.checkout.close} className="absolute left-[-0.6rem] top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-charcoal transition hover:bg-black/[0.05] focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">
             <Icon name="close" className="h-5 w-5" />
           </button>}
+          <h2 id="checkout-sheet-title" className="text-[1.2rem] font-extrabold text-charcoal">{funnelPaywall.checkout.title}</h2>
         </div>
-        {/* The order as plain lines: the plan at full price, the discount, then what today's charge covers. */}
+        {/* The order as plain lines, like a receipt: the plan at full price, the discount, then what today's charge covers.
+            Once Paddle reports its totals, the total is Paddle's own figure, tax included. */}
         {selected && (
-          <div className="mt-1 text-[0.9rem] text-slate-brand">
+          <div className="mt-2 text-[0.95rem] text-slate-brand">
             <p className="flex justify-between gap-3 py-1"><span>{funnelPaywall.checkout.planLine(plainPricing ? planName(selected) : selected.label[activeLocale])}</span><span className="tabular-nums">{sheetFullPrice?.formattedPrice ?? originalTotal}</span></p>
             {sheetDiscount && (
-              <p className="flex justify-between gap-3 py-1"><span>{checkoutOffer === 'exit' ? funnelPaywall.checkout.offerLine(sheetPercent) : funnelPaywall.checkout.discountLine(sheetPercent)}</span><span className="font-extrabold tabular-nums text-[#d6455a]">−{sheetDiscount}</span></p>
+              <p className="flex justify-between gap-3 py-1"><span>{checkoutOffer === 'exit' ? funnelPaywall.checkout.offerLine(sheetPercent) : funnelPaywall.checkout.discountLine(sheetPercent)}</span><span className="font-extrabold tabular-nums text-[#e5484d]">−{sheetDiscount}</span></p>
             )}
-            <p className="mt-2 flex items-baseline justify-between gap-3 border-y border-border-brand py-2.5 text-forest">
-              <span className="font-extrabold">{funnelPaywall.checkout.total}</span>
-              <span className="text-right">{selectedPeriod
-                ? <><strong className="text-[1.05rem] tabular-nums">{sheetOfferPrice?.formattedPrice ?? originalTotal}</strong>{funnelPaywall.checkout.totalFor('', selectedPeriod.number, periodWord(selectedPeriod))}</>
-                : <strong className="tabular-nums">{sheetOfferPrice?.formattedPrice ?? originalTotal}</strong>}</span>
-            </p>
+            <div className="mt-2.5 border-y border-black/10 py-3 text-charcoal">
+              <p className="flex items-baseline justify-between gap-3">
+                <span className="font-extrabold">{funnelPaywall.checkout.total}</span>
+                <span className="text-right">
+                  <strong className="text-[1.1rem] tabular-nums">{sheetTotalLabel}</strong>
+                  {selectedPeriod && funnelPaywall.checkout.totalFor('', selectedPeriod.number, periodWord(selectedPeriod))}
+                </span>
+              </p>
+              {sheetTaxLabel && <p className="mt-0.5 text-right text-[0.76rem] text-muted-brand">{funnelPaywall.checkout.taxIncluded(sheetTaxLabel)}</p>}
+            </div>
+            <p className="mt-2.5 text-center text-[0.76rem] leading-relaxed text-muted-brand">{sheetRenewalLine}</p>
           </div>
         )}
-        {/* Paddle's form needs 312px; on the narrowest phones the box borrows the sheet's side padding.
-            checkout-host lets RevenueCat's layout grow to its content (see globals.css). */}
-        <div ref={checkoutHostRef} className="checkout-host mt-3 min-h-[22rem] max-[359px]:-mx-2.5">
-          {checkoutPreview && (
-            <p className="grid min-h-[22rem] place-items-center rounded-[1.2rem] border-2 border-dashed border-border-brand px-6 text-center text-sm font-semibold text-muted-brand">{funnelPaywall.checkout.previewFrame}</p>
-          )}
+        <h3 className="mt-4 text-center text-[1.02rem] font-extrabold text-charcoal">{funnelPaywall.checkout.methodTitle}</h3>
+        {/* Paddle's express form (one-tap wallets, then "Pay another way") sits in a white card, as a payment box would.
+            It needs 312px; on the narrowest phones the card borrows the sheet's side padding.
+            checkout-host lets RevenueCat's layout grow to its content and hides its own summary (see globals.css). */}
+        <div className="mt-3 overflow-hidden rounded-[1.25rem] border border-black/[0.06] bg-white px-3 py-3 max-[359px]:-mx-3">
+          <div ref={checkoutHostRef} className="checkout-host min-h-[9rem]">
+            {checkoutPreview && (
+              <p className="grid min-h-[9rem] place-items-center rounded-xl border-2 border-dashed border-border-brand px-5 text-center text-sm font-semibold text-muted-brand">{funnelPaywall.checkout.previewFrame}</p>
+            )}
+          </div>
         </div>
-        <p className="mt-3 text-center text-[0.72rem] leading-relaxed text-muted-brand">{sheetRenewalLine}</p>
-        <p className="mt-2 flex items-center justify-center gap-1.5 text-[0.72rem] font-bold text-muted-brand"><Icon name="lock" className="h-3.5 w-3.5" />{funnelPaywall.checkout.secure}</p>
-        <p className="mt-1.5 flex items-center justify-center gap-1.5 text-[0.78rem] font-extrabold text-forest"><Icon name="shield" className="h-4 w-4 text-teal-brand" />{funnelPaywall.guaranteeTitle}</p>
+        <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[0.76rem] text-muted-brand"><Icon name="lock" className="h-3.5 w-3.5 shrink-0" />{funnelPaywall.checkout.ssl}</p>
+        <p className="mt-3 flex items-center justify-center gap-2 text-[0.94rem] font-extrabold text-charcoal">
+          <span className="whitespace-nowrap">{funnelPaywall.guaranteeTitle}</span>
+          <svg viewBox="0 0 64 64" className="h-8 w-8 shrink-0" aria-hidden="true">
+            <path d="M32 4 54 12v18c0 14-9.5 24.5-22 30C19.5 54.5 10 44 10 30V12Z" fill="#17453a" />
+            <text x="32" y="36" textAnchor="middle" fill="#fff" fontSize="20" fontWeight="800">30</text>
+          </svg>
+        </p>
       </div>
     </div>
   );

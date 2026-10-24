@@ -16,6 +16,7 @@ const patchMarkers = [
   'this.rcbCompleted = !0, u == null || u()',
   'if (e.paddleService.rcbCancelled) return;',
   'displayMode: "inline",\n    variant: "express",',
+  'window.dispatchEvent(new CustomEvent("rcb-checkout-totals"',
 ];
 
 /**
@@ -51,6 +52,20 @@ const cancelHook = `      y && (p.rcbCancelCheckout = () => {
       });
 `;
 const upgrades = [
+  {
+    // Paddle's totals (with tax) reach the page as a window event, so the sheet's own order lines can show them.
+    from: `          priceName: (v == null ? void 0 : v.price_name) ?? null
+        });
+      }
+    };
+    return new Promise((g, k) => {`,
+    to: `          priceName: (v == null ? void 0 : v.price_name) ?? null
+        });
+      }
+      g != null && g.totals && typeof window < "u" && window.dispatchEvent(new CustomEvent("rcb-checkout-totals", { detail: { currencyCode: g.currency_code, subtotalAmount: g.totals.subtotal, taxAmount: g.totals.tax, totalAmount: g.totals.total } }));
+    };
+    return new Promise((g, k) => {`,
+  },
   {
     // In-page checkout uses Paddle's express variant: one-tap wallet buttons, then "Pay another way" for the card form.
     from: `    displayMode: "inline",

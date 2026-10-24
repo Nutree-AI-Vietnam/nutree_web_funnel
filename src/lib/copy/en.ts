@@ -1042,7 +1042,10 @@ export const en: Copy = {
         discountLine: (percent: number) => `${percent}% welcome discount`,
         offerLine: (percent: number) => `${percent}% offer`,
         secure: 'Payments are processed securely by Paddle.',
-        previewFrame: 'Your order total and Paddle’s payment form load here: Apple Pay, Google Pay, PayPal and card.',
+        methodTitle: 'Select a payment method',
+        ssl: 'Your payment information is protected by SSL/TLS encryption.',
+        taxIncluded: (tax: string) => `Includes ${tax} tax`,
+        previewFrame: 'Paddle’s payment buttons load here: Apple Pay, Google Pay, PayPal, then “Pay another way” for card.',
       },
       paymentsTo: (count: number, date: string) => `${count} ${count === 1 ? 'payment' : 'payments'} to ${date}`,
       renewal: (today: string, renewal: string, cadence: string, date: string) =>
