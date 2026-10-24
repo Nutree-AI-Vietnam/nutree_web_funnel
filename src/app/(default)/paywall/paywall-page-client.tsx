@@ -278,13 +278,18 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   // Once Paddle reports the payment, the sheet can no longer be closed: RevenueCat is confirming it.
   const [checkoutPaid, setCheckoutPaid] = useState(false);
   // Paddle's own totals for the open checkout (tax included), reported by the patched RevenueCat SDK.
-  const [paddleTotals, setPaddleTotals] = useState<{ currencyCode: string; taxAmount: number; totalAmount: number } | null>(null);
+  const [paddleTotals, setPaddleTotals] = useState<{ currencyCode: string; taxAmount: number; totalAmount: number; recurringTotalAmount: number | null } | null>(null);
   useEffect(() => {
     if (!checkoutSheetOpen) return;
     const onTotals = (event: Event) => {
-      const detail = (event as CustomEvent<{ currencyCode?: unknown; taxAmount?: unknown; totalAmount?: unknown }>).detail;
+      const detail = (event as CustomEvent<{ currencyCode?: unknown; taxAmount?: unknown; totalAmount?: unknown; recurringTotalAmount?: unknown }>).detail;
       if (typeof detail?.currencyCode === 'string' && typeof detail.totalAmount === 'number') {
-        setPaddleTotals({ currencyCode: detail.currencyCode, taxAmount: typeof detail.taxAmount === 'number' ? detail.taxAmount : 0, totalAmount: detail.totalAmount });
+        setPaddleTotals({
+          currencyCode: detail.currencyCode,
+          taxAmount: typeof detail.taxAmount === 'number' ? detail.taxAmount : 0,
+          totalAmount: detail.totalAmount,
+          recurringTotalAmount: typeof detail.recurringTotalAmount === 'number' ? detail.recurringTotalAmount : null,
+        });
       }
     };
     window.addEventListener('rcb-checkout-totals', onTotals);
@@ -863,22 +868,26 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const sheetOfferProduct = selected ? checkoutPackage(selected, checkoutOffer).webBillingProduct : null;
   const sheetFullPrice = selectedOriginalPrice;
   const sheetOfferPrice = firstPaymentPrice(sheetOfferProduct);
+  const formatMajor = (amount: number, currency: string) => new Intl.NumberFormat(currency === 'VND' ? 'vi-VN' : 'en-US', { style: 'currency', currency, ...(currency === 'VND' ? { maximumFractionDigits: 0 } : {}) }).format(amount);
   const sheetDiscount = sheetFullPrice && sheetOfferPrice && sheetFullPrice.amountMicros > sheetOfferPrice.amountMicros
-    ? new Intl.NumberFormat(priceLocale, { style: 'currency', currency: sheetFullPrice.currency }).format((sheetFullPrice.amountMicros - sheetOfferPrice.amountMicros) / 1_000_000)
+    ? formatMajor((sheetFullPrice.amountMicros - sheetOfferPrice.amountMicros) / 1_000_000, sheetFullPrice.currency)
     : null;
   // The selected plan's own saving, from the same two prices as the amount beside it.
   const sheetPercent = sheetFullPrice && sheetOfferPrice ? discountPercent(sheetFullPrice.amountMicros, sheetOfferPrice.amountMicros) : 0;
   const sheetNextCharge = nextChargeDate(sheetOfferProduct);
+  // Paddle's total wins once it arrives (it includes any tax); until then, the offer price.
+  const sheetTotalLabel = paddleTotals ? formatMajor(paddleTotals.totalAmount, paddleTotals.currencyCode) : (sheetOfferPrice?.formattedPrice ?? originalTotal);
+  const sheetTaxLabel = paddleTotals && paddleTotals.taxAmount > 0 ? formatMajor(paddleTotals.taxAmount, paddleTotals.currencyCode) : null;
+  // The sentence under the total uses the same figures, so "today" always matches the total and the renewal
+  // amount is Paddle's own charge (tax included) once Paddle has reported it.
   const sheetRenewalLine = funnelPaywall.renewal(
-    sheetOfferPrice?.formattedPrice ?? originalTotal,
-    renewalPrice(sheetOfferProduct)?.formattedPrice ?? '…',
+    sheetTotalLabel,
+    paddleTotals?.recurringTotalAmount != null
+      ? formatMajor(paddleTotals.recurringTotalAmount, paddleTotals.currencyCode)
+      : (renewalPrice(sheetOfferProduct)?.formattedPrice ?? '…'),
     selectedPeriod ? funnelPaywall.cadence(selectedPeriod.number, periodWord(selectedPeriod)) : renewalCadence,
     sheetNextCharge ? formatGoalDate(sheetNextCharge, activeLocale) : '',
   );
-  // Paddle's total wins once it arrives (it includes any tax); until then, the offer price.
-  const formatMajor = (amount: number, currency: string) => new Intl.NumberFormat(currency === 'VND' ? 'vi-VN' : 'en-US', { style: 'currency', currency, ...(currency === 'VND' ? { maximumFractionDigits: 0 } : {}) }).format(amount);
-  const sheetTotalLabel = paddleTotals ? formatMajor(paddleTotals.totalAmount, paddleTotals.currencyCode) : (sheetOfferPrice?.formattedPrice ?? originalTotal);
-  const sheetTaxLabel = paddleTotals && paddleTotals.taxAmount > 0 ? formatMajor(paddleTotals.taxAmount, paddleTotals.currencyCode) : null;
   const checkoutSheet = (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgb(9_22_18_/_0.5)] px-3 py-4 backdrop-blur-[2px]"
@@ -916,9 +925,10 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         )}
         <h3 className="mt-4 text-center text-[1.02rem] font-extrabold text-charcoal">{funnelPaywall.checkout.methodTitle}</h3>
         {/* Paddle's express form (one-tap wallets, then "Pay another way") sits in a white card, as a payment box would.
-            It needs 312px; on the narrowest phones the card borrows the sheet's side padding.
+            Paddle's frame needs 312px, so the card has no side padding of its own and reaches into the sheet's
+            (Paddle insets its buttons itself): 316px of frame at 360px wide, 346px at 390px.
             checkout-host lets RevenueCat's layout grow to its content and hides its own summary (see globals.css). */}
-        <div className="mt-3 overflow-hidden rounded-[1.25rem] border border-black/[0.06] bg-white px-3 py-3 max-[359px]:-mx-3">
+        <div className="-mx-3.5 mt-3 overflow-hidden rounded-[1.25rem] border border-black/[0.06] bg-white py-3">
           <div ref={checkoutHostRef} className="checkout-host min-h-[9rem]">
             {checkoutPreview && (
               <p className="grid min-h-[9rem] place-items-center rounded-xl border-2 border-dashed border-border-brand px-5 text-center text-sm font-semibold text-muted-brand">{funnelPaywall.checkout.previewFrame}</p>

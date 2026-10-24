@@ -570,11 +570,23 @@ h2 {
 .checkout-host .navbar-body {
   padding-top: 0 !important;
 }
-/* The sheet shows its own order lines and total (Paddle's figure, tax included), so RevenueCat's summary card
-   and its yellow sandbox strip stay hidden; only Paddle's payment form shows in the white payment card. */
-.checkout-host .rcb-paddle-summary,
+/* The sheet shows its own order lines and total (Paddle's figure, tax included). Inside our element RevenueCat's
+   navbar holds only its summary card (its back button renders only outside an element), so the whole navbar goes,
+   with the yellow sandbox strip; the main block loses its vertical padding, since the white card has its own.
+   Only Paddle's payment form shows in the card. */
+.checkout-host .rcb-ui-navbar,
 .checkout-host .rcb-ui-sandbox-banner {
   display: none !important;
+}
+.checkout-host .layout-content.rcb-main-block {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+/* RevenueCat reserves 450px for Paddle's form; the express form is a few buttons tall and Paddle sizes its own frame,
+   so the reserve would leave a blank band under the buttons. */
+.checkout-host [data-testid='paddle-inline-checkout-container'],
+.checkout-host .rcb-paddle-processing {
+  min-height: 9rem !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

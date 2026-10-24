@@ -16,7 +16,7 @@ const patchMarkers = [
   'this.rcbCompleted = !0, u == null || u()',
   'if (e.paddleService.rcbCancelled) return;',
   'displayMode: "inline",\n    variant: "express",',
-  'window.dispatchEvent(new CustomEvent("rcb-checkout-totals"',
+  'recurringTotalAmount: g.recurring_totals == null ? null : g.recurring_totals.total',
 ];
 
 /**
@@ -53,6 +53,13 @@ const cancelHook = `      y && (p.rcbCancelCheckout = () => {
 `;
 const upgrades = [
   {
+    // The first version of the totals event left out the renewal amount.
+    from: `      g != null && g.totals && typeof window < "u" && window.dispatchEvent(new CustomEvent("rcb-checkout-totals", { detail: { currencyCode: g.currency_code, subtotalAmount: g.totals.subtotal, taxAmount: g.totals.tax, totalAmount: g.totals.total } }));
+    };`,
+    to: `      g != null && g.totals && typeof window < "u" && window.dispatchEvent(new CustomEvent("rcb-checkout-totals", { detail: { currencyCode: g.currency_code, subtotalAmount: g.totals.subtotal, taxAmount: g.totals.tax, totalAmount: g.totals.total, recurringTotalAmount: g.recurring_totals == null ? null : g.recurring_totals.total } }));
+    };`,
+  },
+  {
     // Paddle's totals (with tax) reach the page as a window event, so the sheet's own order lines can show them.
     from: `          priceName: (v == null ? void 0 : v.price_name) ?? null
         });
@@ -62,7 +69,7 @@ const upgrades = [
     to: `          priceName: (v == null ? void 0 : v.price_name) ?? null
         });
       }
-      g != null && g.totals && typeof window < "u" && window.dispatchEvent(new CustomEvent("rcb-checkout-totals", { detail: { currencyCode: g.currency_code, subtotalAmount: g.totals.subtotal, taxAmount: g.totals.tax, totalAmount: g.totals.total } }));
+      g != null && g.totals && typeof window < "u" && window.dispatchEvent(new CustomEvent("rcb-checkout-totals", { detail: { currencyCode: g.currency_code, subtotalAmount: g.totals.subtotal, taxAmount: g.totals.tax, totalAmount: g.totals.total, recurringTotalAmount: g.recurring_totals == null ? null : g.recurring_totals.total } }));
     };
     return new Promise((g, k) => {`,
   },
