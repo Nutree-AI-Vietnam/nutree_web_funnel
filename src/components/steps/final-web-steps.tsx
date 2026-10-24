@@ -329,7 +329,7 @@ export function BodyReviewStep() {
 
   return (
     <QuizStepFrame title={copy.funnel.reviewTitle} hint={copy.funnel.reviewHint} titleClassName="max-w-[22rem]">
-      <div className="rounded-[1.5rem] bg-white/86 p-2 shadow-[0_18px_48px_rgb(26_71_57_/_0.10)]">
+      <div className="rounded-[1.5rem] bg-white/86 p-2 shadow-[0_6px_16px_rgb(26_71_57_/_0.07)]">
         {rows.map((row) => (
           <button
             key={row.label}

@@ -430,8 +430,8 @@ export const en: Copy = {
   },
   careModal: {
     eyebrow: '',
-    title: 'Meal ideas aim to avoid these foods',
-    body: 'Always check labels and ingredients yourself.',
+    title: 'Nutree cares about you',
+    body: 'Meal ideas avoid the foods you just picked. When you shop, still check labels and ingredients.',
     disclaimer: 'Nutree is not a doctor or healthcare professional. If you have a severe allergy or health condition, speak with a qualified professional before changing your diet.',
     cta: 'Got it',
     editCta: 'Review my choices',

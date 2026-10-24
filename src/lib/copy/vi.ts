@@ -427,8 +427,8 @@ export const vi = {
   },
   careModal: {
     eyebrow: '',
-    title: 'Luôn tự kiểm tra nhãn và thành phần',
-    body: 'Gợi ý món của Nutree có thể chứa những thực phẩm bạn cần kiêng.',
+    title: 'Nutree luôn quan tâm đến bạn',
+    body: 'Gợi ý món sẽ tránh những thực phẩm bạn vừa chọn. Khi mua đồ ăn, bạn vẫn nên xem nhãn và thành phần.',
     disclaimer: 'Nutree không thay thế bác sĩ hoặc chuyên gia y tế. Nếu bạn có dị ứng nghiêm trọng hoặc bệnh nền, hãy hỏi chuyên gia trước khi thay đổi chế độ ăn.',
     cta: 'Tôi đã hiểu',
     editCta: 'Kiểm tra lại lựa chọn',

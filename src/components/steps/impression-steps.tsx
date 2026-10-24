@@ -38,7 +38,7 @@ export function WelcomeStep() {
         initial={reduce ? false : { opacity: 0, scale: 1.04 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="relative h-[9.5rem] shrink-0 overflow-hidden rounded-[1.7rem] shadow-[0_18px_46px_rgb(23_69_58_/_0.16)]"
+        className="relative h-[9.5rem] shrink-0 overflow-hidden rounded-[1.7rem] shadow-[0_6px_16px_rgb(23_69_58_/_0.07)]"
       >
         <Image src="/images/welcome-meal.webp" alt="" fill priority sizes="(max-width: 512px) 100vw, 512px" className="object-cover" />
         <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-forest/35 via-transparent to-transparent" />
@@ -56,7 +56,7 @@ export function WelcomeStep() {
         initial={reduce ? false : { opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 24, delay: 0.1 }}
-        className="rounded-[1.7rem] bg-white/92 p-4 shadow-[0_24px_72px_rgb(26_71_57_/_0.13),inset_0_1px_0_rgb(255_255_255_/_0.82)] backdrop-blur"
+        className="rounded-[1.7rem] bg-white/92 p-4 shadow-[0_6px_16px_rgb(26_71_57_/_0.07),inset_0_1px_0_rgb(255_255_255_/_0.82)] backdrop-blur"
       >
         <p className="ph-mask text-[1.45rem] font-extrabold leading-tight text-forest">
           {name ? copy.funnel.plan.eyebrow(name) : copy.funnel.plan.eyebrowFallback}

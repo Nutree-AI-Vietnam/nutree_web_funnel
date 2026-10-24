@@ -14,7 +14,7 @@ import { formatWeight, type UnitSystem } from '@/lib/quiz/units';
 import { cn } from '@/lib/utils';
 
 /** The plain white plan card; reflection (07) reuses it so its rows read as part of the same plan. */
-export const CARD = 'rounded-[1.6rem] bg-white p-4 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)] sm:p-5';
+export const CARD = 'rounded-[1.6rem] bg-white p-4 shadow-[0_6px_16px_rgb(23_69_58_/_0.07)] sm:p-5';
 
 /** Text that clears from the email screen's blur, once, as the unlocked plan first appears. */
 function Reveal({ on, index, className, children }: { on?: boolean; index: number; className?: string; children: ReactNode }) {

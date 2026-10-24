@@ -171,7 +171,7 @@ export function TrustCard({ className }: { className?: string }) {
       : { key: 'google-play', mark: <GooglePlayMark className="h-5 w-5" />, name: rating.googlePlayListing.name, label: rating.googlePlayListing.label },
   ];
   return (
-    <section aria-label={`${rating.countValue} ${rating.chose}. ${rating.line}. ${rating.googlePlay ? `${rating.googlePlay.value}${rating.outOf} ${rating.googlePlay.label}` : `${rating.googlePlayListing.name}: ${rating.googlePlayListing.label}`}`} className={cn('rounded-[1.6rem] bg-white p-5 shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]', className)}>
+    <section aria-label={`${rating.countValue} ${rating.chose}. ${rating.line}. ${rating.googlePlay ? `${rating.googlePlay.value}${rating.outOf} ${rating.googlePlay.label}` : `${rating.googlePlayListing.name}: ${rating.googlePlayListing.label}`}`} className={cn('rounded-[1.6rem] bg-white p-5 shadow-[0_6px_16px_rgb(23_69_58_/_0.07)]', className)}>
       <div className="flex items-center justify-center gap-2" aria-hidden="true">
         <Laurel />
         <p className="text-center">
@@ -239,7 +239,7 @@ const REFERENCE_LOGOS: Record<string, string> = {
 export function ReferenceSources({ sources }: { sources: readonly { acronym: string; name: string }[] }) {
   const reduce = useReducedMotion();
   return (
-    <ul className="divide-y divide-border-brand overflow-hidden rounded-[1.4rem] border border-border-brand bg-white shadow-[0_14px_40px_rgb(26_71_57_/_0.07)]">
+    <ul className="divide-y divide-border-brand overflow-hidden rounded-[1.4rem] border border-border-brand bg-white shadow-[0_6px_16px_rgb(26_71_57_/_0.07)]">
       {sources.map((source, index) => (
         <motion.li
           key={source.acronym}

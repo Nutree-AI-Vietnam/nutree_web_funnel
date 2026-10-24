@@ -25,7 +25,7 @@ export function ReflectionStep() {
         initial={reduce ? false : { opacity: 0, scale: 1.08 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
-        className="relative h-[11rem] shrink-0 overflow-hidden rounded-[1.7rem] shadow-[0_18px_46px_rgb(23_69_58_/_0.16)]"
+        className="relative h-[11rem] shrink-0 overflow-hidden rounded-[1.7rem] shadow-[0_6px_16px_rgb(23_69_58_/_0.07)]"
       >
         <Image src="/images/reflection-walk.webp" alt="" fill priority sizes="(max-width: 512px) 100vw, 512px" className="object-cover object-[70%_30%]" />
       </motion.div>

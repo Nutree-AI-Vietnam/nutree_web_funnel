@@ -156,7 +156,7 @@ export function TdeeTargetsStep() {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="quiz-step-body -mx-5 min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain px-5">
       <div className="quiz-step-stack flex min-h-full flex-col gap-3">
-      <section className="rounded-[1.7rem] bg-white/92 p-4 shadow-[0_24px_72px_rgb(26_71_57_/_0.13),inset_0_1px_0_rgb(255_255_255_/_0.82)] backdrop-blur animate-soft-enter">
+      <section className="rounded-[1.7rem] bg-white/92 p-4 shadow-[0_6px_16px_rgb(26_71_57_/_0.07),inset_0_1px_0_rgb(255_255_255_/_0.82)] backdrop-blur animate-soft-enter">
         {vi.tdee_targets.eyebrow && <p className="text-xs font-extrabold tracking-[0.02em] text-teal-brand">{vi.tdee_targets.eyebrow}</p>}
         <h1 className="text-[1.45rem] font-extrabold leading-tight text-forest">{vi.tdee_targets.headline}</h1>
         <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-brand">{vi.tdee_targets.aha}</p>
