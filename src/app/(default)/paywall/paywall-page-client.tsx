@@ -63,7 +63,7 @@ const OFFER_SECONDS = PAYWALL_WELCOME_OFFER_SECONDS;
 const ENGLISH_WELCOME_SECONDS = 600;
 
 /**
- * In-page checkout (English): RevenueCat draws Paddle's payment form inside our checkout sheet
+ * In-page checkout (both languages): RevenueCat draws Paddle's payment form inside our checkout sheet
  * instead of the full-screen popup. On by default; NEXT_PUBLIC_INLINE_CHECKOUT=0 brings the popup back.
  * RevenueCat falls back to the popup unless inline checkout is also on in its Paddle settings.
  */
@@ -246,7 +246,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   // while the plans renew at the discounted price. Only the exit offer, which really ends, keeps a timer.
   const plainPricing = activeLocale === 'en';
   const welcomeSeconds = plainPricing ? ENGLISH_WELCOME_SECONDS : OFFER_SECONDS;
-  const inlineCheckout = INLINE_CHECKOUT && plainPricing;
+  const inlineCheckout = INLINE_CHECKOUT;
   const [checkoutSheetOpen, setCheckoutSheetOpen] = useState(false);
   // Local preview has no RevenueCat, so the sheet shows a placeholder frame and its own close button.
   const [checkoutPreview, setCheckoutPreview] = useState(false);
@@ -656,8 +656,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       return;
     }
     setError(null);
-    // English opens Paddle straight from the plan button; the renewal terms sit under that button.
-    if (plainPricing) void openCheckout(activeOffer);
+    // The in-page sheet carries the order lines and renewal terms, so it opens straight away in both languages;
+    // without it, Vietnamese confirms first.
+    if (plainPricing || inlineCheckout) void openCheckout(activeOffer);
     else setShowCheckoutConfirm(true);
   };
   // The header button shows the plans before it opens checkout, so no checkout appears before a price has.
@@ -856,7 +857,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         {/* The order as plain lines: the plan at full price, the discount, then what today's charge covers. */}
         {selected && (
           <div className="mt-1 text-[0.9rem] text-slate-brand">
-            <p className="flex justify-between gap-3 py-1"><span>{funnelPaywall.checkout.planLine(planName(selected))}</span><span className="tabular-nums">{sheetFullPrice?.formattedPrice ?? originalTotal}</span></p>
+            <p className="flex justify-between gap-3 py-1"><span>{funnelPaywall.checkout.planLine(plainPricing ? planName(selected) : selected.label[activeLocale])}</span><span className="tabular-nums">{sheetFullPrice?.formattedPrice ?? originalTotal}</span></p>
             {sheetDiscount && (
               <p className="flex justify-between gap-3 py-1"><span>{checkoutOffer === 'exit' ? funnelPaywall.checkout.offerLine(sheetPercent) : funnelPaywall.checkout.discountLine(sheetPercent)}</span><span className="font-extrabold tabular-nums text-[#d6455a]">−{sheetDiscount}</span></p>
             )}
@@ -1029,7 +1030,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
               const intro = firstPaymentPrice(offerPackage.webBillingProduct)?.formattedPrice ?? original;
               const perDayLabel = formatPerDay(perDayByPlan[plan.id] ?? null, priceLocale);
               const savings = savingsByPlan[plan.id];
-              return <button key={plan.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(plan.id); saveSelectedPaywallPlan(plan.id); trackEvent('offer_selected', { offer_id: plan.id, provider: 'revenuecat', ...firstPaymentCommerce(offerPackage.webBillingProduct) }); }} className={cn('overflow-hidden rounded-[1.4rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-[#ff5b1f] shadow-[0_12px_26px_rgb(255_106_31_/_0.10)]' : 'border-[#dfe7e3] hover:border-teal-brand/60')}>
+              return <button key={plan.id} type="button" role="radio" aria-checked={active} onClick={() => { setSelectedId(plan.id); saveSelectedPaywallPlan(plan.id); if (inlineCheckout) window.setTimeout(() => requestCheckoutRef.current(), 0); trackEvent('offer_selected', { offer_id: plan.id, provider: 'revenuecat', ...firstPaymentCommerce(offerPackage.webBillingProduct) }); }} className={cn('overflow-hidden rounded-[1.4rem] border-2 bg-white text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.99]', active ? 'border-[#ff5b1f] shadow-[0_12px_26px_rgb(255_106_31_/_0.10)]' : 'border-[#dfe7e3] hover:border-teal-brand/60')}>
                 {plan.recommended && <span className="block bg-gradient-to-r from-[#ef4d59] to-[#ff781f] px-3 py-1.5 text-center text-[0.62rem] font-extrabold tracking-[0.02em] text-white">{copy.paywall.recommendedTag}</span>}
                 <span className={cn('grid min-h-[5.6rem] grid-cols-[auto_1fr_auto] items-center gap-3 px-3.5 py-3.5', active && 'bg-[#fffafa]')}>
                   <span className={cn('grid h-6 w-6 place-items-center rounded-full border-2', active ? 'border-[#111418]' : 'border-[#c8cfcc]')}>{active && <span className="h-3 w-3 rounded-full bg-forest" />}</span>
@@ -1066,7 +1067,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       <PaywallExitVoucher
         armed={!plainPricing && shouldArmExitVoucher({
           discountActive: welcomeOfferActive || exitOfferActive,
-          checkoutOpen: showCheckoutConfirm || busy,
+          checkoutOpen: showCheckoutConfirm || busy || checkoutSheetOpen,
           purchased: checkoutUnavailable,
         })}
         onClaimed={() => {
