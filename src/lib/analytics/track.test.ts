@@ -21,7 +21,7 @@ type TestWindow = {
   fbq: ReturnType<typeof vi.fn>;
   ttq: { track: ReturnType<typeof vi.fn>; identify?: ReturnType<typeof vi.fn> };
   sessionStorage: Pick<Storage, 'getItem' | 'setItem'>;
-  location?: { href: string };
+  location?: { href?: string; hostname?: string };
 };
 
 function serverEvents() {
@@ -43,6 +43,7 @@ describe('analytics', () => {
       gtag: vi.fn(),
       fbq: vi.fn(),
       ttq: { track: vi.fn() },
+      location: { hostname: 'quiz.nutreeai.com' },
       sessionStorage: {
         getItem: (key: string) => store.get(key) ?? null,
         setItem: (key: string, value: string) => {
@@ -102,7 +103,7 @@ describe('analytics', () => {
     vi.stubGlobal('crypto', { randomUUID: () => 'test-event-id', subtle: webcrypto.subtle });
     vi.spyOn(Date, 'now').mockReturnValue(1_760_000_000_000);
     const w = window as unknown as TestWindow;
-    w.location = { href: 'https://quiz.test/paywall?fbclid=IwAR-click#plan' };
+    w.location = { hostname: 'quiz.nutreeai.com', href: 'https://quiz.test/paywall?fbclid=IwAR-click#plan' };
     w.sessionStorage.setItem(META_IDENTITY_STORAGE_KEY, JSON.stringify({ em: 'jane@example.com', external_id: 'lead-1', fn: 'jane' }));
     trackEvent('revenuecat_checkout_completed', { plan: '12-week', value: 249000, currency: 'VND', fbclid: 'IwAR-click' });
     expect(w.fbq).toHaveBeenCalledWith('track', 'Purchase', planCommerce, { eventID: 'Purchase.test-event-id' });
@@ -122,6 +123,17 @@ describe('analytics', () => {
         fbc: 'fb.1.1760000000000.IwAR-click',
       },
     });
+  });
+
+  it.each(['quiz.preview.nutreeai.com', 'nutreewebfunnel-git-branch.vercel.app', 'localhost'])('sends no Meta or TikTok server copy from %s', async (hostname) => {
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
+    vi.stubEnv('NEXT_PUBLIC_TIKTOK_PIXEL_ID', 'TT123');
+    const w = window as unknown as TestWindow;
+    w.location = { hostname, href: `https://${hostname}/paywall` };
+    trackEvent('email_captured', {});
+    trackEvent('revenuecat_checkout_completed', { plan: '12-week', value: 249000, currency: 'VND' });
+    await Promise.resolve();
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('sends the english locale with the same event id and no pixel id', async () => {
@@ -152,17 +164,18 @@ describe('analytics', () => {
     w.sessionStorage.setItem('nutree_attribution_v1', JSON.stringify({ fbclid: 'click-2' }));
     now.mockReturnValue(1_760_001_200_000);
     trackEvent('revenuecat_checkout_started', { plan: '12-week', value: 249000, currency: 'VND' });
-    await vi.waitFor(() => expect(metaServerEvents()).toHaveLength(3));
+    await vi.waitFor(() => expect(metaServerEvents()).toHaveLength(4));
     expect(metaServerEvents().map(({ body }) => [body.event_name, body.user_data.fbc])).toEqual([
       ['ViewContent', 'fb.1.1760000000000.click-1'],
       ['Lead', 'fb.1.1760000000000.click-1'],
+      ['AddToCart', 'fb.1.1760001200000.click-2'],
       ['InitiateCheckout', 'fb.1.1760001200000.click-2'],
     ]);
   });
 
   it('copies Meta standard events to the server when the pixel is blocked', async () => {
     vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
-    vi.stubGlobal('window', { sessionStorage: (window as unknown as TestWindow).sessionStorage });
+    vi.stubGlobal('window', { location: { hostname: 'quiz.nutreeai.com' }, sessionStorage: (window as unknown as TestWindow).sessionStorage });
     trackStepViewed('landing');
     await vi.waitFor(() => expect(metaServerEvents().map(({ body }) => body.event_name)).toEqual(['ViewContent']));
   });
@@ -171,9 +184,56 @@ describe('analytics', () => {
     trackEvent('email_captured', {});
     vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
     trackStepViewed('height');
-    trackEvent('offer_selected', { offer_id: '12-week', provider: 'revenuecat', value: 249000, currency: 'VND' });
+    trackStepViewed('paywall');
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('sends the plan pick to Meta as AddToCart once per plan', () => {
+    trackEvent('offer_selected', { offer_id: '12-week', provider: 'revenuecat', value: 249000, currency: 'VND' });
+    trackEvent('offer_selected', { offer_id: '12-week', provider: 'revenuecat', value: 249000, currency: 'VND' });
+    trackEvent('offer_selected', { offer_id: '4-week', provider: 'revenuecat', value: 99000, currency: 'VND' });
+    const w = window as unknown as TestWindow;
+    expect(w.fbq).toHaveBeenCalledWith('track', 'AddToCart', planCommerce, { eventID: 'AddToCart.test-event-id' });
+    expect(w.fbq.mock.calls.filter(([, event]) => event === 'AddToCart').map(([, , params]) => params.content_ids)).toEqual([['12-week'], ['4-week']]);
+  });
+
+  it('sends AddToCart to Meta at checkout for the preselected plan, never the paywall view', () => {
+    trackStepViewed('paywall');
+    trackEvent('revenuecat_checkout_started', { plan: '12-week', value: 249000, currency: 'VND' });
+    const w = window as unknown as TestWindow;
+    expect(w.fbq.mock.calls.map(([, event]) => event)).toEqual(['AddToCart', 'InitiateCheckout']);
+    expect(w.fbq).toHaveBeenCalledWith('track', 'AddToCart', planCommerce, { eventID: 'AddToCart.test-event-id' });
+  });
+
+  it('does not repeat the Meta AddToCart at checkout for a picked plan', () => {
+    trackEvent('offer_selected', { offer_id: '12-week', provider: 'revenuecat', value: 249000, currency: 'VND' });
+    trackEvent('revenuecat_checkout_started', { plan: '12-week', value: 249000, currency: 'VND' });
+    trackEvent('revenuecat_checkout_started', { plan: '12-week', value: 249000, currency: 'VND' });
+    const events = (window as unknown as TestWindow).fbq.mock.calls.map(([, event]) => event);
+    expect(events.filter((event) => event === 'AddToCart')).toHaveLength(1);
+    expect(events.filter((event) => event === 'InitiateCheckout')).toHaveLength(2);
+  });
+
+  it('copies the English plan pick to the server with its plan and price', async () => {
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '');
+    vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID_EN', '2222222222');
+    vi.stubGlobal('document', { documentElement: { getAttribute: () => 'en' } });
+    trackEvent('offer_selected', { offer_id: '12-week', provider: 'revenuecat', value: 39.99, currency: 'USD' });
+    await vi.waitFor(() => expect(metaServerEvents()).toHaveLength(1));
+    expect(metaServerEvents()[0].body).toMatchObject({
+      event_name: 'AddToCart',
+      event_id: 'AddToCart.test-event-id',
+      locale: 'en',
+      custom_data: { value: 39.99, currency: 'USD', ...planProduct },
+    });
+  });
+
+  it('keeps the Meta and TikTok carts apart', () => {
+    trackEvent('offer_selected', { offer_id: '12-week', provider: 'revenuecat' });
+    const w = window as unknown as TestWindow;
+    expect(w.fbq.mock.calls.filter(([, event]) => event === 'AddToCart')).toHaveLength(1);
+    expect(w.ttq.track.mock.calls.filter(([event]) => event === 'AddToCart')).toHaveLength(1);
   });
 
   it('drops a value Meta and TikTok would reject, with its currency', () => {
@@ -294,7 +354,7 @@ describe('analytics', () => {
   it('copies TikTok standard events to the server with the pixel event_id', () => {
     vi.stubEnv('NEXT_PUBLIC_TIKTOK_PIXEL_ID', 'PIXEL');
     const w = window as unknown as TestWindow;
-    w.location = { href: 'https://quiz.test/paywall?ttclid=click-1#plan' };
+    w.location = { hostname: 'quiz.nutreeai.com', href: 'https://quiz.test/paywall?ttclid=click-1#plan' };
     w.sessionStorage.setItem(TIKTOK_IDENTITY_STORAGE_KEY, JSON.stringify({ email: emailHash, external_id: leadHash }));
     trackEvent('revenuecat_checkout_completed', { plan: '12-week', value: 249000, currency: 'VND', ttclid: 'click-1' });
     const properties = {
@@ -319,7 +379,7 @@ describe('analytics', () => {
 
   it('copies standard events to the server before the pixel has loaded', () => {
     vi.stubEnv('NEXT_PUBLIC_TIKTOK_PIXEL_ID', 'PIXEL');
-    vi.stubGlobal('window', { sessionStorage: (window as unknown as TestWindow).sessionStorage });
+    vi.stubGlobal('window', { location: { hostname: 'quiz.nutreeai.com' }, sessionStorage: (window as unknown as TestWindow).sessionStorage });
     trackStepViewed('paywall');
     expect(serverEvents().map(({ body }) => body.event)).toEqual(['ViewContent']);
   });

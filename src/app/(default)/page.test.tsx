@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @vitest-environment-options {"url":"https://quiz.nutreeai.com/"}
+ */
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { hydrateRoot } from 'react-dom/client';

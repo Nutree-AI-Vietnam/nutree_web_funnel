@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from './route';
 
-const url = 'https://quiz.test/api/meta/events';
+const liveOrigin = 'https://quiz.nutreeai.com';
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
 const emailHash = sha256('jane@example.com');
 const nameHash = sha256('jane');
@@ -20,16 +20,16 @@ const customData = { value: 249000, currency: 'VND', ...productData };
 const browserEvent = {
   event_name: 'Purchase',
   event_id: 'Purchase.4f8e2c1a-9a3b-4c55-8d1e-2b7f6a0c9d13',
-  event_source_url: 'https://quiz.test/paywall',
+  event_source_url: 'https://quiz.nutreeai.com/paywall',
   custom_data: customData,
   locale: 'vi',
   user_data: { em: emailHash, fn: nameHash, external_id: leadHash, fbc: `fb.1.1759999000000.${fbclid}` },
 };
 
 beforeEach(() => {
+  vi.stubEnv('VERCEL_ENV', 'production');
   vi.stubEnv('META_CONVERSIONS_API_ACCESS_TOKEN', 'capi-token');
   vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
-  vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE', '');
   vi.stubGlobal('fetch', vi.fn(async () => Response.json({ events_received: 1, messages: [], fbtrace_id: 'trace-1' })));
   vi.spyOn(Date, 'now').mockReturnValue(1_760_000_000_000);
   vi.spyOn(console, 'warn').mockImplementation(() => undefined);
@@ -41,11 +41,11 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function request(body: unknown, headers: Record<string, string> = {}) {
-  return new NextRequest(url, {
+function request(body: unknown, headers: Record<string, string> = {}, origin = liveOrigin) {
+  return new NextRequest(`${origin}/api/meta/events`, {
     method: 'POST',
     headers: {
-      origin: 'https://quiz.test',
+      origin,
       cookie: '_fbp=fb.1.1759990000000.1116446470; other=1',
       'x-forwarded-for': '203.0.113.7, 10.0.0.1',
       'user-agent': 'Mozilla/5.0 Test',
@@ -74,7 +74,7 @@ describe('Meta Conversions API route', () => {
         event_time: 1_760_000_000,
         event_id: browserEvent.event_id,
         action_source: 'website',
-        event_source_url: 'https://quiz.test/paywall',
+        event_source_url: 'https://quiz.nutreeai.com/paywall',
         user_data: {
           em: [emailHash],
           fn: [nameHash],
@@ -90,10 +90,31 @@ describe('Meta Conversions API route', () => {
     expect(console.warn).not.toHaveBeenCalled();
   });
 
-  it('marks events with the test event code when one is configured', async () => {
+  it('forwards AddToCart with its plan', async () => {
+    const eventId = 'AddToCart.4f8e2c1a-9a3b-4c55-8d1e-2b7f6a0c9d13';
+    const response = await POST(request({ ...browserEvent, event_name: 'AddToCart', event_id: eventId }));
+    expect(response.status).toBe(204);
+    expect(sentBodies()[0].data[0]).toMatchObject({ event_name: 'AddToCart', event_id: eventId, custom_data: customData });
+  });
+
+  it('never marks events as test events', async () => {
     vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE', 'TEST123');
     await POST(request(browserEvent));
-    expect(sentBodies()[0].test_event_code).toBe('TEST123');
+    expect(sentBodies()[0]).not.toHaveProperty('test_event_code');
+  });
+
+  it.each(['preview', 'development', undefined])('forwards nothing from a %s deployment, even with a test event code', async (vercelEnv) => {
+    vi.stubEnv('VERCEL_ENV', vercelEnv);
+    vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE', 'TEST123');
+    const response = await POST(request(browserEvent));
+    expect(response.status).toBe(204);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it.each(['https://quiz.preview.nutreeai.com', 'https://nutreewebfunnel-5zgb5ojb3-aaa-s-nutreeai.vercel.app', 'http://localhost:3000'])('forwards nothing from %s, even in production', async (origin) => {
+    const response = await POST(request(browserEvent, {}, origin));
+    expect(response.status).toBe(204);
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('stays inert until the access token is set', async () => {
@@ -110,7 +131,7 @@ describe('Meta Conversions API route', () => {
   });
 
   it('rejects malformed bodies and events outside the standard list', async () => {
-    for (const body of ['not json', {}, { ...browserEvent, event_name: 'AddToCart' }, { ...browserEvent, event_id: 'bad id' }, 'x'.repeat(20_000)]) {
+    for (const body of ['not json', {}, { ...browserEvent, event_name: 'CompleteRegistration' }, { ...browserEvent, event_id: 'bad id' }, 'x'.repeat(20_000)]) {
       const response = await POST(request(body));
       expect(response.status).toBeGreaterThanOrEqual(400);
     }
@@ -120,12 +141,12 @@ describe('Meta Conversions API route', () => {
   it('drops unhashed identifiers, odd cookies and fields Meta does not need', async () => {
     await POST(request({
       ...browserEvent,
-      event_source_url: 'https://quiz.test/paywall?email=jane@example.com#token',
+      event_source_url: 'https://quiz.nutreeai.com/paywall?email=jane@example.com#token',
       user_data: { em: 'jane@example.com', fn: 'Jane', external_id: 'lead-1', fbc: fbclid, ph: sha256('0900000000') },
       custom_data: { ...customData, note: 'free text', content_type: 'product_group' },
     }, { cookie: '_fbp=not-a-cookie' }));
     const [data] = sentBodies()[0].data;
-    expect(data.event_source_url).toBe('https://quiz.test/paywall');
+    expect(data.event_source_url).toBe('https://quiz.nutreeai.com/paywall');
     expect(data.user_data).toEqual({ client_ip_address: '203.0.113.7', client_user_agent: 'Mozilla/5.0 Test' });
     expect(data.custom_data).toEqual({ ...customData, content_type: undefined });
   });
@@ -197,8 +218,6 @@ describe('Meta Conversions API route', () => {
   it('sends an English event to the English dataset and keeps the event id', async () => {
     vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID_EN', '2222222222');
     vi.stubEnv('META_CONVERSIONS_API_ACCESS_TOKEN_EN', 'en-token');
-    vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE', 'VI_TEST');
-    vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE_EN', 'EN_TEST');
     const response = await POST(request({ ...browserEvent, locale: 'en', pixel_id: '9999999999' }));
     expect(response.status).toBe(204);
     const [target, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
@@ -206,7 +225,6 @@ describe('Meta Conversions API route', () => {
     expect(String(target)).not.toContain('9999999999');
     expect(String(target)).not.toContain('1234567890');
     expect(init.headers.Authorization).toBe('Bearer en-token');
-    expect(sentBodies()[0].test_event_code).toBe('EN_TEST');
     expect(sentBodies()[0].data[0].event_id).toBe(browserEvent.event_id);
   });
 
@@ -222,13 +240,10 @@ describe('Meta Conversions API route', () => {
   it('falls back to the default pixel and token when the English dataset is unset', async () => {
     vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID_EN', '');
     vi.stubEnv('META_CONVERSIONS_API_ACCESS_TOKEN_EN', '');
-    vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE', 'VI_TEST');
-    vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE_EN', 'EN_TEST');
     await POST(request({ ...browserEvent, locale: 'en' }));
     const [target, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(target).toBe('https://graph.facebook.com/v26.0/1234567890/events');
     expect(init.headers.Authorization).toBe('Bearer capi-token');
-    expect(sentBodies()[0].test_event_code).toBe('VI_TEST');
   });
 
   it('defaults a missing locale to the Vietnamese dataset', async () => {
@@ -246,27 +261,21 @@ describe('Meta Conversions API route', () => {
   it('falls back to the Vietnamese pair when the English pixel has no token', async () => {
     vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID_EN', '2222222222');
     vi.stubEnv('META_CONVERSIONS_API_ACCESS_TOKEN_EN', '');
-    vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE', 'VI_TEST');
-    vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE_EN', 'EN_TEST');
     await POST(request({ ...browserEvent, locale: 'en' }));
     const [target, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(target).toBe('https://graph.facebook.com/v26.0/1234567890/events');
     expect(String(target)).not.toContain('2222222222');
     expect(init.headers.Authorization).toBe('Bearer capi-token');
-    expect(sentBodies()[0].test_event_code).toBe('VI_TEST');
   });
 
   it('falls back to the Vietnamese pair when the English token has no pixel', async () => {
     vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID_EN', '');
     vi.stubEnv('META_CONVERSIONS_API_ACCESS_TOKEN_EN', 'en-token');
-    vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE', 'VI_TEST');
-    vi.stubEnv('META_CONVERSIONS_API_TEST_EVENT_CODE_EN', 'EN_TEST');
     await POST(request({ ...browserEvent, locale: 'en' }));
     const [target, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(target).toBe('https://graph.facebook.com/v26.0/1234567890/events');
     expect(init.headers.Authorization).toBe('Bearer capi-token');
     expect(String(init.headers.Authorization)).not.toContain('en-token');
-    expect(sentBodies()[0].test_event_code).toBe('VI_TEST');
   });
 
   it('rejects unknown locales and does not forward a client pixel id', async () => {

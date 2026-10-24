@@ -17,7 +17,7 @@ export function metaEventsApiUrl(pixelId: string): string {
   return `https://graph.facebook.com/${GRAPH_API_VERSION}/${pixelId}/events`;
 }
 
-const STANDARD_EVENTS = ['ViewContent', 'Lead', 'InitiateCheckout', 'Purchase'] as const;
+const STANDARD_EVENTS = ['ViewContent', 'Lead', 'AddToCart', 'InitiateCheckout', 'Purchase'] as const;
 export type MetaStandardEvent = (typeof STANDARD_EVENTS)[number];
 
 export type MetaContent = { id: string; quantity?: number };
@@ -140,7 +140,7 @@ export function pickFbc(cookie: string | undefined, browser: string | undefined)
   return click(cookie).startsWith(click(browser)) ? cookie : browser;
 }
 
-export function metaEventsApiBody(event: MetaBrowserEvent, context: MetaRequestContext, testEventCode?: string) {
+export function metaEventsApiBody(event: MetaBrowserEvent, context: MetaRequestContext) {
   const { em, fn, external_id: externalId } = event.user_data;
   const ip = text(context.ip, 45, IP);
   const userAgent = text(context.userAgent, 1024);
@@ -164,6 +164,5 @@ export function metaEventsApiBody(event: MetaBrowserEvent, context: MetaRequestC
       },
       ...(Object.keys(event.custom_data).length ? { custom_data: event.custom_data } : {}),
     }],
-    ...(testEventCode ? { test_event_code: testEventCode } : {}),
   };
 }

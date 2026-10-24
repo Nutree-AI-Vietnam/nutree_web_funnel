@@ -20,6 +20,7 @@ const browserEvent = {
 };
 
 beforeEach(() => {
+  vi.stubEnv('VERCEL_ENV', 'production');
   vi.stubEnv('TIKTOK_EVENTS_API_ACCESS_TOKEN', 'events-token');
   vi.stubEnv('NEXT_PUBLIC_TIKTOK_PIXEL_ID', 'PIXEL123');
   vi.stubEnv('TIKTOK_EVENTS_API_TEST_CODE', '');
@@ -83,6 +84,20 @@ describe('TikTok Events API route', () => {
   });
 
   it('marks events with the test event code when one is configured', async () => {
+    vi.stubEnv('TIKTOK_EVENTS_API_TEST_CODE', 'TEST123');
+    await POST(request(browserEvent));
+    expect(sentBody().test_event_code).toBe('TEST123');
+  });
+
+  it.each(['preview', 'development', undefined])('forwards nothing from a %s deployment without a test event code', async (vercelEnv) => {
+    vi.stubEnv('VERCEL_ENV', vercelEnv);
+    const response = await POST(request(browserEvent));
+    expect(response.status).toBe(204);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('forwards only as a test event outside production', async () => {
+    vi.stubEnv('VERCEL_ENV', 'preview');
     vi.stubEnv('TIKTOK_EVENTS_API_TEST_CODE', 'TEST123');
     await POST(request(browserEvent));
     expect(sentBody().test_event_code).toBe('TEST123');

@@ -10,12 +10,15 @@ import { useQuizStore } from '@/lib/quiz/store';
 import { MetricInput, parseMetricDraft } from './metric-input';
 import { QuizStepFrame } from './quiz-step-frame';
 
+/** Picker start for a new quiz: a typical adult age, so taps-through do not produce a teen plan. */
+const DEFAULT_AGE = 25;
+
 export function BirthDateStep() {
   const router = useRouter();
   const copy = useCopy();
   const savedAge = useQuizStore((state) => state.data.age);
   const setData = useQuizStore((state) => state.setData);
-  const [age, setAge] = useState(String(savedAge ?? 15));
+  const [age, setAge] = useState(String(savedAge ?? DEFAULT_AGE));
   const [attempted, setAttempted] = useState(false);
   const parsedAge = parseMetricDraft(age);
   const valid = parsedAge != null && validateAge(parsedAge);

@@ -14,20 +14,21 @@ import { RouteLocaleProvider } from '@/lib/copy/use-copy';
 import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
 import { startQuizFromLanding } from '@/lib/quiz/navigation';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
+import { useSeedCountry } from '@/lib/quiz/use-units';
 import { isPurchaseHandoffInFlight } from '@/lib/revenuecat/purchase-handoff';
 import { usePostcheckoutRedirect } from '@/lib/revenuecat/use-postcheckout-redirect';
 import type { FunnelScreen } from '@/lib/quiz/store';
 import type { Locale } from '@/lib/copy';
 
-export function SurveyPageClient({ language }: { language: Locale }) {
+export function SurveyPageClient({ language, countryCode }: { language: Locale; countryCode?: string }) {
   return (
     <RouteLocaleProvider locale={language}>
-      <SurveyPageContent language={language} />
+      <SurveyPageContent language={language} countryCode={countryCode} />
     </RouteLocaleProvider>
   );
 }
 
-function SurveyPageContent({ language }: { language: Locale }) {
+function SurveyPageContent({ language, countryCode }: { language: Locale; countryCode?: string }) {
   const router = useRouter();
   const hydrated = useHydrated();
   const screen = useQuizStore((state) => state.funnelScreen);
@@ -41,6 +42,8 @@ function SurveyPageContent({ language }: { language: Locale }) {
   useEffect(() => {
     if (hydrated && activeLocale !== language) setLocale(language);
   }, [activeLocale, hydrated, language, setLocale]);
+
+  useSeedCountry(countryCode);
 
   useLayoutEffect(() => {
     captureAttribution();

@@ -13,8 +13,8 @@ Vitest. Localized copy lives in `src/lib/copy/vi.ts` and
 
 ## Localization and Pricing
 
-- Vietnam (`VN`) uses Vietnamese copy and the VND offering configured in RevenueCat.
-- Every non-Vietnam market uses English copy and the USD offering configured in RevenueCat.
+- Vietnam (`VN`) uses Vietnamese copy and the existing VND offering configured in RevenueCat.
+- Every non-Vietnam market uses English copy and the separate USD offering configured in RevenueCat.
 - Keep text and currency aligned on every screen: do not show Vietnamese copy
   with USD, and do not show English copy with VND.
 - Market detection should stay automatic from browser/backend country context;
@@ -44,15 +44,15 @@ npm run build                # production build check
 | `NEXT_PUBLIC_API_BASE_URL` | Nutree backend base URL (no trailing slash) |
 | `WEB_FUNNEL_BFF_SHARED_SECRET` | Server-only shared credential required by MealTrack for lead creation |
 | `NEXT_PUBLIC_REVENUECAT_WEB_API_KEY` | RevenueCat Web public API key for the web checkout config |
-| `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID` | Offering identifier; the paywall shows every package in that offering, in dashboard order |
+| `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID` | Existing Vietnam offering; the paywall shows its packages in dashboard order |
+| `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID_INTL` | Required separate offering for non-Vietnam markets, containing the new USD Paddle prices |
 | `NEXT_PUBLIC_FIREBASE_IOS_BUNDLE_ID` / `NEXT_PUBLIC_FIREBASE_ANDROID_PACKAGE_NAME` | Matching Nutree app bundle/package IDs for the phone handoff flow |
 | `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` | PostHog project token for session replay (optional; omitted if unset). Use DEV locally, STAGING on preview, PROD on production |
 | `NEXT_PUBLIC_GA4_ID` | GA4 measurement id (optional; script omitted if unset) |
 | `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel id for Vietnamese pages and every non-English route (optional) |
 | `NEXT_PUBLIC_META_PIXEL_ID_EN` | Meta Pixel id for `/survey/en`. Used only together with the English token; otherwise the page uses the default pixel |
-| `META_CONVERSIONS_API_ACCESS_TOKEN` | Server-only Conversions API token for the default pixel. Empty keeps `/api/meta/events` inert |
+| `META_CONVERSIONS_API_ACCESS_TOKEN` | Server-only Conversions API token for the default pixel. Empty keeps `/api/meta/events` inert. The route forwards only from the production deployment on `quiz.nutreeai.com` |
 | `META_CONVERSIONS_API_ACCESS_TOKEN_EN` | Server-only token for the English pixel. Used only together with the English pixel id; otherwise events use the default token. Set in Vercel as a Sensitive variable |
-| `META_CONVERSIONS_API_TEST_EVENT_CODE` / `META_CONVERSIONS_API_TEST_EVENT_CODE_EN` | Optional Test Events codes. The English code is used only when the English pixel and token are both set |
 | `NEXT_PUBLIC_TIKTOK_PIXEL_ID` | TikTok Pixel id (optional) |
 | `NEXT_PUBLIC_AIRBRIDGE_APP_NAME` | Airbridge app name (optional) |
 | `NEXT_PUBLIC_AIRBRIDGE_WEB_TOKEN` | Airbridge web SDK token (optional) |
@@ -101,12 +101,12 @@ files, which stay ignored by Git, then import non-empty values with:
 ./scripts/import-vercel-env.sh production .env.production.local
 ```
 
-Preview must use RevenueCat's sandbox web key/config; Production uses the live web key/config. Redeploy after an import because
+Set both Vietnam and international offering IDs in each environment. The international offering must contain RevenueCat products linked to the new USD Paddle prices. Preview must use RevenueCat's sandbox web key/config; Production uses the live web key/config. Redeploy after an import because
 `NEXT_PUBLIC_*` values are embedded during the build.
 
 ## External Dependencies
 
-- **RevenueCat Web**: connect Paddle Billing, import products, map them to the Nutree Premium entitlement, and configure the web offering/package IDs above.
+- **RevenueCat Web**: connect Paddle Billing, import products, map them to the Nutree Premium entitlement, and configure separate Vietnam and international web offerings. Add the new USD Paddle-linked products to the international offering and keep the current VND products in Vietnam's offering.
 - **Lead handoff BFF**: the web app creates a possession-bound checkout draft through `/api/web-funnel/session` and `/api/web-funnel/leads`, correlates anonymous RC customers after pay, and can `/session/reset` an unpaid draft with the same-origin lead-access cookie. Legacy `/resend` magic-claim remains on the BFF for compatibility only (backend-gated; web UI no longer offers it). `/welcome` is guidance-only.
 - **Firebase Auth**: the web funnel never completes Firebase auth in-browser; `/open-nutree` and `/redeem` are token-free install/reopen fallbacks.
 - **Redemption handoff**: anonymous RevenueCat web customer only. Web checkout is always available. After checkout the browser sends `app_user_id` + SHA-256 digest to the BFF, keeps the raw redeem URL in memory only, and navigates to `/postcheckout`. RevenueCat emails the Redemption Link; opening it in Nutree silently signs the buyer in and activates the purchase. `/redeem` is guidance-only and does not activate.

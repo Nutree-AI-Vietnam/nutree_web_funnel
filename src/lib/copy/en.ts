@@ -504,48 +504,9 @@ export const en: Copy = {
       'Packaging your plan',
     ],
     testimonialsLabel: 'Nutree members',
-    testimonials: [
-      {
-        name: 'Linh',
-        flag: '🇻🇳',
-        quote: 'Gained lean muscle while the app tracked everything for me.',
-        result: '-6kg / 2 months',
-        goal: 'Lose weight',
-        avatar: '/images/trust-female.webp',
-      },
-      {
-        name: 'Quang',
-        flag: '🇻🇳',
-        quote: 'The AI scan is so fast! I lost 5kg without feeling restricted.',
-        result: '+4kg muscle / 4 months',
-        goal: 'Gain weight',
-        avatar: '/images/trust-ali.webp',
-      },
-      {
-        name: 'Minh',
-        flag: '🇻🇳',
-        quote: 'The weekly budget approach changed how I think about food.',
-        result: '-3% fat / 3 months',
-        goal: 'Recomp',
-        avatar: '/images/trust-jurica.webp',
-      },
-      {
-        name: 'Sarah',
-        flag: '🇺🇸',
-        quote: 'Finally an app that gets my macros right. Game changer!',
-        result: '-8kg / 3 months',
-        goal: 'Lose weight',
-        avatar: '/images/trust-aiony.webp',
-      },
-      {
-        name: 'Hana',
-        flag: '🇯🇵',
-        quote: 'Simple, accurate, and actually helped me reach my goal.',
-        result: '-4kg / 6 weeks',
-        goal: 'Lose weight',
-        avatar: '/images/trust-good-faces.webp',
-      },
-    ],
+    // Real English customer reviews are pending: the loader hides the review card while this is empty.
+    // Add verified reviews here (name, flag, quote, result, goal, avatar); never placeholders.
+    testimonials: [],
   },
   tdee_targets: {
     eyebrow: 'Your first plan',
@@ -728,8 +689,9 @@ export const en: Copy = {
     trustBody: 'Save your plan so you can come back anytime. Your email is used only for this Nutree journey.',
     privacyPrefix: 'Private',
     privacyLine: 'Your information stays private and is never sold to third parties.',
-    socialCount: '+5,000',
-    socialLabel: 'users',
+    // Blank until the user count is confirmed true: the email screen hides the badge when it is empty.
+    socialCount: '',
+    socialLabel: '',
     avatars: ['A', 'M', 'L', 'N'],
   },
   welcomeGift: {

@@ -176,7 +176,8 @@ export function CalculatingStep() {
         </p>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col justify-center gap-3 py-1">
+      {/* No min-h-0: on short screens this block must keep its height and scroll, not center up into the header. */}
+      <div className="flex flex-1 flex-col justify-center gap-3 py-1">
         {/* Hero ring: counts up to the user's real target */}
         <div className="flex flex-col items-center">
           <div className="relative grid h-[clamp(8.5rem,21vh,11rem)] w-[clamp(8.5rem,21vh,11rem)] place-items-center">
