@@ -744,7 +744,7 @@ export const en: Copy = {
     exitOfferEyebrow: 'Exit offer',
     exitOfferScratchSubhead: 'Scratch to reveal your special price.',
     exitOfferRevealedHeadline: 'Your 75% offer is unlocked',
-    exitOfferPrice: 'A lower price on the 6-month plan',
+    exitOfferPrice: 'A lower price on the 1-year plan',
     exitOfferTicketAria: 'The lower price is revealed',
     exitOfferScratchAria: 'Scratch the card to reveal the lower price',
     exitOfferScratchHint: 'Scratch or tap to reveal',
