@@ -52,7 +52,7 @@ interface PackageMetadata {
 /**
  * Package of the long plan that the exit offer moves people to. In the Vietnamese offering it holds the
  * 6-month products (75% package: 399.000đ); in the international offering it holds the 1-year products
- * ($48.99, welcome $28.99, exit $19.99). Keep this identifier when changing the plan length in RevenueCat.
+ * ($57.99, welcome $28.99, exit $19.99). Keep this identifier when changing the plan length in RevenueCat.
  */
 export const SIX_MONTH_PLAN_ID = '$rc_six_month';
 
