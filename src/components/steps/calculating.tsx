@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
+import { StoreRatings, storeRatingsLine } from '@/components/value-tour/value-tour-demos';
 import { previewTdee } from '@/lib/api/client';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { isLocalPreviewHost } from '@/lib/local-preview';
@@ -206,7 +207,8 @@ export function CalculatingStep() {
             It shows verified reviews once the copy has them; until then, what the app does. */}
         <section aria-label={vi.calculating.testimonialsLabel} className="mt-1">
           <p className="text-center text-[1rem] font-extrabold text-forest">{rating.countValue} {rating.chose}</p>
-          <p className="mt-0.5 flex items-center justify-center gap-1 text-[0.76rem] font-bold text-muted-brand"><span className="text-[#f2a33a]" aria-hidden="true">★★★★★</span>{rating.line}</p>
+          <StoreRatings className="mt-1 text-[0.8rem]" />
+          <p className="sr-only">{storeRatingsLine(rating)}</p>
           <div className="mt-2.5 overflow-hidden">
             <motion.ol
               className="flex gap-[2.5%]"

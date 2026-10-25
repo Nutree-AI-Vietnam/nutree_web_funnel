@@ -894,7 +894,7 @@ export const vi = {
       line: '4.7/5 trên App Store',
       chose: 'khách hàng đã chọn Nutree',
       outOf: '/5',
-      googlePlay: { value: '4.8', label: 'Đánh giá CH Play' } as { value: string; label: string } | null,
+      googlePlay: { value: '4.8', label: 'Đánh giá CH Play', line: '4.8/5 trên CH Play' } as { value: string; label: string; line: string } | null,
       googlePlayListing: { name: 'CH Play', label: 'Có trên Android' },
     },
     plan: {

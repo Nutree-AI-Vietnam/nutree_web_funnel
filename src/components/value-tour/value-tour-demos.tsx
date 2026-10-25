@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { motion, useReducedMotion } from 'motion/react';
 import { CountUp } from '@/components/ui/count-up';
+import type { Copy } from '@/lib/copy';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { cn } from '@/lib/utils';
 
@@ -200,30 +201,54 @@ export function TrustCard({ className }: { className?: string }) {
 
 export const TRUST_AVATAR_IMAGES = ['/images/trust-female.webp', '/images/trust-aiony.webp', '/images/trust-good-faces.webp', '/images/trust-ali.webp', '/images/trust-jurica.webp'] as const;
 
-/** The App Store rating beside the customer count, split by a hairline. */
-export function AppStoreRating({ className }: { className?: string }) {
+/** What the store ratings say, for screen readers: "4.7 out of 5 on the App Store, 4.8 out of 5 on Google Play". */
+export function storeRatingsLine(rating: Copy['funnel']['rating']): string {
+  return rating.googlePlay ? `${rating.line}, ${rating.googlePlay.line}` : rating.line;
+}
+
+/**
+ * Both store ratings on one line: each store's mark, its stars filled to the score, and the score out of 5.
+ * The marks, stars and scores scale with the font size. Hidden from screen readers; say storeRatingsLine instead.
+ */
+export function StoreRatings({ className }: { className?: string }) {
+  const copy = useCopy();
+  const rating = copy.funnel.rating;
+  const stores = [
+    { key: 'app-store', mark: <AppleMark className="h-[1.1em] w-[1.1em] -translate-y-px text-charcoal" />, value: rating.value },
+    ...(rating.googlePlay ? [{ key: 'google-play', mark: <GooglePlayMark className="h-[1em] w-[1em]" />, value: rating.googlePlay.value }] : []),
+  ];
+  return (
+    <span aria-hidden="true" className={cn('flex flex-wrap items-center justify-center gap-x-4 gap-y-1', className)}>
+      {stores.map((store) => (
+        <span key={store.key} className="inline-flex items-center gap-1.5 whitespace-nowrap">
+          {store.mark}
+          <StarRow value={Number(store.value)} className="text-[0.88em]" />
+          <span className="font-extrabold leading-none tabular-nums text-forest">
+            {store.value}
+            <span className="text-[0.82em] text-muted-brand">{rating.outOf}</span>
+          </span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** Both store ratings, then the customer count with a few faces, between hairlines. */
+export function RatingsAndCustomers({ className }: { className?: string }) {
   const copy = useCopy();
   const rating = copy.funnel.rating;
   return (
-    <section aria-label={`${rating.line}. ${rating.countValue} ${rating.countLabel}`} className={cn('grid grid-cols-2 border-y border-forest/12 py-4 text-center', className)}>
-      <div className="border-r border-forest/12 px-2">
-        <p className="flex items-center justify-center gap-1.5" aria-hidden="true">
-          <span className="whitespace-nowrap text-[1.7rem] font-extrabold leading-none tracking-[-0.03em] text-forest">{rating.value}</span>
-          <StarRow value={Number(rating.value)} className="text-[0.85rem]" />
-        </p>
-        <p className="mt-1.5 text-[0.8rem] font-semibold leading-snug text-muted-brand" aria-hidden="true">{rating.label}</p>
-      </div>
-      <div className="px-2" aria-hidden="true">
-        <p className="whitespace-nowrap text-[1.7rem] font-extrabold leading-none tracking-[-0.03em] text-forest">{rating.countValue}</p>
-        <p className="mt-1.5 flex items-center justify-center gap-1.5 text-[0.8rem] font-semibold leading-snug text-muted-brand">
-          <span className="flex -space-x-1.5">
-            {TRUST_AVATAR_IMAGES.slice(0, 3).map((src) => (
-              <span key={src} className="relative h-5 w-5 overflow-hidden rounded-full border-[1.5px] border-white bg-mist"><Image src={src} alt="" fill sizes="20px" className="object-cover" /></span>
-            ))}
-          </span>
-          {rating.countLabel}
-        </p>
-      </div>
+    <section aria-label={`${storeRatingsLine(rating)}. ${rating.countValue} ${rating.countLabel}`} className={cn('border-y border-forest/12 py-4 text-center', className)}>
+      <StoreRatings className="text-[0.875rem]" />
+      <p className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1" aria-hidden="true">
+        <span className="whitespace-nowrap text-[clamp(1.2rem,6vw,1.5rem)] font-extrabold leading-none tracking-[-0.03em] text-forest">{rating.countValue}</span>
+        <span className="flex -space-x-1.5">
+          {TRUST_AVATAR_IMAGES.slice(0, 3).map((src) => (
+            <span key={src} className="relative h-5 w-5 overflow-hidden rounded-full border-[1.5px] border-white bg-mist"><Image src={src} alt="" fill sizes="20px" className="object-cover" /></span>
+          ))}
+        </span>
+        <span className="text-[0.85rem] font-semibold leading-snug text-muted-brand">{rating.countLabel}</span>
+      </p>
     </section>
   );
 }

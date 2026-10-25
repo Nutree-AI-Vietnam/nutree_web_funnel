@@ -903,7 +903,7 @@ export const en: Copy = {
       line: '4.7 out of 5 on the App Store',
       chose: 'customers chose Nutree',
       outOf: '/5',
-      googlePlay: { value: '4.8', label: 'Google Play rating' } as { value: string; label: string } | null,
+      googlePlay: { value: '4.8', label: 'Google Play rating', line: '4.8 out of 5 on Google Play' } as { value: string; label: string; line: string } | null,
       googlePlayListing: { name: 'Google Play', label: 'Available on Android' },
     },
     plan: {
