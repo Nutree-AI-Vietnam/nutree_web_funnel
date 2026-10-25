@@ -17,7 +17,8 @@ type PreviewPlan = {
 const USD_PLANS: PreviewPlan[] = [
   { id: '$rc_weekly', period: { number: 1, unit: PeriodUnit.Week }, label: '1-week', prices: { base: 4.99, welcome: 2.99, exit: 1.99 }, welcome: 'rc_weekly50', exit: 'rc_weekly75' },
   { id: '$rc_monthly', period: { number: 1, unit: PeriodUnit.Month }, label: '4-week', prices: { base: 15.99, welcome: 7.99, exit: 3.99 }, welcome: 'rc_monthly50', exit: 'rc_monthly75' },
-  { id: '$rc_six_month', period: { number: 6, unit: PeriodUnit.Month }, label: '24-week', prices: { base: 42.99, welcome: 23.99, exit: 15.99 }, welcome: 'rc_6monthly50', exit: 'rc_6monthly75' },
+  // Package $rc_six_month holds the 1-year products in the live international offering.
+  { id: '$rc_six_month', period: { number: 1, unit: PeriodUnit.Year }, label: '1-year', prices: { base: 48.99, welcome: 28.99, exit: 19.99 }, welcome: 'rc_6monthly50', exit: 'rc_6monthly75' },
 ];
 
 const VND_PLANS: PreviewPlan[] = [

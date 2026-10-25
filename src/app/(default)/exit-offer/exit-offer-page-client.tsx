@@ -13,15 +13,18 @@ import { activatePaywallExitOffer, expirePaywallOfferState, EXIT_DISCOUNT_PERCEN
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { usePostcheckoutRedirect } from '@/lib/revenuecat/use-postcheckout-redirect';
 import { useLocale } from '@/lib/copy/use-copy';
-import { Purchases } from '@revenuecat/purchases-js';
+import { Purchases, type Period } from '@revenuecat/purchases-js';
 import { isLocalPreviewHost } from '@/lib/local-preview';
 import { buildRevenueCatPaywall, checkoutPackage } from '@/lib/revenuecat/paywall-plans';
 import { localPreviewOffering } from '@/lib/revenuecat/local-preview-offering';
 import { readRevenueCatWebConfig } from '@/lib/revenuecat/web';
 
-/** The 6-month plan's exit price next to the price shown on the paywall, read from the live offering. */
-function useEnglishExitPrice(enabled: boolean): { price: string; was: string } | null {
-  const [prices, setPrices] = useState<{ price: string; was: string } | null>(null);
+/**
+ * The exit price of the plan in package `$rc_six_month` (a 1-year product in the international offering)
+ * next to the price shown on the paywall, with that plan's billing period, read from the live offering.
+ */
+function useEnglishExitPrice(enabled: boolean): { price: string; was: string; period: Period | null } | null {
+  const [prices, setPrices] = useState<{ price: string; was: string; period: Period | null } | null>(null);
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
@@ -41,7 +44,7 @@ function useEnglishExitPrice(enabled: boolean): { price: string; was: string } |
       const shown = checkoutPackage(plan, 'welcome');
       if (exit === shown) return;
       const priceOf = (product: typeof exit.webBillingProduct) => (product.introPricePhase?.price ?? product.price).formattedPrice;
-      setPrices({ price: priceOf(exit.webBillingProduct), was: priceOf(shown.webBillingProduct) });
+      setPrices({ price: priceOf(exit.webBillingProduct), was: priceOf(shown.webBillingProduct), period: exit.webBillingProduct.period ?? null });
     };
     load().catch(() => undefined);
     return () => {
@@ -71,7 +74,12 @@ export function ExitOfferPageClient({ onClaim, onDismiss, onMissingLead, onAlrea
   const english = locale === 'en';
   const englishPrice = useEnglishExitPrice(english);
   const exitCopy = copy.funnel.exitOffer;
-  const englishPriceLine = englishPrice ? exitCopy.price(`6 ${copy.funnel.paywall.planName.month[1]}`, englishPrice.price, englishPrice.was) : exitCopy.priceFallback;
+  // Name the plan by its real billing period ("1 year"), never a fixed length.
+  const exitPeriod = englishPrice?.period;
+  const exitPlanLength = exitPeriod
+    ? `${exitPeriod.number} ${copy.funnel.paywall.planName[exitPeriod.unit][exitPeriod.number === 1 ? 0 : 1]}`
+    : null;
+  const englishPriceLine = englishPrice && exitPlanLength ? exitCopy.price(exitPlanLength, englishPrice.price, englishPrice.was) : exitCopy.priceFallback;
 
   useEffect(() => trackStepViewed('exit_offer'), []);
 
