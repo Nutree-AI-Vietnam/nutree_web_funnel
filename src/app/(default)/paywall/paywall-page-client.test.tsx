@@ -1,21 +1,25 @@
 /** @vitest-environment jsdom */
 
 import type { Offering, Package } from '@revenuecat/purchases-js';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PostcheckoutPageClient } from '@/app/(default)/postcheckout/postcheckout-page-client';
 import { copyFor } from '@/lib/copy';
 import { useQuizStore } from '@/lib/quiz/store';
 import { readCheckoutMethod, rememberCheckoutMethod, saveCheckoutEmail } from '@/lib/revenuecat/checkout-email';
-import { EXIT_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
 import { PaywallPageClient } from './paywall-page-client';
 
-const purchases = vi.hoisted(() => ({ getOfferings: vi.fn(), purchase: vi.fn() }));
+const purchases = vi.hoisted(() => ({ getOfferings: vi.fn(), purchase: vi.fn(), preload: vi.fn(async () => undefined), getAppUserId: () => '$RCAnonymousID:test' }));
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }) }));
 vi.mock('next/image', () => ({ default: ({ alt }: { alt: string }) => <span role="img" aria-label={alt} /> }));
 vi.mock('@/lib/analytics/track', () => ({ trackEvent: vi.fn(), trackStepViewed: vi.fn() }));
 vi.mock('@/lib/analytics/posthog', () => ({ identifyFunnelLead: vi.fn() }));
+// jsdom runs on localhost, which the paywall treats as the local preview without RevenueCat.
+vi.mock('@/lib/local-preview', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/local-preview')>()),
+  isLocalPreviewHost: () => false,
+}));
 vi.mock('@/lib/revenuecat/attribution-attributes', () => ({ syncRevenueCatAttribution: vi.fn(async () => undefined) }));
 vi.mock('@/lib/revenuecat/web', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/revenuecat/web')>()),
@@ -42,6 +46,16 @@ const momoQuotes = [
   { plan: 'yearly', weeks: 52, amount: 599_000, regular_amount: 1_198_000, intro: true },
 ];
 
+const cardCta = copy.funnel.paywall.ctaFallback;
+
+// jsdom has neither; the paywall's reveal animations and scratch card only need them to exist.
+class NoopObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() { return []; }
+}
+
 function renderPaywall() {
   render(<PaywallPageClient initialCountryCode="VN" exitOfferMode={false} />);
 }
@@ -64,6 +78,8 @@ describe('paywall checkout method', () => {
     purchases.purchase.mockImplementation(() => new Promise((_, reject) => { rejectPurchase = reject; }));
     assign.mockClear();
     vi.stubGlobal('location', { ...window.location, assign });
+    vi.stubGlobal('IntersectionObserver', NoopObserver);
+    vi.stubGlobal('ResizeObserver', NoopObserver);
     vi.stubGlobal('fetch', vi.fn(async (url: string) => (url.startsWith('/api/web-funnel/momo/plans')
       ? Response.json({ plans: momoQuotes })
       : Response.json({ order_id: 'a'.repeat(32), pay_url: payUrl, amount: 249_000 }, { status: 201 }))));
@@ -86,31 +102,32 @@ describe('paywall checkout method', () => {
     cleanup();
     renderPaywall();
     fireEvent.click(await screen.findByRole('radio', { name: new RegExp(copy.momoCheckout.cardLabel) }));
-    const [cta] = screen.getAllByRole('button', { name: copy.paywall.cta() });
+    const cta = await within(document.getElementById('plans')!).findByRole('button', { name: cardCta });
     await waitFor(() => expect((cta as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(cta);
-    fireEvent.click(await screen.findByRole('button', { name: 'Continue to payment' }));
 
     await waitFor(() => expect(purchases.purchase).toHaveBeenCalledTimes(1));
-    expect(readCheckoutMethod()).toBe('paddle');
+    await waitFor(() => expect(readCheckoutMethod()).toBe('paddle'));
 
     // Once the card purchase is correlated, post-checkout keeps the redemption-email guidance.
     cleanup();
     render(<PostcheckoutPageClient />);
-    expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: copy.funnel.postcheckout.title })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: copy.momoCheckout.paidHeadline })).toBeNull();
   });
 
   it('keeps the card offer and its countdown out of the header while paying with MoMo', async () => {
     render(<PaywallPageClient initialCountryCode="VN" exitOfferMode />);
-    const header = (await screen.findByRole('button', { name: copy.paywall.topCta })).parentElement!;
+    const header = (await screen.findByRole('button', { name: copy.funnel.paywall.topCta })).parentElement!;
 
-    expect(header.textContent).toBe(`${copy.paywall.standardHeader}${copy.momoCheckout.oneTime}${copy.paywall.topCta}`);
+    expect(header.textContent).toContain(copy.momoCheckout.oneTime);
+    expect(header.textContent).not.toContain(copy.funnel.paywall.exitHeader);
     expect(header.querySelector('[aria-live]')).toBeNull();
 
     fireEvent.click(screen.getByRole('radio', { name: new RegExp(copy.momoCheckout.cardLabel) }));
 
-    expect(header.textContent).toContain(`${EXIT_DISCOUNT_PERCENT}% off offer`);
+    await waitFor(() => expect(header.textContent).toContain(copy.funnel.paywall.exitHeader));
+    expect(header.textContent).not.toContain(copy.momoCheckout.oneTime);
     expect(header.querySelector('[aria-live]')?.textContent).toMatch(/\d+:\d{2}/);
   });
 
@@ -119,14 +136,14 @@ describe('paywall checkout method', () => {
     rememberCheckoutMethod('momo');
     renderPaywall();
     fireEvent.click(await screen.findByRole('radio', { name: new RegExp(copy.momoCheckout.cardLabel) }));
-    const [cta] = screen.getAllByRole('button', { name: copy.paywall.cta() });
+    const cta = await within(document.getElementById('plans')!).findByRole('button', { name: cardCta });
     await waitFor(() => expect((cta as HTMLButtonElement).disabled).toBe(false));
+    // A checkout started in the background, before the tap, is not yet the buyer's checkout.
     expect(readCheckoutMethod()).toBe('momo');
 
     fireEvent.click(cta);
-    fireEvent.click(await screen.findByRole('button', { name: 'Continue to payment' }));
 
     await waitFor(() => expect(purchases.purchase).toHaveBeenCalledTimes(1));
-    expect(readCheckoutMethod()).toBe('paddle');
+    await waitFor(() => expect(readCheckoutMethod()).toBe('paddle'));
   });
 });

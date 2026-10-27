@@ -90,8 +90,8 @@ export function billingLabelFromPeriod(period: Period | null | undefined): Local
   if (!period) return { en: '', vi: '' };
   const unit = periodUnits[period.unit];
   return {
-    en: `Every ${period.number} ${period.number === 1 ? unit.en[0] : unit.en[1]}`,
-    vi: `Mỗi ${period.number} ${unit.vi}`,
+    en: period.number === 1 ? `Every ${unit.en[0]}` : `Every ${period.number} ${unit.en[1]}`,
+    vi: period.number === 1 ? `Mỗi ${unit.vi}` : `Mỗi ${period.number} ${unit.vi}`,
   };
 }
 

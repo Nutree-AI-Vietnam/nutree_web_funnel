@@ -1,6 +1,6 @@
 import type { Product } from '@revenuecat/purchases-js';
 import { describe, expect, it } from 'vitest';
-import { firstPaymentCommerce, formatPerDay, periodInDays, planPerDay, savingsVersusPriciest } from './plan-pricing';
+import { discountPercent, firstPaymentCommerce, formatPerDay, offerClaim, periodInDays, planPerDay, savingsVersusPriciest } from './plan-pricing';
 
 function product(amount: number, period: { number: number; unit: string }, currency = 'VND', intro?: { amount: number; period: { number: number; unit: string } }): Product {
   return {
@@ -56,6 +56,39 @@ describe('firstPaymentCommerce', () => {
     expect(firstPaymentCommerce(product(0, { number: 1, unit: 'month' }))).toEqual({});
     expect(firstPaymentCommerce(product(100, { number: 1, unit: 'month' }, 'đ'))).toEqual({});
     expect(firstPaymentCommerce(null)).toEqual({});
+  });
+});
+
+describe('discountPercent', () => {
+  const micros = (amount: number) => Math.round(amount * 1_000_000);
+
+  it('rounds the real saving down to a whole percent', () => {
+    expect(discountPercent(micros(4.99), micros(2.99))).toBe(40);
+    expect(discountPercent(micros(42.99), micros(23.99))).toBe(44);
+    expect(discountPercent(micros(15.99), micros(7.99))).toBe(50);
+    expect(discountPercent(micros(4.99), micros(2.49))).toBe(50);
+    expect(discountPercent(micros(42.99), micros(21.49))).toBe(50);
+  });
+
+  it('is 0 without a saving or a usable price', () => {
+    expect(discountPercent(micros(4.99), micros(4.99))).toBe(0);
+    expect(discountPercent(micros(4.99), micros(5.99))).toBe(0);
+    expect(discountPercent(0, 0)).toBe(0);
+    expect(discountPercent(micros(4.99), Number.NaN)).toBe(0);
+  });
+});
+
+describe('offerClaim', () => {
+  it('claims the largest discount, "up to" when the plans differ', () => {
+    expect(offerClaim([40, 50, 44])).toEqual({ percent: 50, upTo: true });
+    expect(offerClaim([50, 50, 50])).toEqual({ percent: 50, upTo: false });
+  });
+
+  it('says "up to" when a plan has no discount, and claims nothing when none has one', () => {
+    expect(offerClaim([0, 50, 50])).toEqual({ percent: 50, upTo: true });
+    expect(offerClaim([50, 0, 50])).toEqual({ percent: 50, upTo: true });
+    expect(offerClaim([0, 0])).toBeNull();
+    expect(offerClaim([])).toBeNull();
   });
 });
 

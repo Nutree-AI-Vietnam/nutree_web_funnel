@@ -6,36 +6,64 @@ import { readPendingRedemptionCorrelation } from '@/lib/revenuecat/redemption-ha
 import { goalAfterTargetWeight } from './fitness-goal';
 import { isQuizStep, type QuizStep } from './steps';
 import type { CheckoutResponse, Lead, OnboardingPayload, TdeeResult } from './types';
+import type { UnitSystem } from './units';
 
 export type PayPalCheckout = CheckoutResponse & { offerLabel: string };
+
+/** Answers that shape the web plan only; they stay out of the onboarding snapshot sent to the backend. */
+export interface PlanAnswers {
+  cooking?: 'home' | 'out';
+  confidence?: 'very' | 'somewhat' | 'unsure';
+  /** Daily step goal from the step-goal screen. */
+  stepGoal?: number;
+}
 const FUNNEL_SCREENS = ['landing', 'quiz', 'email', 'value', 'paywall', 'exit-offer'] as const;
 export type FunnelScreen = (typeof FUNNEL_SCREENS)[number];
 
 export const STORAGE_KEY = 'nutree_funnel_v1';
-const STORE_VERSION = 12;
+const STORE_VERSION = 13;
 
-const REMOVED_QUIZ_STEPS = new Set(['science', 'science_sources', 'preview', 'support_style']);
+/** Where a tab saved on a removed quiz step picks up. */
+const REMOVED_QUIZ_STEP_REDIRECTS: Record<string, QuizStep> = {
+  science: 'calculating',
+  science_sources: 'calculating',
+  preview: 'calculating',
+  support_style: 'calculating',
+  care_pause: 'calculating',
+  duration: 'motivation',
+};
 
 interface QuizState {
   funnelScreen: FunnelScreen;
   currentStep: QuizStep;
   data: OnboardingPayload;
+  planAnswers: PlanAnswers;
   locale: Locale;
+  /** Body units the visitor chose; unset until they leave the default for their country. */
+  units?: UnitSystem;
+  /** Visitor's country from the request, which sets the default body units. */
+  countryCode?: string;
   tdee: TdeeResult | null;
   tdeeSource: 'api' | 'fallback' | null;
   lead: Lead | null;
   paypalCheckout: PayPalCheckout | null;
   momoOrderId: string | null;
   purchased: boolean;
+  /** Where an answer opened from the review screen returns once it is saved; kept for this page view only. */
+  editReturn: QuizStep | null;
   setData: (patch: Partial<OnboardingPayload>) => void;
+  setPlanAnswers: (patch: Partial<PlanAnswers>) => void;
   setFunnelScreen: (screen: FunnelScreen) => void;
   setCurrentStep: (step: QuizStep) => void;
   setLocale: (locale: Locale) => void;
+  setUnits: (units: UnitSystem) => void;
+  setCountryCode: (countryCode: string | undefined) => void;
   setTdee: (result: TdeeResult, source: 'api' | 'fallback') => void;
   setLead: (lead: Lead) => void;
   setPayPalCheckout: (checkout: PayPalCheckout | null) => void;
   setMomoOrderId: (orderId: string | null) => void;
   setPurchased: (v: boolean) => void;
+  setEditReturn: (step: QuizStep | null) => void;
   reset: () => void;
 }
 
@@ -43,6 +71,7 @@ const initial = {
   funnelScreen: 'landing' as FunnelScreen,
   currentStep: 'goal' as QuizStep,
   data: { measurement_unit: 'metric' } as OnboardingPayload,
+  planAnswers: {} as PlanAnswers,
   locale: DEFAULT_LOCALE,
   tdee: null,
   tdeeSource: null,
@@ -50,16 +79,23 @@ const initial = {
   paypalCheckout: null,
   momoOrderId: null,
   purchased: false,
+  editReturn: null,
 };
 
-type PersistedQuizState = Pick<QuizState, 'funnelScreen' | 'currentStep' | 'data' | 'locale' | 'tdee' | 'tdeeSource' | 'lead'>;
+type PersistedQuizState = Pick<
+  QuizState,
+  'funnelScreen' | 'currentStep' | 'data' | 'planAnswers' | 'locale' | 'units' | 'countryCode' | 'tdee' | 'tdeeSource' | 'lead'
+>;
 
 function toPersistedQuizState(state: QuizState): PersistedQuizState {
   return {
     funnelScreen: state.funnelScreen ?? initial.funnelScreen,
     currentStep: state.currentStep ?? initial.currentStep,
     data: state.data,
+    planAnswers: state.planAnswers ?? {},
     locale: state.locale,
+    units: state.units,
+    countryCode: state.countryCode,
     tdee: state.tdee,
     tdeeSource: state.tdeeSource,
     lead: state.lead ? { lead_id: state.lead.lead_id, masked_email: state.lead.masked_email, status: state.lead.status } : null,
@@ -103,7 +139,7 @@ export function migratePersistedQuizState(persistedState: unknown): PersistedQui
   const requestedScreen = state.funnelScreen === 'welcome-gift' ? 'value' : state.funnelScreen;
   const savedScreen = FUNNEL_SCREENS.find((screen) => screen === requestedScreen);
   const rawStep = typeof state.currentStep === 'string' ? state.currentStep : '';
-  const normalizedStep = REMOVED_QUIZ_STEPS.has(rawStep) ? 'care_pause' : rawStep;
+  const normalizedStep = REMOVED_QUIZ_STEP_REDIRECTS[rawStep] ?? rawStep;
   const storedStep = isQuizStep(normalizedStep) ? normalizedStep : initial.currentStep;
   const resume = legacyResume(state.resumeAfterOS);
   const atPhoneQuestion = state.funnelScreen === 'android-filter' || (state.currentStep === 'operating_system' && savedScreen === 'quiz');
@@ -122,7 +158,10 @@ export function migratePersistedQuizState(persistedState: unknown): PersistedQui
       : savedScreen ?? (state.lead ? 'paywall' : currentStep === initial.currentStep ? 'landing' : 'quiz'),
     currentStep,
     data,
+    planAnswers: state.planAnswers ?? {},
     locale: state.locale ?? initial.locale,
+    units: state.units,
+    countryCode: state.countryCode,
     // Calories computed for the old goal would contradict the corrected one; the result step recalculates.
     tdee: goalChanged ? null : state.tdee ?? initial.tdee,
     tdeeSource: goalChanged ? null : state.tdeeSource ?? initial.tdeeSource,
@@ -135,16 +174,21 @@ export const useQuizStore = create<QuizState>()(
     (set) => ({
       ...initial,
       setData: (patch) => set((s) => ({ data: { ...s.data, ...patch } })),
+      setPlanAnswers: (patch) => set((s) => ({ planAnswers: { ...s.planAnswers, ...patch } })),
       setFunnelScreen: (funnelScreen) => set({ funnelScreen }),
       setCurrentStep: (currentStep) => set({ currentStep }),
       setLocale: (locale) => set({ locale }),
+      setUnits: (units) => set({ units }),
+      setCountryCode: (countryCode) => set({ countryCode }),
       setTdee: (result, source) => set({ tdee: result, tdeeSource: source }),
       setLead: (lead) => set({ lead }),
       setPayPalCheckout: (paypalCheckout) => set({ paypalCheckout }),
       setMomoOrderId: (momoOrderId) => set({ momoOrderId }),
       setPurchased: (purchased) => set({ purchased }),
-      // Language is a UI preference, not quiz data — keep it across a reset.
-      reset: () => set((s) => ({ ...initial, data: { ...initial.data }, locale: s.locale })),
+      setEditReturn: (editReturn) => set({ editReturn }),
+      // Language, units and country are UI preferences, not quiz data — keep them across a reset.
+      reset: () =>
+        set((s) => ({ ...initial, data: { ...initial.data }, planAnswers: {}, locale: s.locale, units: s.units, countryCode: s.countryCode })),
     }),
     {
       name: STORAGE_KEY,

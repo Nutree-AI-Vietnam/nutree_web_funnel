@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { chapterLabel, QUIZ_STEPS, VALUE_TOUR_STEPS, isQuizStep, nextStep, onboardingStepCount, previousStep, stepIndex, valueProgressIndex } from './steps';
+import { QUIZ_STEPS, STEP_CHAPTERS, questionCount, VALUE_TOUR_STEPS, isQuizStep, nextStep, onboardingStepCount, previousStep, stepIndex, valueProgressIndex } from './steps';
 
 describe('quiz steps', () => {
   it('keeps one input or decision per quiz screen', () => {
@@ -8,7 +8,6 @@ describe('quiz steps', () => {
       'name_ask',
       'welcome',
       'challenges',
-      'duration',
       'motivation',
       'reflection',
       'sex',
@@ -22,10 +21,12 @@ describe('quiz steps', () => {
       'training_duration',
       'eating_pattern',
       'diet',
-      'care_pause',
+      'step_goal',
+      'not_alone',
       'calculating',
       'result',
       'progress',
+      'confidence',
     ]);
   });
 
@@ -38,31 +39,43 @@ describe('quiz steps', () => {
   it('navigates forward through quiz screens without creating subroutes', () => {
     expect(nextStep('goal')).toBe('name_ask');
     expect(nextStep('name_ask')).toBe('welcome');
-    expect(nextStep('diet')).toBe('care_pause');
+    expect(nextStep('diet')).toBe('step_goal');
+    expect(nextStep('step_goal')).toBe('not_alone');
+    expect(nextStep('not_alone')).toBe('calculating');
     expect(nextStep('body_review')).toBe('activity_level');
-    expect(nextStep('care_pause')).toBe('calculating');
   });
 
-  it('continues from result through progress before email capture', () => {
+  it('continues from result through progress and the confidence question before email capture', () => {
     expect(nextStep('result')).toBe('progress');
-    expect(nextStep('progress')).toBeNull();
+    expect(nextStep('progress')).toBe('confidence');
+    expect(nextStep('confidence')).toBeNull();
+  });
+
+  it('counts the questions the welcome screen promises', () => {
+    expect(questionCount()).toBe(16);
   });
 
   it('navigates backward, landing page before first screen', () => {
     expect(previousStep('name_ask')).toBe('goal');
+    expect(previousStep('motivation')).toBe('challenges');
     expect(previousStep('goal')).toBeNull();
+  });
+
+  it('skips the loader on the way back from the plan', () => {
+    expect(previousStep('result')).toBe('not_alone');
+    expect(previousStep('calculating')).toBe('not_alone');
   });
 
   it('exposes 1-based progress index', () => {
     expect(stepIndex('goal')).toBe(1);
-    expect(stepIndex('height')).toBe(10);
+    expect(stepIndex('height')).toBe(9);
     expect(stepIndex('result')).toBe(21);
-    expect(chapterLabel('training_days')).toBe('Thói quen');
+    expect(STEP_CHAPTERS.training_days).toBe('routine');
   });
 
   it('continues the same progress bar through the value tour', () => {
-    expect(valueProgressIndex('guide')).toBe(QUIZ_STEPS.length + 1);
-    expect(valueProgressIndex('meals')).toBe(onboardingStepCount());
-    expect(VALUE_TOUR_STEPS).toHaveLength(7);
+    expect(valueProgressIndex('plan')).toBe(QUIZ_STEPS.length + 1);
+    expect(valueProgressIndex('snap')).toBe(onboardingStepCount());
+    expect(VALUE_TOUR_STEPS).toEqual(['plan', 'sources', 'snap']);
   });
 });

@@ -8,6 +8,7 @@ import { rememberCheckoutMethod } from '@/lib/revenuecat/checkout-email';
 import { PostcheckoutPageClient } from './postcheckout-page-client';
 
 const momoHeadline = copyFor('en').momoCheckout.paidHeadline;
+const cardHeadline = copyFor('en').funnel.postcheckout.title;
 
 describe('post-checkout hand-off', () => {
   beforeEach(async () => {
@@ -28,7 +29,7 @@ describe('post-checkout hand-off', () => {
     render(<PostcheckoutPageClient />);
 
     expect(await screen.findByRole('heading', { name: momoHeadline })).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Check your email' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: cardHeadline })).toBeNull();
   });
 
   it('keeps MoMo copy for a confirmed MoMo order in this tab', async () => {
@@ -42,7 +43,7 @@ describe('post-checkout hand-off', () => {
     rememberCheckoutMethod('paddle');
     render(<PostcheckoutPageClient />);
 
-    expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: cardHeadline })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: momoHeadline })).toBeNull();
   });
 });

@@ -10,6 +10,8 @@ type ScratchPoint = {
 
 type ScratchTicketCoverProps = {
   revealed: boolean;
+  /** Covered but not scratchable yet, e.g. while the price behind it loads. */
+  disabled?: boolean;
   hint: string;
   onScratchStart?: () => void;
   onReveal: () => void;
@@ -103,7 +105,7 @@ function scratchedRatio(canvas: HTMLCanvasElement) {
   return cleared / (sample.length / 16);
 }
 
-export function ScratchTicketCover({ revealed, hint, onScratchStart, onReveal, className, hintClassName }: ScratchTicketCoverProps) {
+export function ScratchTicketCover({ revealed, disabled, hint, onScratchStart, onReveal, className, hintClassName }: ScratchTicketCoverProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawingRef = useRef(false);
@@ -186,7 +188,7 @@ export function ScratchTicketCover({ revealed, hint, onScratchStart, onReveal, c
       ref={hostRef}
       className={cn('absolute inset-0 touch-none overflow-hidden rounded-[inherit] transition-opacity duration-300 motion-reduce:transition-none', revealed && 'pointer-events-none opacity-0', className)}
       onPointerDown={(event) => {
-        if (revealed) return;
+        if (revealed || disabled) return;
         event.preventDefault();
         event.currentTarget.setPointerCapture(event.pointerId);
         drawingRef.current = true;

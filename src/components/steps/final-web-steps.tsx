@@ -4,17 +4,37 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { OptionCard } from '@/components/option-card';
 import { PrimaryButton } from '@/components/primary-button';
-import { useCopy } from '@/lib/copy/use-copy';
+import { useCopy, useLocale } from '@/lib/copy/use-copy';
+
+/** A starting target inside the healthy range: about 10% down for a loss goal, a little up for a gain goal. */
+export function presetTargetWeight(goal: OnboardingPayload['fitness_goal'], currentKg: number | undefined, heightCm: number | undefined): number | undefined {
+  if (currentKg == null) return undefined;
+  if (!heightCm) return currentKg;
+  // Whole kilograms inside the range, so the preset never lands on a target the screen refuses.
+  const low = Math.ceil(weightAtBmi(HEALTHY_BMI_LOW, heightCm));
+  const high = weightAtBmi(HEALTHY_BMI_HIGH, heightCm);
+  if (goal === 'bulk') return Math.round(currentKg + 3);
+  if (goal === 'cut') {
+    const target = currentKg > high ? Math.max(high, currentKg * 0.9) : Math.max(low, currentKg - 3);
+    return Math.round(Math.min(target, currentKg));
+  }
+  return Math.round(currentKg);
+}
 import type { Copy } from '@/lib/copy';
-import { goToNextQuizStep } from '@/lib/quiz/navigation';
+import { editQuizAnswer, goToNextQuizStep, goToQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
-import { deriveAge } from '@/lib/quiz/dob';
+import { deriveAge, MIN_AGE } from '@/lib/quiz/dob';
 import { goalAfterTargetWeight } from '@/lib/quiz/fitness-goal';
-import { bmi, bmiCategory } from '@/lib/tdee/insights';
+import { HEALTHY_BMI_HIGH, HEALTHY_BMI_LOW, healthyWeightRange, savedTargetFits, targetBelowHealthyRange, weightAtBmi } from '@/lib/quiz/healthy-weight';
+import type { QuizStep } from '@/lib/quiz/steps';
+import { formatHeight, formatWeight } from '@/lib/quiz/units';
+import { useUnits } from '@/lib/quiz/use-units';
+import { bmi, bmiCategory, formatBmi } from '@/lib/tdee/insights';
 import { cn } from '@/lib/utils';
 import { isMetricValueValid, MetricInput, parseMetricDraft } from './metric-input';
 import { QuizStepFrame } from './quiz-step-frame';
+import { UnitFields } from './unit-fields';
 
 function useDraftNumber(field: keyof OnboardingPayload) {
   const saved = useQuizStore((s) => s.data[field]);
@@ -31,7 +51,7 @@ export function BodyBasicsStep() {
   const data = useQuizStore((s) => s.data);
   const setData = useQuizStore((s) => s.setData);
   const [age, setAge] = useDraftNumber('birth_year');
-  const ageValid = isMetricValueValid(age, 1900, new Date().getFullYear() - 12);
+  const ageValid = isMetricValueValid(age, 1900, new Date().getFullYear() - MIN_AGE);
 
   return (
     <QuizStepFrame title={copy.body_basics.question} hint={copy.body_basics.hint}>
@@ -50,11 +70,11 @@ export function BodyBasicsStep() {
         label={copy.age.label}
         unit={copy.age.unit}
         value={age}
-        min={12}
+        min={MIN_AGE}
         max={100}
         step={1}
         hint={copy.age.hint}
-        error={age && !ageValid ? copy.metric.rangeError(copy.age.label, 12, 100, copy.age.unit) : undefined}
+        error={age && !ageValid ? copy.metric.rangeError(copy.age.label, MIN_AGE, 100, copy.age.unit) : undefined}
         onChange={setAge}
         onBlur={() => null}
       />
@@ -135,19 +155,20 @@ export function TargetWeightStep() {
   const copy = useCopy();
   const setData = useQuizStore((s) => s.setData);
   const data = useQuizStore((s) => s.data);
-  const [target, setTarget] = useDraftNumber('target_weight_kg');
-  const valid = isMetricValueValid(target, 30, 250);
-  const targetValue = parseMetricDraft(target);
+  const { system } = useUnits();
+  const locale = useLocale();
+  const [touched, setTouched] = useState(false);
+  // What the unit field reports: the target in kg, or null while what is typed is not valid.
+  const [targetValue, setTargetValue] = useState<number | null>(null);
+  const valid = targetValue != null;
   const currentValue = data.weight_kg;
-  const currentAge = data.age ?? deriveAge(data);
-  const hasValidBmiContext = currentAge != null
-    && typeof data.height_cm === 'number' && Number.isFinite(data.height_cm) && data.height_cm > 0;
-  const targetBmi = targetValue != null && hasValidBmiContext
-    ? bmi(targetValue, data.height_cm!)
-    : null;
-  const targetBmiCategory = targetBmi != null && currentAge != null && currentAge >= 18
-    ? bmiCategory(targetBmi)
-    : null;
+  const heightCm = typeof data.height_cm === 'number' && Number.isFinite(data.height_cm) && data.height_cm > 0 ? data.height_cm : null;
+  // Adult BMI ranges apply to everyone: the funnel only takes adults.
+  const targetBmi = targetValue != null && heightCm != null ? bmi(targetValue, heightCm) : null;
+  const targetBmiCategory = targetBmi != null ? bmiCategory(targetBmi) : null;
+  // In the units the picker shows, so the range's low end is itself the lowest target accepted.
+  const healthyRange = heightCm != null ? healthyWeightRange(heightCm, system) : null;
+  const tooLow = targetValue != null && targetBelowHealthyRange(targetValue, data, system);
   const goalBadge = (() => {
     const goal = data.fitness_goal;
     if (!goal || currentValue == null || targetValue == null || data.target_weight_unsure) return null;
@@ -159,11 +180,9 @@ export function TargetWeightStep() {
     const directionStatus = goalChanged
       ? copy.target_weight.goalBadge.changed
       : copy.target_weight.goalBadge.aligned;
-    const bmiInsight = targetBmi == null
+    const bmiInsight = targetBmi == null || targetBmiCategory == null
       ? null
-      : targetBmiCategory != null
-        ? `${copy.target_weight.bmiTargetLabel} ${targetBmi.toFixed(1)} · ${copy.target_weight.bmiCategory[targetBmiCategory]}`
-        : `${copy.target_weight.bmiTargetLabel} ${targetBmi.toFixed(1)} · ${copy.target_weight.bmiAgeHint}`;
+      : `${copy.target_weight.bmiTargetLabel} ${formatBmi(targetBmi, locale)} · ${copy.target_weight.bmiCategory[targetBmiCategory]}`;
 
     return {
       label: copy.target_weight.goalBadge[nextGoal],
@@ -175,39 +194,51 @@ export function TargetWeightStep() {
         : copy.target_weight.goalBadge.alignedBody,
       bmiInsight,
       healthy: targetBmiCategory === 'normal' || (targetBmiCategory == null && !goalChanged),
+      changed: goalChanged,
     };
   })();
 
   return (
-    <QuizStepFrame title={copy.target_weight.question} description={copy.target_weight.hint} className="gap-2">
-      <div className="flex flex-1 flex-col items-center">
+    <QuizStepFrame title={copy.target_weight.question} description={copy.funnel.targetHint} className="gap-2">
+      <div className="relative flex flex-1 flex-col items-center">
+        {/* Where they start, beside the wheel's selected row, so the target reads as a move from it. */}
+        <div className="pointer-events-none absolute right-[calc(50%+4.75rem)] top-[calc(50%+1.6rem)] flex -translate-y-1/2 items-end gap-1 whitespace-nowrap">
+          <span>
+            <span className="block text-[0.68rem] font-bold text-muted-brand">{copy.target_weight.currentLabel}</span>
+            <span className="text-[0.95rem] font-extrabold leading-none tracking-tight text-slate-brand">
+              {data.weight_kg != null ? formatWeight(data.weight_kg, system, locale) : '—'}
+            </span>
+          </span>
+          <span aria-hidden="true" className="text-[1.15rem] font-extrabold leading-tight text-[#e6a0a8]">»</span>
+        </div>
         <div className="relative flex w-56 max-w-[58vw] flex-1 flex-col">
-          <div className="mb-2 flex items-center justify-center gap-2 sm:pointer-events-none sm:absolute sm:right-full sm:top-1/2 sm:mb-0 sm:mr-3 sm:-translate-y-1/2 sm:justify-start sm:whitespace-nowrap">
-            <div className="text-center">
-              <span className="sr-only">{copy.target_weight.currentLabel}</span>
-              <span className="text-lg font-extrabold leading-none tracking-tight text-slate-brand">
-                {data.weight_kg ?? '—'}
-              </span>
-              <span className="ml-0.5 text-sm font-bold text-slate-brand">{copy.target_weight.unit}</span>
-            </div>
-            <span aria-hidden="true" className="text-2xl font-extrabold leading-none tracking-tight text-[#e6a0a8]">»</span>
-          </div>
-          <MetricInput
+          <UnitFields
+            measure="weight"
             id="target-weight"
             label={copy.target_weight.label}
+            initialValue={data.target_weight_kg ?? presetTargetWeight(data.fitness_goal, data.weight_kg, data.height_cm)}
             unit={copy.target_weight.unit}
-            value={target}
             min={30}
             max={250}
-            step={1}
-            bare
             variant="hero"
-            onChange={setTarget}
-            onBlur={() => null}
+            showError={touched && system !== 'metric'}
+            onChange={setTargetValue}
+            onBlur={() => setTouched(true)}
           />
         </div>
       </div>
-      {goalBadge && (
+      {tooLow && healthyRange ? (
+        <p role="alert" className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-extrabold leading-snug text-amber-900">
+          {copy.funnel.targetTooLow(formatWeight(healthyRange.lowKg, system, locale))}
+        </p>
+      ) : null}
+      {healthyRange && (
+        <p className="text-center text-xs font-bold text-muted-brand">
+          {copy.funnel.healthyRange(formatWeight(healthyRange.lowKg, system, locale), formatWeight(healthyRange.highKg, system, locale))}
+        </p>
+      )}
+      {/* With the healthy range shown, the badge only needs to appear when the target flips the goal. */}
+      {goalBadge && !tooLow && (goalBadge.changed || healthyRange == null) && (
         <section
           role="group"
           aria-label={`${goalBadge.label} ${goalBadge.status}`}
@@ -239,25 +270,14 @@ export function TargetWeightStep() {
         </section>
       )}
       <div className="quiz-number-actions mt-auto flex flex-col gap-2 pt-3">
-        <button
-          type="button"
-          onClick={() => {
-            setData({ target_weight_kg: undefined, target_weight_unsure: true });
-            goToNextQuizStep(router, 'target_weight');
-          }}
-          className="rounded-2xl border border-border-brand bg-white/78 px-4 py-2.5 text-left text-sm font-extrabold text-forest shadow-sm"
-        >
-          {copy.target_weight.unsure}
-        </button>
         <PrimaryButton
-          disabled={!valid}
+          disabled={!valid || tooLow}
           onClick={() => {
-            const parsed = parseMetricDraft(target);
-            if (!parsed) return;
+            if (targetValue == null || tooLow) return;
             setData({
-              target_weight_kg: parsed,
+              target_weight_kg: targetValue,
               target_weight_unsure: false,
-              fitness_goal: goalAfterTargetWeight(data.fitness_goal, data.weight_kg, parsed),
+              fitness_goal: goalAfterTargetWeight(data.fitness_goal, data.weight_kg, targetValue),
             });
             goToNextQuizStep(router, 'target_weight');
           }}
@@ -272,32 +292,54 @@ export function TargetWeightStep() {
 export function BodyReviewStep() {
   const router = useRouter();
   const copy = useCopy();
+  const locale = useLocale();
   const data = useQuizStore((s) => s.data);
   const setData = useQuizStore((s) => s.setData);
+  const { system } = useUnits();
   const review = copy.body_review;
-  const rows = [
-    [review.goalLabel, getGoalLabel(copy, data.fitness_goal)],
-    [review.ageLabel, deriveAge(data) ? `${deriveAge(data)}` : review.missingValue],
-    [review.heightLabel, data.height_cm ? `${data.height_cm} cm` : review.missingValue],
-    [review.weightLabel, data.weight_kg ? `${data.weight_kg} kg` : review.missingValue],
-    [review.targetWeightLabel, data.target_weight_kg ? `${data.target_weight_kg} kg` : review.targetWeightPending],
+  const age = deriveAge(data);
+  type ReviewRow = { label: string; value: string; step: QuizStep };
+  const sexLabel = copy.sex.options.find((option) => option.key === data.gender)?.label;
+  const candidates: Array<ReviewRow | null> = [
+    data.fitness_goal ? { label: review.goalLabel, value: getGoalLabel(copy, data.fitness_goal), step: 'goal' as const } : null,
+    sexLabel ? { label: review.sexLabel, value: sexLabel, step: 'sex' as const } : null,
+    age ? { label: review.ageLabel, value: String(age), step: 'age' as const } : null,
+    data.height_cm ? { label: review.heightLabel, value: formatHeight(data.height_cm, system), step: 'height' as const } : null,
+    data.weight_kg ? { label: review.weightLabel, value: formatWeight(data.weight_kg, system, locale), step: 'weight' as const } : null,
+    data.target_weight_kg
+      ? { label: review.targetWeightLabel, value: formatWeight(data.target_weight_kg, system, locale), step: 'target_weight' as const }
+      : data.target_weight_unsure ? { label: review.targetWeightLabel, value: review.targetWeightPending, step: 'target_weight' as const } : null,
   ];
+  const rows = candidates.filter((row): row is ReviewRow => row != null);
 
   return (
-    <QuizStepFrame title={copy.body_review.question} hint={copy.body_review.hint} titleClassName="max-w-[22rem]">
-      <div className="rounded-[1.5rem] bg-white/86 p-4 shadow-[0_18px_48px_rgb(26_71_57_/_0.10)]">
-        {rows.map(([label, value]) => (
-          <div key={label} className="flex items-center justify-between border-b border-border-brand/60 py-3 last:border-0">
-            <span className="text-sm font-bold text-muted-brand">{label}</span>
-            <span className="text-right text-base font-extrabold text-forest">{value}</span>
-          </div>
+    <QuizStepFrame title={copy.funnel.reviewTitle} hint={copy.funnel.reviewHint} titleClassName="max-w-[22rem]">
+      <div className="rounded-[1.5rem] bg-white/86 p-2 shadow-[0_6px_16px_rgb(26_71_57_/_0.07)]">
+        {rows.map((row) => (
+          <button
+            key={row.label}
+            type="button"
+            onClick={() => editQuizAnswer(router, row.step)}
+            className="flex w-full items-center justify-between gap-3 rounded-xl border-b border-border-brand/60 px-2 py-3 text-left transition last:border-0 hover:bg-mist/60 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20"
+          >
+            <span className="text-sm font-bold text-muted-brand">{row.label}</span>
+            <span className="flex items-center gap-2 text-right text-base font-extrabold text-forest">
+              {row.value}
+              <span className="text-xs font-extrabold text-teal-brand underline underline-offset-2">{copy.funnel.reviewEdit}</span>
+            </span>
+          </button>
         ))}
       </div>
       <div className="mt-auto pt-5">
         <PrimaryButton
           onClick={() => {
+            // An edit left by Back can leave the target where its screen would refuse it: that screen comes first.
+            if (!savedTargetFits(data, system)) {
+              goToQuizStep(router, 'target_weight');
+              return;
+            }
             setData({ body_review_confirmed_at: new Date().toISOString() });
-          goToNextQuizStep(router, 'body_review');
+            goToNextQuizStep(router, 'body_review');
           }}
         >
           {copy.body_review.cta}

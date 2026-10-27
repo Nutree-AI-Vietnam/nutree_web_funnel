@@ -5,8 +5,11 @@ import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
-import { buildProgressProjection, type ProgressDirection } from '@/lib/quiz/progress-projection';
+import { GoalChart } from '@/components/plan/plan-overview';
+import { buildProgressProjection, firstWin, formatGoalDate, goalTimeline, type ProgressDirection } from '@/lib/quiz/progress-projection';
 import { useQuizStore } from '@/lib/quiz/store';
+import { formatWeight } from '@/lib/quiz/units';
+import { useUnits } from '@/lib/quiz/use-units';
 import { computeTdeeResult } from '@/lib/tdee/calculator';
 import { QuizStepFrame } from './quiz-step-frame';
 
@@ -35,6 +38,7 @@ export function ProgressStep() {
   const router = useRouter();
   const copy = useCopy();
   const locale = useLocale();
+  const { system } = useUnits();
   const reduce = useReducedMotion();
   const data = useQuizStore((state) => state.data);
   const storedTdee = useQuizStore((state) => state.tdee);
@@ -51,9 +55,40 @@ export function ProgressStep() {
       ? copy.progress.planPace(projection.calories.toLocaleString(numberLocale), `${projection.proteinG}g`)
       : copy.progress.planPaceFallback;
 
+  const timeline = goalTimeline(data);
+  if (timeline) {
+    const funnel = copy.funnel.progress;
+    const target = formatWeight(timeline.targetKg, system, locale);
+    const date = formatGoalDate(timeline.date, locale);
+    const name = data.name?.trim();
+    const win = firstWin(timeline, system, locale);
+    const rate = system === 'imperial' ? `${(timeline.kgPerWeek / 0.45359237).toFixed(1)} lb` : formatWeight(timeline.kgPerWeek, 'metric', locale);
+    return (
+      <QuizStepFrame title={name ? funnel.headline(name, target, date) : funnel.headlineNoName(target, date)}>
+        <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/86 p-4 shadow-[0_6px_16px_rgb(26_71_57_/_0.07)]">
+          <GoalChart timeline={timeline} system={system} nowLabel={copy.funnel.plan.now} stageLabel={funnel.stage} goalLabel={formatGoalDate(timeline.date, locale, false)} goalCaption={funnel.goal} animate />
+          {/* The first win, under the path once the goal dot lands: close, small and believable. */}
+          <motion.p
+            className="mt-2 inline-flex items-center gap-2 rounded-2xl bg-mist px-3 py-1.5 text-[0.8rem] font-extrabold leading-snug tabular-nums text-forest"
+            initial={reduce ? false : { opacity: 0, y: 6, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 1.0, duration: 0.35 }}
+          >
+            <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-teal-brand" />
+            {copy.funnel.plan.firstWin(formatWeight(win.kg, system, locale), formatGoalDate(win.date, locale, false))}
+          </motion.p>
+          <p className="mt-2 text-[0.75rem] font-semibold leading-snug text-muted-brand">{funnel.estimateAtPace(rate)}</p>
+        </section>
+        <div className="mt-auto pt-2">
+          <PrimaryButton onClick={() => goToNextQuizStep(router, 'progress')}>{copy.progress.cta}</PrimaryButton>
+        </div>
+      </QuizStepFrame>
+    );
+  }
+
   return (
     <QuizStepFrame title={copy.progress.question} hint={copy.progress.hint} eyebrow={copy.progress.eyebrow}>
-      <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/86 p-4 shadow-[0_18px_50px_rgb(26_71_57_/_0.11)]">
+      <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/86 p-4 shadow-[0_6px_16px_rgb(26_71_57_/_0.07)]">
         <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-teal-brand/15 blur-2xl" />
         {projection.kind === 'plan' && (
           <p className="relative text-base font-extrabold leading-snug text-forest">{copy.progress.planHeadline[projection.goal]}</p>
@@ -88,22 +123,22 @@ export function ProgressStep() {
         {projection.kind === 'weight' ? (
           <div className="mt-2 grid grid-cols-3 gap-2 text-center">
             <div>
-              <div className="text-lg font-extrabold text-forest">{projection.current} kg</div>
+              <div className="text-lg font-extrabold text-forest">{formatWeight(projection.current, system, locale)}</div>
               <div className="text-xs font-semibold text-muted-brand">{copy.progress.startLabel}</div>
             </div>
             <div>
-              <div className="text-lg font-extrabold text-slate-brand">{projection.midpoint} kg</div>
+              <div className="text-lg font-extrabold text-slate-brand">{formatWeight(projection.midpoint, system, locale)}</div>
               <div className="text-xs font-semibold text-muted-brand">{copy.progress.monthNumber(2)}</div>
             </div>
             <div>
-              <div className="text-lg font-extrabold text-teal-brand">{projection.target} kg</div>
+              <div className="text-lg font-extrabold text-teal-brand">{formatWeight(projection.target, system, locale)}</div>
               <div className="text-xs font-semibold text-muted-brand">{copy.progress.goalLabel}</div>
             </div>
           </div>
         ) : (
           <div className="mt-2 grid grid-cols-3 gap-2 text-center">
             <div>
-              <div className="text-lg font-extrabold text-forest">{projection.currentKg != null ? `${projection.currentKg} kg` : copy.progress.missingStat}</div>
+              <div className="text-lg font-extrabold text-forest">{projection.currentKg != null ? formatWeight(projection.currentKg, system, locale) : copy.progress.missingStat}</div>
               <div className="text-xs font-semibold text-muted-brand">{copy.progress.currentStat}</div>
             </div>
             <div>

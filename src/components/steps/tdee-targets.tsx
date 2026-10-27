@@ -1,15 +1,138 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { goToNextQuizStep, goToQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
-import { bmi, bmiCategory } from '@/lib/tdee/insights';
+import { bmi, bmiCategory, formatBmi, wholePercents } from '@/lib/tdee/insights';
+import Image from 'next/image';
+import { CountUp } from '@/components/ui/count-up';
+import { Icon } from '@/components/ui/icons';
+import type { TdeeResult } from '@/lib/quiz/types';
+import { workoutCredit } from '@/lib/tdee/calculator';
+import { motion, useReducedMotion } from 'motion/react';
+import { cn } from '@/lib/utils';
 
 const BMI_MIN = 15;
 const BMI_MAX = 35;
+
+// Traffic-light zones: blue under, green healthy, yellow over, red well over.
+const BMI_ZONES = [
+  { from: BMI_MIN, to: 18.5, className: 'bg-[#6aa8e0]', color: '#3f7fbf' },
+  { from: 18.5, to: 25, className: 'bg-[#36b37e]', color: '#1f8f5f' },
+  { from: 25, to: 30, className: 'bg-[#f2c14e]', color: '#b8860b' },
+  { from: 30, to: BMI_MAX, className: 'bg-[#e8604c]', color: '#c2412f' },
+] as const;
+const bmiColor = (value: number) => (BMI_ZONES.find((zone) => value < zone.to) ?? BMI_ZONES[BMI_ZONES.length - 1]).color;
+const toPct = (value: number) => (Math.min(Math.max(value, BMI_MIN), BMI_MAX) - BMI_MIN) / (BMI_MAX - BMI_MIN) * 100;
+
+/** A BMI gauge: soft zones coloured blue, green, yellow and red, tick values, and a marker that slides to the visitor's value. */
+function BmiGauge({ value, healthyLabel, locale }: { value: number; healthyLabel: string; locale: string }) {
+  const reduce = useReducedMotion();
+  const position = `${toPct(value)}%`;
+  return (
+    <div className="pt-8">
+      <div className="relative">
+        <div className="flex h-3 gap-[3px] overflow-hidden rounded-full">
+          {BMI_ZONES.map((zone) => (
+            <span key={zone.from} className={cn('h-full', zone.className)} style={{ width: `${toPct(zone.to) - toPct(zone.from)}%` }} />
+          ))}
+        </div>
+        <motion.div
+          className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+          initial={reduce ? false : { left: '0%' }}
+          whileInView={{ left: position }}
+          viewport={{ once: true }}
+          transition={{ type: 'spring', stiffness: 70, damping: 14, delay: 0.3 }}
+          style={{ left: position }}
+        >
+          <span className="absolute bottom-[calc(100%+0.45rem)] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg px-2 py-0.5 text-[0.78rem] font-extrabold tabular-nums text-white shadow-[0_6px_16px_rgb(23_69_58_/_0.25)]" style={{ background: bmiColor(value) }}>
+            {formatBmi(value, locale)}
+          </span>
+          <span className="block h-5 w-5 rounded-full border-[3px] border-white shadow-[0_4px_12px_rgb(23_69_58_/_0.3)]" style={{ background: bmiColor(value) }} />
+        </motion.div>
+      </div>
+      <div className="relative mt-1.5 h-4 text-[0.64rem] font-bold tabular-nums text-muted-brand" aria-hidden="true">
+        {[18.5, 25, 30].map((tick) => (
+          <span key={tick} className="absolute -translate-x-1/2" style={{ left: `${toPct(tick)}%` }}>{Number.isInteger(tick) ? tick : formatBmi(tick, locale)}</span>
+        ))}
+      </div>
+      <p className="mt-1 flex items-center gap-1.5 text-[0.72rem] font-bold text-[#1f8f5f]">
+        <span aria-hidden="true" className="h-2 w-2 rounded-full bg-[#36b37e]" />
+        {healthyLabel}
+      </p>
+    </div>
+  );
+}
+
+const MACROS = [
+  { key: 'protein', kcalPerGram: 4, bar: 'bg-protein', tint: 'bg-[#fdf1e4]', text: 'text-[#b5631a]' },
+  { key: 'carbs', kcalPerGram: 4, bar: 'bg-carbs', tint: 'bg-[#e3f4f1]', text: 'text-[#0b7a70]' },
+  { key: 'fat', kcalPerGram: 9, bar: 'bg-fat', tint: 'bg-[#faf3dc]', text: 'text-[#957a0e]' },
+] as const;
+
+/** The reveal: a bowl photo, the day's calories counting up, and three macro tiles whose bars fill to their share of the day. */
+function ResultHero({ tdee, locale }: { tdee: TdeeResult; locale: string }) {
+  const copy = useCopy();
+  const reduce = useReducedMotion();
+  const labels = copy.tdee_targets;
+  const format = (value: number) => new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US').format(Math.round(value));
+  const grams = { protein: tdee.protein_g, carbs: tdee.carbs_g, fat: tdee.fat_g };
+  // Shares of the day's calories, as whole percents that add up to 100.
+  const percents = wholePercents(MACROS.map((m) => grams[m.key] * m.kcalPerGram));
+  return (
+    <div className="mt-4">
+      <p className="sr-only">{labels.summary(format(tdee.calories), Math.round(tdee.protein_g), Math.round(tdee.carbs_g), Math.round(tdee.fat_g))}</p>
+      <div aria-hidden="true" className="relative h-[8.5rem] overflow-hidden rounded-[1.3rem]">
+        <motion.div className="absolute inset-0" initial={reduce ? false : { scale: 1.1 }} animate={{ scale: 1 }} transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}>
+          <Image src="/images/result-bowl.webp" alt="" fill sizes="420px" className="object-cover" priority />
+        </motion.div>
+        <div className="absolute inset-0 bg-gradient-to-t from-forest/90 via-forest/35 to-transparent" />
+        <div className="absolute inset-x-3.5 bottom-3 flex items-end justify-between gap-3 text-white">
+          <span className="flex items-center gap-1.5 text-[0.82rem] font-bold">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 backdrop-blur"><Icon name="flame" className="h-4 w-4" /></span>
+            {labels.calories}
+          </span>
+          <span className="flex flex-col items-end leading-none">
+            <span className="text-[2.6rem] font-extrabold tracking-[-0.04em] tabular-nums [text-shadow:0_2px_14px_rgb(10_40_32_/_0.55)]"><CountUp value={Math.round(tdee.calories)} format={format} delay={0.25} duration={1.3} /></span>
+            <span className="mt-1 whitespace-nowrap text-[0.74rem] font-bold text-white/80">{copy.funnel.day.kcal}</span>
+          </span>
+        </div>
+      </div>
+      <div aria-hidden="true" className="mt-2.5 grid grid-cols-3 gap-2">
+        {MACROS.map((macro, index) => {
+          const percent = percents[index];
+          return (
+            <motion.div
+              key={macro.key}
+              className={cn('rounded-2xl p-2.5', macro.tint)}
+              initial={reduce ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45 + index * 0.1, duration: 0.4 }}
+            >
+              <span className={cn('block text-[0.72rem] font-extrabold', macro.text)}>{labels[macro.key]}</span>
+              <span className="mt-1 block text-[1.45rem] font-extrabold leading-none tracking-[-0.03em] text-forest tabular-nums">
+                <CountUp value={Math.round(grams[macro.key])} format={format} delay={0.55 + index * 0.1} duration={0.9} />
+                <span className="ml-0.5 text-[0.8rem] font-bold text-slate-brand">g</span>
+              </span>
+              <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-white">
+                <motion.span
+                  className={cn('block h-full rounded-full', macro.bar)}
+                  initial={reduce ? false : { width: 0 }}
+                  animate={{ width: `${percent}%` }}
+                  transition={{ delay: 0.7 + index * 0.1, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                />
+              </span>
+              <span className="mt-1 block text-[0.66rem] font-bold tabular-nums text-muted-brand">{percent}%</span>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export function TdeeTargetsStep() {
   const vi = useCopy();
@@ -17,124 +140,50 @@ export function TdeeTargetsStep() {
   const router = useRouter();
   const data = useQuizStore((s) => s.data);
   const tdee = useQuizStore((s) => s.tdee);
-  const [displayCalories, setDisplayCalories] = useState(0);
 
   const missing = !tdee || !data.weight_kg || !data.height_cm;
   useEffect(() => {
     if (missing) goToQuizStep(router, 'calculating');
   }, [missing, router]);
 
-  useEffect(() => {
-    if (!tdee) return;
-    const target = Math.round(tdee.calories);
-    let frame = 0;
-    const totalFrames = 36;
-    const timer = setInterval(() => {
-      frame += 1;
-      const progress = 1 - Math.pow(1 - frame / totalFrames, 3);
-      setDisplayCalories(Math.round(target * progress));
-      if (frame >= totalFrames) clearInterval(timer);
-    }, 24);
-
-    return () => clearInterval(timer);
-  }, [tdee]);
 
   if (missing || !tdee || !data.weight_kg || !data.height_cm) return null;
 
   const bmiValue = bmi(data.weight_kg, data.height_cm);
   const category = bmiCategory(bmiValue);
-  const bmiPct = Math.min(Math.max((bmiValue - BMI_MIN) / (BMI_MAX - BMI_MIN), 0), 1) * 100;
-  const macroTotal = tdee.protein_g + tdee.carbs_g + tdee.fat_g;
-  const macroItems = [
-    { label: vi.tdee_targets.protein, value: Math.round(tdee.protein_g), color: 'bg-protein' },
-    { label: vi.tdee_targets.carbs, value: Math.round(tdee.carbs_g), color: 'bg-carbs' },
-    { label: vi.tdee_targets.fat, value: Math.round(tdee.fat_g), color: 'bg-fat' },
-  ];
+  const trainingMinutes = data.training_days_per_week ? data.training_minutes_per_session ?? 0 : 0;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="quiz-step-body min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain">
+      <div className="quiz-step-body -mx-5 min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain px-5">
       <div className="quiz-step-stack flex min-h-full flex-col gap-3">
-      <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/88 p-3.5 shadow-[0_24px_72px_rgb(26_71_57_/_0.15),inset_0_1px_0_rgb(255_255_255_/_0.82)] backdrop-blur animate-soft-enter">
-        <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-teal-brand/20 blur-2xl" />
-        <p className="relative text-xs font-extrabold tracking-[0.02em] text-teal-brand">{vi.tdee_targets.eyebrow}</p>
-        <h1 className="relative mt-1 text-[1.45rem] font-extrabold leading-tight text-forest">{vi.tdee_targets.headline}</h1>
-        <p className="relative mt-1.5 text-xs font-semibold leading-relaxed text-slate-brand">{vi.tdee_targets.aha}</p>
-
-        <div className="relative mt-3 grid grid-cols-[1fr_auto] items-center gap-3">
-          <div>
-            <div className="text-[3rem] font-extrabold leading-none text-forest">
-              {(displayCalories || Math.round(tdee.calories)).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')}
-            </div>
-            <div className="mt-1 text-sm font-extrabold text-muted-brand">{vi.tdee_targets.calories}</div>
-          </div>
-          <div
-            className="grid h-20 w-20 place-items-center rounded-full p-2 shadow-inner"
-            style={{ background: 'conic-gradient(#29b6a1 0 76%, #e8f2ee 76% 100%)' }}
-          >
-            <div className="grid h-full w-full place-items-center rounded-full bg-white text-center">
-              <span className="text-xs font-extrabold text-forest">TDEE</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative mt-3 overflow-hidden rounded-2xl bg-bg-brand/88 p-2 shadow-[inset_0_1px_18px_rgb(26_71_57_/_0.04)]">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-extrabold text-forest">{vi.tdee_targets.macroNote}</span>
-            <span className="text-[0.7rem] font-bold text-muted-brand">{vi.tdee_targets.perDayUnit}</span>
-          </div>
-          <div className="flex h-3 overflow-hidden rounded-full bg-white">
-            {macroItems.map((item) => (
-              <span
-                key={item.label}
-                className={item.color}
-                style={{ width: `${Math.max((item.value / macroTotal) * 100, 12)}%` }}
-              />
-            ))}
-          </div>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            {macroItems.map((item) => (
-              <div key={item.label} className="rounded-xl bg-white px-2 py-1.5">
-                <div className="text-base font-extrabold text-forest">{item.value}g</div>
-                <div className="text-[0.68rem] font-bold text-muted-brand">{item.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-2xl bg-white/82 p-2.5 shadow-[0_12px_34px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.78)] backdrop-blur">
-        <div className="mb-2 flex items-baseline justify-between gap-3">
-          <span className="font-extrabold text-forest">{vi.tdee_targets.bmiTitle}</span>
-          <span className="text-right text-sm font-semibold text-muted-brand">
-            {bmiValue.toFixed(1)} - {vi.tdee_targets.bmiCategories[category]}
+      <section className="rounded-[1.7rem] bg-white/92 p-4 shadow-[0_6px_16px_rgb(26_71_57_/_0.07),inset_0_1px_0_rgb(255_255_255_/_0.82)] backdrop-blur animate-soft-enter">
+        {vi.tdee_targets.eyebrow && <p className="text-xs font-extrabold tracking-[0.02em] text-teal-brand">{vi.tdee_targets.eyebrow}</p>}
+        <h1 className="text-[1.45rem] font-extrabold leading-tight text-forest">{vi.tdee_targets.headline}</h1>
+        <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-brand">{vi.tdee_targets.aha}</p>
+        <ResultHero tdee={tdee} locale={locale} />
+        {/* Training never raises the daily target: as in the app, a logged workout adds what it burns to that day. */}
+        <p className="mt-3 flex items-start gap-2 rounded-2xl bg-mist px-3 py-2.5 text-[0.78rem] font-semibold leading-snug text-forest">
+          <Icon name="dumbbell" className="mt-px h-4 w-4 shrink-0 text-teal-brand" />
+          <span>
+            {trainingMinutes > 0
+              ? vi.tdee_targets.trainingCredit(new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US').format(workoutCredit(data.weight_kg, trainingMinutes)), trainingMinutes)
+              : vi.tdee_targets.trainingCreditNone}
           </span>
-        </div>
-        <div className="relative h-3 rounded-full bg-gradient-to-r from-sky-400 via-emerald-400 to-red-400">
-          <div
-            className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-white bg-forest shadow"
-            style={{ left: `${bmiPct}%` }}
-          />
-        </div>
+        </p>
       </section>
 
-      <section className="rounded-2xl bg-white/82 p-2.5 shadow-[0_12px_34px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.78)] backdrop-blur">
-        <div className="mb-2 text-sm font-extrabold text-forest">{vi.tdee_targets.sourceTitle}</div>
-        <div className="grid gap-1">
-          {vi.tdee_targets.sourceItems.map((item) => (
-            <div key={item} className="flex items-center gap-2 rounded-xl bg-bg-brand px-3 py-0.5 text-[0.7rem] font-semibold text-slate-brand">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal-brand text-xs text-white">
-                ✓
-              </span>
-              <span>{item}</span>
-            </div>
-          ))}
+      <section className="rounded-[1.4rem] bg-white/88 p-3.5 shadow-[0_12px_34px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.78)] backdrop-blur">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="font-extrabold text-forest">{vi.tdee_targets.bmiTitle}</span>
+          <span className="text-right text-sm font-extrabold" style={{ color: bmiColor(bmiValue) }}>{vi.tdee_targets.bmiCategories[category]}</span>
         </div>
+        <BmiGauge value={bmiValue} healthyLabel={vi.tdee_targets.bmiHealthy} locale={locale} />
       </section>
 
       </div>
       </div>
-      <div className="quiz-step-cta relative z-20 shrink-0 bg-[linear-gradient(180deg,rgb(244_250_247_/_0),#f3faf7_32%)] pt-3">
+      <div className="quiz-step-cta relative z-20 shrink-0 pt-3">
         <PrimaryButton onClick={() => goToNextQuizStep(router, 'result')}>
           {vi.common.continue}
         </PrimaryButton>

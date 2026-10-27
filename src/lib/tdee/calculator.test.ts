@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { OnboardingPayload } from '../quiz/types';
 import { goalAfterTargetWeight } from '../quiz/fitness-goal';
-import { computeTdeeResult } from './calculator';
+import { computeTdeeResult, workoutCredit } from './calculator';
 
 const woman: OnboardingPayload = {
   age: 25,
@@ -76,5 +76,16 @@ describe('computeTdeeResult', () => {
     expect(computeTdeeResult({ ...woman, job_type: undefined })).toBeNull();
     expect(computeTdeeResult({ ...woman, fitness_goal: undefined })).toBeNull();
     expect(computeTdeeResult({ birth_year: 1996, birth_month: 3, birth_day: 14 })).toBeNull();
+  });
+});
+
+describe('workoutCredit', () => {
+  it('estimates what the app adds for a logged workout, by its formula at MET 5', () => {
+    // (5 - 1) x 3.5 x 80 kg x 45 min / 200 = 252 kcal.
+    expect(workoutCredit(80, 45)).toBe(250);
+    expect(workoutCredit(60, 30)).toBe(130);
+    // Longer sessions and heavier people earn more.
+    expect(workoutCredit(80, 90)).toBeGreaterThan(workoutCredit(80, 45));
+    expect(workoutCredit(95, 45)).toBeGreaterThan(workoutCredit(80, 45));
   });
 });

@@ -235,6 +235,32 @@ h2 {
   transform: translateX(120%);
 }
 
+/* The buying button breathes and a shine sweeps across it, so the eye keeps returning to it. */
+@keyframes cta-attention {
+  0%, 100% { transform: scale(1); box-shadow: var(--shadow-cta), 0 0 0 0 rgb(31 168 146 / 0.45); }
+  50% { transform: scale(1.045); box-shadow: var(--shadow-cta), 0 0 0 9px rgb(31 168 146 / 0); }
+}
+
+@keyframes cta-attention-sheen {
+  0%, 55% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
+.cta-attention {
+  animation: cta-attention 2.2s ease-in-out infinite;
+}
+
+.cta-attention::after {
+  animation: cta-attention-sheen 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-attention,
+  .cta-attention::after {
+    animation: none;
+  }
+}
+
 .cta-premium > * {
   position: relative;
   z-index: 2;
@@ -283,24 +309,6 @@ h2 {
   top: 62%;
   width: 30rem;
   animation-delay: -6s;
-}
-
-/* Reflection trajectory draw-in */
-.reflect-line {
-  stroke-dasharray: 340;
-  stroke-dashoffset: 340;
-  animation: promo-draw 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
-}
-
-.reflect-fade {
-  opacity: 0;
-  animation: reflect-fade-in 0.6s ease-out 1.15s forwards;
-}
-
-@keyframes reflect-fade-in {
-  to {
-    opacity: 1;
-  }
 }
 
 .wheel-picker-scroll {
@@ -361,10 +369,6 @@ h2 {
   .quiz-step-cta .pt-5,
   .quiz-step-cta .pt-4 {
     padding-top: 0;
-  }
-
-  .quiz-step-frame .welcome-photo {
-    height: 72px;
   }
 }
 
@@ -523,6 +527,68 @@ h2 {
   }
 }
 
+/*
+ * RevenueCat sizes its in-page checkout for a fixed-height parent: height 100% and size containment.
+ * Our checkout sheet grows with its content instead, so without this the order total and Paddle's form
+ * collapse to 0px. Its container queries are width-only, so inline-size keeps them working.
+ * !important because RevenueCat injects its scoped styles after ours.
+ */
+.checkout-host .rcb-ui-container,
+.checkout-host #layout-query-container {
+  height: auto !important;
+}
+.checkout-host #layout-query-container {
+  container-type: inline-size !important;
+}
+
+/* RevenueCat's order summary in Nutree's colours and font, whatever its dashboard theme says. Its theme
+   arrives as inline custom properties, which only !important outranks. */
+.checkout-host,
+.checkout-host * {
+  --rc-color-primary: #17453a !important;
+  --rc-color-primary-hover: #1e5447 !important;
+  --rc-color-primary-pressed: #0c1c17 !important;
+  --rc-color-primary-text: #ffffff !important;
+  --rc-color-accent: #1fa892 !important;
+  --rc-color-accent-primary: #1fa892 !important;
+  --rc-color-focus: #1fa892 !important;
+  --rc-color-background: #ffffff !important;
+  --rc-color-input-background: #ffffff !important;
+  --rc-color-grey-text-dark: #17453a !important;
+  --rc-color-grey-text-light: #6b7b75 !important;
+  --rcb-card-bg: #e8f2ee !important;
+}
+.checkout-host .rcb-ui-container {
+  font-family: inherit !important;
+}
+/* The sheet already has side padding, and Paddle's form needs at least 312px. */
+.checkout-host .layout-content,
+.checkout-host .navbar-body {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+.checkout-host .navbar-body {
+  padding-top: 0 !important;
+}
+/* The sheet shows its own order lines and total (Paddle's figure, tax included). Inside our element RevenueCat's
+   navbar holds only its summary card (its back button renders only outside an element), so the whole navbar goes,
+   with the yellow sandbox strip; the main block loses its vertical padding, since the white card has its own.
+   Only Paddle's payment form shows in the card. */
+.checkout-host .rcb-ui-navbar,
+.checkout-host .rcb-ui-sandbox-banner {
+  display: none !important;
+}
+.checkout-host .layout-content.rcb-main-block {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+/* RevenueCat reserves 450px for Paddle's form; the express form is a few buttons tall and Paddle sizes its own frame,
+   so the reserve would leave a blank band under the buttons. */
+.checkout-host [data-testid='paddle-inline-checkout-container'],
+.checkout-host .rcb-paddle-processing {
+  min-height: 9rem !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -532,4 +598,12 @@ h2 {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/*
+ * PostHog's chat bubble sits over the right end of every Continue button and over
+ * Paddle's PayPal button. Keep it hidden until a page opts in (the paywall, outside checkout).
+ */
+html:not([data-support-chat='on']) #ph-conversations-widget-container {
+  display: none !important;
 }

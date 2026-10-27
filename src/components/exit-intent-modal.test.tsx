@@ -22,7 +22,7 @@ describe('ExitIntentModal', () => {
     render(<ExitIntentModal currentStepIndex={4} />);
     document.dispatchEvent(new MouseEvent('mouseleave', { clientY: 0 }));
 
-    expect(await screen.findByRole('heading', { name: "You're doing great!" })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Your plan is taking shape' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Keep going' })).toBeTruthy();
     expect(screen.getByRole('button', { name: "I'll come back later" })).toBeTruthy();
     expect(screen.getByText('A calorie and macro plan made for you')).toBeTruthy();

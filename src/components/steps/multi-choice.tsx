@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { NutreeLogo } from '@/components/nutree-logo';
 import { OptionCard } from '@/components/option-card';
 import { PrimaryButton } from '@/components/primary-button';
@@ -22,6 +24,8 @@ export function MultiChoiceStep({
   description,
   hint,
   options,
+  replies,
+  ctaLabel,
 }: {
   step: QuizStep;
   field: ArrayField;
@@ -29,11 +33,18 @@ export function MultiChoiceStep({
   description?: string;
   hint?: string;
   options: ReadonlyArray<{ readonly key: string; readonly label: string; readonly icon?: string }>;
+  /** A one-line reply to the latest pick, per option key. */
+  replies?: Readonly<Record<string, string>>;
+  /** Overrides the button label; defaults to Continue. */
+  ctaLabel?: string;
 }) {
   const vi = useCopy();
   const router = useRouter();
+  const reduce = useReducedMotion();
   const values = useQuizStore((s) => s.data[field]) ?? [];
   const setData = useQuizStore((s) => s.setData);
+  const lastKey = values[values.length - 1];
+  const reply = replies && lastKey ? replies[lastKey] : undefined;
   const compact = options.length > 6;
   const twoColumn = field === 'dietary_preferences';
   const [showCareModal, setShowCareModal] = useState(false);
@@ -76,10 +87,11 @@ export function MultiChoiceStep({
 
   const toggle = (key: string) => {
     let next = values.includes(key) ? values.filter((v) => v !== key) : [...values, key];
+    // Every need stays picked (an allergy must never drop out); "No restrictions" clears the rest, and any need clears it.
     if (field === 'dietary_preferences') {
       next = key === 'none' && !values.includes('none')
         ? ['none']
-        : next.filter((v) => v !== 'none').slice(-2);
+        : next.filter((v) => v !== 'none');
     }
     setData({ [field]: next } as Partial<OnboardingPayload>);
   };
@@ -114,13 +126,36 @@ export function MultiChoiceStep({
         ))}
       </div>
       <div className={cn('mt-auto', compact ? 'pt-3' : 'pt-6')}>
+        {/* The slot is there from the first frame so the list does not jump on the first pick; replies share one cell and cross-fade. */}
+        {replies && (
+          <div role="status" aria-live="polite" className="mb-2.5 grid min-h-[2.375rem]">
+            <AnimatePresence initial={false}>
+              {reply && (
+                <motion.p
+                  key={lastKey}
+                  className="[grid-area:1/1] rounded-2xl bg-emerald-50 px-3.5 py-2.5 text-[13px] font-semibold leading-snug text-emerald-900"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: reduce ? 0 : 0.15, ease: 'easeOut' }}
+                >
+                  {reply}
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
         <PrimaryButton ref={triggerRef} disabled={values.length === 0} onClick={continueToNext}>
-          {vi.common.continue}
+          {ctaLabel ?? vi.common.continue}
         </PrimaryButton>
       </div>
-      {showCareModal && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 px-5 py-6 backdrop-blur-sm" role="presentation">
-          <section
+      {/* Portaled to the body so the blur covers the whole screen, not just the quiz frame (a transformed parent traps fixed elements). */}
+      {showCareModal && typeof document !== 'undefined' && createPortal(
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[80] grid place-items-center bg-[rgb(16_39_32_/_0.35)] px-5 py-6 backdrop-blur-md" role="presentation">
+          <motion.section
+            initial={reduce ? false : { opacity: 0, y: 16, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 28 }}
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
@@ -128,10 +163,8 @@ export function MultiChoiceStep({
             className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-[0_28px_90px_rgb(16_39_32_/_0.25)]"
           >
             <NutreeLogo className="mx-auto h-16 w-16" />
-            <p className="mt-5 text-center text-xs font-extrabold tracking-[0.02em] text-teal-brand">{vi.careModal.eyebrow}</p>
-            <h2 id="care-modal-title" className="mt-3 text-center text-2xl font-extrabold leading-tight text-forest">{vi.careModal.title}</h2>
+            <h2 id="care-modal-title" className="mt-5 text-center text-2xl font-extrabold leading-tight text-forest">{vi.careModal.title}</h2>
             <p className="mt-4 text-center text-base font-semibold leading-relaxed text-muted-brand">{vi.careModal.body}</p>
-            <p className="mt-4 text-center text-sm font-medium leading-relaxed text-muted-brand">{vi.careModal.disclaimer}</p>
             <PrimaryButton
               ref={modalConfirmRef}
               onClick={() => {
@@ -149,8 +182,9 @@ export function MultiChoiceStep({
             >
               {vi.careModal.editCta}
             </button>
-          </section>
-        </div>
+          </motion.section>
+        </motion.div>,
+        document.body,
       )}
     </QuizStepFrame>
   );

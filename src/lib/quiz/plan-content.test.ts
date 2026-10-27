@@ -1,0 +1,129 @@
+import { describe, expect, it } from 'vitest';
+import { goalFromSearch } from '@/lib/funnel/ad-goal';
+import { appIncludeSources, dishFor, firstChanges, periodWeeks, planForTimeline, sampleDay } from './plan-content';
+import { firstWin, goalTimeline } from './progress-projection';
+
+describe('goalTimeline', () => {
+  it('gives the one goal date every screen shows, at the pace of the calorie plan: 180 to 155 lb is 292 days', () => {
+    const now = new Date(Date.UTC(2026, 9, 23));
+    // A 30-year-old man, 178 cm, desk job: maintenance 2,140.8 kcal, target 1,840.9 kcal, so 299.9 kcal a day under.
+    const timeline = goalTimeline({
+      measurement_unit: 'metric',
+      fitness_goal: 'cut',
+      gender: 'male',
+      age: 30,
+      height_cm: 178,
+      job_type: 'desk',
+      weight_kg: 81.6466,
+      target_weight_kg: 70.307,
+    }, now)!;
+    expect(timeline.days).toBe(292);
+    expect(timeline.weeks).toBe(42);
+    expect(timeline.date.toISOString().slice(0, 10)).toBe('2027-08-11');
+    expect(timeline.kgPerWeek).toBeCloseTo((299.9 * 7) / 7700, 4);
+    expect(timeline.week1Kg).toBeCloseTo(81.6466 - (299.9 * 7) / 7700, 3);
+    expect(timeline.month1Kg).toBeLessThan(timeline.week1Kg);
+  });
+
+  it('names a first win that reads as a change: month one when a week rounds to the same pounds', () => {
+    const timeline = goalTimeline({
+      measurement_unit: 'metric', fitness_goal: 'cut', gender: 'female', age: 30, height_cm: 165, job_type: 'desk', weight_kg: 80, target_weight_kg: 70,
+    }, new Date(Date.UTC(2026, 9, 24)))!;
+    // About 0.26 kg in week one: 176 lb either way, so the first win moves to month one.
+    expect(firstWin(timeline, 'imperial', 'en').date).toEqual(timeline.month1Date);
+    // In kilograms to one decimal the first week already shows.
+    expect(firstWin(timeline, 'metric', 'vi').date).toEqual(timeline.week1Date);
+  });
+
+  it('has no date while the answers behind the calorie targets are missing', () => {
+    expect(goalTimeline({ measurement_unit: 'metric', fitness_goal: 'cut', weight_kg: 81, target_weight_kg: 70 })).toBeNull();
+  });
+
+  it('has no date without a weight gap', () => {
+    expect(goalTimeline({ measurement_unit: 'metric', fitness_goal: 'maintain', weight_kg: 60, target_weight_kg: 60 })).toBeNull();
+  });
+});
+
+describe('sampleDay', () => {
+  it('adds up to the calorie target exactly', () => {
+    for (const calories of [1200, 1574, 1946.4, 2803]) {
+      expect(sampleDay(calories, []).reduce((sum, meal) => sum + meal.calories, 0)).toBe(Math.round(calories));
+    }
+  });
+
+  it('keeps meat, fish, dairy and eggs out of a vegan day', () => {
+    expect(sampleDay(1600, ['vegan']).map((meal) => meal.dish)).toEqual(['tofu_scramble', 'tempeh_bowl', 'protein_shake', 'tofu_stir_fry']);
+  });
+
+  it('lands the day within 10% of the protein target when the dishes allow it', () => {
+    for (const [calories, protein, diet] of [[1540, 147, ['vegan']], [1540, 147, []], [2200, 150, []], [1800, 110, []], [1800, 110, ['vegan']], [2600, 180, ['gluten_free']]] as const) {
+      const day = sampleDay(calories, diet, protein);
+      const total = day.reduce((sum, meal) => sum + meal.proteinG, 0);
+      expect(Math.abs(total - protein) / protein).toBeLessThanOrEqual(0.1);
+      expect(day.reduce((sum, meal) => sum + meal.calories, 0)).toBe(calories);
+    }
+  });
+
+  it('honours combined answers', () => {
+    expect(dishFor('snack', ['dairy_free', 'nut_free'])).toBe('protein_shake');
+    expect(dishFor('breakfast', ['egg_free'])).toBe('yogurt_oats');
+    expect(dishFor('breakfast', ['gluten_free'])).toBe('tofu_scramble');
+  });
+});
+
+describe('firstChanges', () => {
+  it('starts from the off-plan moment, then the blockers, then protein', () => {
+    expect(firstChanges({ hardest_eating_moment: 'morning', pain_points: ['no_time', 'cravings'] })).toEqual(['morning', 'photo_logging', 'protein']);
+    expect(firstChanges({})).toEqual(['protein', 'photo_logging', 'meal_ideas']);
+  });
+
+  it('adds eating out for people who rarely cook', () => {
+    expect(firstChanges({ hardest_eating_moment: 'evening' }, { cooking: 'out' })).toEqual(['evening', 'eating_out', 'protein']);
+  });
+});
+
+describe('appIncludeSources', () => {
+  it('tags photo, ideas and coach rows from the answers, and never the pace row', () => {
+    expect(appIncludeSources({ hardest_eating_moment: 'morning', pain_points: ['no_time', 'cravings'] })).toEqual([
+      { kind: 'challenge', key: 'no_time' },
+      { kind: 'moment', key: 'morning' },
+      { kind: 'challenge', key: 'cravings' },
+      null,
+    ]);
+    expect(appIncludeSources({})).toEqual([null, null, null, null]);
+  });
+
+  it('puts the moment first, then eating out, then the blockers in the order picked', () => {
+    expect(appIncludeSources({ hardest_eating_moment: 'eating_out', pain_points: ['no_time'] }, { cooking: 'out' })[0]).toEqual({ kind: 'moment', key: 'eating_out' });
+    expect(appIncludeSources({ pain_points: ['no_time'] }, { cooking: 'out' })[0]).toEqual({ kind: 'cooking' });
+    expect(appIncludeSources({ pain_points: ['stress_eating', 'cravings'] })[2]).toEqual({ kind: 'challenge', key: 'stress_eating' });
+  });
+});
+
+describe('planForTimeline', () => {
+  const plans = [
+    { id: 'week', period: { number: 1, unit: 'week' as const } },
+    { id: 'month', period: { number: 1, unit: 'month' as const } },
+    { id: 'six', period: { number: 6, unit: 'month' as const } },
+  ];
+  const weeks = (plan: (typeof plans)[number]) => periodWeeks(plan.period);
+
+  it('picks the shortest plan that covers the goal', () => {
+    expect(planForTimeline(plans, weeks, 23)?.id).toBe('six');
+    expect(planForTimeline(plans, weeks, 3)?.id).toBe('month');
+  });
+
+  it('falls back to the longest plan, and to none without a goal date', () => {
+    expect(planForTimeline(plans, weeks, 40)?.id).toBe('six');
+    expect(planForTimeline(plans, weeks, null)).toBeUndefined();
+  });
+});
+
+describe('goalFromSearch', () => {
+  it('reads the goal an ad link names', () => {
+    expect(goalFromSearch('?goal=eat_healthier&utm_source=fb')).toBe('maintain');
+    expect(goalFromSearch('?goal=LOSE_WEIGHT')).toBe('cut');
+    expect(goalFromSearch('?goal=fly')).toBeNull();
+    expect(goalFromSearch('')).toBeNull();
+  });
+});

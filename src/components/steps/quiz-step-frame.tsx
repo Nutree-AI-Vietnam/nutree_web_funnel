@@ -34,6 +34,8 @@ export function QuizStepFrame({
   const headerRef = useRef<HTMLElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const [lift, setLift] = useState(0);
+  // A list taller than the screen fades out at the bottom edge instead of being cut mid-line.
+  const [fade, setFade] = useState(false);
 
   useLayoutEffect(() => {
     const frame = frameRef.current;
@@ -45,6 +47,7 @@ export function QuizStepFrame({
     const measure = () => {
       if (frame.closest('[data-fit-viewport]')) {
         setLift(0);
+        setFade(false);
         return;
       }
       const titleH = header?.offsetHeight ?? 0;
@@ -53,6 +56,7 @@ export function QuizStepFrame({
       const contentH = kids.reduce((sum, el, index) => sum + el.offsetHeight + (index > 0 ? gap : 0), 0);
       const available = scroller.clientHeight;
       const overflows = contentH > available - 8;
+      setFade(overflows);
       if (overflows || titleH === 0) {
         setLift(0);
         return;
@@ -67,7 +71,12 @@ export function QuizStepFrame({
     const observer = new ResizeObserver(measure);
     observer.observe(scroller);
     if (header) observer.observe(header);
-    return () => observer.disconnect();
+    // A row that appears later (the reply under the confidence options) changes the lift, and a stale lift
+    // would push the first row out of view. Only added or removed rows trigger this: watching row sizes would
+    // loop on screens whose rows fill the height, because the fade's bottom padding resizes them again.
+    const rows = new MutationObserver(measure);
+    rows.observe(stack, { childList: true });
+    return () => { observer.disconnect(); rows.disconnect(); };
   }, [title, description]);
 
   return (
@@ -88,13 +97,16 @@ export function QuizStepFrame({
           {hint && <p className="mt-2 text-base font-semibold leading-relaxed text-muted-brand">{hint}</p>}
         </header>
       )}
-      <div ref={bodyRef} className="quiz-step-body min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain">
-        <div className="quiz-step-stack flex min-h-full flex-col gap-3" style={lift > 0 ? { translate: `0 -${lift}px` } : undefined}>
+      <div
+        ref={bodyRef}
+        className={cn('quiz-step-body -mx-5 min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain px-5', fade && '[mask-image:linear-gradient(#000_calc(100%-28px),transparent)]')}
+      >
+        <div className={cn('quiz-step-stack flex min-h-full flex-col gap-3', fade && 'pb-7')} style={lift > 0 ? { translate: `0 -${lift}px` } : undefined}>
           {body}
         </div>
       </div>
       {footer && (
-        <div className="quiz-step-cta relative z-20 shrink-0 bg-[linear-gradient(180deg,rgb(244_250_247_/_0),#f3faf7_32%)] pt-3 [&_.mt-auto]:mt-0">
+        <div className="quiz-step-cta relative z-20 shrink-0 pt-3 [&_.mt-auto]:mt-0">
           {footer}
         </div>
       )}
