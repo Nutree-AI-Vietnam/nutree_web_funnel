@@ -29,23 +29,18 @@ vi.mock('@/lib/revenuecat/web', async (importOriginal) => ({
 
 const copy = copyFor('en');
 const payUrl = 'https://test-payment.momo.vn/v2/gateway/pay?t=1';
-const sixMonth = {
-  identifier: '$rc_six_month',
-  webBillingProduct: {
-    title: 'Nutree 24 Weeks',
-    description: null,
-    period: { number: 6, unit: 'month' },
-    price: { amountMicros: 1_599_000_000_000, currency: 'VND', formattedPrice: '1.599.000 ₫' },
-    introPricePhase: null,
-  },
-} as unknown as Package;
-const offering = { identifier: 'web_default', metadata: null, availablePackages: [sixMonth] } as unknown as Offering;
-// The passes follow the card plans: the 24-week card plan is paid by the 24-week pass.
-const momoQuotes = [
-  { plan: 'weekly', weeks: 1, amount: 39_000, regular_amount: 79_000, intro: true },
-  { plan: 'monthly', weeks: 4, amount: 99_000, regular_amount: 199_000, intro: true },
-  { plan: 'six_month', weeks: 24, amount: 799_000, regular_amount: 1_599_000, intro: true },
-];
+function vndPackage(identifier: string, amount: number) {
+  const price = { amountMicros: amount * 1_000_000, currency: 'VND', formattedPrice: `${amount.toLocaleString('vi-VN')} ₫` };
+  return {
+    identifier,
+    webBillingProduct: { title: 'Nutree 24 Weeks', description: null, period: { number: 6, unit: 'month' }, price, introPricePhase: null },
+  } as unknown as Package;
+}
+// The 24-week plan and its 50% welcome package, at the live Vietnamese Paddle prices.
+const sixMonth = vndPackage('$rc_six_month', 1_099_000);
+const sixMonthWelcome = vndPackage('rc_6monthly50', 599_000);
+const offering = { identifier: 'web_default', metadata: null, availablePackages: [sixMonth, sixMonthWelcome] } as unknown as Offering;
+const checkoutBodies: unknown[] = [];
 
 const cardCta = copy.funnel.paywall.ctaFallback;
 
@@ -94,9 +89,14 @@ describe('paywall checkout method', () => {
     vi.stubGlobal('location', { ...window.location, assign });
     vi.stubGlobal('IntersectionObserver', NoopObserver);
     vi.stubGlobal('ResizeObserver', NoopObserver);
-    vi.stubGlobal('fetch', vi.fn(async (url: string) => (url.startsWith('/api/web-funnel/momo/plans')
-      ? Response.json({ plans: momoQuotes })
-      : Response.json({ order_id: 'a'.repeat(32), pay_url: payUrl, amount: 799_000 }, { status: 201 }))));
+    checkoutBodies.length = 0;
+    // The checkout route prices the order from the package the sheet names, as the server does from Paddle.
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init?: RequestInit) => {
+      const sent = JSON.parse(String(init?.body)) as { package_id: string };
+      checkoutBodies.push(sent);
+      const amount = sent.package_id === 'rc_6monthly50' ? 599_000 : 1_099_000;
+      return Response.json({ order_id: 'a'.repeat(32), pay_url: payUrl, amount }, { status: 201 });
+    }));
   });
 
   afterEach(() => {
@@ -114,25 +114,39 @@ describe('paywall checkout method', () => {
     const sheet = await openCheckout();
     const methods = within(sheet).getByRole('radiogroup', { name: copy.momoCheckout.methodLabel });
     expect(within(methods).getAllByRole('radio').map((option) => option.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false']);
-    expect(within(sheet).getByRole('button', { name: /Pay 799\.000đ with MoMo/ })).toBeTruthy();
+    expect(within(sheet).getByRole('button', { name: /Pay 599\.000đ with MoMo/ })).toBeTruthy();
   });
 
-  it('pays the picked plan with its MoMo pass without recording a card checkout', async () => {
+  it('pays the picked plan by MoMo at the card’s welcome price without recording a card checkout', async () => {
     renderPaywall();
     const sheet = await openCheckout();
 
-    fireEvent.click(await within(sheet).findByRole('button', { name: /Pay 799\.000đ with MoMo/ }));
+    expect(within(sheet).getByText(copy.momoCheckout.oneTime)).toBeTruthy();
+    fireEvent.click(await within(sheet).findByRole('button', { name: /Pay 599\.000đ with MoMo/ }));
 
     await waitFor(() => expect(assign).toHaveBeenCalledWith(payUrl));
+    // The browser names the card package; the amount is the server's.
+    expect(checkoutBodies).toEqual([{ package_id: 'rc_6monthly50', method: 'wallet', lang: 'en', lead_id: 'lead-1' }]);
     expect(readCheckoutMethod()).toBeNull();
     const { trackEvent } = await import('@/lib/analytics/track');
     expect(trackEvent).not.toHaveBeenCalledWith('revenuecat_checkout_started', expect.anything());
   });
 
+  it('charges the plan’s full card price by MoMo when no offer package applies', async () => {
+    purchases.getOfferings.mockResolvedValue({ all: { web_default: { ...offering, availablePackages: [sixMonth] } } });
+    renderPaywall();
+    const sheet = await openCheckout();
+
+    fireEvent.click(await within(sheet).findByRole('button', { name: /Pay 1\.099\.000đ with MoMo/ }));
+
+    await waitFor(() => expect(assign).toHaveBeenCalledWith(payUrl));
+    expect(checkoutBodies).toEqual([expect.objectContaining({ package_id: '$rc_six_month' })]);
+  });
+
   it('gives a buyer who leaves MoMo unpaid and then pays by card the card redemption guidance', async () => {
     renderPaywall();
     let sheet = await openCheckout();
-    fireEvent.click(await within(sheet).findByRole('button', { name: /Pay 799\.000đ with MoMo/ }));
+    fireEvent.click(await within(sheet).findByRole('button', { name: /Pay 599\.000đ with MoMo/ }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith(payUrl));
     expect(readCheckoutMethod()).toBeNull();
 
@@ -158,7 +172,7 @@ describe('paywall checkout method', () => {
     renderPaywall();
     const sheet = await openCheckout();
     // The sheet opens on MoMo, so the card checkout behind it is not the buyer's yet.
-    await within(sheet).findByRole('button', { name: /Pay 799\.000đ with MoMo/ });
+    await within(sheet).findByRole('button', { name: /Pay 599\.000đ with MoMo/ });
     expect(readCheckoutMethod()).toBe('momo');
 
     fireEvent.click(within(sheet).getByRole('radio', { name: new RegExp(copy.momoCheckout.cardLabel) }));

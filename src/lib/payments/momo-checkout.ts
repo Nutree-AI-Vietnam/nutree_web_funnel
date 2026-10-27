@@ -1,20 +1,12 @@
 /**
- * The backend's pass keys. The passes follow the card plans (1, 4 and 24 weeks); the 12 and 52-week
- * keys are the first catalog's, still accepted so the paywall works whichever catalog the API serves.
+ * A MoMo pass is bought for a card plan of the Vietnamese offering: its RevenueCat package (the welcome or exit package
+ * while an offer runs), charged at that package's first Paddle payment. The package id is also the order's plan.
  */
-export type MomoPlanKey = 'weekly' | 'monthly' | 'six_month' | 'quarterly' | 'yearly';
+export const MOMO_PACKAGE_ID = /^[$A-Za-z0-9_.-]{1,16}$/;
+
 export type MomoOrderStatus = 'pending' | 'paid' | 'failed' | 'expired';
 /** Ví MoMo (QR or app) or a domestic ATM card on MoMo's hosted page. */
 export type MomoPayMethod = 'wallet' | 'atm';
-
-/** What this buyer pays now; the backend decides intro vs regular price. */
-export interface MomoPlanQuote {
-  plan: MomoPlanKey;
-  weeks: number;
-  amount: number;
-  regular_amount: number;
-  intro: boolean;
-}
 
 export const MOMO_ORDER_ID = /^[0-9a-f]{32}$/;
 
@@ -30,13 +22,6 @@ export function isMomoPostcheckout(search: string): boolean {
 
 /** Per-order guard so a reloaded or second return page does not report the same purchase twice. */
 const PURCHASE_REPORTED_KEY_PREFIX = 'nutree.momo.purchase-reported.v1.';
-
-const PLAN_KEYS = new Set<MomoPlanKey>(['weekly', 'monthly', 'six_month', 'quarterly', 'yearly']);
-
-export function momoPlanKey(planId: string): MomoPlanKey {
-  if (!PLAN_KEYS.has(planId as MomoPlanKey)) throw new Error('Unknown MoMo plan');
-  return planId as MomoPlanKey;
-}
 
 export function isMomoPayUrl(value: unknown): value is string {
   if (typeof value !== 'string' || !value.startsWith('https://')) return false;
@@ -81,40 +66,11 @@ export function formatMomoAmount(amount: number): string {
   return `${amount.toLocaleString('vi-VN')}đ`;
 }
 
-function isQuote(value: unknown): value is MomoPlanQuote {
-  if (!value || typeof value !== 'object') return false;
-  const quote = value as Partial<MomoPlanQuote>;
-  return PLAN_KEYS.has(quote.plan as MomoPlanKey)
-    && typeof quote.weeks === 'number'
-    && typeof quote.amount === 'number'
-    && typeof quote.regular_amount === 'number'
-    && typeof quote.intro === 'boolean';
-}
-
-export async function fetchMomoPlans(leadId: string): Promise<MomoPlanQuote[]> {
-  const response = await fetch(`/api/web-funnel/momo/plans?lead_id=${encodeURIComponent(leadId)}`, {
-    cache: 'no-store',
-    credentials: 'same-origin',
-  });
-  const payload = (await response.json().catch(() => null)) as { plans?: unknown } | null;
-  const plans = Array.isArray(payload?.plans) ? payload.plans.filter(isQuote) : [];
-  if (!response.ok || !plans.length) throw new Error('MoMo prices are unavailable.');
-  return plans;
-}
-
-/**
- * Weeks a card plan covers as Nutree names it: a month is "4 tuần" and six months "24 tuần", so a
- * MoMo pass of the same length can pay for it.
- */
+/** Weeks a card plan covers as Nutree names it (a month is "4 tuần", six months "24 tuần"): how long its MoMo pass lasts. */
 export function momoWeeksForPeriod(period: { number: number; unit: string } | null | undefined): number | null {
   if (!period || !(period.number > 0)) return null;
   const perUnit: Record<string, number> = { week: 1, month: 4, year: 52 };
   return perUnit[period.unit] ? period.number * perUnit[period.unit] : null;
-}
-
-/** The pass that pays for a card plan of this many weeks, if the API sells one. */
-export function momoQuoteForWeeks(quotes: readonly MomoPlanQuote[], weeks: number | null): MomoPlanQuote | null {
-  return weeks == null ? null : quotes.find((quote) => quote.weeks === weeks) ?? null;
 }
 
 /** A VND charge: a whole number of dong above zero. */
@@ -130,16 +86,17 @@ export interface MomoCheckoutStart {
 }
 
 export async function startMomoCheckout(
-  plan: MomoPlanKey,
+  packageId: string,
   method: MomoPayMethod,
   lang: 'vi' | 'en',
   leadId: string,
 ): Promise<MomoCheckoutStart> {
+  if (!MOMO_PACKAGE_ID.test(packageId)) throw new Error(MOMO_UNAVAILABLE);
   const response = await fetch('/api/web-funnel/momo/checkouts', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ plan: momoPlanKey(plan), method, lang, lead_id: leadId }),
+    body: JSON.stringify({ package_id: packageId, method, lang, lead_id: leadId }),
   });
   const payload = (await response.json().catch(() => null)) as { pay_url?: unknown; order_id?: unknown; amount?: unknown; detail?: unknown } | null;
   if (!response.ok || !isMomoPayUrl(payload?.pay_url) || typeof payload?.order_id !== 'string' || !isMomoAmount(payload?.amount)) {
@@ -151,7 +108,8 @@ export async function startMomoCheckout(
 export interface MomoOrderStatusResult {
   status: MomoOrderStatus | null;
   httpStatus: number;
-  plan: MomoPlanKey | null;
+  /** The card package the pass was bought for (or a pass key from the first catalog). */
+  plan: string | null;
   /** VND charged for the order. */
   amount: number | null;
 }
@@ -166,7 +124,7 @@ export async function fetchMomoOrderStatus(orderId: string): Promise<MomoOrderSt
   const status = ['pending', 'paid', 'failed', 'expired'].includes(String(payload?.status))
     ? (payload?.status as MomoOrderStatus)
     : null;
-  const plan = PLAN_KEYS.has(payload?.plan as MomoPlanKey) ? (payload?.plan as MomoPlanKey) : null;
+  const plan = typeof payload?.plan === 'string' && MOMO_PACKAGE_ID.test(payload.plan) ? payload.plan : null;
   const amount = isMomoAmount(payload?.amount) ? payload.amount : null;
   return { status, httpStatus: response.status, plan, amount };
 }

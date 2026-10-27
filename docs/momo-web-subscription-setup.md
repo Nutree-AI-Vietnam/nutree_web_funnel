@@ -14,30 +14,26 @@ checkout sheet.
 ## Flow
 
 1. The quiz creates a lead with `POST /v1/web-funnel/leads`.
-2. When the checkout sheet opens on MoMo, it loads
-   `GET /v1/web-funnel/momo/plans?lead_id=…`. The API quotes the intro price
-   for the lead's first pass and the regular price after that, judged from
-   that lead's own orders only. The sheet shows the pass with the same number
-   of weeks as the plan picked on the paywall (a 1-month card plan is "4
-   tuần", a 6-month one "24 tuần"), as receipt lines with its quoted price.
-   When the API sells no pass of that length, the sheet says so and the card
-   stays available.
-   A regular-price quote means this lead already paid, so the paywall adds a
-   note telling a buyer who just paid not to pay again but to sign in to
-   Nutree. The quote is scoped to the lead, so the note reveals nothing beyond
-   the browser's own lead.
-3. The buyer picks Ví MoMo or Thẻ ATM Nội Địa, and the sheet calls
-   `POST /v1/web-funnel/momo/checkouts` with the pass key (`weekly`,
-   `monthly` or `six_month`) and `wallet` or `atm`. The API signs a MoMo `captureWallet`
-   request for Ví MoMo (QR or app) or a `payWithATM` request for a domestic
-   ATM card, and returns `pay_url`, `order_id` and the `amount` the order
-   charges. Pay stays disabled until the plan quote from step 2 has loaded,
-   and the plan and method stay fixed while the order is created. If `amount`
-   differs from the price on screen, the paywall does not open MoMo: the API
-   prices every plan for a buyer at once, so it reloads all quotes and shows a
-   note that prices were updated and that a buyer who just paid should sign in
-   to Nutree instead of paying again. The unpaid order expires. Checkout
-   errors show the paywall's own localized message, not the API's `detail`.
+2. The checkout sheet shows MoMo with the card's numbers for the plan picked
+   on the paywall: its plan line, full price, the running offer's discount and
+   the first payment, as the card's receipt lines show them. The pass lasts as
+   many weeks as the card plan (a 1-month plan is "4 tuần", a 6-month one
+   "24 tuần") and is paid once.
+3. The buyer picks Ví MoMo or Thẻ ATM Nội Địa, and the sheet calls the quiz's
+   `POST /api/web-funnel/momo/checkouts` with the RevenueCat package the card
+   would buy (`$rc_six_month`, or `rc_6monthly50` while the welcome offer
+   runs) and `wallet` or `atm`. The browser never sends an amount. The quiz
+   server reads that package's Paddle price from RevenueCat Billing (the
+   offering in `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID`, in VND, kept five
+   minutes) and calls the API's `POST /v1/web-funnel/momo/checkouts` with the
+   package id, its weeks and its first payment. The API signs a MoMo
+   `captureWallet` request for Ví MoMo (QR or app) or a `payWithATM` request
+   for a domestic ATM card, and returns `pay_url`, `order_id` and the
+   `amount` the order charges. The plan and method stay fixed while the order
+   is created. If `amount` differs from the price on screen (Paddle prices
+   changed since the page loaded), the paywall does not open MoMo and asks the
+   buyer to reload. The unpaid order expires. Checkout errors show the
+   paywall's own localized message, not the API's `detail`.
 4. The browser opens the MoMo page. If the buyer goes back and the browser
    restores the paywall from its back/forward cache, Pay works again.
 5. MoMo notifies `POST /v1/webhooks/momo/ipn`. The API checks the HMAC
@@ -57,18 +53,17 @@ checkout sheet.
    grants the RevenueCat promotional `standard` entitlement for the pass
    window, so the app unlocks without a store purchase.
 
-| Price (VND) | First pass | Later passes |
-|---|---|---|
-| 1 week (`weekly`) | 39.000 | 79.000 |
-| 4 weeks (`monthly`) | 99.000 | 199.000 |
-| 24 weeks (`six_month`) | 799.000 | 1.599.000 |
+| Price (VND) | Full | Welcome (50%) | Exit offer (75%) |
+|---|---|---|---|
+| 1 week | 129.000 | 59.000 | 29.000 |
+| 4 weeks (1 month) | 399.000 | 199.000 | 99.000 |
+| 24 weeks (6 months) | 1.099.000 | 599.000 | 399.000 |
 
-These are the Paddle prices of the Vietnamese card plans: the first pass at
-the 50% welcome price, later passes at the full price. The 75% exit offer is
-card-only, and the sheet says so on MoMo while it runs. Prices are code in the
-API (`src/domain/model/payments/momo_pass.py`); the quiz shows what the API
-quotes. It still reads the first catalog (`monthly` 4 weeks, `quarterly` 12,
-`yearly` 52), where only the 4-week plan has a pass.
+MoMo has no prices of its own: these are the Vietnamese Paddle prices in
+RevenueCat (October 2026), and a change there changes MoMo within five
+minutes. A pass costs the card plan's first payment (the intro price of the
+package, else its price). Like the card checkout, the browser chooses the
+package; the server only ever prices it.
 
 ## Ad reporting
 
@@ -112,7 +107,12 @@ the values and do not put them in the quiz app.
 app through a RevenueCat promotional entitlement.
 
 The quiz already uses `NEXT_PUBLIC_API_BASE_URL` and
-`WEB_FUNNEL_BFF_SHARED_SECRET`. It does not get MoMo keys.
+`WEB_FUNNEL_BFF_SHARED_SECRET`. It does not get MoMo keys. Its server prices
+MoMo with the public RevenueCat web key and offering it already has
+(`NEXT_PUBLIC_REVENUECAT_WEB_API_KEY`, `NEXT_PUBLIC_REVENUECAT_WEB_OFFERING_ID`).
+The API takes the pass price only on the quiz server's calls, which carry
+`WEB_FUNNEL_BFF_SHARED_SECRET`; a browser cannot reach that call or set the
+amount.
 
 Apply the `add momo payment orders` migration before the first checkout.
 

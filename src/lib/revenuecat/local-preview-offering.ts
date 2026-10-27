@@ -21,9 +21,9 @@ const USD_PLANS: PreviewPlan[] = [
 ];
 
 const VND_PLANS: PreviewPlan[] = [
-  { id: '$rc_weekly', period: { number: 1, unit: PeriodUnit.Week }, label: '1 tuần', prices: { base: 79000, welcome: 39000, exit: 19000 }, welcome: 'rc_weekly50', exit: 'rc_weekly75' },
-  { id: '$rc_monthly', period: { number: 1, unit: PeriodUnit.Month }, label: '4 tuần', prices: { base: 199000, welcome: 99000, exit: 49000 }, welcome: 'rc_monthly50', exit: 'rc_monthly75' },
-  { id: '$rc_six_month', period: { number: 6, unit: PeriodUnit.Month }, label: '24 tuần', prices: { base: 1599000, welcome: 799000, exit: 399000 }, welcome: 'rc_6monthly50', exit: 'rc_6monthly75' },
+  { id: '$rc_weekly', period: { number: 1, unit: PeriodUnit.Week }, label: '1 tuần', prices: { base: 129000, welcome: 59000, exit: 29000 }, welcome: 'rc_weekly50', exit: 'rc_weekly75' },
+  { id: '$rc_monthly', period: { number: 1, unit: PeriodUnit.Month }, label: '4 tuần', prices: { base: 399000, welcome: 199000, exit: 99000 }, welcome: 'rc_monthly50', exit: 'rc_monthly75' },
+  { id: '$rc_six_month', period: { number: 6, unit: PeriodUnit.Month }, label: '24 tuần', prices: { base: 1099000, welcome: 599000, exit: 399000 }, welcome: 'rc_6monthly50', exit: 'rc_6monthly75' },
 ];
 
 function previewPackage(identifier: string, amount: number, currency: string, period: Period): Package {

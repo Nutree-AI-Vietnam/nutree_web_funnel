@@ -66,14 +66,14 @@ describe('MoMo return page', () => {
   });
 
   it('marks a paid order as MoMo, reports the purchase once per browser and opens MoMo post-checkout', async () => {
-    statusResponse({ order_id: orderId, status: 'paid', plan: 'quarterly', amount: 249000 });
+    statusResponse({ order_id: orderId, status: 'paid', plan: 'rc_6monthly50', amount: 599000 });
     render(<MomoReturnPage />);
 
     expect(await screen.findByRole('heading', { name: copy.paidHeadline })).toBeTruthy();
     expect(readCheckoutMethod()).toBe('momo');
     expect(purchaseEvents()).toEqual([[
       'momo_checkout_completed',
-      { order_id: orderId, plan: 'quarterly', value: 249000, currency: 'VND' },
+      { order_id: orderId, plan: 'rc_6monthly50', value: 599000, currency: 'VND' },
     ]]);
     await waitFor(() => expect(replace).toHaveBeenCalledWith('/postcheckout?method=momo'), { timeout: 3000 });
 
@@ -88,8 +88,8 @@ describe('MoMo return page', () => {
   it('keeps the MoMo hand-off of a paid order when an earlier failed order is revisited', async () => {
     useQuizStore.getState().setLead({ lead_id: 'lead-1', masked_email: 'b***@example.com', status: 'payment_pending' });
     vi.stubGlobal('fetch', vi.fn(async (url: string) => Response.json(url.includes(orderId)
-      ? { order_id: orderId, status: 'paid', plan: 'quarterly', amount: 249000 }
-      : { order_id: failedOrderId, status: 'failed', plan: 'quarterly', amount: 249000 })));
+      ? { order_id: orderId, status: 'paid', plan: 'rc_6monthly50', amount: 599000 }
+      : { order_id: failedOrderId, status: 'failed', plan: 'rc_6monthly50', amount: 599000 })));
     render(<MomoReturnPage />);
     expect(await screen.findByRole('heading', { name: copy.paidHeadline })).toBeTruthy();
     cleanup();
@@ -110,7 +110,7 @@ describe('MoMo return page', () => {
   });
 
   it('leaves the checkout method alone and reports no purchase when the order failed', async () => {
-    statusResponse({ order_id: orderId, status: 'failed', plan: 'quarterly', amount: 249000 });
+    statusResponse({ order_id: orderId, status: 'failed', plan: 'rc_6monthly50', amount: 599000 });
     render(<MomoReturnPage />);
 
     expect(await screen.findByRole('heading', { name: copy.failedHeadline })).toBeTruthy();

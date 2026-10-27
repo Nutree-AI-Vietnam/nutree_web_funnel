@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal, flushSync, preconnect, preload } from 'react-dom';
 import { BoCongThuongBadge } from '@/components/bo-cong-thuong-badge';
 import { ConversionShell } from '@/components/conversion-shell';
-import { MomoCheckoutPanel } from '@/components/momo-checkout-panel';
+import { MomoCheckoutPanel, type MomoCardPlan } from '@/components/momo-checkout-panel';
 import { MomoLogo } from '@/components/momo-logo';
 import { NutreeLogo } from '@/components/nutree-logo';
 import { PaymentMethodChoice, type CheckoutPaymentMethod } from '@/components/payment-method-choice';
@@ -255,8 +255,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
 
   const countryCode = initialCountryCode ?? (isLocalPreviewHost() ? getLocalPreviewCountry() : undefined);
   const resolvedCountryCode = normalizeCountryCode(countryCode) ?? 'VN';
-  // MoMo settles in VND only, so Vietnam's checkout sheet lists it (preselected) beside the card form. It pays
-  // for the plan picked on the page with the one-time pass of the same length; the popup checkout has no MoMo.
+  // MoMo settles in VND only, so Vietnam's checkout sheet lists it (preselected) beside the card form. It pays the plan
+  // picked on the page once, at the card's price for it (the server reads that Paddle price); the popup checkout has no MoMo.
   const momoAvailable = countryCode === 'VN' && INLINE_CHECKOUT;
   const [chosenMethod, setChosenMethod] = useState<CheckoutPaymentMethod>('wallet');
   const sheetMethod: CheckoutPaymentMethod = momoAvailable ? chosenMethod : 'card';
@@ -1045,6 +1045,20 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const sheetDiscountLabel = paddleFull != null && paddleTotals
     ? (paddleFull > paddleTotals.totalAmount ? formatMajor(paddleFull - paddleTotals.totalAmount, paddleTotals.currencyCode) : null)
     : sheetDiscount;
+  // MoMo uses the card's numbers for the same plan: its package, plan line, full price, offer discount and first payment.
+  const dong = (price: { amountMicros: number; currency: string } | null | undefined) => (price?.currency === 'VND' ? Math.round(price.amountMicros / 1_000_000) : null);
+  const momoWeeks = momoWeeksForPeriod(selectedPeriod);
+  const momoAmount = dong(sheetOfferPrice);
+  const momoPlan: MomoCardPlan | null = selected && momoWeeks != null && momoAmount != null
+    ? {
+        packageId: checkoutPackage(selected, checkoutOffer).identifier,
+        label: funnelPaywall.checkout.planLine(plainPricing ? planName(selected) : selected.label[activeLocale]),
+        weeks: momoWeeks,
+        amount: momoAmount,
+        fullAmount: dong(sheetFullPrice) ?? momoAmount,
+        discountLabel: sheetDiscount ? (checkoutOffer === 'exit' ? funnelPaywall.checkout.offerLine(sheetPercent) : funnelPaywall.checkout.discountLine(sheetPercent)) : null,
+      }
+    : null;
   // Paddle's total wins once it arrives (it includes any tax); until then, the offer price.
   const sheetTotalLabel = paddleTotals ? formatMajor(paddleTotals.totalAmount, paddleTotals.currencyCode) : (sheetOfferPrice?.formattedPrice ?? originalTotal);
   const checkoutSheet = (
@@ -1079,10 +1093,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
             locale={activeLocale}
             copy={copy.momoCheckout}
             totalLabel={funnelPaywall.checkout.total}
-            weeks={momoWeeksForPeriod(selectedPeriod)}
+            plan={momoPlan}
             method={sheetMethod}
             disabled={checkoutUnavailable}
-            cardOfferPercent={checkoutOffer === 'exit' ? offerPercent('exit') : null}
             onBusyChange={setMomoBusy}
             onLeave={() => {
               leavingForMomoRef.current = true;

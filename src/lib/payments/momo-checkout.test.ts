@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { claimMomoPurchaseReport, fetchMomoOrderStatus, fetchMomoPlans, formatMomoAmount, isMomoPayUrl, isMomoPostcheckout, MOMO_UNAVAILABLE, momoCheckoutFailureDetail, momoOrderIdFrom, momoPlanKey, momoQuoteForWeeks, momoWeeksForPeriod, startMomoCheckout } from './momo-checkout';
+import { claimMomoPurchaseReport, fetchMomoOrderStatus, formatMomoAmount, isMomoPayUrl, isMomoPostcheckout, MOMO_PACKAGE_ID, MOMO_UNAVAILABLE, momoCheckoutFailureDetail, momoOrderIdFrom, momoWeeksForPeriod, startMomoCheckout } from './momo-checkout';
 
-describe('momoPlanKey', () => {
-  it('accepts only the MoMo pass catalog', () => {
-    expect(momoPlanKey('weekly')).toBe('weekly');
-    expect(momoPlanKey('six_month')).toBe('six_month');
-    expect(momoPlanKey('monthly')).toBe('monthly');
-    expect(momoPlanKey('quarterly')).toBe('quarterly');
-    expect(momoPlanKey('yearly')).toBe('yearly');
-    expect(() => momoPlanKey('$rc_six_month')).toThrow('Unknown MoMo plan');
+describe('MOMO_PACKAGE_ID', () => {
+  it('accepts the card plan packages a MoMo pass can be bought for', () => {
+    for (const id of ['$rc_weekly', 'rc_weekly50', '$rc_monthly', 'rc_monthly75', '$rc_six_month', 'rc_6monthly50']) {
+      expect(MOMO_PACKAGE_ID.test(id)).toBe(true);
+    }
+    expect(MOMO_PACKAGE_ID.test('')).toBe(false);
+    expect(MOMO_PACKAGE_ID.test('../plans')).toBe(false);
+    expect(MOMO_PACKAGE_ID.test('a'.repeat(17))).toBe(false);
   });
 });
 
@@ -98,14 +98,24 @@ describe('startMomoCheckout', () => {
     vi.unstubAllGlobals();
   });
 
-  it('returns the amount the new order charges', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ order_id: orderId, pay_url: payUrl, amount: 498_000 }, { status: 201 })));
-    await expect(startMomoCheckout('quarterly', 'wallet', 'vi', 'lead-1')).resolves.toEqual({ orderId, payUrl, amount: 498_000 });
+  it('names only the package and returns the amount the new order charges', async () => {
+    const fetchMock = vi.fn(async () => Response.json({ order_id: orderId, pay_url: payUrl, amount: 599_000 }, { status: 201 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(startMomoCheckout('rc_6monthly50', 'wallet', 'vi', 'lead-1')).resolves.toEqual({ orderId, payUrl, amount: 599_000 });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).toEqual({ package_id: 'rc_6monthly50', method: 'wallet', lang: 'vi', lead_id: 'lead-1' });
   });
 
   it('refuses a checkout whose charge it cannot compare with the price shown', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ order_id: orderId, pay_url: payUrl, amount: null }, { status: 201 })));
-    await expect(startMomoCheckout('quarterly', 'wallet', 'vi', 'lead-1')).rejects.toThrow(MOMO_UNAVAILABLE);
+    await expect(startMomoCheckout('rc_6monthly50', 'wallet', 'vi', 'lead-1')).rejects.toThrow(MOMO_UNAVAILABLE);
+  });
+
+  it('sends nothing for a package id it does not recognise', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(startMomoCheckout('../plans', 'wallet', 'vi', 'lead-1')).rejects.toThrow(MOMO_UNAVAILABLE);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
@@ -117,12 +127,12 @@ describe('fetchMomoOrderStatus', () => {
   });
 
   it('returns the plan and amount of a paid order', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ order_id: orderId, status: 'paid', plan: 'quarterly', amount: 249_000 })));
-    await expect(fetchMomoOrderStatus(orderId)).resolves.toEqual({ status: 'paid', httpStatus: 200, plan: 'quarterly', amount: 249_000 });
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ order_id: orderId, status: 'paid', plan: 'rc_6monthly50', amount: 599_000 })));
+    await expect(fetchMomoOrderStatus(orderId)).resolves.toEqual({ status: 'paid', httpStatus: 200, plan: 'rc_6monthly50', amount: 599_000 });
   });
 
   it('drops a plan or amount it does not recognise', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ status: 'pending', plan: '$rc_six_month', amount: '249000' })));
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ status: 'pending', plan: '<script>', amount: '249000' })));
     await expect(fetchMomoOrderStatus(orderId)).resolves.toEqual({ status: 'pending', httpStatus: 200, plan: null, amount: null });
   });
 
@@ -138,45 +148,12 @@ describe('formatMomoAmount', () => {
   });
 });
 
-describe('passes for card plans', () => {
-  const quotes = [
-    { plan: 'weekly' as const, weeks: 1, amount: 39_000, regular_amount: 79_000, intro: true },
-    { plan: 'monthly' as const, weeks: 4, amount: 99_000, regular_amount: 199_000, intro: true },
-    { plan: 'six_month' as const, weeks: 24, amount: 799_000, regular_amount: 1_599_000, intro: true },
-  ];
-
+describe('momoWeeksForPeriod', () => {
   it('counts a card plan in weeks the way Nutree names it', () => {
     expect(momoWeeksForPeriod({ number: 1, unit: 'week' })).toBe(1);
     expect(momoWeeksForPeriod({ number: 1, unit: 'month' })).toBe(4);
     expect(momoWeeksForPeriod({ number: 6, unit: 'month' })).toBe(24);
     expect(momoWeeksForPeriod({ number: 1, unit: 'year' })).toBe(52);
     expect(momoWeeksForPeriod(null)).toBeNull();
-  });
-
-  it('picks the pass of the same length, or none', () => {
-    expect(momoQuoteForWeeks(quotes, 24)?.plan).toBe('six_month');
-    expect(momoQuoteForWeeks(quotes, 12)).toBeNull();
-    expect(momoQuoteForWeeks(quotes, null)).toBeNull();
-  });
-});
-
-describe('fetchMomoPlans', () => {
-  afterEach(() => vi.unstubAllGlobals());
-
-  it('keeps every pass it recognises, whichever catalog the API serves', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ plans: [
-      { plan: 'monthly', weeks: 4, amount: 99_000, regular_amount: 198_000, intro: true },
-      { plan: 'quarterly', weeks: 12, amount: 249_000, regular_amount: 498_000, intro: true },
-      { plan: 'lifetime', weeks: 0, amount: 1, regular_amount: 1, intro: true },
-    ] })));
-    await expect(fetchMomoPlans('lead-1')).resolves.toEqual([
-      { plan: 'monthly', weeks: 4, amount: 99_000, regular_amount: 198_000, intro: true },
-      { plan: 'quarterly', weeks: 12, amount: 249_000, regular_amount: 498_000, intro: true },
-    ]);
-  });
-
-  it('fails when no pass can be priced', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ plans: [] })));
-    await expect(fetchMomoPlans('lead-1')).rejects.toThrow('MoMo prices are unavailable.');
   });
 });
