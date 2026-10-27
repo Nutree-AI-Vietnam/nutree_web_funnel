@@ -225,14 +225,13 @@ export function CalculatingStep() {
                         {/* App Store reviews carry no photo, so the avatar is the reviewer's initial. */}
                         <span aria-hidden="true" className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-mist text-[0.85rem] font-extrabold uppercase text-forest">{slide.review.name.charAt(0)}</span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[0.86rem] font-extrabold leading-tight text-forest">{slide.review.name}</span>
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="truncate text-[0.86rem] font-extrabold leading-tight text-forest">{slide.review.name}</span>
+                            {slide.review.result && <span className="shrink-0 rounded-full bg-teal-brand/12 px-2 py-0.5 text-[0.68rem] font-extrabold text-teal-brand">{slide.review.result}</span>}
+                          </span>
                           <span className="mt-0.5 flex items-center gap-1.5 text-[0.68rem] font-bold leading-none text-muted-brand">
                             <span className="shrink-0 text-[0.8rem] tracking-[-0.05em] text-[#e3a542]" aria-label={`${slide.review.stars}/5`}>{'★'.repeat(slide.review.stars)}<span className="text-forest/15">{'★'.repeat(5 - slide.review.stars)}</span></span>
-                            {/* A stated result says the goal already; otherwise the goal, when the review names one. */}
-                            {slide.review.result
-                              ? <span className="shrink-0 rounded-full bg-teal-brand/12 px-2 py-0.5 font-extrabold text-teal-brand">{slide.review.result}</span>
-                              : slide.review.goal && <span className="shrink-0">{slide.review.goal}</span>}
-                            <span className="truncate">App Store · {slide.review.date}</span>
+                            <span className="truncate">{[slide.review.result ? '' : slide.review.goal, `App Store · ${slide.review.date}`].filter(Boolean).join(' · ')}</span>
                           </span>
                         </span>
                       </div>

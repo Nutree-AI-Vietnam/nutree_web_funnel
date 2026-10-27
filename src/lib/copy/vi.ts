@@ -531,7 +531,7 @@ export const vi = {
         stars: 5,
         date: '10/2026',
         goal: 'Giảm cân',
-        result: 'Giảm 5kg',
+        result: '−5kg',
         quote: 'Tới bây giờ mình đã giảm thành công 5kg rùi á, ăn gì, uống gì cũng nhập vô Nutree hết siêu tiện và dễ theo dõi luôn!',
       },
       { name: 'hocdot37', stars: 5, date: '5/2026', goal: '', result: '', quote: 'Xứng đáng đồng tiền bỏ ra để nâng cấp bản thân. Giao diện đẹp, dễ sử dụng hơn nhiều app khác' },

@@ -115,7 +115,8 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
           <button type="button" onClick={retryQuote} className="shrink-0 rounded-full border-2 border-current px-3 py-1 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#a50064]/20">{copy.retryPrices}</button>
         </div>
       )}
-      <div role="radiogroup" aria-label={copy.payWith} className="mt-4 flex items-center justify-center gap-2 text-sm font-bold">
+      {/* Wraps as whole items on a narrow phone, so no label or pill breaks mid-word. */}
+      <div role="radiogroup" aria-label={copy.payWith} className="mt-4 flex flex-wrap items-center justify-center gap-2 whitespace-nowrap text-sm font-bold">
         <span className="text-muted-brand">{copy.payWith}</span>
         {(['wallet', 'atm'] as const).map((option) => (
           <button
