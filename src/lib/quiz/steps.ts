@@ -1,3 +1,5 @@
+import type { Locale } from '@/lib/copy';
+
 /** Final web funnel order. Keep slugs stable because persisted quiz state uses them. */
 export const QUIZ_STEPS = [
   'goal',
@@ -27,18 +29,29 @@ export const QUIZ_STEPS = [
 
 export type QuizStep = (typeof QUIZ_STEPS)[number];
 
-/** Product tour after email: the plan, then photo logging. Same onboarding bar as the quiz. The rating and feature list live on the paywall. */
-export const VALUE_TOUR_STEPS = ['plan', 'sources', 'snap'] as const;
+/**
+ * Product tour after email, on the same onboarding bar as the quiz. Vietnamese walks through what Nutree does
+ * each day, from "Nutree sẽ đồng hành" to the meal ideas, then shows the unlocked plan. English shows the plan,
+ * the sources, then photo logging; its rating and feature list live on the paywall.
+ */
+export const VALUE_TOUR_STEPS = {
+  vi: ['guide', 'snap', 'activity', 'macros', 'works', 'sources', 'meals', 'plan'],
+  en: ['plan', 'sources', 'snap'],
+} as const satisfies Record<Locale, readonly string[]>;
 
-export type ValueTourStep = (typeof VALUE_TOUR_STEPS)[number];
+export type ValueTourStep = (typeof VALUE_TOUR_STEPS)[Locale][number];
 
-export function onboardingStepCount(): number {
-  return QUIZ_STEPS.length + VALUE_TOUR_STEPS.length;
+export function valueTourSteps(locale: Locale): readonly ValueTourStep[] {
+  return VALUE_TOUR_STEPS[locale];
+}
+
+export function onboardingStepCount(locale: Locale): number {
+  return QUIZ_STEPS.length + valueTourSteps(locale).length;
 }
 
 /** 1-based position of a value screen on the shared onboarding bar. */
-export function valueProgressIndex(step: ValueTourStep): number {
-  return QUIZ_STEPS.length + VALUE_TOUR_STEPS.indexOf(step) + 1;
+export function valueProgressIndex(step: ValueTourStep, locale: Locale): number {
+  return QUIZ_STEPS.length + valueTourSteps(locale).indexOf(step) + 1;
 }
 export type QuizChapter = 'intent' | 'body' | 'routine' | 'plan';
 

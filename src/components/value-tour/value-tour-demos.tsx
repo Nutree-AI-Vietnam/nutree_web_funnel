@@ -280,3 +280,105 @@ export function ReferenceSources({ sources }: { sources: readonly { acronym: str
     </ul>
   );
 }
+
+/** What the tour covers, one short line each, numbered so the next screens read as the same list. */
+export function GuideDemo({ points }: { points: readonly string[] }) {
+  const reduce = useReducedMotion();
+  return (
+    <ol className="space-y-3">
+      {points.map((point, index) => (
+        <motion.li
+          key={point}
+          initial={reduce ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 + index * 0.1, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          className="flex items-center gap-3 rounded-2xl bg-white/85 px-4 py-3.5 shadow-[0_6px_16px_rgb(26_71_57_/_0.06)]"
+        >
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-forest text-sm font-extrabold text-white">{index + 1}</span>
+          <span className="text-[0.95rem] font-bold leading-5 text-forest">{point}</span>
+        </motion.li>
+      ))}
+    </ol>
+  );
+}
+
+/** The app's workout picker, inside the same iPhone frame. */
+export function ActivityDemo({ src, alt, compact = false }: { src: string; alt: string; compact?: boolean }) {
+  return (
+    <IphoneFrame compact={compact}>
+      <Image src={src} alt={alt} width={1179} height={2556} className={SCREEN_MEDIA} />
+    </IphoneFrame>
+  );
+}
+
+const MACRO_CALORIES = [1880, 1880, 1880, 1730, 1730, 1730, 1730] as const;
+
+/** A week whose calories ease after midweek. Heights keep the 1,880 to 1,730 step readable. */
+export function MacroDemo({ alt, days }: { alt: string; days: readonly string[] }) {
+  const locale = useLocale();
+  const reduce = useReducedMotion();
+  const format = new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US');
+
+  return (
+    <figure aria-label={alt} className="mx-auto w-full max-w-[22rem]">
+      <div className="flex h-[min(20rem,38dvh)] items-stretch gap-1.5">
+        {MACRO_CALORIES.map((calories, index) => (
+          <div key={days[index] ?? index} className="flex min-w-0 flex-1 flex-col">
+            <p className="text-center text-[0.7rem] font-bold tracking-tight text-forest">{format.format(calories)}</p>
+            <div className="relative mt-2 min-h-0 flex-1">
+              <motion.div
+                className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-11 origin-bottom rounded-full bg-[linear-gradient(180deg,#d7f6ec_0%,#7edcc4_34%,#1fa892_100%)]"
+                style={{ height: calories === MACRO_CALORIES[0] ? '100%' : '86%' }}
+                initial={reduce ? false : { scaleY: 0 }}
+                animate={{ scaleY: 1 }}
+                transition={{ delay: 0.1 + index * 0.06, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              />
+            </div>
+            <p className={cn('mt-2 text-center text-[11px] font-semibold leading-none', index === 3 ? 'text-teal-brand' : 'text-muted-brand')}>{days[index]}</p>
+          </div>
+        ))}
+      </div>
+    </figure>
+  );
+}
+
+/** TDEE, BMI and macros in one line each: what Nutree works out so the visitor does not have to. */
+export function HowItWorksList({ items }: { items: readonly { title: string; body: string }[] }) {
+  return (
+    <ul className="space-y-3">
+      {items.map((item, index) => (
+        <li key={item.title} className="flex items-start gap-3 rounded-2xl bg-white/85 px-4 py-3.5 shadow-[0_6px_16px_rgb(26_71_57_/_0.06)]">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-forest text-sm font-extrabold text-white">{index + 1}</span>
+          <span className="min-w-0">
+            <span className="block text-[0.95rem] font-extrabold leading-5 text-forest">{item.title}</span>
+            <span className="mt-1 block text-[0.8rem] font-semibold leading-snug text-slate-brand">{item.body}</span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Everyday dishes with their calories, so a plan does not read as chicken breast and rice. */
+export function MealCardsDemo({ cards }: { cards: readonly { title: string; meta: string; image: string }[] }) {
+  const reduce = useReducedMotion();
+  return (
+    <ul className="flex flex-col gap-2.5">
+      {cards.map((card, index) => (
+        <motion.li
+          key={card.image}
+          initial={reduce ? false : { opacity: 0, x: 16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1 + index * 0.1, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="flex items-center gap-3 rounded-2xl bg-white p-2 shadow-[0_6px_16px_rgb(26_71_57_/_0.06)]"
+        >
+          <Image src={card.image} alt="" width={128} height={128} className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+          <div className="min-w-0">
+            <h3 className="text-[15px] font-extrabold leading-5 text-forest">{card.title}</h3>
+            <p className="mt-0.5 text-sm font-semibold text-muted-brand">{card.meta}</p>
+          </div>
+        </motion.li>
+      ))}
+    </ul>
+  );
+}

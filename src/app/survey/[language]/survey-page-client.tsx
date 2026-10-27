@@ -17,7 +17,6 @@ import { useSeedCountry } from '@/lib/quiz/use-units';
 import { isPurchaseHandoffInFlight } from '@/lib/revenuecat/purchase-handoff';
 import { usePostcheckoutRedirect } from '@/lib/revenuecat/use-postcheckout-redirect';
 import type { FunnelScreen } from '@/lib/quiz/store';
-import type { ValueTourStep } from '@/lib/quiz/steps';
 import type { Locale } from '@/lib/copy';
 
 // Screens after the quiz load on demand, so the first screen does not wait for the
@@ -94,7 +93,7 @@ function SurveyPageContent({ language, countryCode }: { language: Locale; countr
   }, [router, setLocale]);
 
   // Back from the paywall reopens the tour on its last screen; from the email screen, the tour starts over.
-  const [tourStart, setTourStart] = useState<ValueTourStep>('plan');
+  const [tourStart, setTourStart] = useState<'first' | 'last'>('first');
   // Screens without a ← still answer the phone's Back button with the screen before them; the quiz and the tour handle their own.
   const screenBack = !hydrated
     ? null
@@ -102,7 +101,7 @@ function SurveyPageContent({ language, countryCode }: { language: Locale; countr
       ? () => goToQuizStep(router, 'confidence')
       : screen === 'paywall' && !isUserPurchased({ purchased, lead })
         ? () => {
-          setTourStart('snap');
+          setTourStart('last');
           goToScreen('value');
         }
         : screen === 'exit-offer'
@@ -134,11 +133,11 @@ function SurveyPageContent({ language, countryCode }: { language: Locale; countr
       return <QuizShell step={currentStep}><StepRenderer step={currentStep} /></QuizShell>;
     case 'email':
       return <EmailCaptureScreen onComplete={() => {
-        setTourStart('plan');
+        setTourStart('first');
         goToScreen('value');
       }} />;
     case 'value':
-      return <ValueTourScreen initialStep={tourStart} onComplete={() => goToScreen('paywall')} onBack={() => goToScreen('email')} onMissingLead={() => goToScreen('email')} />;
+      return <ValueTourScreen startAt={tourStart} onComplete={() => goToScreen('paywall')} onBack={() => goToScreen('email')} onMissingLead={() => goToScreen('email')} />;
     case 'exit-offer': {
       if (isUserPurchased({ purchased, lead }) && !isPurchaseHandoffInFlight()) {
         return null;

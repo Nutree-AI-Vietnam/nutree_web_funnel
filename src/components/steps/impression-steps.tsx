@@ -7,16 +7,80 @@ import { PrimaryButton } from '@/components/primary-button';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { recommendedStepGoal, STEP_GOAL } from '@/lib/quiz/step-goal';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
+import { getGreetingName } from '@/lib/quiz/reflection';
+import { questionCount } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 import { MetricWheelPicker } from './metric-wheel-picker';
 import { QuizStepFrame } from './quiz-step-frame';
 
+/** Vietnamese keeps the greeting welcome; English shows the empty plan card. */
+export function WelcomeStep() {
+  return useLocale() === 'vi' ? <GreetingWelcome /> : <PlanCardWelcome />;
+}
+
+/** "Chào [name]!" over the meal photo, then how long the quiz takes, how many questions, and that the plan is paid. */
+function GreetingWelcome() {
+  const router = useRouter();
+  const copy = useCopy();
+  const reduce = useReducedMotion();
+  const name = useQuizStore((s) => s.data.name);
+  const greeting = copy.welcome.greeting;
+  const questions = questionCount('welcome');
+
+  return (
+    <QuizStepFrame className="justify-center gap-6">
+      <motion.div
+        initial={reduce ? false : { opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: 'spring', damping: 18, stiffness: 200 }}
+        className="relative mx-auto h-[clamp(88px,28dvh,16rem)] w-full max-w-[25rem] shrink-0 overflow-hidden rounded-[2rem] border border-white/80 bg-white/80 shadow-[0_6px_16px_rgb(26_71_57_/_0.07)]"
+      >
+        <Image src="/images/welcome-meal.webp" alt="" fill priority sizes="(max-width: 640px) calc(100vw - 2.5rem), 25rem" className="object-cover" />
+        <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-forest/25 via-transparent to-white/10" />
+      </motion.div>
+
+      <motion.div
+        initial={reduce ? false : { opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15, duration: 0.4 }}
+        className="text-center"
+      >
+        <h1 className="ph-mask text-[2rem] font-extrabold leading-tight text-forest">{greeting.headline(getGreetingName(name, copy))}</h1>
+        <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-brand">{greeting.body}</p>
+      </motion.div>
+
+      <motion.div
+        initial={reduce ? false : { opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.4 }}
+        className="grid grid-cols-3 gap-2"
+      >
+        {greeting.stats.map((stat) => (
+          <div key={stat.label} className="rounded-2xl bg-white/82 px-2 py-3 text-center shadow-[inset_0_1px_0_rgb(255_255_255_/_0.78)] backdrop-blur">
+            <div className="text-sm font-extrabold text-forest">{stat.value(questions)}</div>
+            <div className="mt-0.5 text-[0.65rem] font-semibold leading-snug text-muted-brand">{stat.label}</div>
+          </div>
+        ))}
+      </motion.div>
+
+      <motion.div
+        initial={reduce ? false : { opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.45, duration: 0.4 }}
+        className="mt-auto pt-4"
+      >
+        <PrimaryButton onClick={() => goToNextQuizStep(router, 'welcome')}>{copy.welcome.cta}</PrimaryButton>
+      </motion.div>
+    </QuizStepFrame>
+  );
+}
+
 /**
  * Welcome screen: an empty plan card with the visitor's name on it. The same card fills in
  * with their numbers on the result and plan screens.
  */
-export function WelcomeStep() {
+function PlanCardWelcome() {
   const router = useRouter();
   const copy = useCopy();
   const reduce = useReducedMotion();

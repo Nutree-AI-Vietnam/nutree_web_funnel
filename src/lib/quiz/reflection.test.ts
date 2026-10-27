@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getGreetingName, reflectionHeadline, reflectionRows } from './reflection';
+import { getGreetingName, reflectionHeadline, reflectionRows, reflectionSummary } from './reflection';
 import { vi, en } from '../copy';
 
 describe('reflectionHeadline', () => {
@@ -60,5 +60,25 @@ describe('getGreetingName', () => {
     expect(getGreetingName(undefined, vi)).toBe('bạn');
     expect(getGreetingName('  ', vi)).toBe('bạn');
     expect(getGreetingName(undefined, en)).toBe('friend');
+  });
+});
+
+describe('reflectionSummary', () => {
+  it('reads back the goal, the first challenge and the reason in the active language', () => {
+    expect(reflectionSummary({ name: ' Alex ', fitness_goal: 'cut', pain_points: ['slow_progress', 'no_time'], motivation: 'confidence' }, vi)).toEqual({
+      name: 'Alex',
+      goal: 'Giảm cân',
+      challenge: 'Tiến độ chậm',
+      reason: 'Tự tin hơn với cơ thể',
+    });
+  });
+
+  it('never leaves a tile empty when an answer is missing or stale', () => {
+    expect(reflectionSummary({ pain_points: ['gone'] }, vi)).toEqual({
+      name: vi.reflection.fallbackName,
+      goal: vi.reflection.summary.goalFallback,
+      challenge: vi.reflection.summary.challengeFallback,
+      reason: vi.reflection.summary.reasonFallback,
+    });
   });
 });

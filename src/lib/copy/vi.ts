@@ -123,6 +123,16 @@ export const vi = {
     },
     footnote: 'Khoảng 3 phút. Bạn xem kế hoạch trước khi thanh toán.',
     cta: 'Bắt đầu ngay',
+    // The Vietnamese welcome: a greeting by name over the meal photo, then three facts about the quiz.
+    greeting: {
+      headline: (name: string) => `Chào ${name}!`,
+      body: 'Nutree sẽ dùng câu trả lời của bạn để tính calo, macro và gợi ý bữa ăn — tất cả được cá nhân hóa cho cơ thể và mục tiêu của bạn.',
+      stats: [
+        { value: () => '3 phút', label: 'để hoàn thành' },
+        { value: (questions: number) => `${questions} câu`, label: 'ngắn gọn' },
+        { value: () => 'Trả phí', label: 'để mở kế hoạch trong app' },
+      ],
+    },
   },
   goal: {
     question: 'Mục tiêu chính của bạn là gì?',
@@ -228,6 +238,20 @@ export const vi = {
       past_failures: 'Ba thay đổi nhỏ, không phải chế độ ăn mới',
     },
     cta: 'Tính mục tiêu của tôi',
+    // The Vietnamese reflection: one sentence, a rising path, and three answers read back.
+    summary: {
+      headline: (name: string) => `${name}, mục tiêu của bạn đã rõ ràng và hoàn toàn khả thi với một kế hoạch đúng.`,
+      description: 'Đây là những gì Nutree đã hiểu về bạn.',
+      todayLabel: 'Hôm nay',
+      chartLabel: 'Lộ trình tiến bộ của bạn',
+      caption: 'Với kế hoạch đúng, tiến độ trở nên ổn định thay vì thất thường.',
+      goalCaption: 'Mục tiêu',
+      challengeCaption: 'Rào cản chính',
+      reasonCaption: 'Lý do',
+      goalFallback: 'Mục tiêu của bạn',
+      challengeFallback: 'Thiếu kế hoạch rõ ràng',
+      reasonFallback: 'Sống khỏe hơn',
+    },
   },
   sex: {
     question: 'Giới tính sinh học của bạn?',
@@ -284,21 +308,9 @@ export const vi = {
     headline: 'Bạn trả lời. Nutree tính hộ.',
     hint: 'Không cần hiểu TDEE hay macro. Cứ bấm tiếp.',
     items: [
-      {
-        title: 'TDEE — Năng lượng tiêu hao',
-        body: 'Nutree ước calo mỗi ngày từ cơ thể của bạn. Bạn không phải tự tính.',
-        icon: '⚡',
-      },
-      {
-        title: 'BMI — Chỉ số khối cơ thể',
-        body: 'Một mốc tham khảo để kế hoạch vừa sức hơn — không phải bài kiểm tra.',
-        icon: '📐',
-      },
-      {
-        title: 'Macro — Chia dinh dưỡng',
-        body: 'Protein, carb và fat được chia sẵn theo mục tiêu. Bạn chỉ việc làm theo.',
-        icon: '🎯',
-      },
+      { title: 'TDEE — Năng lượng tiêu hao', body: 'Calo mỗi ngày, tính từ cơ thể bạn.' },
+      { title: 'BMI — Chỉ số khối cơ thể', body: 'Mốc tham khảo, không phải bài kiểm tra.' },
+      { title: 'Macro — Chia dinh dưỡng', body: 'Protein, carb, chất béo chia sẵn theo mục tiêu.' },
     ],
     slides: [
       {
@@ -509,9 +521,24 @@ export const vi = {
       { title: 'Hỏi AI Coach bất cứ lúc nào', body: 'Coach dựa trên những gì bạn đã ghi hôm nay.' },
       { title: 'Mục tiêu theo kịp bạn', body: 'Kiểm tra mỗi tuần, kế hoạch tự điều chỉnh theo cân nặng.' },
     ],
-    // No confirmed Vietnamese reviews yet: the loader hides the review card while this is empty.
-    // Add only real, verified reviews here (name, flag, quote, result, goal, avatar); never placeholders.
-    testimonials: [] as readonly { name: string; flag: string; quote: string; result: string; goal: string; avatar: string }[],
+    testimonialsSource: 'Đánh giá thật trên App Store',
+    testimonialsNote: 'Kết quả mỗi người có thể khác nhau.',
+    // Real App Store (Vietnam) reviews, quoted as written under the reviewer's App Store name, with their own
+    // star rating and month. A goal or result appears only when the review states it. Never add made-up reviews.
+    testimonials: [
+      {
+        name: 'Cá Hồi Đông Lạnh',
+        stars: 5,
+        date: '10/2026',
+        goal: 'Giảm cân',
+        result: 'Giảm 5kg',
+        quote: 'Tới bây giờ mình đã giảm thành công 5kg rùi á, ăn gì, uống gì cũng nhập vô Nutree hết siêu tiện và dễ theo dõi luôn!',
+      },
+      { name: 'hocdot37', stars: 5, date: '5/2026', goal: '', result: '', quote: 'Xứng đáng đồng tiền bỏ ra để nâng cấp bản thân. Giao diện đẹp, dễ sử dụng hơn nhiều app khác' },
+      { name: 'Thanhhaitat', stars: 5, date: '6/2026', goal: 'Tăng cân', result: '', quote: 'Áp tiện giúp tui tăng cân nhanh' },
+      { name: 'Mầm non đột biến 🌱', stars: 5, date: '6/2026', goal: '', result: '', quote: 'App dễ dùng, giao diện đẹp, khá chi tiết và cụ thể. Chưa dùng lâu nhưng thấy okela' },
+      { name: 'Vũbinhlink', stars: 5, date: '5/2026', goal: '', result: '', quote: 'Cuối cùng cũng tìm được một app hữu dụng như vầy' },
+    ] as readonly { name: string; stars: number; date: string; goal: string; result: string; quote: string }[],
   },
   tdee_targets: {
     eyebrow: '',
@@ -548,8 +575,6 @@ export const vi = {
     question: 'Điều gì có thể xảy ra tiếp theo',
     hint: 'Dựa trên mục tiêu và chỉ số hiện tại của bạn.',
     startLabel: 'Bắt đầu',
-    monthLabel: 'Tháng 2',
-    monthNumber: (month: number) => `Tháng ${month}`,
     goalLabel: 'Mục tiêu',
     chartLabel: 'Biểu đồ lộ trình từ cân nặng hiện tại đến mục tiêu',
     chartLabelByDirection: {
@@ -557,7 +582,11 @@ export const vi = {
       up: 'Biểu đồ hướng tăng theo mục tiêu calo của bạn',
       steady: 'Biểu đồ giữ nhịp theo mục tiêu calo của bạn',
     },
-    pace: (days: number) => `Dự kiến khoảng ${days} ngày với nhịp độ ổn định.`,
+    pace: (days: number) => (days > 56
+      ? `Dự kiến khoảng ${Math.round(days / 7)} tuần với nhịp độ ổn định.`
+      : `Dự kiến khoảng ${days} ngày với nhịp độ ổn định.`),
+    // The middle column sits halfway along the path, so it names that point in weeks or months.
+    midpointLabel: (days: number) => (days / 2 > 56 ? `Tháng ${Math.round(days / 2 / 30)}` : `Tuần ${Math.max(1, Math.round(days / 2 / 7))}`),
     planHeadline: {
       cut: 'Kế hoạch giảm cân của bạn bắt đầu từ mức calo dưới đây',
       bulk: 'Kế hoạch tăng cân của bạn bắt đầu từ mức calo dưới đây',
@@ -576,65 +605,48 @@ export const vi = {
     disclaimer: 'Kết quả có thể khác nhau. Đây là ước tính để định hướng, không phải lời hứa về kết quả.',
     cta: 'Tiếp tục',
   },
+  // The Vietnamese tour after email, in few words: what Nutree does each day, then the meal ideas.
   valueTour: {
-    stepLabel: (current: number, total: number) => `Bước ${current}/${total}`,
     guide: {
       eyebrow: 'Nutree sẽ đồng hành',
       title: 'Cảm ơn — chúng tôi sẽ dẫn bạn tới mục tiêu',
-      body: 'Kế hoạch của bạn đã sẵn sàng. Tiếp theo là tour ngắn về cách Nutree đồng hành mỗi ngày.',
       cta: 'Cho tôi xem',
       points: [
-        'Chụp ảnh bữa ăn để ước lượng calo',
-        'Lịch tập nằm trong cùng một kế hoạch',
-        'Macro tự chỉnh theo ngày bạn đã ăn',
-        'Mục tiêu calo dựa trên công thức đã kiểm chứng',
+        'Chụp ảnh là có calo',
+        'Ghi lại buổi tập',
+        'Chế độ ăn tự điều chỉnh',
+        'Gợi ý món hợp khẩu vị',
       ],
     },
     snap: {
       eyebrow: 'Ghi bữa bằng ảnh',
       title: 'Ước lượng bằng hình ảnh',
-      body: 'Không cần cân từng món. Một ảnh thành nhật ký dinh dưỡng trong app.',
+      body: 'Không cần cân từng món.',
       cta: 'Nghe ổn',
       videoLabel: 'Video chụp bữa ăn và ước lượng calo',
     },
+    // The app adds a logged workout's calories to that day; it has no workout calendar.
     activity: {
       eyebrow: 'Tập và vận động',
-      title: 'Ghi lại tập luyện',
-      body: 'Ngày tập và ngày nghỉ đều được tính vào mục tiêu calo.',
+      title: 'Ghi lại buổi tập',
+      body: 'Calo đốt khi tập được cộng vào hôm đó.',
       cta: 'Đã hiểu',
       imageAlt: 'Màn hình chọn bài tập trong Nutree',
     },
+    // The app's weekly balance: eating over or under spreads across the rest of the week (protein stays fixed).
     macros: {
-      eyebrow: 'Macro mỗi ngày',
-      title: 'Macros tự động điều chỉnh theo thói quen',
-      body: 'Chỉ tiêu chất đạm, tinh bột và chất béo sẽ được tính lại mỗi ngày.',
+      eyebrow: 'Mỗi ngày',
+      title: 'Chế độ ăn tự điều chỉnh',
+      body: 'Ăn dư hay thiếu, những ngày còn lại trong tuần tự cân lại.',
       cta: 'Mục tiêu dựa vào đâu?',
-      personalized: (calories: string, protein: number) => `Với số bạn vừa nhập, điểm bắt đầu là ${calories}\u00A0kcal và ${protein}g protein mỗi ngày.`,
       imageAlt: 'Calo trong tuần tự điều chỉnh, từ 1.880 đầu tuần xuống 1.730 những ngày sau',
       days: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
-      labels: { protein: 'Protein', carbs: 'Carb', fat: 'Chất béo' },
-    },
-    science: {
-      eyebrow: 'Cách Nutree hoạt động',
-      title: 'Xây dựng dựa trên nghiên cứu khoa học',
-      body: 'Chúng tôi dùng phép tính TDEE dựa trên bằng chứng để cung cấp ước tính ban đầu cá nhân hóa cho mục tiêu calo của bạn.',
-      cta: 'Tỉ mỉ quá vậy!',
-      collageLabel: 'Minh họa công thức TDEE, biểu đồ năng lượng và nghiên cứu ISSN',
-      sourcesLabel: 'Nguồn dữ liệu dinh dưỡng',
-      disclaimer: 'Đây là nguồn dữ liệu Nutree tham khảo, không phải sự chứng thực của các tổ chức này.',
-      sources: [
-        { name: 'USDA FoodData Central', image: '/value-tour/sources/usda.png' },
-        { name: 'fatsecret Platform API', image: '/value-tour/sources/fatsecret.png' },
-        { name: 'Viện Dinh dưỡng Quốc gia Việt Nam', image: '/value-tour/sources/nin.png' },
-        { name: 'Viện Nghiên cứu Dinh dưỡng TP.HCM', image: '/value-tour/sources/nri.png' },
-      ],
     },
     meals: {
       eyebrow: 'Gợi ý bữa ăn',
       title: 'Không cần ăn ức gà để thay đổi bản thân',
-      body: 'Gợi ý bữa ăn theo khẩu vị của mỗi người, đảm bảo dinh dưỡng mà vẫn phù hợp với cuộc sống hàng ngày của bạn.',
-      cta: 'Xem ngay Kế Hoạch Riêng Cho Bạn',
-      cue: 'Vuốt để xem thêm gợi ý',
+      body: 'Món theo khẩu vị của bạn, vẫn đủ dinh dưỡng.',
+      cta: 'Xem kế hoạch riêng cho bạn',
       cards: [
         { title: 'Bánh mì bơ và trứng', meta: '410 kcal', image: '/value-tour/meals/avocado-egg-toast.png' },
         { title: 'Set cuốn gà Bulgogi', meta: '354 kcal', image: '/value-tour/meals/chicken-bulgogi.png' },

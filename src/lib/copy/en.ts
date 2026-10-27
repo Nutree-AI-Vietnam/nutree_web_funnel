@@ -126,6 +126,15 @@ export const en: Copy = {
     },
     footnote: 'About 3 minutes. See your plan before you pay.',
     cta: 'Build my plan',
+    greeting: {
+      headline: (name: string) => `Hey ${name}!`,
+      body: 'Nutree will use your answers to calculate your calories, macros, and meal ideas — all personalized for your body and goals.',
+      stats: [
+        { value: () => '3 min', label: 'to complete' },
+        { value: (questions: number) => `${questions} questions`, label: 'short & simple' },
+        { value: () => 'Paid', label: 'to unlock the plan in the app' },
+      ],
+    },
   },
   goal: {
     question: 'What’s your main goal?',
@@ -231,6 +240,19 @@ export const en: Copy = {
       past_failures: 'Three small changes, not a new diet',
     },
     cta: 'Set my numbers',
+    summary: {
+      headline: (name: string) => `${name}, your goal is clear and genuinely doable with the right plan.`,
+      description: 'This is what Nutree understood from what you shared.',
+      todayLabel: 'Today',
+      chartLabel: 'Your progress trajectory',
+      caption: 'With the right plan, progress gets steady instead of all over the place.',
+      goalCaption: 'Goal',
+      challengeCaption: 'Main blocker',
+      reasonCaption: 'Why now',
+      goalFallback: 'Your goal',
+      challengeFallback: 'No clear plan',
+      reasonFallback: 'Feel healthier',
+    },
   },
   sex: {
     question: 'What’s your biological sex?',
@@ -287,21 +309,9 @@ export const en: Copy = {
     headline: 'You answer. Nutree does the math.',
     hint: 'You don’t need to know TDEE or macros. Just tap continue.',
     items: [
-      {
-        title: 'TDEE — calories for your day',
-        body: 'Nutree estimates daily calories from your body. You don’t have to do the math.',
-        icon: '⚡',
-      },
-      {
-        title: 'BMI — a reference point',
-        body: 'A starting marker so the plan fits — not a test you have to pass.',
-        icon: '📐',
-      },
-      {
-        title: 'Macros — already split',
-        body: 'Protein, carbs, and fat are set from your goal. You just follow along.',
-        icon: '🎯',
-      },
+      { title: 'TDEE — calories for your day', body: 'Worked out from your body.' },
+      { title: 'BMI — a reference point', body: 'A marker, not a test.' },
+      { title: 'Macros — already split', body: 'Protein, carbs and fat set from your goal.' },
     ],
     slides: [
       {
@@ -513,8 +523,10 @@ export const en: Copy = {
       { title: 'Ask the AI coach anytime', body: 'It sees what you’ve logged today before it answers.' },
       { title: 'Targets that keep up with you', body: 'Weekly check-ins adjust your plan as your weight changes.' },
     ],
-    // Real English customer reviews are pending: the loader hides the review card while this is empty.
-    // Add verified reviews here (name, flag, quote, result, goal, avatar); never placeholders.
+    testimonialsSource: 'Real App Store reviews',
+    testimonialsNote: 'Results vary from person to person.',
+    // No English App Store reviews yet, so the loader shows what the app does. Add only real reviews,
+    // quoted as written (name, stars, month, and a goal or result only when the review states it).
     testimonials: [],
   },
   tdee_targets: {
@@ -552,8 +564,6 @@ export const en: Copy = {
     question: 'Here’s what could happen next',
     hint: 'Based on your goal and the numbers you shared.',
     startLabel: 'Start',
-    monthLabel: 'Month 2',
-    monthNumber: (month: number) => `Month ${month}`,
     goalLabel: 'Goal',
     chartLabel: 'Projected path from current weight to target weight',
     chartLabelByDirection: {
@@ -561,7 +571,8 @@ export const en: Copy = {
       up: 'Chart of an upward path from your calorie target',
       steady: 'Chart of a steady path from your calorie target',
     },
-    pace: (days: number) => `About ${days} days at a steady pace.`,
+    pace: (days: number) => (days > 56 ? `About ${Math.round(days / 7)} weeks at a steady pace.` : `About ${days} days at a steady pace.`),
+    midpointLabel: (days: number) => (days / 2 > 56 ? `Month ${Math.round(days / 2 / 30)}` : `Week ${Math.max(1, Math.round(days / 2 / 7))}`),
     planHeadline: {
       cut: 'Your fat loss starts with the calories below',
       bulk: 'Your weight gain starts with the calories below',
@@ -580,71 +591,51 @@ export const en: Copy = {
     disclaimer: 'Results vary. This is a planning estimate, not a promise of results.',
     cta: 'Continue',
   },
+  // English shows the plan, sources and photo logging (funnel.tour); these screens are the Vietnamese tour.
   valueTour: {
-    stepLabel: (current: number, total: number) => `Step ${current}/${total}`,
     guide: {
       eyebrow: 'Nutree stays with you',
       title: 'Thanks — let’s guide you to your goal',
-      body: 'Your plan is ready. Next, a short tour of how Nutree keeps you on track every day.',
       cta: 'Show me',
       points: [
-        'Snap a meal to estimate calories',
-        'Your training days inside the same plan',
-        'Macros that adjust to the days you have logged',
-        'A calorie target from a proven formula',
+        'Snap a photo, get the calories',
+        'Log your workouts',
+        'Targets that rebalance themselves',
+        'Meals that suit your taste',
       ],
     },
     snap: {
       eyebrow: 'Log meals with a photo',
       title: 'Estimate meals from photos',
-      body: 'You don’t have to weigh every ingredient. A photo becomes a nutrition log in the app.',
+      body: 'No weighing every ingredient.',
       cta: 'Sounds good',
       videoLabel: 'Video of snapping a meal and estimating calories',
     },
     activity: {
       eyebrow: 'Training and movement',
-      title: 'Log walks and workouts',
-      body: 'Workout days and rest days both count toward the calorie target.',
+      title: 'Log your workouts',
+      body: 'Calories you burn are added to that day.',
       cta: 'Got it',
       imageAlt: 'Nutree workout picker',
     },
     macros: {
-      eyebrow: 'Daily macros',
-      title: 'Macros that adapt to your habits',
-      body: 'Your protein, carb, and fat targets are recalculated every day.',
+      eyebrow: 'Every day',
+      title: 'Targets that rebalance themselves',
+      body: 'Eat over or under, and the rest of your week evens it out.',
       cta: 'What shapes it?',
-      personalized: (calories: string, protein: number) => `From the numbers you entered, the starting point is ${calories}\u00A0kcal and ${protein}g of protein a day.`,
       imageAlt: 'Calories across the week, easing from 1,880 early on to 1,730 later',
       days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      labels: { protein: 'Protein', carbs: 'Carbs', fat: 'Fat' },
-    },
-    science: {
-      eyebrow: 'How Nutree works',
-      title: 'Nutrition science built for your body',
-      body: 'We use evidence-based TDEE calculations — not generic estimates — to find your calorie target.',
-      cta: 'That’s so detailed!',
-      collageLabel: 'Illustrations of the TDEE formula, energy chart, and ISSN research',
-      sourcesLabel: 'Nutrition data sources',
-      disclaimer: 'These are data sources Nutree references, not endorsements by these organizations.',
-      sources: [
-        { name: 'USDA FoodData Central', image: '/value-tour/sources/usda.png' },
-        { name: 'fatsecret Platform API', image: '/value-tour/sources/fatsecret.png' },
-        { name: 'Vietnam National Institute of Nutrition', image: '/value-tour/sources/nin.png' },
-        { name: 'HCMC Nutrition Research Institute', image: '/value-tour/sources/nri.png' },
-      ],
     },
     meals: {
       eyebrow: 'Meal ideas',
-      title: 'AI-powered meals you’ll actually enjoy',
-      body: 'Get personalised meal suggestions tailored to your taste and macro targets.',
-      cta: 'See Plan Tailored Just for You',
-      cue: 'Swipe for more ideas',
+      title: 'No plain chicken breast required',
+      body: 'Meals that suit your taste and still fit your targets.',
+      cta: 'See your plan',
       cards: [
         { title: 'Avocado and Egg Toast', meta: '410 kcal', image: '/value-tour/meals/avocado-egg-toast.png' },
         { title: 'Chicken Bulgogi Lettuce Wrap Set', meta: '354 kcal', image: '/value-tour/meals/chicken-bulgogi.png' },
         { title: 'Banana Oat Protein Shake', meta: '962 kcal', image: '/value-tour/meals/banana-oat-shake.jpg' },
         { title: 'Chicken Club Sandwich', meta: '792 kcal', image: '/value-tour/meals/chicken-club.jpg' },
-        { title: 'Small Pepperoni Pizza with Salad', meta: '679 kcal', image: '/value-tour/meals/pepperoni-pizza.jpg' },
       ],
     },
   },
