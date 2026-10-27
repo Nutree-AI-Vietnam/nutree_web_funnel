@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { claimMomoPurchaseReport, fetchMomoOrderStatus, formatMomoAmount, isMomoPayUrl, isMomoPostcheckout, MOMO_UNAVAILABLE, momoCheckoutFailureDetail, momoOrderIdFrom, momoPlanKey, startMomoCheckout } from './momo-checkout';
+import { claimMomoPurchaseReport, fetchMomoOrderStatus, fetchMomoPlans, formatMomoAmount, isMomoPayUrl, isMomoPostcheckout, MOMO_UNAVAILABLE, momoCheckoutFailureDetail, momoOrderIdFrom, momoPlanKey, momoQuoteForWeeks, momoWeeksForPeriod, startMomoCheckout } from './momo-checkout';
 
 describe('momoPlanKey', () => {
   it('accepts only the MoMo pass catalog', () => {
+    expect(momoPlanKey('weekly')).toBe('weekly');
+    expect(momoPlanKey('six_month')).toBe('six_month');
     expect(momoPlanKey('monthly')).toBe('monthly');
     expect(momoPlanKey('quarterly')).toBe('quarterly');
     expect(momoPlanKey('yearly')).toBe('yearly');
@@ -133,5 +135,48 @@ describe('fetchMomoOrderStatus', () => {
 describe('formatMomoAmount', () => {
   it('formats VND the Vietnamese way', () => {
     expect(formatMomoAmount(1_198_000)).toBe('1.198.000đ');
+  });
+});
+
+describe('passes for card plans', () => {
+  const quotes = [
+    { plan: 'weekly' as const, weeks: 1, amount: 39_000, regular_amount: 79_000, intro: true },
+    { plan: 'monthly' as const, weeks: 4, amount: 99_000, regular_amount: 199_000, intro: true },
+    { plan: 'six_month' as const, weeks: 24, amount: 799_000, regular_amount: 1_599_000, intro: true },
+  ];
+
+  it('counts a card plan in weeks the way Nutree names it', () => {
+    expect(momoWeeksForPeriod({ number: 1, unit: 'week' })).toBe(1);
+    expect(momoWeeksForPeriod({ number: 1, unit: 'month' })).toBe(4);
+    expect(momoWeeksForPeriod({ number: 6, unit: 'month' })).toBe(24);
+    expect(momoWeeksForPeriod({ number: 1, unit: 'year' })).toBe(52);
+    expect(momoWeeksForPeriod(null)).toBeNull();
+  });
+
+  it('picks the pass of the same length, or none', () => {
+    expect(momoQuoteForWeeks(quotes, 24)?.plan).toBe('six_month');
+    expect(momoQuoteForWeeks(quotes, 12)).toBeNull();
+    expect(momoQuoteForWeeks(quotes, null)).toBeNull();
+  });
+});
+
+describe('fetchMomoPlans', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('keeps every pass it recognises, whichever catalog the API serves', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ plans: [
+      { plan: 'monthly', weeks: 4, amount: 99_000, regular_amount: 198_000, intro: true },
+      { plan: 'quarterly', weeks: 12, amount: 249_000, regular_amount: 498_000, intro: true },
+      { plan: 'lifetime', weeks: 0, amount: 1, regular_amount: 1, intro: true },
+    ] })));
+    await expect(fetchMomoPlans('lead-1')).resolves.toEqual([
+      { plan: 'monthly', weeks: 4, amount: 99_000, regular_amount: 198_000, intro: true },
+      { plan: 'quarterly', weeks: 12, amount: 249_000, regular_amount: 498_000, intro: true },
+    ]);
+  });
+
+  it('fails when no pass can be priced', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ plans: [] })));
+    await expect(fetchMomoPlans('lead-1')).rejects.toThrow('MoMo prices are unavailable.');
   });
 });

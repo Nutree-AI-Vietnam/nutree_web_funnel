@@ -1,4 +1,8 @@
-export type MomoPlanKey = 'monthly' | 'quarterly' | 'yearly';
+/**
+ * The backend's pass keys. The passes follow the card plans (1, 4 and 24 weeks); the 12 and 52-week
+ * keys are the first catalog's, still accepted so the paywall works whichever catalog the API serves.
+ */
+export type MomoPlanKey = 'weekly' | 'monthly' | 'six_month' | 'quarterly' | 'yearly';
 export type MomoOrderStatus = 'pending' | 'paid' | 'failed' | 'expired';
 /** Ví MoMo (QR or app) or a domestic ATM card on MoMo's hosted page. */
 export type MomoPayMethod = 'wallet' | 'atm';
@@ -11,30 +15,6 @@ export interface MomoPlanQuote {
   regular_amount: number;
   intro: boolean;
 }
-
-export interface MomoPlanCopy {
-  label: { vi: string; en: string };
-  description: { vi: string; en: string };
-  recommended: boolean;
-}
-
-export const MOMO_PLAN_COPY: Record<MomoPlanKey, MomoPlanCopy> = {
-  monthly: {
-    label: { vi: '4 tuần', en: '4 weeks' },
-    description: { vi: 'Thử trọn 4 tuần', en: 'Try a full 4 weeks' },
-    recommended: false,
-  },
-  quarterly: {
-    label: { vi: '12 tuần', en: '12 weeks' },
-    description: { vi: 'Đủ 12 tuần để tạo nhịp theo dõi', en: 'A full 12-week rhythm' },
-    recommended: true,
-  },
-  yearly: {
-    label: { vi: '52 tuần', en: '52 weeks' },
-    description: { vi: 'Theo dõi trọn 52 tuần', en: '52 weeks of consistency' },
-    recommended: false,
-  },
-};
 
 export const MOMO_ORDER_ID = /^[0-9a-f]{32}$/;
 
@@ -51,7 +31,7 @@ export function isMomoPostcheckout(search: string): boolean {
 /** Per-order guard so a reloaded or second return page does not report the same purchase twice. */
 const PURCHASE_REPORTED_KEY_PREFIX = 'nutree.momo.purchase-reported.v1.';
 
-const PLAN_KEYS = new Set<MomoPlanKey>(['monthly', 'quarterly', 'yearly']);
+const PLAN_KEYS = new Set<MomoPlanKey>(['weekly', 'monthly', 'six_month', 'quarterly', 'yearly']);
 
 export function momoPlanKey(planId: string): MomoPlanKey {
   if (!PLAN_KEYS.has(planId as MomoPlanKey)) throw new Error('Unknown MoMo plan');
@@ -118,8 +98,23 @@ export async function fetchMomoPlans(leadId: string): Promise<MomoPlanQuote[]> {
   });
   const payload = (await response.json().catch(() => null)) as { plans?: unknown } | null;
   const plans = Array.isArray(payload?.plans) ? payload.plans.filter(isQuote) : [];
-  if (!response.ok || plans.length !== PLAN_KEYS.size) throw new Error('MoMo prices are unavailable.');
+  if (!response.ok || !plans.length) throw new Error('MoMo prices are unavailable.');
   return plans;
+}
+
+/**
+ * Weeks a card plan covers as Nutree names it: a month is "4 tuần" and six months "24 tuần", so a
+ * MoMo pass of the same length can pay for it.
+ */
+export function momoWeeksForPeriod(period: { number: number; unit: string } | null | undefined): number | null {
+  if (!period || !(period.number > 0)) return null;
+  const perUnit: Record<string, number> = { week: 1, month: 4, year: 52 };
+  return perUnit[period.unit] ? period.number * perUnit[period.unit] : null;
+}
+
+/** The pass that pays for a card plan of this many weeks, if the API sells one. */
+export function momoQuoteForWeeks(quotes: readonly MomoPlanQuote[], weeks: number | null): MomoPlanQuote | null {
+  return weeks == null ? null : quotes.find((quote) => quote.weeks === weeks) ?? null;
 }
 
 /** A VND charge: a whole number of dong above zero. */

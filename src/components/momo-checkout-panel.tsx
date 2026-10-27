@@ -2,45 +2,56 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { MomoLogo } from '@/components/momo-logo';
-import { MomoPlanChoices } from '@/components/momo-plan-choices';
 import { trackEvent } from '@/lib/analytics/track';
 import type { Copy } from '@/lib/copy';
-import { fetchMomoPlans, formatMomoAmount, startMomoCheckout, type MomoPayMethod, type MomoPlanKey, type MomoPlanQuote } from '@/lib/payments/momo-checkout';
-import { cn } from '@/lib/utils';
+import { fetchMomoPlans, formatMomoAmount, momoQuoteForWeeks, startMomoCheckout, type MomoPayMethod, type MomoPlanQuote } from '@/lib/payments/momo-checkout';
 import { useQuizStore } from '@/lib/quiz/store';
 
 interface MomoCheckoutPanelProps {
   leadId: string;
   locale: 'vi' | 'en';
   copy: Copy['momoCheckout'];
-  recommendedLabel: string;
-  selectPlanAria: string;
+  /** Total line label, shared with the card order lines. */
+  totalLabel: string;
+  /** Weeks of the plan picked on the paywall; the pass of the same length pays for it. */
+  weeks: number | null;
+  method: MomoPayMethod;
   disabled: boolean;
+  /** The card offer running on the paywall, when it is better than anything MoMo charges. */
+  cardOfferPercent: number | null;
+  /** True while an order is being created, so the checkout keeps the method and plan on screen. */
+  onBusyChange?: (busy: boolean) => void;
+  /** Runs just before the browser leaves for MoMo. */
+  onLeave?: () => void;
 }
 
 /**
- * MoMo one-time pass picker. Prices come only from the backend quote: until it
- * loads nothing is priced and Pay stays disabled. Plan and method stay fixed
- * while the order is created, and the buyer leaves for MoMo only when that order
- * charges the price on screen. Otherwise every quote is reloaded, because the
- * backend prices all plans for a buyer at once, and the unpaid order expires.
- * Regular-price quotes mean this lead already paid, so they carry a note telling
- * a buyer who just paid to sign in instead. Checkout errors show the panel's own
- * copy, never upstream text.
+ * MoMo inside the shared checkout sheet: the pass for the plan picked on the paywall, as receipt lines,
+ * and its pay button. Prices come only from the backend quote: until it loads nothing is priced and Pay
+ * stays disabled. The buyer leaves for MoMo only when the order charges the price on screen; otherwise
+ * every quote is reloaded, because the backend prices all passes for a buyer at once, and the unpaid order
+ * expires. Regular-price quotes mean this lead already paid, so they carry a note telling a buyer who just
+ * paid to sign in instead. Checkout errors show the panel's own copy, never upstream text.
  */
-export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, selectPlanAria, disabled }: MomoCheckoutPanelProps) {
+export function MomoCheckoutPanel({ leadId, locale, copy, totalLabel, weeks, method, disabled, cardOfferPercent, onBusyChange, onLeave }: MomoCheckoutPanelProps) {
   const setMomoOrderId = useQuizStore((state) => state.setMomoOrderId);
   // Quotes are kept with their lead so another lead never sees them.
   const [quotes, setQuotes] = useState<{ leadId: string; plans: MomoPlanQuote[] } | null>(null);
   const [quoteFailed, setQuoteFailed] = useState(false);
   const [quoteAttempt, setQuoteAttempt] = useState(0);
-  const [selected, setSelected] = useState<MomoPlanKey>('quarterly');
-  const [method, setMethod] = useState<MomoPayMethod>('wallet');
   const [busy, setBusy] = useState(false);
   const [checkoutFailed, setCheckoutFailed] = useState(false);
   const [pricesUpdated, setPricesUpdated] = useState(false);
-  // Switching the paywall to card unmounts the panel while an order may still be in flight.
+  // Closing the sheet unmounts the panel while an order may still be in flight.
   const mountedRef = useRef(false);
+  const onBusyChangeRef = useRef(onBusyChange);
+  useEffect(() => {
+    onBusyChangeRef.current = onBusyChange;
+  });
+
+  useEffect(() => {
+    onBusyChangeRef.current?.(busy);
+  }, [busy]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -50,6 +61,7 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
     return () => {
       mountedRef.current = false;
       window.removeEventListener('pageshow', leaveBusy);
+      onBusyChangeRef.current?.(false);
     };
   }, []);
 
@@ -67,9 +79,15 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
   }, [leadId, quoteAttempt]);
 
   const plans = quotes?.leadId === leadId ? quotes.plans : null;
-  const quote = plans ? plans.find((plan) => plan.plan === selected) ?? plans[0] ?? null : null;
+  const quote = plans ? momoQuoteForWeeks(plans, weeks) : null;
+  const unavailable = Boolean(plans) && !quote;
   const amount = quote ? formatMomoAmount(quote.amount) : null;
-  const payLabel = busy ? copy.opening : amount ? copy.pay(amount) : quoteFailed ? copy.payUnpriced : copy.loadingPrices;
+  const firstPassSaving = quote && quote.intro && quote.regular_amount > quote.amount ? quote.regular_amount - quote.amount : 0;
+  const payLabel = busy
+    ? copy.opening
+    : amount
+      ? (method === 'atm' ? copy.payAtm(amount) : copy.pay(amount))
+      : quoteFailed || unavailable ? copy.payUnpriced : copy.loadingPrices;
   const note = pricesUpdated ? copy.pricesUpdated : plans?.some((plan) => !plan.intro) ? copy.justPaid : null;
 
   const retryQuote = () => {
@@ -94,6 +112,7 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
       }
       setMomoOrderId(started.orderId);
       trackEvent('momo_checkout_started', { plan: quote.plan, method, value: started.amount, intro: quote.intro, currency: 'VND' });
+      onLeave?.();
       window.location.assign(started.payUrl);
     } catch {
       if (!mountedRef.current) return;
@@ -103,52 +122,49 @@ export function MomoCheckoutPanel({ leadId, locale, copy, recommendedLabel, sele
   };
 
   return (
-    <div id="momo-checkout">
-      <div role="radiogroup" aria-label={selectPlanAria} aria-busy={!plans} className="mt-5 grid gap-3">
-        {plans
-          ? <MomoPlanChoices plans={plans} value={selected} locale={locale} recommendedLabel={recommendedLabel} copy={copy} disabled={busy} onChange={(plan) => { setSelected(plan); trackEvent('offer_selected', { offer_id: plan, provider: 'momo', value: plans.find((quote) => quote.plan === plan)?.amount, currency: 'VND' }); }} />
-          : !quoteFailed && [0, 1, 2].map((index) => <div key={index} aria-hidden="true" className="min-h-[5.6rem] animate-pulse rounded-[1.4rem] border-2 border-[#dfe7e3] bg-[#f6f8f7]" />)}
-      </div>
-      {!plans && quoteFailed && (
-        <div role="alert" className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-[#fff1f2] px-4 py-3 text-sm font-bold text-error-brand">
+    <div id="momo-checkout" className="mt-4">
+      {/* The pass as receipt lines, like the card order: the full price, the first-pass discount, then the total. */}
+      {quote && amount ? (
+        <div className="text-[0.95rem] text-slate-brand">
+          <p className="flex justify-between gap-3 py-1"><span>{copy.planLine(quote.weeks)}</span><span className="tabular-nums">{formatMomoAmount(firstPassSaving ? quote.regular_amount : quote.amount)}</span></p>
+          {firstPassSaving > 0 && (
+            <p className="flex justify-between gap-3 py-1"><span>{copy.firstPassDiscount}</span><span className="font-extrabold tabular-nums text-[#e5484d]">−{formatMomoAmount(firstPassSaving)}</span></p>
+          )}
+          <div className="mt-2.5 border-y border-black/10 py-3 text-charcoal">
+            <p className="flex items-baseline justify-between gap-3">
+              <span className="font-extrabold">{totalLabel}</span>
+              <span className="text-right"><strong className="text-[1.1rem] tabular-nums">{amount}</strong><span className="block text-[0.78rem]">{copy.oneTime}</span></span>
+            </p>
+          </div>
+        </div>
+      ) : unavailable && weeks != null ? (
+        <p role="status" className="rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-brand">{copy.unavailable(weeks)}</p>
+      ) : quoteFailed ? (
+        <div role="alert" className="flex items-center justify-between gap-3 rounded-2xl bg-[#fff1f2] px-4 py-3 text-sm font-bold text-error-brand">
           <span>{copy.pricesError}</span>
           <button type="button" onClick={retryQuote} className="shrink-0 rounded-full border-2 border-current px-3 py-1 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#a50064]/20">{copy.retryPrices}</button>
         </div>
+      ) : (
+        <div aria-hidden="true" className="h-[7.5rem] animate-pulse rounded-2xl bg-black/[0.04]" />
       )}
-      {/* Wraps as whole items on a narrow phone, so no label or pill breaks mid-word. */}
-      <div role="radiogroup" aria-label={copy.payWith} className="mt-4 flex flex-wrap items-center justify-center gap-2 whitespace-nowrap text-sm font-bold">
-        <span className="text-muted-brand">{copy.payWith}</span>
-        {(['wallet', 'atm'] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            role="radio"
-            aria-checked={method === option}
-            disabled={busy}
-            onClick={() => setMethod(option)}
-            className={cn('min-h-10 rounded-full border-2 px-3.5 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#a50064]/20 disabled:cursor-not-allowed disabled:opacity-60', method === option ? 'border-[#a50064] bg-[#fdf2f8] text-[#a50064]' : 'border-[#dfe7e3] bg-white text-slate-brand')}
-          >
-            {copy[option]}
-          </button>
-        ))}
-      </div>
-      {note && <p role="status" className="mt-4 rounded-2xl bg-[#FFF7ED] px-4 py-3 text-sm font-bold text-[#9A3412]">{note}</p>}
+      {cardOfferPercent != null && quote && <p className="mt-3 text-center text-[0.78rem] font-semibold text-muted-brand">{copy.cardOfferOnly(cardOfferPercent)}</p>}
+      {note && <p role="status" className="mt-3 rounded-2xl bg-[#FFF7ED] px-4 py-3 text-sm font-bold text-[#9A3412]">{note}</p>}
       <button
         type="button"
         disabled={busy || disabled || !quote}
         onClick={() => { void pay(); }}
-        className="mt-5 flex min-h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-[#a50064] px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(165_0_100_/_0.22)] transition hover:bg-[#8a0054] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#a50064]/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-4 flex min-h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-[#a50064] px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(165_0_100_/_0.22)] transition hover:bg-[#8a0054] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#a50064]/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
       >
         <MomoLogo size={26} className="bg-white" />
         <span>{payLabel}</span>
       </button>
       {quote && amount && (
-        <p className="mt-4 text-center text-sm leading-relaxed text-muted-brand">
+        <p className="mt-3 text-center text-[0.76rem] leading-relaxed text-muted-brand">
           {copy.summary(amount, quote.weeks)}
           {quote.regular_amount !== quote.amount && <> {copy.renewal(formatMomoAmount(quote.regular_amount))}</>}
         </p>
       )}
-      {checkoutFailed && <p role="alert" className="mt-4 rounded-2xl bg-[#fff1f2] px-4 py-3 text-sm font-bold text-error-brand">{copy.checkoutError}</p>}
+      {checkoutFailed && <p role="alert" className="mt-3 rounded-2xl bg-[#fff1f2] px-4 py-3 text-sm font-bold text-error-brand">{copy.checkoutError}</p>}
     </div>
   );
 }

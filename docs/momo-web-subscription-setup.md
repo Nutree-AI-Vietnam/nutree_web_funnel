@@ -1,25 +1,34 @@
 # MoMo One-Time Pass Setup
 
 MoMo lets Nutree take one-time payments only, so a MoMo payment buys a fixed
-Premium pass (4, 12 or 52 weeks) that never renews. When it ends, the buyer
-pays for another pass by hand. A pass bought while one is active starts when
-the current one ends. The quiz never stores MoMo credentials: it asks the API
-for a pay URL, then polls the API until the order settles. Paddle stays
-available, and MoMo is offered (and preselected) only for Vietnam traffic.
+Premium pass that never renews. The passes follow the card plans (1, 4 and 24
+weeks), so the paywall shows one plan list and the buyer picks how to pay in
+the checkout sheet that opens from the buy button: Ví MoMo, Thẻ ATM Nội Địa
+(both on MoMo's page) or an international card (Paddle). When a pass ends,
+the buyer pays for another by hand. A pass bought while one is active starts
+when the current one ends. The quiz never stores MoMo credentials: it asks
+the API for a pay URL, then polls the API until the order settles. MoMo is
+listed (and preselected) only for Vietnam traffic, and only in the in-page
+checkout sheet.
 
 ## Flow
 
 1. The quiz creates a lead with `POST /v1/web-funnel/leads`.
-2. The paywall loads `GET /v1/web-funnel/momo/plans?lead_id=…`. The API quotes
-   the intro price for the lead's first pass and the regular price after that,
-   judged from that lead's own orders only. The paywall shows the quoted price.
+2. When the checkout sheet opens on MoMo, it loads
+   `GET /v1/web-funnel/momo/plans?lead_id=…`. The API quotes the intro price
+   for the lead's first pass and the regular price after that, judged from
+   that lead's own orders only. The sheet shows the pass with the same number
+   of weeks as the plan picked on the paywall (a 1-month card plan is "4
+   tuần", a 6-month one "24 tuần"), as receipt lines with its quoted price.
+   When the API sells no pass of that length, the sheet says so and the card
+   stays available.
    A regular-price quote means this lead already paid, so the paywall adds a
    note telling a buyer who just paid not to pay again but to sign in to
    Nutree. The quote is scoped to the lead, so the note reveals nothing beyond
    the browser's own lead.
-3. The buyer picks a pass and a payment method, and the paywall calls
-   `POST /v1/web-funnel/momo/checkouts` with `monthly`, `quarterly` or
-   `yearly` and `wallet` or `atm`. The API signs a MoMo `captureWallet`
+3. The buyer picks Ví MoMo or Thẻ ATM Nội Địa, and the sheet calls
+   `POST /v1/web-funnel/momo/checkouts` with the pass key (`weekly`,
+   `monthly` or `six_month`) and `wallet` or `atm`. The API signs a MoMo `captureWallet`
    request for Ví MoMo (QR or app) or a `payWithATM` request for a domestic
    ATM card, and returns `pay_url`, `order_id` and the `amount` the order
    charges. Pay stays disabled until the plan quote from step 2 has loaded,
@@ -50,18 +59,25 @@ available, and MoMo is offered (and preselected) only for Vietnam traffic.
 
 | Price (VND) | First pass | Later passes |
 |---|---|---|
-| 4 weeks | 99.000 | 198.000 |
-| 12 weeks | 249.000 | 498.000 |
-| 52 weeks | 599.000 | 1.198.000 |
+| 1 week (`weekly`) | 39.000 | 79.000 |
+| 4 weeks (`monthly`) | 99.000 | 199.000 |
+| 24 weeks (`six_month`) | 799.000 | 1.599.000 |
 
-Prices are code in the API (`src/domain/model/payments/momo_pass.py`); the quiz
-shows what the API quotes.
+These are the Paddle prices of the Vietnamese card plans: the first pass at
+the 50% welcome price, later passes at the full price. The 75% exit offer is
+card-only, and the sheet says so on MoMo while it runs. Prices are code in the
+API (`src/domain/model/payments/momo_pass.py`); the quiz shows what the API
+quotes. It still reads the first catalog (`monthly` 4 weeks, `quarterly` 12,
+`yearly` 52), where only the 4-week plan has a pass.
 
 ## Ad reporting
 
 A MoMo order whose charge matches the price on screen sends Meta and TikTok an
 `InitiateCheckout` with the plan and VND amount as it opens MoMo, and TikTok an
-`AddToCart` for a plan not yet in the cart, like a card checkout.
+`AddToCart` for a plan not yet in the cart, like a card checkout. In Vietnam
+the sheet opens on MoMo, so the card checkout behind it reports its
+`InitiateCheckout` (and marks the tab as a card buyer) only when the buyer
+picks the international card; a buyer who stays on MoMo is counted once.
 
 A return page that can read a paid order sends Meta and TikTok a `Purchase`
 (pixel plus server copy) with the plan and VND amount. Its event id is fixed
