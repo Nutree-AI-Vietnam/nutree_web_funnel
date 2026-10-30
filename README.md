@@ -80,7 +80,15 @@ flag for production:
 CONFIRM_PRODUCTION_DEPLOY=1 ./scripts/deploy-vercel.sh production
 ```
 
-No special Vercel build settings are required. The custom domains must be
+Pushes to GitHub build only `main` (Production). `vercel.json` turns off Git
+deployments for every other branch, so Preview is built by hand: Redeploy a
+deployment of the branch in the Vercel dashboard (with "Use latest commit"), or
+run `./scripts/deploy-vercel.sh preview`. The project's Ignored Build Step,
+`[ -n "$VERCEL_GIT_COMMIT_REF" ] && [ "$VERCEL_GIT_COMMIT_REF" != "main" ] && [ ! -f vercel.json ]`,
+lets those manual builds through and still skips older branches that have no
+`vercel.json`. `quiz.preview.nutreeai.com` follows the `delivery` branch.
+
+The custom domains must be
 owned by the Vercel team and resolve to this project before the domain URLs are
 deployment proof. `NEXT_PUBLIC_*` values are embedded at build time, so
 changing them requires a new deployment.
