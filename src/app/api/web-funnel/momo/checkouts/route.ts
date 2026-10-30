@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginMutation } from '@/lib/handoff/lead-access-session';
 import { momoUpstream, NO_STORE } from '@/lib/payments/momo-bff';
 import { cardPlanPrice } from '@/lib/payments/momo-card-price';
-import { isMomoAmount, isMomoPayUrl, MOMO_PACKAGE_ID, MOMO_UNAVAILABLE, momoCheckoutFailureDetail } from '@/lib/payments/momo-checkout';
+import { isMomoAmount, isMomoEnabled, isMomoPayUrl, MOMO_PACKAGE_ID, MOMO_UNAVAILABLE, momoCheckoutFailureDetail } from '@/lib/payments/momo-checkout';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
   if (!isSameOriginMutation(request.headers, request.nextUrl.origin)) {
     return NextResponse.json({ detail: 'Cross-site mutation rejected.' }, { status: 403 });
   }
+  if (!isMomoEnabled()) return NextResponse.json({ detail: MOMO_UNAVAILABLE }, { status: 404 });
   const body = (await request.json().catch(() => null)) as { package_id?: unknown; method?: unknown; lang?: unknown; lead_id?: unknown } | null;
   const packageId = typeof body?.package_id === 'string' && MOMO_PACKAGE_ID.test(body.package_id) ? body.package_id : null;
   const method = body?.method === 'atm' ? 'atm' : body?.method === 'wallet' ? 'wallet' : null;

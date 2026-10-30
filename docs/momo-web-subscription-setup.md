@@ -8,8 +8,12 @@ the checkout sheet that opens from the buy button: Ví MoMo, Thẻ ATM Nội Đ�
 the buyer pays for another by hand. A pass bought while one is active starts
 when the current one ends. The quiz never stores MoMo credentials: it asks
 the API for a pay URL, then polls the API until the order settles. MoMo is
-listed (and preselected) only for Vietnam traffic, and only in the in-page
-checkout sheet.
+listed (and preselected) only for Vietnam traffic, only in the in-page
+checkout sheet, and only while `NEXT_PUBLIC_MOMO_ENABLED=true` on the quiz.
+The flag is off by default: the sheet is then card-only and the quiz's
+checkout route creates no MoMo orders, so the quiz can ship before the API
+sells passes. Turn it on per Vercel environment once that environment's API
+has the MoMo routes and settings below; a change needs a redeploy.
 
 ## Flow
 

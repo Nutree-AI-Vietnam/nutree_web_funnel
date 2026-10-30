@@ -30,7 +30,7 @@ import { resolvePaywallPricing } from '@/lib/revenuecat/paywall-offer-state';
 import { buildRevenueCatPaywall, checkoutPackage, defaultPaywallPlan, SIX_MONTH_PLAN_ID, type PaywallOfferKind, type RevenueCatPaywall, type RevenueCatPaywallPlan } from '@/lib/revenuecat/paywall-plans';
 import { hasWelcomeVoucherBeenClaimed, markWelcomeVoucherClaimed } from '@/lib/revenuecat/welcome-voucher';
 import { clearCheckoutEmail, readCheckoutEmail, readCheckoutMethod, rememberCheckoutMethod } from '@/lib/revenuecat/checkout-email';
-import { momoWeeksForPeriod } from '@/lib/payments/momo-checkout';
+import { isMomoEnabled, momoWeeksForPeriod } from '@/lib/payments/momo-checkout';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { formatWeight } from '@/lib/quiz/units';
 import { AppIncludesCard, GoalStrip, PlanDayCard, PlanGoalCard } from '@/components/plan/plan-overview';
@@ -256,8 +256,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const countryCode = initialCountryCode ?? (isLocalPreviewHost() ? getLocalPreviewCountry() : undefined);
   const resolvedCountryCode = normalizeCountryCode(countryCode) ?? 'VN';
   // MoMo settles in VND only, so Vietnam's checkout sheet lists it (preselected) beside the card form. It pays the plan
-  // picked on the page once, at the card's price for it (the server reads that Paddle price); the popup checkout has no MoMo.
-  const momoAvailable = countryCode === 'VN' && INLINE_CHECKOUT;
+  // picked on the page once, at the card's price for it (the server reads that Paddle price); the popup checkout has no
+  // MoMo, and neither does any checkout while NEXT_PUBLIC_MOMO_ENABLED is off.
+  const momoAvailable = isMomoEnabled() && countryCode === 'VN' && INLINE_CHECKOUT;
   const [chosenMethod, setChosenMethod] = useState<CheckoutPaymentMethod>('wallet');
   const sheetMethod: CheckoutPaymentMethod = momoAvailable ? chosenMethod : 'card';
   const sheetMethodRef = useRef(sheetMethod);

@@ -13,6 +13,7 @@ const payUrl = 'https://test-payment.momo.vn/v2/gateway/pay?t=1';
 beforeEach(() => {
   vi.stubEnv('NEXT_PUBLIC_API_BASE_URL', 'https://api.test');
   vi.stubEnv('WEB_FUNNEL_BFF_SHARED_SECRET', 'bff-secret');
+  vi.stubEnv('NEXT_PUBLIC_MOMO_ENABLED', 'true');
   vi.stubGlobal('fetch', vi.fn());
   cardPlanPrice.mockReset();
   cardPlanPrice.mockResolvedValue({ packageId: 'rc_6monthly50', weeks: 24, amount: 599_000 });
@@ -98,6 +99,17 @@ describe('MoMo checkout BFF', () => {
 
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ detail: MOMO_UNAVAILABLE });
+  });
+
+  it('creates no order while MoMo is switched off', async () => {
+    vi.stubEnv('NEXT_PUBLIC_MOMO_ENABLED', 'false');
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ detail: MOMO_UNAVAILABLE });
+    expect(cardPlanPrice).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('rejects cross-site requests before contacting the API', async () => {

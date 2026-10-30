@@ -4,6 +4,14 @@
  */
 export const MOMO_PACKAGE_ID = /^[$A-Za-z0-9_.-]{1,16}$/;
 
+/**
+ * MoMo is off unless NEXT_PUBLIC_MOMO_ENABLED is "true", so the paywall can ship before the API sells passes.
+ * Off, the checkout sheet is card-only and the checkout route creates no orders.
+ */
+export function isMomoEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_MOMO_ENABLED === 'true';
+}
+
 export type MomoOrderStatus = 'pending' | 'paid' | 'failed' | 'expired';
 /** Ví MoMo (QR or app) or a domestic ATM card on MoMo's hosted page. */
 export type MomoPayMethod = 'wallet' | 'atm';

@@ -89,6 +89,7 @@ describe('paywall checkout method', () => {
     vi.stubGlobal('location', { ...window.location, assign });
     vi.stubGlobal('IntersectionObserver', NoopObserver);
     vi.stubGlobal('ResizeObserver', NoopObserver);
+    vi.stubEnv('NEXT_PUBLIC_MOMO_ENABLED', 'true');
     checkoutBodies.length = 0;
     // The checkout route prices the order from the package the sheet names, as the server does from Paddle.
     vi.stubGlobal('fetch', vi.fn(async (_url: string, init?: RequestInit) => {
@@ -103,6 +104,7 @@ describe('paywall checkout method', () => {
     rejectPurchase(new Error('Checkout closed'));
     cleanup();
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     useQuizStore.getState().setLocale('vi');
   });
 
@@ -179,6 +181,17 @@ describe('paywall checkout method', () => {
 
     await waitFor(() => expect(readCheckoutMethod()).toBe('paddle'));
     expect(purchases.purchase).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps Vietnam’s checkout card-only while MoMo is switched off', async () => {
+    vi.stubEnv('NEXT_PUBLIC_MOMO_ENABLED', 'false');
+    renderPaywall();
+    const sheet = await openCheckout();
+
+    expect(within(sheet).queryByRole('radiogroup', { name: copy.momoCheckout.methodLabel })).toBeNull();
+    expect(within(sheet).queryByRole('button', { name: /MoMo/ })).toBeNull();
+    expect(screen.queryByText(copy.momoCheckout.accepted)).toBeNull();
+    await waitFor(() => expect(readCheckoutMethod()).toBe('paddle'));
   });
 
   it('shows only the card checkout outside Vietnam', async () => {
