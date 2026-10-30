@@ -98,20 +98,22 @@ export function QuizShell({
           <div aria-hidden="true" className="min-w-11" />
         )}
       </div>
-      <div
-        role="progressbar"
-        aria-label={copy.common.progress}
-        aria-valuemin={1}
-        aria-valuemax={totalSteps}
-        aria-valuenow={currentStep}
-        className="quiz-shell-progress enter-item relative z-10 mb-4 h-1 shrink-0 overflow-hidden rounded-full bg-forest/10"
-        style={enterStyle(1)}
-      >
+      {step !== 'goal' && (
         <div
-          className="h-full rounded-full bg-[linear-gradient(90deg,#17453a,#1fa892)] transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-          style={{ width: `${Math.max(progress, 4)}%` }}
-        />
-      </div>
+          role="progressbar"
+          aria-label={copy.common.progress}
+          aria-valuemin={1}
+          aria-valuemax={totalSteps}
+          aria-valuenow={currentStep}
+          className="quiz-shell-progress enter-item relative z-10 mb-4 h-1 shrink-0 overflow-hidden rounded-full bg-forest/10"
+          style={enterStyle(1)}
+        >
+          <div
+            className="h-full rounded-full bg-[linear-gradient(90deg,#17453a,#1fa892)] transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{ width: `${Math.max(progress, 4)}%` }}
+          />
+        </div>
+      )}
       <div
         key={progressIndex ?? step}
         className={cn(

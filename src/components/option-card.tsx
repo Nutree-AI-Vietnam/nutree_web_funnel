@@ -131,6 +131,7 @@ export function OptionCard({
   icon,
   compact,
   large,
+  plain,
   selected,
   onClick,
 }: {
@@ -141,6 +142,8 @@ export function OptionCard({
   compact?: boolean;
   /** A tall tap card for the first screen. */
   large?: boolean;
+  /** A full-width choice with no radio ring. Tap advances on its own. */
+  plain?: boolean;
   selected: boolean;
   onClick: () => void;
 }) {
@@ -164,18 +167,20 @@ export function OptionCard({
           </span>
         </span>
         {/* iOS selection mark: an empty ring, filled with a white check once chosen. */}
-        <span
-          aria-hidden="true"
-          className={cn(
-            'flex shrink-0 items-center justify-center rounded-full transition-colors duration-200',
-            compact ? 'h-5 w-5' : 'h-[22px] w-[22px]',
-            selected ? 'bg-forest text-white' : 'border-[1.5px] border-[#c7c7cc] bg-white',
-          )}
-        >
-          {selected && (
-            <svg viewBox="0 0 12 12" className={compact ? 'h-2.5 w-2.5' : 'h-3 w-3'} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2.5 6.2 2.3 2.3 4.7-5" /></svg>
-          )}
-        </span>
+        {!plain && (
+          <span
+            aria-hidden="true"
+            className={cn(
+              'flex shrink-0 items-center justify-center rounded-full transition-colors duration-200',
+              compact ? 'h-5 w-5' : 'h-[22px] w-[22px]',
+              selected ? 'bg-forest text-white' : 'border-[1.5px] border-[#c7c7cc] bg-white',
+            )}
+          >
+            {selected && (
+              <svg viewBox="0 0 12 12" className={compact ? 'h-2.5 w-2.5' : 'h-3 w-3'} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2.5 6.2 2.3 2.3 4.7-5" /></svg>
+            )}
+          </span>
+        )}
       </button>
     </GlowingCard>
   );

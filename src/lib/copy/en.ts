@@ -128,8 +128,17 @@ export const en: Copy = {
     cta: 'Build my plan',
   },
   goal: {
-    question: 'What’s your main goal?',
+    question: 'How much weight do you want to lose?',
     description: 'This sets your calories and how meals are split.',
+    lossBands: [
+      { key: 'small', metric: '1–5 kg', imperial: '2–10 lb' },
+      { key: 'medium', metric: '6–10 kg', imperial: '11–20 lb' },
+      { key: 'large', metric: 'Over 10 kg', imperial: 'Over 20 lb' },
+      { key: 'unsure', metric: 'Not sure yet', imperial: 'Not sure yet' },
+    ],
+    otherGoals: 'I want to build muscle or maintain',
+    otherQuestion: 'What do you want instead?',
+    backToLoss: 'I want to lose weight',
     options: [
       { key: 'cut', label: 'Lose weight' },
       { key: 'bulk', label: 'Build muscle' },
@@ -166,9 +175,10 @@ export const en: Copy = {
     },
   },
   challenges: {
-    question: 'What’s held you back before?',
+    question: 'Where does it usually slip?',
     description: '',
-    hint: 'Select all that apply.',
+    hint: '',
+    none: 'Nothing in particular',
     options: [
       { key: 'no_time', label: 'No time' },
       { key: 'cravings', label: 'Snack cravings' },

@@ -2,6 +2,8 @@
 export interface OnboardingPayload {
   name?: string;
   fitness_goal?: 'cut' | 'bulk' | 'recomp' | 'maintain';
+  /** First-screen weight-loss band. Display only; calories still come from fitness_goal. */
+  weight_loss_band?: 'small' | 'medium' | 'large' | 'unsure';
   target_weight_kg?: number;
   target_weight_unsure?: boolean;
   pain_points?: string[];

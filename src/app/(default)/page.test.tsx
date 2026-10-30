@@ -121,7 +121,7 @@ describe('home quiz entry', () => {
 
     render(<HomePage />);
 
-    expect(await screen.findByRole('heading', { name: 'Mục tiêu chính của bạn là gì?' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Bạn muốn giảm khoảng bao nhiêu?' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'Xây kế hoạch của tôi' })).toBeNull();
     expect(screen.queryByRole('heading', { name: /Chào bạn, cảm ơn bạn đã quan tâm/ })).toBeNull();
 
@@ -176,19 +176,20 @@ describe('home quiz entry', () => {
       custom_data: { content_name: 'funnel_quiz_start', content_category: 'onboarding' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /^Giảm cân/ }));
+    fireEvent.click(screen.getByRole('button', { name: '1–5 kg' }));
     expect(await screen.findByRole('heading', { name: 'Tên bạn là gì?' })).toBeTruthy();
+    expect(useQuizStore.getState().data.fitness_goal).toBe('cut');
     expect(screen.getByRole('button', { name: 'Quay lại' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Tiếng Việt' })).toBeNull();
     expect(screen.queryByRole('link', { name: /Bộ Công Thương/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Quay lại' }));
-    expect(await screen.findByRole('heading', { name: 'Mục tiêu chính của bạn là gì?' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Bạn muốn giảm khoảng bao nhiêu?' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Quay lại' })).toBeNull();
     expect(screen.getByRole('link', { name: /Bộ Công Thương/ })).toBeTruthy();
 
     cleanup();
     render(<HomePage />);
-    expect(await screen.findByRole('heading', { name: 'Mục tiêu chính của bạn là gì?' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Bạn muốn giảm khoảng bao nhiêu?' })).toBeTruthy();
     expect(viewContentCalls()).toHaveLength(1);
     expect(metaServerEvents()).toHaveLength(1);
   });
@@ -200,8 +201,8 @@ describe('home quiz entry', () => {
 
     const html = renderToString(<HomePage />);
 
-    expect(html).toContain('Mục tiêu chính của bạn là gì?');
-    expect(html).toContain('Giảm cân');
+    expect(html).toContain('Bạn muốn giảm khoảng bao nhiêu?');
+    expect(html).toContain('1–5 kg');
     expect(html).toContain('Khi tiếp tục, bạn đồng ý với');
     expect(html).toContain('Tiếng Việt');
     expect(html).toContain(BCT_HREF);
@@ -227,7 +228,7 @@ describe('home quiz entry', () => {
     const hydrated = await hydrateHome(html);
 
     expect(hydrated.recoverable).toEqual([]);
-    expect(hydrated.container.textContent).toContain('Mục tiêu chính của bạn là gì?');
+    expect(hydrated.container.textContent).toContain('Bạn muốn giảm khoảng bao nhiêu?');
     expect(viewedSteps()).toEqual(['goal']);
     expect(viewContentCalls()).toHaveLength(1);
     expect(viewContentCalls()[0]).toEqual([
@@ -249,13 +250,13 @@ describe('home quiz entry', () => {
     useQuizStore.getState().setCurrentStep('activity_level');
     useQuizStore.getState().setData({ fitness_goal: 'cut' });
     const html = renderToString(<HomePage />);
-    expect(html).toContain('Mục tiêu chính của bạn là gì?');
+    expect(html).toContain('Bạn muốn giảm khoảng bao nhiêu?');
 
     const hydrated = await hydrateHome(html);
 
     expect(hydrated.recoverable).toEqual([]);
     expect(hydrated.container.textContent).toContain('Mức độ hoạt động hàng ngày của bạn?');
-    expect(hydrated.container.textContent).not.toContain('Mục tiêu chính của bạn là gì?');
+    expect(hydrated.container.textContent).not.toContain('Bạn muốn giảm khoảng bao nhiêu?');
     expect(viewedSteps()).toEqual(['activity_level']);
     expect(viewedSteps()).not.toContain('goal');
     expect(viewContentCalls()).toHaveLength(0);

@@ -125,8 +125,17 @@ export const vi = {
     cta: 'Bắt đầu ngay',
   },
   goal: {
-    question: 'Mục tiêu chính của bạn là gì?',
+    question: 'Bạn muốn giảm khoảng bao nhiêu?',
     description: 'Mục tiêu này quyết định calo và cách chia bữa.',
+    lossBands: [
+      { key: 'small', metric: '1–5 kg', imperial: '2–10 lb' },
+      { key: 'medium', metric: '6–10 kg', imperial: '11–20 lb' },
+      { key: 'large', metric: 'Trên 10 kg', imperial: 'Trên 20 lb' },
+      { key: 'unsure', metric: 'Chưa chắc', imperial: 'Chưa chắc' },
+    ],
+    otherGoals: 'Tôi muốn tăng cơ hoặc giữ cân',
+    otherQuestion: 'Bạn muốn làm gì khác?',
+    backToLoss: 'Tôi muốn giảm cân',
     options: [
       { key: 'cut', label: 'Giảm cân' },
       { key: 'bulk', label: 'Tăng cơ' },
@@ -163,9 +172,10 @@ export const vi = {
     },
   },
   challenges: {
-    question: 'Điều gì từng cản trở bạn?',
+    question: 'Chỗ nào hay làm bạn lệch nhất?',
     description: '',
-    hint: 'Chọn tất cả mục phù hợp.',
+    hint: '',
+    none: 'Không có gì đặc biệt',
     options: [
       { key: 'no_time', label: 'Không có thời gian' },
       { key: 'cravings', label: 'Thèm ăn vặt' },

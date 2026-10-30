@@ -5,7 +5,6 @@ import { GoalEntryFooter } from '@/components/goal-entry-footer';
 import { useCopy } from '@/lib/copy/use-copy';
 import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
 import type { QuizStep } from '@/lib/quiz/steps';
-import { useQuizStore } from '@/lib/quiz/store';
 import { CalculatingStep } from './calculating';
 import { BirthDateStep } from './birth-date-step';
 import {
@@ -21,13 +20,10 @@ import { TdeeTargetsStep } from './tdee-targets';
 import { NameAskStep } from './text-input-step';
 import { TrainingDaysStep, TrainingDurationStep } from './training-days';
 import { ProgressStep } from './progress';
+import { ChallengeStep } from './challenge-step';
 import { ConfidenceStep } from './confidence-step';
+import { GoalChoice } from './goal-choice';
 import { WeightStep } from './weight-step';
-
-const GOAL_ICONS: Record<string, string> = { cut: 'line:flame', bulk: 'line:dumbbell', recomp: 'line:bolt', maintain: 'line:bowl' };
-
-/** Challenges no longer offered. Their labels stay in the copy so saved answers still read. */
-const RETIRED_CHALLENGES = ['no_motivation', 'past_failures'];
 
 /**
  * slug -> screen component. Every QuizStep must have an entry (registry check in page.tsx).
@@ -36,18 +32,9 @@ const RETIRED_CHALLENGES = ['no_motivation', 'past_failures'];
  */
 export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
   goal: function GoalStep() {
-    const c = useCopy();
     return (
       <>
-        <SingleChoiceStep
-          step="goal"
-          field="fitness_goal"
-          eyebrow={c.funnel.goalPromise}
-          question={c.goal.question}
-          options={c.goal.options.map((option) => ({ ...option, icon: GOAL_ICONS[option.key] }))}
-          hints={c.funnel.goalCardHints}
-          large
-        />
+        <GoalChoice />
         {SKIP_LANDING ? <GoalEntryFooter /> : null}
       </>
     );
@@ -56,22 +43,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
   welcome: () => <WelcomeStep />,
   not_alone: () => <NotAloneStep />,
   step_goal: () => <StepGoalStep />,
-  challenges: function ChallengesStep() {
-    const c = useCopy();
-    // A retired option saved in an older session stays on screen while picked, so it can be cleared.
-    const picked = useQuizStore((s) => s.data.pain_points) ?? [];
-    return (
-      <MultiChoiceStep
-        step="challenges"
-        field="pain_points"
-        question={c.challenges.question}
-        description={c.challenges.description}
-        hint={c.challenges.hint}
-        options={c.challenges.options.filter((o) => !RETIRED_CHALLENGES.includes(o.key) || picked.includes(o.key))}
-        replies={c.funnel.coach}
-      />
-    );
-  },
+  challenges: () => <ChallengeStep />,
   motivation: function MotivationStep() {
     const c = useCopy();
     return (
