@@ -139,9 +139,10 @@ export function CalculatingStep() {
   }, [complete, outcome, setTdee]);
 
   const rating = vi.funnel.rating;
-  const slides = useMemo(() => (vi.calculating.testimonials.length
-    ? vi.calculating.testimonials.map((item) => ({ kind: 'review' as const, key: item.name, quote: item.quote, name: item.name, title: '', body: '' }))
-    : vi.calculating.highlights.map((item) => ({ kind: 'highlight' as const, key: item.title, quote: '', name: '', title: item.title, body: item.body }))), [vi]);
+  const reviews = vi.calculating.testimonials;
+  const slides = useMemo(() => (reviews.length
+    ? reviews.map((review) => ({ kind: 'review' as const, key: review.name, review }))
+    : vi.calculating.highlights.map((item) => ({ kind: 'highlight' as const, key: item.title, item }))), [reviews, vi]);
   const [slideIndex, setSlideIndex] = useState(0);
   const stage = Math.min(items.length, Math.floor(elapsed / stageMs));
 
@@ -176,8 +177,8 @@ export function CalculatingStep() {
       {/* No min-h-0: on short screens this block must keep its height and scroll, not center up into the header. */}
       <div className="flex flex-1 flex-col justify-center gap-3 py-1">
         {/* One bar per answer, filling in turn, so the plan visibly builds from what the visitor said. */}
-        <section className="rounded-[1.6rem] bg-white/90 p-4 shadow-[0_6px_16px_rgb(23_69_58_/_0.07),inset_0_1px_0_rgb(255_255_255_/_0.8)]">
-          <ol className="grid gap-3.5">
+        <section className="rounded-[1.6rem] bg-white/90 px-4 py-3.5 shadow-[0_6px_16px_rgb(23_69_58_/_0.07),inset_0_1px_0_rgb(255_255_255_/_0.8)]">
+          <ol className="grid gap-2.5">
             {items.map((item, index) => {
               const progress = complete ? 1 : Math.min(1, Math.max(0, (elapsed - index * stageMs) / stageMs));
               const done = progress >= 1;
@@ -191,7 +192,7 @@ export function CalculatingStep() {
                     </span>
                     <span className="shrink-0 tabular-nums text-[0.78rem] text-muted-brand">{Math.round(progress * 100)}%</span>
                   </div>
-                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-forest/8" aria-hidden="true">
+                  <div className="mt-1 h-2 overflow-hidden rounded-full bg-forest/8" aria-hidden="true">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-forest to-teal-bright"
                       style={{ width: `${progress * 100}%` }}
@@ -204,12 +205,12 @@ export function CalculatingStep() {
         </section>
 
         {/* Proof while the plan builds: the real rating and customer count, then a carousel that peeks the next card.
-            It shows verified reviews once the copy has them; until then, what the app does. */}
+            Real App Store reviews where the copy has them (Vietnamese); otherwise what the app does. */}
         <section aria-label={vi.calculating.testimonialsLabel} className="mt-1">
           <p className="text-center text-[1rem] font-extrabold text-forest">{rating.countValue} {rating.chose}</p>
           <StoreRatings className="mt-1 text-[0.8rem]" />
           <p className="sr-only">{storeRatingsLine(rating)}</p>
-          <div className="mt-2.5 overflow-hidden">
+          <div className="mt-2 overflow-hidden">
             <motion.ol
               className="flex gap-[2.5%]"
               // 7% = half the space beside an 86% card, so the active card sits centered and both neighbours peek.
@@ -217,28 +218,41 @@ export function CalculatingStep() {
               transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 120, damping: 22 }}
             >
               {slides.map((slide, index) => (
-                <li key={slide.key} aria-hidden={index !== slideIndex} className="w-[86%] shrink-0 rounded-[1.3rem] bg-white/90 px-4 py-3.5 text-center shadow-[0_12px_32px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.8)]">
+                <li key={slide.key} aria-hidden={index !== slideIndex} className={cn('w-[86%] shrink-0 rounded-[1.3rem] bg-white/90 px-4 py-3 shadow-[0_12px_32px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.8)]', slide.kind === 'highlight' && 'text-center')}>
                   {slide.kind === 'review' ? (
                     <>
-                      <p className="text-[#f2a33a]" aria-label="5/5">★★★★★</p>
-                      <blockquote className="mt-1.5 text-[0.88rem] font-semibold leading-snug text-slate-brand">“{slide.quote}”</blockquote>
-                      <p className="mt-1.5 text-[0.74rem] font-bold text-muted-brand">{slide.name}</p>
+                      <div className="flex items-center gap-2.5">
+                        {/* App Store reviews carry no photo, so the avatar is the reviewer's initial. */}
+                        <span aria-hidden="true" className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-mist text-[0.85rem] font-extrabold uppercase text-forest">{slide.review.name.charAt(0)}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="truncate text-[0.86rem] font-extrabold leading-tight text-forest">{slide.review.name}</span>
+                            {slide.review.result && <span className="shrink-0 rounded-full bg-teal-brand/12 px-2 py-0.5 text-[0.68rem] font-extrabold text-teal-brand">{slide.review.result}</span>}
+                          </span>
+                          <span className="mt-0.5 flex items-center gap-1.5 text-[0.68rem] font-bold leading-none text-muted-brand">
+                            <span className="shrink-0 text-[0.8rem] tracking-[-0.05em] text-[#e3a542]" aria-label={`${slide.review.stars}/5`}>{'★'.repeat(slide.review.stars)}<span className="text-forest/15">{'★'.repeat(5 - slide.review.stars)}</span></span>
+                            <span className="truncate">{[slide.review.result ? '' : slide.review.goal, `App Store · ${slide.review.date}`].filter(Boolean).join(' · ')}</span>
+                          </span>
+                        </span>
+                      </div>
+                      <blockquote className="mt-1.5 line-clamp-2 text-[0.84rem] font-semibold leading-snug text-slate-brand">“{slide.review.quote}”</blockquote>
                     </>
                   ) : (
                     <>
-                      <p className="text-[0.92rem] font-extrabold leading-snug text-forest">{slide.title}</p>
-                      <p className="mt-1 text-[0.8rem] font-semibold leading-snug text-muted-brand">{slide.body}</p>
+                      <p className="text-[0.92rem] font-extrabold leading-snug text-forest">{slide.item.title}</p>
+                      <p className="mt-1 text-[0.8rem] font-semibold leading-snug text-muted-brand">{slide.item.body}</p>
                     </>
                   )}
                 </li>
               ))}
             </motion.ol>
           </div>
-          <div className="mt-2.5 flex justify-center gap-1.5" aria-hidden="true">
+          <div className="mt-2 flex justify-center gap-1.5" aria-hidden="true">
             {slides.map((slide, index) => (
               <span key={slide.key} className={cn('h-1.5 rounded-full transition-all duration-300', index === slideIndex ? 'w-5 bg-teal-brand' : 'w-1.5 bg-forest/15')} />
             ))}
           </div>
+          {reviews.length > 0 && <p className="mt-1.5 text-center text-[0.66rem] font-semibold text-muted-brand">{vi.calculating.testimonialsSource}. {vi.calculating.testimonialsNote}</p>}
         </section>
       </div>
 

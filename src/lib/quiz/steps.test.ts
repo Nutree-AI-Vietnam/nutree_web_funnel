@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { QUIZ_STEPS, STEP_CHAPTERS, questionCount, VALUE_TOUR_STEPS, isQuizStep, nextStep, onboardingStepCount, previousStep, stepIndex, valueProgressIndex } from './steps';
+import { QUIZ_STEPS, STEP_CHAPTERS, questionCount, isQuizStep, nextStep, onboardingStepCount, previousStep, stepIndex, valueProgressIndex, valueTourSteps } from './steps';
 
 describe('quiz steps', () => {
   it('keeps one input or decision per quiz screen', () => {
@@ -74,8 +74,14 @@ describe('quiz steps', () => {
   });
 
   it('continues the same progress bar through the value tour', () => {
-    expect(valueProgressIndex('plan')).toBe(QUIZ_STEPS.length + 1);
-    expect(valueProgressIndex('snap')).toBe(onboardingStepCount());
-    expect(VALUE_TOUR_STEPS).toEqual(['plan', 'sources', 'snap']);
+    expect(valueProgressIndex('plan', 'en')).toBe(QUIZ_STEPS.length + 1);
+    expect(valueProgressIndex('snap', 'en')).toBe(onboardingStepCount('en'));
+    expect(valueTourSteps('en')).toEqual(['plan', 'sources', 'snap']);
+  });
+
+  it('walks Vietnamese through what Nutree does each day, from the guide to the meal ideas, then the plan', () => {
+    expect(valueTourSteps('vi')).toEqual(['guide', 'snap', 'activity', 'macros', 'works', 'sources', 'meals', 'plan']);
+    expect(valueProgressIndex('guide', 'vi')).toBe(QUIZ_STEPS.length + 1);
+    expect(valueProgressIndex('plan', 'vi')).toBe(onboardingStepCount('vi'));
   });
 });

@@ -19,9 +19,14 @@
  *
  * TikTok gets the same commercial steps as standard events (CompleteRegistration
  * at email capture, ViewContent on the paywall, AddToCart once per plan,
- * InitiateCheckout, Purchase) next to its custom names. Only standard events
- * feed optimization; custom names are kept for reporting. Quiz screens (age,
- * height, weight, ...) never reach TikTok, not even as custom names. TikTok
+ * InitiateCheckout, Purchase) next to its custom names. A MoMo order that opens
+ * MoMo is an InitiateCheckout and a paid MoMo pass is a Purchase on both
+ * platforms, like a card checkout; the Purchase event id is fixed per
+ * order (Purchase.momo.<order id>), so within their 48-hour dedupe window both
+ * platforms drop a repeat of that order from another tab or a later server
+ * copy. Only standard events feed optimization; custom names are kept for
+ * reporting. Quiz screens (age, height, weight, ...) never reach TikTok, not
+ * even as custom names. TikTok
  * reads product ids from contents[].content_id; Meta's content_ids is ignored
  * there. Each standard event also goes to the Events API through our server
  * with the same event_id, so TikTok keeps one copy; it carries the hashed
@@ -30,6 +35,7 @@
  * Both pixels and both server copies run only on quiz.nutreeai.com (see
  * ad-pixel-host), so preview and local traffic stays out of the live datasets.
  */
+import { MOMO_ORDER_ID } from '@/lib/payments/momo-checkout';
 import { isQuizStep } from '@/lib/quiz/steps';
 import { isAdPixelHost } from './ad-pixel-host';
 import { getAttribution } from './attribution';
@@ -116,6 +122,16 @@ function claimFunnelEntryView(step: string): boolean {
   }
 }
 
+/** Card (RevenueCat) and MoMo pass checkouts both count as an ad InitiateCheckout. */
+function isCheckoutStart(name: string): boolean {
+  return name === 'revenuecat_checkout_started' || name === 'momo_checkout_started';
+}
+
+/** Card (RevenueCat) and MoMo pass purchases both count as an ad Purchase. */
+function isCompletedPurchase(name: string): boolean {
+  return name === 'revenuecat_checkout_completed' || name === 'momo_checkout_completed';
+}
+
 function metaStandardEvents(name: string, params: Record<string, unknown>): MetaStandard[] {
   if (name === 'email_captured') {
     return claimOnce(META_LEAD_KEY) ? [{ event: 'Lead', params: { content_name: 'email_capture' } }] : [];
@@ -140,12 +156,12 @@ function metaStandardEvents(name: string, params: Record<string, unknown>): Meta
       ? [{ event: 'AddToCart', params: commerceParams({ ...params, plan: params.offer_id }) }]
       : [];
   }
-  if (name === 'revenuecat_checkout_started') {
+  if (isCheckoutStart(name)) {
     const checkout: MetaStandard = { event: 'InitiateCheckout', params: commerceParams(params) };
     // Keeping the preselected plan never fires offer_selected, so its AddToCart is sent here.
     return addToCart(META_CART_KEY, params.plan) ? [{ event: 'AddToCart', params: checkout.params }, checkout] : [checkout];
   }
-  if (name === 'revenuecat_checkout_completed') {
+  if (isCompletedPurchase(name)) {
     return [{ event: 'Purchase', params: commerceParams(params) }];
   }
   return [];
@@ -166,13 +182,13 @@ function tiktokStandardEvents(name: string, params: Record<string, unknown>): Ti
       ? [{ event: 'AddToCart', params: tiktokProductParams(params, params.offer_id) }]
       : [];
   }
-  if (name === 'revenuecat_checkout_started') {
+  if (isCheckoutStart(name)) {
     const product = tiktokProductParams(params, params.plan);
     const checkout: TiktokStandard = { event: 'InitiateCheckout', params: product };
     // Keeping the preselected plan never fires offer_selected, so its AddToCart is sent here.
     return addToCart(TIKTOK_CART_KEY, params.plan) ? [{ event: 'AddToCart', params: product }, checkout] : [checkout];
   }
-  if (name === 'revenuecat_checkout_completed') {
+  if (isCompletedPurchase(name)) {
     return [{ event: 'Purchase', params: tiktokProductParams(params, params.plan) }];
   }
   return [];
@@ -247,8 +263,9 @@ function trackMeta(fbq: AnyWindow['fbq'], name: string, payload: Record<string, 
   const serverCopy = isAdPixelHost() && Boolean(activeMetaPixelId()) && typeof fetch === 'function';
   const url = serverCopy ? pageUrl(window.location?.href) : null;
   const fbc = serverCopy ? metaFbc(payload.fbclid) : null;
+  const key = fixedEventKey(name, payload);
   for (const { event, params } of events) {
-    const id = eventID(event);
+    const id = eventID(event, key);
     fbq?.((CUSTOM_EVENTS as readonly string[]).includes(event) ? 'trackCustom' : 'track', event, params, { eventID: id });
     if (serverCopy) {
       sendMetaServerEvent({ event_name: event, event_id: id, ...(url ? { event_source_url: url } : {}), custom_data: params }, fbc);
@@ -289,8 +306,9 @@ function trackTiktok(ttq: TiktokPixel | undefined, name: string, payload: Record
   const identity = readTiktokIdentity();
   applyTiktokIdentity(ttq, identity);
   ttq?.track(name, payload);
+  const key = fixedEventKey(name, payload);
   for (const { event, params } of tiktokStandardEvents(name, payload)) {
-    const id = eventID(event);
+    const id = eventID(event, key);
     ttq?.track(event, params, { event_id: id });
     if (serverCopy) {
       sendTiktokServerEvent({ event, event_id: id, properties: params, user: tiktokUser(identity, payload), page: tiktokPage() });
@@ -298,8 +316,22 @@ function trackTiktok(ttq: TiktokPixel | undefined, name: string, payload: Record
   }
 }
 
-/** Unique per event: TikTok drops later events that reuse an event_id. */
-function eventID(event: string): string {
+/**
+ * A paid MoMo order is one purchase however many pages report it, so its id
+ * comes from the order. Anything else that should count once per occurrence
+ * gets no key.
+ */
+function fixedEventKey(name: string, params: Record<string, unknown>): string | null {
+  const orderId = params.order_id;
+  return name === 'momo_checkout_completed' && typeof orderId === 'string' && MOMO_ORDER_ID.test(orderId) ? `momo.${orderId}` : null;
+}
+
+/**
+ * Unique per event unless a fixed key is given: TikTok drops later events that
+ * reuse an event_id, and Meta keeps one pixel or server copy per event_id.
+ */
+function eventID(event: string, key: string | null = null): string {
+  if (key) return `${event}.${key}`;
   const uuid = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
     : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;

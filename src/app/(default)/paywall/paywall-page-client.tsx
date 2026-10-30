@@ -7,7 +7,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal, flushSync, preconnect, preload } from 'react-dom';
 import { BoCongThuongBadge } from '@/components/bo-cong-thuong-badge';
 import { ConversionShell } from '@/components/conversion-shell';
+import { MomoCheckoutPanel, type MomoCardPlan } from '@/components/momo-checkout-panel';
+import { MomoLogo } from '@/components/momo-logo';
 import { NutreeLogo } from '@/components/nutree-logo';
+import { PaymentMethodChoice, type CheckoutPaymentMethod } from '@/components/payment-method-choice';
 import { stripNonAttributionParams } from '@/lib/analytics/attribution';
 import { useBrowserBack } from '@/lib/funnel/browser-back';
 import { identifyMetaUser } from '@/lib/analytics/meta-identity';
@@ -26,7 +29,8 @@ import { usePostcheckoutRedirect } from '@/lib/revenuecat/use-postcheckout-redir
 import { resolvePaywallPricing } from '@/lib/revenuecat/paywall-offer-state';
 import { buildRevenueCatPaywall, checkoutPackage, defaultPaywallPlan, SIX_MONTH_PLAN_ID, type PaywallOfferKind, type RevenueCatPaywall, type RevenueCatPaywallPlan } from '@/lib/revenuecat/paywall-plans';
 import { hasWelcomeVoucherBeenClaimed, markWelcomeVoucherClaimed } from '@/lib/revenuecat/welcome-voucher';
-import { clearCheckoutEmail, readCheckoutEmail } from '@/lib/revenuecat/checkout-email';
+import { clearCheckoutEmail, readCheckoutEmail, readCheckoutMethod, rememberCheckoutMethod } from '@/lib/revenuecat/checkout-email';
+import { isMomoEnabled, momoWeeksForPeriod } from '@/lib/payments/momo-checkout';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { formatWeight } from '@/lib/quiz/units';
 import { AppIncludesCard, GoalStrip, PlanDayCard, PlanGoalCard } from '@/components/plan/plan-overview';
@@ -79,6 +83,10 @@ const ATTRIBUTION_WAIT_MS = 2000;
 const CHECKOUT_WALLETS = process.env.NEXT_PUBLIC_CHECKOUT_WALLETS
   ? process.env.NEXT_PUBLIC_CHECKOUT_WALLETS.split(',').map((wallet) => wallet.trim()).filter(Boolean)
   : ['apple_pay', 'google_pay'];
+
+function MomoBadge() {
+  return <span className="inline-flex h-7 items-center gap-1 rounded-md border border-border-brand bg-white px-1.5 text-[0.74rem] font-extrabold text-[#a50064]"><MomoLogo size={18} />MoMo</span>;
+}
 
 function ApplePayBadge() {
   return (
@@ -247,6 +255,21 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
 
   const countryCode = initialCountryCode ?? (isLocalPreviewHost() ? getLocalPreviewCountry() : undefined);
   const resolvedCountryCode = normalizeCountryCode(countryCode) ?? 'VN';
+  // MoMo settles in VND only, so Vietnam's checkout sheet lists it (preselected) beside the card form. It pays the plan
+  // picked on the page once, at the card's price for it (the server reads that Paddle price); the popup checkout has no
+  // MoMo, and neither does any checkout while NEXT_PUBLIC_MOMO_ENABLED is off.
+  const momoAvailable = isMomoEnabled() && countryCode === 'VN' && INLINE_CHECKOUT;
+  const [chosenMethod, setChosenMethod] = useState<CheckoutPaymentMethod>('wallet');
+  const sheetMethod: CheckoutPaymentMethod = momoAvailable ? chosenMethod : 'card';
+  const sheetMethodRef = useRef(sheetMethod);
+  useEffect(() => {
+    sheetMethodRef.current = sheetMethod;
+  });
+  // A card checkout is recorded (ad InitiateCheckout, pending marker, checkout method) once its form shows.
+  const markCardShownRef = useRef<(() => void) | null>(null);
+  // Set while the browser leaves for MoMo, so the card checkout it abandons ends without the exit offer.
+  const leavingForMomoRef = useRef(false);
+  const [momoBusy, setMomoBusy] = useState(false);
   // English shows the price people pay as the price: no countdown, crossed-out price or "% off"
   // while the plans renew at the discounted price. Only the exit offer, which really ends, keeps a timer.
   const plainPricing = activeLocale === 'en';
@@ -540,6 +563,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     const isExitOffer = offer === 'exit';
     let watchPaddle = 0;
     let abandonTimer = 0;
+    // True once the card form has shown and been recorded (see markShown).
+    let cardShown = false;
     let stopWatchingPaddle = () => {};
     const applyUnfinishedPaddleDiscount = () => {
       stopWatchingPaddle();
@@ -547,23 +572,32 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       setBusy(false);
       clearPaywallCheckoutPending();
       // A background start the visitor never saw (or one replaced by another plan) ends quietly.
-      if (!run.shown || run.discarded) return;
+      if (!run.shown || run.discarded || leavingForMomoRef.current) return;
       if (isExitOffer || purchaseSucceededRef.current || isUserPurchased({ purchased, lead })) return;
-      trackEvent('revenuecat_checkout_cancelled', { plan: plan.id, paddle_opened: paddleOpenedRef.current });
+      if (cardShown) trackEvent('revenuecat_checkout_cancelled', { plan: plan.id, paddle_opened: paddleOpenedRef.current });
       applyExitOffer();
     };
     const rcPackage = checkoutPackage(plan, offer);
     const checkoutCommerce = firstPaymentCommerce(rcPackage.webBillingProduct);
     // What a shown checkout records, run on the tap for a background start.
     const markShown = () => {
+      if (cardShown) return;
+      cardShown = true;
+      // Post-checkout shows the card redemption-email guidance, not the hand-off of an earlier paid MoMo order.
+      rememberCheckoutMethod('paddle');
       trackEvent('revenuecat_checkout_started', { plan: plan.id, package_id: rcPackage.identifier, offer_kind: offer ?? 'original', offer_auto_applied: offer === 'welcome' && !hasWelcomeVoucherBeenClaimed(), country_code: countryCode ?? 'auto', ...checkoutCommerce });
       markPaywallCheckoutPending();
     };
+    // A Vietnamese buyer who stays on MoMo never sees this card checkout; it is recorded when they pick the card.
+    const showCard = () => {
+      if (sheetMethodRef.current === 'card') markShown();
+      else markCardShownRef.current = markShown;
+    };
     showRunRef.current = () => {
       run.shown = true;
-      markShown();
+      showCard();
     };
-    if (run.shown) markShown();
+    if (run.shown) showCard();
     // The attribution write goes first, once per customer: it and the purchase both create the new RevenueCat
     // customer, and run together one of them could fail (a first checkout start that worked on retry, details unsaved).
     const appUserId = purchasesRef.current.getAppUserId();
@@ -680,6 +714,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       checkoutInFlightRef.current = false;
       if (checkoutRunRef.current === run) checkoutRunRef.current = null;
       showRunRef.current = null;
+      markCardShownRef.current = null;
       setBusy(false);
       setCheckoutSheetOpen(false);
       setPrestarting(false);
@@ -693,8 +728,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
 
   const countdown = formatCountdown(secondsLeft);
   const persistedCorrelation = Boolean(lead && readPendingRedemptionCorrelation()?.leadId === lead.lead_id);
-  const displayedRedemption = redemption ?? (persistedCorrelation ? ({ kind: 'pending' } satisfies RedemptionHandoff) : lead?.status === 'payment_verified' ? ({ kind: 'email_sent' } satisfies RedemptionHandoff) : null);
-  const checkoutUnavailable = Boolean(displayedRedemption);
+  const momoPaid = readCheckoutMethod() === 'momo' && (lead?.status === 'payment_verified' || lead?.status === 'claimed');
+  const displayedRedemption = redemption ?? (persistedCorrelation ? ({ kind: 'pending' } satisfies RedemptionHandoff) : lead?.status === 'payment_verified' && !momoPaid ? ({ kind: 'email_sent' } satisfies RedemptionHandoff) : null);
+  const checkoutUnavailable = Boolean(displayedRedemption) || momoPaid;
   const selectedLabel = selected?.label[activeLocale] ?? '';
   const renewalCadence = selected?.billingLabel[activeLocale].toLowerCase() ?? '';
   const isOriginalPricing = offerKind === 'original';
@@ -798,6 +834,17 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     requestCheckout();
   };
 
+  useEffect(() => {
+    if (!checkoutSheetOpen || sheetMethod !== 'card' || !markCardShownRef.current) return;
+    markCardShownRef.current();
+    markCardShownRef.current = null;
+  }, [checkoutSheetOpen, sheetMethod]);
+  useEffect(() => {
+    const restored = (event: PageTransitionEvent) => { if (event.persisted) leavingForMomoRef.current = false; };
+    window.addEventListener('pageshow', restored);
+    return () => window.removeEventListener('pageshow', restored);
+  }, []);
+
   // A plan link with start=1 opens checkout once, as soon as the prices are in.
   const autostartRef = useRef(false);
   const requestCheckoutRef = useRef(requestCheckout);
@@ -893,6 +940,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     : welcomeOfferActive
       ? `${copy.paywall.discountTag(WELCOME_DISCOUNT_PERCENT)} · Nutree Premium`
       : (activeLocale === 'vi' ? 'Ưu đãi đã hết hạn' : 'Offer expired');
+  const headerNote = isOriginalPricing ? copy.paywall.standardTimer : null;
+  const headerHighlight = exitOfferActive;
+  const headerCtaDisabled = !pricesReady || busy || checkoutUnavailable;
   const timerLabel = isOriginalPricing
     ? copy.paywall.standardTimer
     : isExitOfferMode
@@ -939,6 +989,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         {error && <p role="alert" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-error-brand">{error}</p>}
         {displayedRedemption?.kind === 'pending' && <p role="status" className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-brand">{activeLocale === 'vi' ? 'Đang xác minh thanh toán của bạn…' : 'Verifying your payment…'}</p>}
         {displayedRedemption?.kind === 'recovery' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Thanh toán đã được ghi nhận' : 'Payment received'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'Chúng tôi không thể xác minh liên kết kích hoạt. Vui lòng kiểm tra email thanh toán của bạn hoặc liên hệ hỗ trợ.' : 'We could not verify your activation link. Check your purchase email or contact support.'}</p></section>}
+        {momoPaid && <section role="status" className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{copy.momoCheckout.paidHeadline}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{copy.momoCheckout.paidBody}</p></section>}
         {displayedRedemption?.kind === 'email_sent' && <section className="mt-5 rounded-2xl bg-white px-5 py-5 text-center shadow-[0_18px_46px_rgb(23_69_58_/_0.08)]"><h2 className="text-lg font-extrabold text-forest">{activeLocale === 'vi' ? 'Kiểm tra email của bạn' : 'Check your email'}</h2><p className="mt-2 text-sm leading-relaxed text-muted-brand">{activeLocale === 'vi' ? 'Nutree đã gửi liên kết đến email thanh toán. Mở liên kết trên điện thoại để đăng nhập với kế hoạch của bạn.' : 'We sent a link to your checkout email. Open it on your phone to sign in with your plan.'}</p></section>}
     </>
   );
@@ -968,7 +1019,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
             </>
           )}
         </div>
-        <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={onHeaderCta} className={cn('min-h-12 shrink-0 rounded-[1rem] px-4 text-[0.86rem] font-extrabold text-white transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50', exitOfferActive ? 'bg-[#C2410C] shadow-[0_10px_24px_rgb(194_65_12_/_0.25)] hover:bg-[#9A3412]' : 'cta-premium', offerRunning && !busy && 'cta-attention')}><span>{busy ? copy.paywall.loading : funnelPaywall.topCta}</span></button>
+        <button type="button" disabled={headerCtaDisabled} onClick={onHeaderCta} className={cn('min-h-12 shrink-0 rounded-[1rem] px-4 text-[0.86rem] font-extrabold text-white transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50', exitOfferActive ? 'bg-[#C2410C] shadow-[0_10px_24px_rgb(194_65_12_/_0.25)] hover:bg-[#9A3412]' : 'cta-premium', offerRunning && !busy && 'cta-attention')}><span>{busy ? copy.paywall.loading : funnelPaywall.topCta}</span></button>
       </div>
     </div>
   );
@@ -995,6 +1046,20 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const sheetDiscountLabel = paddleFull != null && paddleTotals
     ? (paddleFull > paddleTotals.totalAmount ? formatMajor(paddleFull - paddleTotals.totalAmount, paddleTotals.currencyCode) : null)
     : sheetDiscount;
+  // MoMo uses the card's numbers for the same plan: its package, plan line, full price, offer discount and first payment.
+  const dong = (price: { amountMicros: number; currency: string } | null | undefined) => (price?.currency === 'VND' ? Math.round(price.amountMicros / 1_000_000) : null);
+  const momoWeeks = momoWeeksForPeriod(selectedPeriod);
+  const momoAmount = dong(sheetOfferPrice);
+  const momoPlan: MomoCardPlan | null = selected && momoWeeks != null && momoAmount != null
+    ? {
+        packageId: checkoutPackage(selected, checkoutOffer).identifier,
+        label: funnelPaywall.checkout.planLine(plainPricing ? planName(selected) : selected.label[activeLocale]),
+        weeks: momoWeeks,
+        amount: momoAmount,
+        fullAmount: dong(sheetFullPrice) ?? momoAmount,
+        discountLabel: sheetDiscount ? (checkoutOffer === 'exit' ? funnelPaywall.checkout.offerLine(sheetPercent) : funnelPaywall.checkout.discountLine(sheetPercent)) : null,
+      }
+    : null;
   // Paddle's total wins once it arrives (it includes any tax); until then, the offer price.
   const sheetTotalLabel = paddleTotals ? formatMajor(paddleTotals.totalAmount, paddleTotals.currencyCode) : (sheetOfferPrice?.formattedPrice ?? originalTotal);
   const checkoutSheet = (
@@ -1009,17 +1074,42 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
       aria-labelledby="checkout-sheet-title"
     >
       <div className="flex min-h-full items-center justify-center px-3 py-4">
-      <div className="w-full max-w-md rounded-[1.75rem] bg-[#f2f4f3] px-5 pb-5 pt-3 shadow-[0_24px_60px_rgb(9_22_18_/_0.3)] animate-soft-enter">
+      <div className="relative w-full max-w-md rounded-[1.75rem] bg-[#f2f4f3] px-5 pb-5 pt-3 shadow-[0_24px_60px_rgb(9_22_18_/_0.3)] animate-soft-enter">
         <div className="relative flex min-h-12 items-center justify-center">
           {!checkoutPaid && <button ref={closeButtonRef} type="button" onClick={closeCheckoutSheet} aria-label={funnelPaywall.checkout.close} className="absolute left-[-0.6rem] top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-charcoal transition hover:bg-black/[0.05] focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">
             <Icon name="close" className="h-5 w-5" />
           </button>}
           <h2 id="checkout-sheet-title" className="text-[1.2rem] font-extrabold text-charcoal">{funnelPaywall.checkout.title}</h2>
         </div>
+        {/* Vietnam picks how to pay first, then sees that method's order and button: MoMo's pass or the card form. */}
+        {momoAvailable && (
+          <>
+            <h3 className="mt-1 text-center text-[1.02rem] font-extrabold text-charcoal">{funnelPaywall.checkout.methodTitle}</h3>
+            <PaymentMethodChoice value={sheetMethod} copy={copy.momoCheckout} disabled={momoBusy} onChange={(method) => { setChosenMethod(method); trackEvent('payment_method_selected', { provider: method === 'card' ? 'paddle' : 'momo', method }); }} />
+          </>
+        )}
+        {checkoutSheetOpen && sheetMethod !== 'card' && lead && (
+          <MomoCheckoutPanel
+            leadId={lead.lead_id}
+            locale={activeLocale}
+            copy={copy.momoCheckout}
+            totalLabel={funnelPaywall.checkout.total}
+            plan={momoPlan}
+            method={sheetMethod}
+            disabled={checkoutUnavailable}
+            onBusyChange={setMomoBusy}
+            onLeave={() => {
+              leavingForMomoRef.current = true;
+              clearPaywallCheckoutPending();
+            }}
+          />
+        )}
+        {/* The card checkout stays laid out while MoMo is picked (Paddle keeps its frame sized), but hidden and out of the flow. */}
+        <div className={cn(sheetMethod !== 'card' && 'invisible absolute inset-x-5 top-0 h-0 overflow-hidden')} aria-hidden={sheetMethod !== 'card' || undefined}>
         {/* The order as plain lines, like a receipt: the plan at full price, the discount, then what today's charge covers.
             Once Paddle reports its totals, the total is Paddle's own figure, tax included. */}
         {selected && (
-          <div className="mt-2 text-[0.95rem] text-slate-brand">
+          <div className={cn('text-[0.95rem] text-slate-brand', momoAvailable ? 'mt-4' : 'mt-2')}>
             <p className="flex justify-between gap-3 py-1"><span>{funnelPaywall.checkout.planLine(plainPricing ? planName(selected) : selected.label[activeLocale])}</span><span className="tabular-nums">{sheetFullLabel}</span></p>
             {sheetDiscount && (
               <p className="flex justify-between gap-3 py-1"><span>{checkoutOffer === 'exit' ? funnelPaywall.checkout.offerLine(sheetPercent) : funnelPaywall.checkout.discountLine(sheetPercent)}</span>{sheetDiscountLabel && <span className="font-extrabold tabular-nums text-[#e5484d]">−{sheetDiscountLabel}</span>}</p>
@@ -1037,7 +1127,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
             <p className="mt-2.5 text-center text-[0.76rem] leading-relaxed text-muted-brand">{funnelPaywall.checkout.futurePayments}</p>
           </div>
         )}
-        <h3 className="mt-4 text-center text-[1.02rem] font-extrabold text-charcoal">{funnelPaywall.checkout.methodTitle}</h3>
+        {!momoAvailable && <h3 className="mt-4 text-center text-[1.02rem] font-extrabold text-charcoal">{funnelPaywall.checkout.methodTitle}</h3>}
         {/* Paddle's express form (one-tap wallets, then "Pay another way") sits in a white card, as a payment box would.
             Paddle's frame needs 312px, so the card has no side padding of its own and reaches into the sheet's
             (Paddle insets its buttons itself): 316px of frame at 360px wide, 346px at 390px.
@@ -1050,6 +1140,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
           </div>
         </div>
         <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[0.76rem] text-muted-brand"><Icon name="lock" className="h-3.5 w-3.5 shrink-0" />{funnelPaywall.checkout.ssl}</p>
+        </div>
       </div>
       </div>
     </div>
@@ -1154,6 +1245,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         <p className="mt-2.5 text-center text-[0.72rem] font-medium leading-relaxed text-muted-brand">{renewalLine}</p>
         <p className="mt-3 flex items-center justify-center gap-1 text-[0.7rem] font-bold text-muted-brand"><Icon name="lock" className="h-3.5 w-3.5" />{funnelPaywall.payWith}</p>
         <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1.5">
+          {momoAvailable && <MomoBadge />}
           {checkoutWallets.includes('apple_pay') && <ApplePayBadge />}
           {checkoutWallets.includes('google_pay') && <GooglePayBadge />}
           <span className="inline-flex h-7 items-center rounded-md border border-border-brand bg-white px-2 text-[0.74rem] font-extrabold italic text-[#003087]">Pay<span className="text-[#009cde]">Pal</span></span>
@@ -1176,11 +1268,11 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     <ConversionShell
       hideLogo
       stickyHeader={plainPricing ? englishHeader : (
-        <div className={cn('fixed left-1/2 top-0 z-50 w-full max-w-lg -translate-x-1/2 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-[0_12px_34px_rgb(16_39_32_/_0.12)] backdrop-blur-xl', exitOfferActive ? 'border-[#FDBA74] bg-[#FFF7ED]/95 supports-[backdrop-filter]:bg-[#FFF7ED]/85' : 'border-white/55 bg-white/70 supports-[backdrop-filter]:bg-white/60')}>
+        <div className={cn('fixed left-1/2 top-0 z-50 w-full max-w-lg -translate-x-1/2 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-[0_12px_34px_rgb(16_39_32_/_0.12)] backdrop-blur-xl', headerHighlight ? 'border-[#FDBA74] bg-[#FFF7ED]/95 supports-[backdrop-filter]:bg-[#FFF7ED]/85' : 'border-white/55 bg-white/70 supports-[backdrop-filter]:bg-white/60')}>
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
             <Link href={`/survey/${activeLocale}`} aria-label="Nutree" className="block h-11 w-11 shrink-0"><NutreeLogo priority className="h-11 w-11" /></Link>
-            <div><p className={cn('text-[0.74rem] font-bold leading-tight', exitOfferActive ? 'text-[#9A3412]' : 'text-muted-brand')}>{headerOfferLabel}</p>{isOriginalPricing ? <p className="mt-0.5 text-[0.92rem] font-extrabold leading-tight text-forest">{copy.paywall.standardTimer}</p> : <strong aria-live="polite" className={cn('mt-0.5 inline-flex rounded-md px-1.5 py-0.5 text-[1.2rem] font-extrabold leading-none tracking-[-0.035em] tabular-nums', exitOfferActive ? 'bg-[#C2410C] text-white' : 'text-[#111418]')}>{countdown}</strong>}</div>
-            <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={onHeaderCta} className={cn('min-h-11 rounded-[1rem] px-3.5 text-[0.78rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-[0.86rem]', exitOfferActive ? 'bg-[#C2410C] hover:bg-[#9A3412]' : 'bg-forest hover:bg-emerald-deep')}>{busy ? copy.paywall.loading : copy.paywall.topCta}</button>
+            <div><p className={cn('text-[0.74rem] font-bold leading-tight', headerHighlight ? 'text-[#9A3412]' : 'text-muted-brand')}>{headerOfferLabel}</p>{headerNote ? <p className="mt-0.5 text-[0.92rem] font-extrabold leading-tight text-forest">{headerNote}</p> : <strong aria-live="polite" className={cn('mt-0.5 inline-flex rounded-md px-1.5 py-0.5 text-[1.2rem] font-extrabold leading-none tracking-[-0.035em] tabular-nums', headerHighlight ? 'bg-[#C2410C] text-white' : 'text-[#111418]')}>{countdown}</strong>}</div>
+            <button type="button" disabled={headerCtaDisabled} onClick={onHeaderCta} className={cn('min-h-11 rounded-[1rem] px-3.5 text-[0.78rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-[0.86rem]', headerHighlight ? 'bg-[#C2410C] hover:bg-[#9A3412]' : 'bg-forest hover:bg-emerald-deep')}>{busy ? copy.paywall.loading : copy.paywall.topCta}</button>
           </div>
         </div>
       )}
@@ -1207,6 +1299,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
           {paywall.recommendationNote?.[activeLocale] && <p className="mt-5 text-[0.94rem] leading-relaxed text-slate-brand">{paywall.recommendationNote[activeLocale]}</p>}
             <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta()}</button>
           <p className="mt-4 text-center text-sm leading-relaxed text-muted-brand">{priceSummary}</p>
+          {/* The methods themselves are picked in the checkout sheet; this line only says MoMo is one of them. */}
+          {momoAvailable && <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[0.74rem] font-bold text-muted-brand"><MomoLogo size={18} />{copy.momoCheckout.accepted}</p>}
         </section>
 
         <div className="mt-5 sm:mt-6">{guaranteeRow(copy.paywall.guaranteeTitle, copy.paywall.guaranteeBody)}</div>

@@ -8,11 +8,11 @@ import { BackgroundBeams } from '@/components/ui/background-beams';
 import { ExitIntentModal } from '@/components/exit-intent-modal';
 import { GoalLanguageMenu } from '@/components/goal-entry-footer';
 import { trackStepViewed } from '@/lib/analytics/track';
-import { useCopy } from '@/lib/copy/use-copy';
+import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { useBrowserBack } from '@/lib/funnel/browser-back';
 import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
 import { goToPreviousQuizStep } from '@/lib/quiz/navigation';
-import { QUIZ_STEPS, VALUE_TOUR_STEPS, stepIndex, type QuizStep } from '@/lib/quiz/steps';
+import { onboardingStepCount, stepIndex, type QuizStep } from '@/lib/quiz/steps';
 import { useHydrated } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 
@@ -42,8 +42,9 @@ export function QuizShell({
 }) {
   const router = useRouter();
   const copy = useCopy();
+  const locale = useLocale();
   const hydrated = useHydrated();
-  const totalSteps = QUIZ_STEPS.length + VALUE_TOUR_STEPS.length;
+  const totalSteps = onboardingStepCount(locale);
   const currentStep = progressIndex ?? stepIndex(step);
   const hideBack = SKIP_LANDING && step === 'goal' && progressIndex == null && !onBack;
   const goBack = () => (onBack ? onBack() : goToPreviousQuizStep(router, step));

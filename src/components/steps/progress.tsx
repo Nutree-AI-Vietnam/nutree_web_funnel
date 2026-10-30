@@ -56,6 +56,61 @@ export function ProgressStep() {
       : copy.progress.planPaceFallback;
 
   const timeline = goalTimeline(data);
+  // Vietnamese keeps the start, halfway and goal chart under the goal-date headline, at the plan's real pace.
+  if (timeline && locale === 'vi' && projection.kind === 'weight') {
+    const name = data.name?.trim();
+    const target = formatWeight(timeline.targetKg, system, locale);
+    const date = formatGoalDate(timeline.date, locale);
+    const columns = [
+      { weight: projection.current, label: copy.progress.startLabel, className: 'text-forest' },
+      { weight: projection.midpoint, label: copy.progress.midpointLabel(projection.days), className: 'text-slate-brand' },
+      { weight: projection.target, label: copy.progress.goalLabel, className: 'text-teal-brand' },
+    ];
+    return (
+      <QuizStepFrame title={name ? copy.funnel.progress.headline(name, target, date) : copy.funnel.progress.headlineNoName(target, date)}>
+        <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/86 p-4 shadow-[0_6px_16px_rgb(26_71_57_/_0.07)]">
+          <div aria-hidden="true" className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-teal-brand/15 blur-2xl" />
+          <svg viewBox="0 0 320 170" className="relative h-44 w-full" role="img" aria-label={chartLabel}>
+            <defs>
+              <linearGradient id="progress-fill" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0" stopColor="#1fa892" stopOpacity="0.24" />
+                <stop offset="1" stopColor="#1fa892" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {[34, 72, 110, 148].map((y) => (
+              <path key={y} d={`M24 ${y}H296`} stroke="#d9e7e1" strokeWidth="1.5" strokeDasharray="4 5" />
+            ))}
+            <path d={chart.area} fill="url(#progress-fill)" />
+            <motion.path
+              d={chart.line}
+              fill="none"
+              stroke="#238d78"
+              strokeWidth="5"
+              strokeLinecap="round"
+              initial={reduce ? false : { pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={reduce ? { duration: 0 } : { duration: 1.1, ease: 'easeOut' }}
+            />
+            <circle cx="24" cy={chart.startY} r="7" fill="#238d78" stroke="white" strokeWidth="3" />
+            <circle cx="296" cy={chart.endY} r="7" fill="#238d78" stroke="white" strokeWidth="3" />
+          </svg>
+          <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+            {columns.map((column) => (
+              <div key={column.label}>
+                <div className={`whitespace-nowrap text-lg font-extrabold ${column.className}`}>{formatWeight(column.weight, system, locale)}</div>
+                <div className="text-xs font-semibold text-muted-brand">{column.label}</div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-center text-sm font-semibold leading-relaxed text-muted-brand">{copy.progress.pace(projection.days)}</p>
+        </section>
+        <p className="text-xs italic leading-relaxed text-muted-brand">{copy.progress.disclaimer}</p>
+        <div className="mt-auto pt-2">
+          <PrimaryButton onClick={() => goToNextQuizStep(router, 'progress')}>{copy.progress.cta}</PrimaryButton>
+        </div>
+      </QuizStepFrame>
+    );
+  }
   if (timeline) {
     const funnel = copy.funnel.progress;
     const target = formatWeight(timeline.targetKg, system, locale);
@@ -117,7 +172,7 @@ export function ProgressStep() {
           <circle cx="24" cy={chart.startY} r="7" fill="#238d78" stroke="white" strokeWidth="3" />
           <circle cx="296" cy={chart.endY} r="7" fill="#238d78" stroke="white" strokeWidth="3" />
           <text x="24" y="169" textAnchor="middle" className="fill-slate-brand text-[11px]">{copy.progress.startLabel}</text>
-          <text x="160" y="169" textAnchor="middle" className="fill-slate-brand text-[11px]">{projection.kind === 'weight' ? copy.progress.monthLabel : copy.progress.habitLabel}</text>
+          <text x="160" y="169" textAnchor="middle" className="fill-slate-brand text-[11px]">{projection.kind === 'weight' ? copy.progress.midpointLabel(projection.days) : copy.progress.habitLabel}</text>
           <text x="296" y="169" textAnchor="middle" className="fill-slate-brand text-[11px]">{projection.kind === 'weight' ? copy.progress.goalLabel : copy.progress.nextLabel}</text>
         </svg>
         {projection.kind === 'weight' ? (
@@ -128,7 +183,7 @@ export function ProgressStep() {
             </div>
             <div>
               <div className="text-lg font-extrabold text-slate-brand">{formatWeight(projection.midpoint, system, locale)}</div>
-              <div className="text-xs font-semibold text-muted-brand">{copy.progress.monthNumber(2)}</div>
+              <div className="text-xs font-semibold text-muted-brand">{copy.progress.midpointLabel(projection.days)}</div>
             </div>
             <div>
               <div className="text-lg font-extrabold text-teal-brand">{formatWeight(projection.target, system, locale)}</div>
