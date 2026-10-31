@@ -199,7 +199,7 @@ export function TrustCard({ className }: { className?: string }) {
   );
 }
 
-export const TRUST_AVATAR_IMAGES = ['/images/trust-female.webp', '/images/trust-aiony.webp', '/images/trust-good-faces.webp', '/images/trust-ali.webp', '/images/trust-jurica.webp'] as const;
+export const TRUST_AVATAR_IMAGES = ['/images/illustrations/trust-1.jpg', '/images/illustrations/trust-2.jpg', '/images/illustrations/trust-3.jpg'] as const;
 
 /** What the store ratings say, for screen readers: "4.7 out of 5 on the App Store, 4.8 out of 5 on Google Play". */
 export function storeRatingsLine(rating: Copy['funnel']['rating']): string {

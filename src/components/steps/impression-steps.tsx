@@ -40,7 +40,7 @@ export function WelcomeStep() {
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         className="relative h-[9.5rem] shrink-0 overflow-hidden rounded-[1.7rem] shadow-[0_6px_16px_rgb(23_69_58_/_0.07)]"
       >
-        <Image src="/images/welcome-meal.webp" alt="" fill priority sizes="(max-width: 512px) 100vw, 512px" className="object-cover" />
+        <Image src="/images/illustrations/welcome-meal.jpg" alt="" fill priority sizes="(max-width: 512px) 100vw, 512px" className="object-cover" />
         <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-forest/35 via-transparent to-transparent" />
       </motion.div>
       <motion.h1

@@ -72,7 +72,7 @@ function SurveyPageContent({ language, countryCode }: { language: Locale; countr
     startQuizFromLanding();
     if (adGoal) {
       useQuizStore.getState().setData({ fitness_goal: adGoal });
-      useQuizStore.getState().setCurrentStep('welcome');
+      useQuizStore.getState().setCurrentStep('age_group');
     }
   }, [adGoal, hydrated, screen]);
 

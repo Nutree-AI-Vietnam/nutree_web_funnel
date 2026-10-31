@@ -1,6 +1,7 @@
 /** Final web funnel order. Keep slugs stable because persisted quiz state uses them. */
 export const QUIZ_STEPS = [
   'goal',
+  'age_group',
   'welcome',
   'challenges',
   'motivation',
@@ -44,6 +45,7 @@ export type QuizChapter = 'intent' | 'body' | 'routine' | 'plan';
 
 export const STEP_CHAPTERS: Record<QuizStep, QuizChapter> = {
   goal: 'intent',
+  age_group: 'intent',
   name_ask: 'intent',
   welcome: 'intent',
   challenges: 'intent',
@@ -71,6 +73,7 @@ export const STEP_CHAPTERS: Record<QuizStep, QuizChapter> = {
 /** Screens that ask the visitor something, for the question count on the welcome screen. */
 const QUESTION_STEPS: readonly QuizStep[] = [
   'goal',
+  'age_group',
   'name_ask',
   'challenges',
   'motivation',

@@ -177,7 +177,7 @@ describe('home quiz entry', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: '1–5 kg' }));
-    expect(await screen.findByRole('heading', { name: '3 phút để có kế hoạch hợp với bạn' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Bạn thuộc nhóm tuổi nào?' })).toBeTruthy();
     expect(useQuizStore.getState().data.fitness_goal).toBe('cut');
     expect(screen.getByRole('button', { name: 'Quay lại' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Tiếng Việt' })).toBeNull();

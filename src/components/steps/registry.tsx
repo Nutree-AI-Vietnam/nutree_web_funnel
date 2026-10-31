@@ -20,6 +20,7 @@ import { TdeeTargetsStep } from './tdee-targets';
 import { NameAskStep } from './text-input-step';
 import { TrainingDaysStep, TrainingDurationStep } from './training-days';
 import { ProgressStep } from './progress';
+import { AgeGroupStep } from './age-group-step';
 import { ChallengeStep } from './challenge-step';
 import { ConfidenceStep } from './confidence-step';
 import { GoalChoice } from './goal-choice';
@@ -39,6 +40,7 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
       </>
     );
   },
+  age_group: () => <AgeGroupStep />,
   name_ask: () => <NameAskStep step="name_ask" />,
   welcome: () => <WelcomeStep />,
   not_alone: () => <NotAloneStep />,

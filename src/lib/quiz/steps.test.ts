@@ -5,6 +5,7 @@ describe('quiz steps', () => {
   it('keeps one input or decision per quiz screen', () => {
     expect(QUIZ_STEPS).toEqual([
       'goal',
+      'age_group',
       'welcome',
       'challenges',
       'motivation',
@@ -37,7 +38,8 @@ describe('quiz steps', () => {
   });
 
   it('navigates forward through quiz screens without creating subroutes', () => {
-    expect(nextStep('goal')).toBe('welcome');
+    expect(nextStep('goal')).toBe('age_group');
+    expect(nextStep('age_group')).toBe('welcome');
     expect(nextStep('welcome')).toBe('challenges');
     expect(nextStep('reflection')).toBe('name_ask');
     expect(nextStep('name_ask')).toBe('sex');
@@ -54,11 +56,12 @@ describe('quiz steps', () => {
   });
 
   it('counts the questions the welcome screen promises', () => {
-    expect(questionCount()).toBe(16);
+    expect(questionCount()).toBe(17);
   });
 
   it('navigates backward, landing page before first screen', () => {
-    expect(previousStep('welcome')).toBe('goal');
+    expect(previousStep('welcome')).toBe('age_group');
+    expect(previousStep('age_group')).toBe('goal');
     expect(previousStep('name_ask')).toBe('reflection');
     expect(previousStep('motivation')).toBe('challenges');
     expect(previousStep('goal')).toBeNull();
@@ -71,8 +74,8 @@ describe('quiz steps', () => {
 
   it('exposes 1-based progress index', () => {
     expect(stepIndex('goal')).toBe(1);
-    expect(stepIndex('height')).toBe(9);
-    expect(stepIndex('result')).toBe(21);
+    expect(stepIndex('height')).toBe(10);
+    expect(stepIndex('result')).toBe(22);
     expect(STEP_CHAPTERS.training_days).toBe('routine');
   });
 

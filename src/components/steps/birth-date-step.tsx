@@ -13,12 +13,19 @@ import { QuizStepFrame } from './quiz-step-frame';
 /** Picker start for a new quiz: a typical adult age, so taps-through do not produce a teen plan. */
 const DEFAULT_AGE = 25;
 
+const AGE_GROUP_START = { '18_29': 24, '30_39': 34, '40_49': 44, '50_plus': 55 } as const;
+
+function defaultAgeForGroup(group: keyof typeof AGE_GROUP_START | undefined): number {
+  return group ? AGE_GROUP_START[group] : DEFAULT_AGE;
+}
+
 export function BirthDateStep() {
   const router = useRouter();
   const copy = useCopy();
   const savedAge = useQuizStore((state) => state.data.age);
+  const ageGroup = useQuizStore((state) => state.data.age_group);
   const setData = useQuizStore((state) => state.setData);
-  const [age, setAge] = useState(String(savedAge ?? DEFAULT_AGE));
+  const [age, setAge] = useState(String(savedAge ?? defaultAgeForGroup(ageGroup)));
   const [attempted, setAttempted] = useState(false);
   const parsedAge = parseMetricDraft(age);
   const valid = parsedAge != null && validateAge(parsedAge);

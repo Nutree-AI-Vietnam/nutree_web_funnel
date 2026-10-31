@@ -247,6 +247,15 @@ export const vi = {
       { key: 'female', label: 'Nữ' },
     ],
   },
+  ageGroup: {
+    question: 'Bạn thuộc nhóm tuổi nào?',
+    options: [
+      { key: '18_29', label: '18–29', image: '/images/illustrations/age-18-29.jpg' },
+      { key: '30_39', label: '30–39', image: '/images/illustrations/age-30-39.jpg' },
+      { key: '40_49', label: '40–49', image: '/images/illustrations/age-40-49.jpg' },
+      { key: '50_plus', label: '50+', image: '/images/illustrations/age-50-plus.jpg' },
+    ],
+  },
   age: {
     question: 'Bạn bao nhiêu tuổi?',
     label: 'Tuổi',
