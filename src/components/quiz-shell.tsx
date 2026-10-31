@@ -98,7 +98,7 @@ export function QuizShell({
           <div aria-hidden="true" className="min-w-11" />
         )}
       </div>
-      {step !== 'goal' && (
+      {step !== 'goal' && step !== 'welcome' && (
         <div
           role="progressbar"
           aria-label={copy.common.progress}

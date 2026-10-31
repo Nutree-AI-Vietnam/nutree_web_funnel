@@ -1,11 +1,11 @@
 /** Final web funnel order. Keep slugs stable because persisted quiz state uses them. */
 export const QUIZ_STEPS = [
   'goal',
-  'name_ask',
   'welcome',
   'challenges',
   'motivation',
   'reflection',
+  'name_ask',
   'sex',
   'age',
   'height',

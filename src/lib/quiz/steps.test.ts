@@ -5,11 +5,11 @@ describe('quiz steps', () => {
   it('keeps one input or decision per quiz screen', () => {
     expect(QUIZ_STEPS).toEqual([
       'goal',
-      'name_ask',
       'welcome',
       'challenges',
       'motivation',
       'reflection',
+      'name_ask',
       'sex',
       'age',
       'height',
@@ -37,8 +37,10 @@ describe('quiz steps', () => {
   });
 
   it('navigates forward through quiz screens without creating subroutes', () => {
-    expect(nextStep('goal')).toBe('name_ask');
-    expect(nextStep('name_ask')).toBe('welcome');
+    expect(nextStep('goal')).toBe('welcome');
+    expect(nextStep('welcome')).toBe('challenges');
+    expect(nextStep('reflection')).toBe('name_ask');
+    expect(nextStep('name_ask')).toBe('sex');
     expect(nextStep('diet')).toBe('step_goal');
     expect(nextStep('step_goal')).toBe('not_alone');
     expect(nextStep('not_alone')).toBe('calculating');
@@ -56,7 +58,8 @@ describe('quiz steps', () => {
   });
 
   it('navigates backward, landing page before first screen', () => {
-    expect(previousStep('name_ask')).toBe('goal');
+    expect(previousStep('welcome')).toBe('goal');
+    expect(previousStep('name_ask')).toBe('reflection');
     expect(previousStep('motivation')).toBe('challenges');
     expect(previousStep('goal')).toBeNull();
   });

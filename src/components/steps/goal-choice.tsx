@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { OptionCard } from '@/components/option-card';
+import { StoreRatings, storeRatingsLine } from '@/components/value-tour/value-tour-demos';
 import { useCopy } from '@/lib/copy/use-copy';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
@@ -76,7 +77,17 @@ export function GoalChoice() {
           />
         ))}
       </div>
-      <button type="button" onClick={() => setOther(true)} className="mt-2 min-h-11 w-full text-center text-sm font-semibold text-muted-brand underline decoration-muted-brand/40 underline-offset-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20">
+      <p
+        role="img"
+        aria-label={`${storeRatingsLine(c.funnel.rating)}. ${c.funnel.rating.countValue} ${c.funnel.rating.chose}`}
+        className="mx-auto mt-1 flex w-fit max-w-full flex-col items-center rounded-full bg-white px-3 py-2 text-center shadow-[0_6px_16px_rgb(23_69_58_/_0.06)]"
+      >
+        <StoreRatings className="text-[0.8rem]" />
+        <span aria-hidden="true" className="mt-1 text-[0.75rem] font-semibold leading-snug text-muted-brand">
+          {c.funnel.rating.countValue} {c.funnel.rating.chose}
+        </span>
+      </p>
+      <button type="button" onClick={() => setOther(true)} className="min-h-11 w-full text-center text-sm font-semibold text-muted-brand underline decoration-muted-brand/40 underline-offset-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20">
         {c.goal.otherGoals}
       </button>
     </QuizStepFrame>

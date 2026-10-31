@@ -67,10 +67,10 @@ describe('quiz start navigation', () => {
 
   it('steps back inside the quiz without restarting', () => {
     useQuizStore.getState().setFunnelScreen('quiz');
-    useQuizStore.getState().setCurrentStep('name_ask');
+    useQuizStore.getState().setCurrentStep('welcome');
     useQuizStore.getState().setData({ fitness_goal: 'cut' });
 
-    goToPreviousQuizStep(router, 'name_ask');
+    goToPreviousQuizStep(router, 'welcome');
 
     expect(useQuizStore.getState().funnelScreen).toBe('quiz');
     expect(useQuizStore.getState().currentStep).toBe('goal');
