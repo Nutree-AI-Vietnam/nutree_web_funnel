@@ -27,7 +27,7 @@ export function ReflectionStep() {
         transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
         className="relative h-[11rem] shrink-0 overflow-hidden rounded-[1.7rem] shadow-[0_6px_16px_rgb(23_69_58_/_0.07)]"
       >
-        <Image src="/images/illustrations/reflection-walk.jpg" alt="" fill priority sizes="(max-width: 512px) 100vw, 512px" className="object-cover object-[70%_30%]" />
+        <Image src="/images/illustrations/reflection-walk.jpg" alt="" fill priority sizes="(max-width: 512px) 100vw, 512px" className="object-cover object-center" />
       </motion.div>
       <p className="ph-mask max-w-[22rem] text-[1.7rem] font-extrabold leading-[1.2] tracking-tight text-forest [text-wrap:balance]">
         {reflectionHeadline(data, copy)}
