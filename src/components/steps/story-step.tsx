@@ -7,12 +7,11 @@ import { OptionCard } from '@/components/option-card';
 import { PrimaryButton } from '@/components/primary-button';
 import { useCopy } from '@/lib/copy/use-copy';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
-import type { QuizStep } from '@/lib/quiz/steps';
 import { useQuizStore } from '@/lib/quiz/store';
 import { QuizStepFrame } from './quiz-step-frame';
 
-type StoryKey = 'aim' | 'reason' | 'tried' | 'obstacle' | 'occasion' | 'diet_style' | 'weekend' | 'trigger' | 'focus';
-type BeatKey = 'comeback' | 'with_you' | 'ready';
+type StoryKey = 'aim' | 'tried' | 'obstacle' | 'occasion' | 'diet_style' | 'weekend' | 'trigger';
+type BeatKey = 'with_you';
 
 /** One tap question. The answer stays in the browser; calories do not use it. */
 export function StoryStep({ step }: { step: StoryKey }) {
@@ -87,7 +86,7 @@ export function BeatStep({ step }: { step: BeatKey }) {
         <p className="max-w-[20rem] text-[0.95rem] font-semibold leading-relaxed text-slate-brand">{block.body}</p>
       </div>
       <div className="mt-auto">
-        <PrimaryButton onClick={() => goToNextQuizStep(router, step as QuizStep)}>{block.cta}</PrimaryButton>
+        <PrimaryButton onClick={() => goToNextQuizStep(router, step)}>{block.cta}</PrimaryButton>
       </div>
     </QuizStepFrame>
   );
