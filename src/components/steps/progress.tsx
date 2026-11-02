@@ -64,15 +64,14 @@ export function ProgressStep() {
     const win = firstWin(timeline, system, locale);
     const rate = system === 'imperial' ? `${(timeline.kgPerWeek / 0.45359237).toFixed(1)} lb` : formatWeight(timeline.kgPerWeek, 'metric', locale);
     return (
-      <QuizStepFrame title={name ? funnel.headline(name, target, date) : funnel.headlineNoName(target, date)}>
-        <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/86 p-4 shadow-[0_6px_16px_rgb(26_71_57_/_0.07)]">
+      <QuizStepFrame className="pt-6" title={name ? funnel.headline(name, target, date) : funnel.headlineNoName(target, date)}>
+        <section className="rounded-[1.6rem] bg-white px-4 pb-4 pt-4 shadow-[0_8px_24px_rgb(23_69_58_/_0.06)]">
           <GoalChart timeline={timeline} system={system} nowLabel={copy.funnel.plan.now} stageLabel={funnel.stage} goalLabel={formatGoalDate(timeline.date, locale, false)} goalCaption={funnel.goal} animate />
-          {/* The first win, under the path once the goal dot lands: close, small and believable. */}
           <motion.p
             className="mt-2 inline-flex items-center gap-2 rounded-2xl bg-mist px-3 py-1.5 text-[0.8rem] font-extrabold leading-snug tabular-nums text-forest"
-            initial={reduce ? false : { opacity: 0, y: 6, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: 1.0, duration: 0.35 }}
+            initial={reduce ? false : { opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1, duration: 0.35 }}
           >
             <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-teal-brand" />
             {copy.funnel.plan.firstWin(formatWeight(win.kg, system, locale), formatGoalDate(win.date, locale, false))}
@@ -89,7 +88,6 @@ export function ProgressStep() {
   return (
     <QuizStepFrame title={copy.progress.question} hint={copy.progress.hint} eyebrow={copy.progress.eyebrow}>
       <section className="surface-grain relative overflow-hidden rounded-[1.7rem] bg-white/86 p-4 shadow-[0_6px_16px_rgb(26_71_57_/_0.07)]">
-        <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-teal-brand/15 blur-2xl" />
         {projection.kind === 'plan' && (
           <p className="relative text-base font-extrabold leading-snug text-forest">{copy.progress.planHeadline[projection.goal]}</p>
         )}

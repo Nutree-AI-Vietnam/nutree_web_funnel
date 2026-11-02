@@ -62,7 +62,7 @@ const WheelOption = memo(function WheelOption({
       aria-selected={selected}
       onClick={() => onSelect(option)}
       className={cn(
-        'flex w-full snap-center items-baseline justify-center gap-2 text-center font-extrabold tabular-nums',
+        'flex w-full snap-center items-center justify-center text-center font-extrabold tabular-nums',
         selected ? (hero ? 'text-[#0d0d0f]' : 'text-forest') : 'text-charcoal',
       )}
       style={{
@@ -71,8 +71,12 @@ const WheelOption = memo(function WheelOption({
         opacity: blankCenter && centered ? 0 : selected ? 1 : opacity,
       }}
     >
-      <span className={cn('leading-none', hero ? 'text-[3.2rem]' : 'text-[2.5rem]')}>{label}</span>
-      {selected && unit && <span className="text-lg font-bold text-muted-brand">{unit}</span>}
+      <span className="relative">
+        <span className={cn('leading-none', hero ? 'text-[3.2rem]' : 'text-[2.5rem]')}>{label}</span>
+        {selected && unit && (
+          <span className="absolute left-full top-1/2 ml-2 -translate-y-1/2 text-lg font-bold text-muted-brand">{unit}</span>
+        )}
+      </span>
     </div>
   );
 });

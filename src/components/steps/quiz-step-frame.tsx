@@ -17,6 +17,7 @@ export function QuizStepFrame({
   children,
   className,
   titleClassName,
+  pinTop,
 }: {
   title?: string;
   description?: string;
@@ -25,6 +26,8 @@ export function QuizStepFrame({
   children: React.ReactNode;
   className?: string;
   titleClassName?: string;
+  /** Keep a short screen under the header. The default centers short screens. */
+  pinTop?: boolean;
 }) {
   const items = Children.toArray(children);
   const last = items[items.length - 1];
@@ -33,7 +36,6 @@ export function QuizStepFrame({
   const frameRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
-  const [lift, setLift] = useState(0);
   // A list taller than the screen fades out at the bottom edge instead of being cut mid-line.
   const [fade, setFade] = useState(false);
 
@@ -45,26 +47,14 @@ export function QuizStepFrame({
     if (!frame || !scroller || !stack) return;
 
     const measure = () => {
-      if (frame.closest('[data-fit-viewport]')) {
-        setLift(0);
+      if (pinTop || frame.closest('[data-fit-viewport]')) {
         setFade(false);
         return;
       }
-      const titleH = header?.offsetHeight ?? 0;
       const kids = [...stack.children] as HTMLElement[];
       const gap = kids.length > 1 ? 12 : 0;
       const contentH = kids.reduce((sum, el, index) => sum + el.offsetHeight + (index > 0 ? gap : 0), 0);
-      const available = scroller.clientHeight;
-      const overflows = contentH > available - 8;
-      setFade(overflows);
-      if (overflows || titleH === 0) {
-        setLift(0);
-        return;
-      }
-      const spaceAbove = (available - contentH) / 2;
-      const chrome = frame.getBoundingClientRect().top;
-      const next = Math.max(0, Math.min(titleH / 2 + chrome / 2, spaceAbove - 16));
-      setLift((current) => (Math.abs(current - next) < 1 ? current : Math.round(next)));
+      setFade(contentH > scroller.clientHeight - 8);
     };
 
     measure();
@@ -77,31 +67,31 @@ export function QuizStepFrame({
     const rows = new MutationObserver(measure);
     rows.observe(stack, { childList: true });
     return () => { observer.disconnect(); rows.disconnect(); };
-  }, [title, description]);
+  }, [title, description, pinTop]);
 
   return (
-    <div ref={frameRef} className={cn('quiz-step-frame relative flex min-h-0 flex-1 flex-col gap-3', className)}>
+    <div ref={frameRef} data-pin-top={pinTop ? '' : undefined} className={cn('quiz-step-frame relative flex min-h-0 flex-1 flex-col gap-3 pt-4', className)}>
       {(eyebrow || title) && (
-        <header ref={headerRef} className="shrink-0">
+        <header ref={headerRef} className="shrink-0 text-center">
           {eyebrow && (
             <p className="mb-1 text-sm font-extrabold tracking-[0.02em] text-teal-brand">
               {eyebrow}
             </p>
           )}
           {title && (
-            <h1 className={cn('max-w-[22rem] text-[clamp(1.7rem,6.4vw,2.05rem)] font-extrabold leading-[1.12] tracking-tight text-forest [text-wrap:balance]', titleClassName)}>
+            <h1 className={cn('mx-auto max-w-[22rem] text-[clamp(1.5rem,5.6vw,1.75rem)] font-extrabold leading-[1.18] tracking-tight text-forest [text-wrap:balance]', titleClassName)}>
               {title}
             </h1>
           )}
-          {description && <p className="mt-2 max-w-[24rem] text-base font-semibold leading-snug text-slate-brand">{description}</p>}
-          {hint && <p className="mt-2 text-base font-semibold leading-relaxed text-muted-brand">{hint}</p>}
+          {description && <p className="mx-auto mt-2 max-w-[24rem] text-base font-semibold leading-snug text-slate-brand">{description}</p>}
+          {hint && <p className="mx-auto mt-2 max-w-[24rem] text-base font-semibold leading-relaxed text-muted-brand">{hint}</p>}
         </header>
       )}
       <div
         ref={bodyRef}
-        className={cn('quiz-step-body -mx-5 min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain px-5', fade && '[mask-image:linear-gradient(#000_calc(100%-28px),transparent)]')}
+        className={cn('quiz-step-body min-h-0 flex-1 overflow-y-auto overscroll-contain', fade && '[mask-image:linear-gradient(#000_calc(100%-28px),transparent)]')}
       >
-        <div className={cn('quiz-step-stack flex min-h-full flex-col gap-3', fade && 'pb-7')} style={lift > 0 ? { translate: `0 -${lift}px` } : undefined}>
+        <div className={cn('quiz-step-stack flex min-h-full flex-col gap-3 pt-1', fade && 'pb-7')}>
           {body}
         </div>
       </div>

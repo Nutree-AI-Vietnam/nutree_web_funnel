@@ -42,6 +42,7 @@ export function CalculatingStep() {
   const data = useQuizStore((s) => s.data);
   const setTdee = useQuizStore((s) => s.setTdee);
   const cooking = useQuizStore((s) => s.planAnswers.cooking);
+  const storyAnswers = useQuizStore((s) => s.planAnswers.answers);
   const setPlanAnswers = useQuizStore((s) => s.setPlanAnswers);
   const reduce = usePrefersReducedMotion();
   const [elapsed, setElapsed] = useState(0);
@@ -53,23 +54,30 @@ export function CalculatingStep() {
 
   // The visitor's own answers, ticked off one by one instead of a climbing calorie count.
   const items = useMemo(() => {
-    const goal = vi.goal.options.find((option) => option.key === data.fitness_goal)?.label;
-    const diet = (data.dietary_preferences ?? []).filter((key) => key !== 'none')
+    const line = (group: object, key: string | undefined) => {
+      if (!key || !Object.prototype.hasOwnProperty.call(group, key)) return undefined;
+      const value = (group as Record<string, unknown>)[key];
+      return typeof value === 'string' ? value : undefined;
+    };
+    const foods = (data.dietary_preferences ?? [])
+      .filter((key) => key !== 'none')
       .map((key) => vi.diet.options.find((option) => option.key === key)?.label)
-      .filter(Boolean)
-      .join(', ');
-    const moment = vi.eating_pattern.options.find((option) => option.key === data.hardest_eating_moment)?.label;
-    return [
-      goal ? loader.goal(goal) : null,
+      .filter((label): label is string => Boolean(label));
+    const activity = line(loader.activity, data.job_type);
+    const moment = data.hardest_eating_moment ? vi.funnel.answers.moment[data.hardest_eating_moment] : undefined;
+    const rows = [
+      line(loader.goal, data.fitness_goal),
       data.weight_kg != null && data.target_weight_kg != null
         ? loader.weights(formatWeight(data.weight_kg, system, locale), formatWeight(data.target_weight_kg, system, locale))
-        : null,
-      data.training_days_per_week ? loader.training(data.training_days_per_week) : loader.noTraining,
-      diet ? loader.diet(diet) : loader.dietNone,
-      moment ? loader.moment(moment) : null,
-      loader.calories,
+        : undefined,
+      activity ?? (data.training_days_per_week ? loader.training(data.training_days_per_week) : undefined),
+      line(loader.eating, storyAnswers?.diet_style),
+      foods.length ? loader.preference(foods.join(', ').toLowerCase()) : undefined,
+      line(loader.obstacle, storyAnswers?.obstacle),
+      moment,
     ].filter((item): item is string => Boolean(item));
-  }, [data, loader, locale, system, vi]);
+    return rows.length ? rows : [loader.calories];
+  }, [data, loader, locale, storyAnswers, system, vi]);
   // One yes/no question halfway through, unless it was answered on an earlier pass.
   const pauseAt = Math.floor(items.length / 2);
   const stageMs = TOTAL_MS / items.length;
@@ -141,7 +149,9 @@ export function CalculatingStep() {
   const rating = vi.funnel.rating;
   const slides = useMemo(() => (vi.calculating.testimonials.length
     ? vi.calculating.testimonials.map((item) => ({ kind: 'review' as const, key: item.name, quote: item.quote, name: item.name, title: '', body: '' }))
-    : vi.calculating.highlights.map((item) => ({ kind: 'highlight' as const, key: item.title, quote: '', name: '', title: item.title, body: item.body }))), [vi]);
+    : vi.calculating.highlights.map((item) => ('quote' in item
+      ? { kind: 'review' as const, key: item.name, quote: item.quote, name: item.name, title: '', body: '' }
+      : { kind: 'highlight' as const, key: item.title, quote: '', name: '', title: item.title, body: item.body }))), [vi]);
   const [slideIndex, setSlideIndex] = useState(0);
   const stage = Math.min(items.length, Math.floor(elapsed / stageMs));
 
@@ -157,7 +167,7 @@ export function CalculatingStep() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-x-clip overflow-y-auto overscroll-contain">
       <header className="text-center">
-        <h1 className="ph-mask mx-auto max-w-[20rem] text-[clamp(1.7rem,6vw,2rem)] font-extrabold leading-[1.12] tracking-tight text-forest [text-wrap:balance]">
+        <h1 className="ph-mask mx-auto max-w-[20rem] text-[clamp(1.28rem,4.6vw,1.45rem)] font-extrabold leading-[1.2] tracking-tight text-forest [text-wrap:balance]">
           {name ? loader.title(name) : loader.titleFallback}
         </h1>
         <p className="mx-auto mt-2 max-w-[22rem] text-base font-semibold leading-snug text-slate-brand">{loader.body}</p>
@@ -205,11 +215,11 @@ export function CalculatingStep() {
 
         {/* Proof while the plan builds: the real rating and customer count, then a carousel that peeks the next card.
             It shows verified reviews once the copy has them; until then, what the app does. */}
-        <section aria-label={vi.calculating.testimonialsLabel} className="mt-1">
+        <section aria-label={vi.calculating.testimonialsLabel} className="mt-1 rounded-[1.3rem] bg-white px-1 py-3">
           <p className="text-center text-[1rem] font-extrabold text-forest">{rating.countValue} {rating.chose}</p>
           <StoreRatings className="mt-1 text-[0.8rem]" />
           <p className="sr-only">{storeRatingsLine(rating)}</p>
-          <div className="mt-2.5 overflow-hidden">
+          <div className="mt-2.5 overflow-hidden bg-white">
             <motion.ol
               className="flex gap-[2.5%]"
               // 7% = half the space beside an 86% card, so the active card sits centered and both neighbours peek.
@@ -217,7 +227,7 @@ export function CalculatingStep() {
               transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 120, damping: 22 }}
             >
               {slides.map((slide, index) => (
-                <li key={slide.key} aria-hidden={index !== slideIndex} className="w-[86%] shrink-0 rounded-[1.3rem] bg-white/90 px-4 py-3.5 text-center shadow-[0_12px_32px_rgb(26_71_57_/_0.08),inset_0_1px_0_rgb(255_255_255_/_0.8)]">
+                <li key={slide.key} aria-hidden={index !== slideIndex} className="w-[86%] shrink-0 rounded-[1.3rem] border border-[#e7eeeb] bg-white px-4 py-3.5 text-center">
                   {slide.kind === 'review' ? (
                     <>
                       <p className="text-[#f2a33a]" aria-label="5/5">★★★★★</p>
@@ -247,8 +257,8 @@ export function CalculatingStep() {
           <section role="dialog" aria-modal="true" aria-labelledby="loader-question" className="w-full max-w-md rounded-[1.8rem] bg-white p-5 shadow-[0_28px_80px_rgb(10_18_16_/_0.28)] animate-soft-enter">
             <p id="loader-question" className="text-lg font-extrabold leading-snug text-forest">{loader.pauseQuestion}</p>
             <div className="mt-4 grid grid-cols-2 gap-2.5">
-              <button type="button" autoFocus onClick={() => setPlanAnswers({ cooking: 'home' })} className="min-h-13 rounded-2xl bg-forest px-3 py-3 text-sm font-extrabold text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/30">{loader.yes}</button>
-              <button type="button" onClick={() => setPlanAnswers({ cooking: 'out' })} className="min-h-13 rounded-2xl border border-border-brand bg-white px-3 py-3 text-sm font-extrabold text-forest focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/30">{loader.no}</button>
+              <button type="button" autoFocus onClick={() => setPlanAnswers({ cooking: 'home' })} className="min-h-13 rounded-2xl bg-forest px-3 py-3 text-sm font-medium text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/30">{loader.yes}</button>
+              <button type="button" onClick={() => setPlanAnswers({ cooking: 'out' })} className="min-h-13 rounded-2xl border border-border-brand bg-white px-3 py-3 text-sm font-medium text-forest focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/30">{loader.no}</button>
             </div>
           </section>
         </div>
@@ -259,7 +269,7 @@ export function CalculatingStep() {
           <button
             type="button"
             onClick={() => setAttempt((value) => value + 1)}
-            className="min-h-12 w-full rounded-2xl border border-border-brand bg-white px-4 text-sm font-extrabold text-forest transition hover:bg-mist focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.98]"
+            className="min-h-12 w-full rounded-2xl border border-border-brand bg-white px-4 text-sm font-medium text-forest transition hover:bg-mist focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/20 active:scale-[0.98]"
           >
             {vi.common.retry}
           </button>

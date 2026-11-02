@@ -65,7 +65,7 @@ export function ReflectionStep() {
       )}
 
       <div className="mt-auto">
-        <PrimaryButton onClick={() => goToNextQuizStep(router, 'reflection')}>
+        <PrimaryButton onClick={() => goToNextQuizStep(router, 'age_group')}>
           {copy.reflection.cta}
         </PrimaryButton>
       </div>

@@ -26,9 +26,17 @@ export function WeightStep() {
       insight={(weightKg) => {
         if (weightKg == null || !heightCm) return null;
         const value = bmi(weightKg, heightCm);
+        const category = bmiCategory(value);
+        const tone = category === 'normal'
+          ? 'bg-emerald-50 text-emerald-800'
+          : category === 'overweight'
+            ? 'bg-amber-50 text-amber-900'
+            : 'bg-red-50 text-red-800';
+        const dot = category === 'normal' ? 'bg-emerald-500' : category === 'overweight' ? 'bg-amber-500' : 'bg-red-500';
         return (
-          <p aria-live="polite" className="mx-auto shrink-0 rounded-full bg-white/86 px-4 py-1.5 text-center text-sm font-extrabold text-forest shadow-sm">
-            {copy.funnel.weightBmi(formatBmi(value, locale), copy.funnel.bmiCategory[bmiCategory(value)])}
+          <p aria-live="polite" className={`mx-auto flex shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-center text-sm font-extrabold shadow-sm ${tone}`}>
+            <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
+            {copy.funnel.weightBmi(formatBmi(value, locale), copy.funnel.bmiCategory[category])}
           </p>
         );
       }}

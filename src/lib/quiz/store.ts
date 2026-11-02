@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { DEFAULT_LOCALE, type Locale } from '@/lib/copy';
 import { readPendingRedemptionCorrelation } from '@/lib/revenuecat/redemption-handoff';
+import { withBirthFromAgeGroup } from './age-band';
 import { goalAfterTargetWeight } from './fitness-goal';
 import { isQuizStep, type QuizStep } from './steps';
 import type { CheckoutResponse, Lead, OnboardingPayload, TdeeResult } from './types';
@@ -16,12 +17,14 @@ export interface PlanAnswers {
   confidence?: 'very' | 'somewhat' | 'unsure';
   /** Daily step goal from the step-goal screen. */
   stepGoal?: number;
+  /** Tap answers that shape the story only. They never go to the calorie snapshot. */
+  answers?: Partial<Record<string, string>>;
 }
 const FUNNEL_SCREENS = ['landing', 'quiz', 'email', 'value', 'paywall', 'exit-offer'] as const;
 export type FunnelScreen = (typeof FUNNEL_SCREENS)[number];
 
 export const STORAGE_KEY = 'nutree_funnel_v1';
-const STORE_VERSION = 13;
+const STORE_VERSION = 15;
 
 /** Where a tab saved on a removed quiz step picks up. */
 const REMOVED_QUIZ_STEP_REDIRECTS: Record<string, QuizStep> = {
@@ -30,7 +33,26 @@ const REMOVED_QUIZ_STEP_REDIRECTS: Record<string, QuizStep> = {
   preview: 'calculating',
   support_style: 'calculating',
   care_pause: 'calculating',
-  duration: 'motivation',
+  duration: 'activity_level',
+  challenges: 'sex',
+  motivation: 'sex',
+  reflection: 'sex',
+  name_ask: 'sex',
+  age: 'height',
+  welcome: 'proof',
+  reason: 'aim',
+  comeback: 'body_current',
+  cohort: 'occasion',
+  focus: 'with_you',
+  ready: 'calculating',
+  body_review: 'calculating',
+  training_days: 'activity_level',
+  training_duration: 'activity_level',
+  eating_pattern: 'activity_level',
+  diet: 'activity_level',
+  step_goal: 'activity_level',
+  not_alone: 'activity_level',
+  confidence: 'result',
 };
 
 interface QuizState {
@@ -149,7 +171,7 @@ export function migratePersistedQuizState(persistedState: unknown): PersistedQui
     : null;
   const savedData = state.data ?? initial.data;
   // A lead's snapshot already holds the goal on the server, so only answers still in progress are corrected.
-  const data = lead ? savedData : withGoalForTargetWeight(savedData);
+  const data = lead ? savedData : withBirthFromAgeGroup(withGoalForTargetWeight(savedData));
   const goalChanged = data !== savedData;
 
   return {

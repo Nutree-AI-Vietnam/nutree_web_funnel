@@ -24,6 +24,73 @@ function IphoneFrame({ children, compact = false }: { children: React.ReactNode;
 
 const SCREEN_MEDIA = 'h-full w-full object-cover';
 
+/** Wednesday is the extra meal. The other days sit lower so the week still balances. */
+const MACRO_CALORIES = [1730, 1730, 1980, 1680, 1680, 1680, 1680] as const;
+const MACRO_EXTRA_DAY = 2;
+
+/** Weekly calories ease after midweek. Heights keep the 1,880 to 1,730 step readable. */
+export function MacroDemo({ alt, days, extraLabel }: { alt: string; days: readonly string[]; extraLabel: string }) {
+  const locale = useLocale();
+  const reduce = useReducedMotion();
+  const format = new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US');
+  const tallest = Math.max(...MACRO_CALORIES);
+
+  return (
+    <figure aria-label={alt} className="mx-auto w-full max-w-[22rem]">
+      <div className="flex h-[min(18rem,38dvh)] items-stretch gap-1.5">
+        {MACRO_CALORIES.map((calories, index) => {
+          const extra = index === MACRO_EXTRA_DAY;
+          return (
+            <div key={days[index] ?? index} className="flex min-w-0 flex-1 flex-col">
+              <motion.p
+                className={`text-center text-[0.68rem] font-bold tracking-tight ${extra ? 'text-[#c2410c]' : 'text-forest'}`}
+                initial={reduce ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.45 + index * 0.07, duration: 0.35 }}
+              >
+                {format.format(calories)}
+              </motion.p>
+              <div className="relative mt-2 min-h-0 flex-1">
+                <motion.div
+                  className={`absolute inset-x-0 bottom-0 mx-auto w-full max-w-11 rounded-full ${extra ? 'bg-[linear-gradient(180deg,#ffe7c2_0%,#f0a36a_40%,#e07a3d_100%)]' : 'bg-[linear-gradient(180deg,#d7f6ec_0%,#7edcc4_34%,#1fa892_100%)]'}`}
+                  initial={reduce ? false : { height: 0 }}
+                  animate={{ height: `${Math.round((calories / tallest) * 100)}%` }}
+                  transition={{ delay: extra ? 0.55 : 0.12 + index * 0.06, duration: extra ? 0.85 : 0.65, ease: [0.22, 1, 0.36, 1] }}
+                />
+              </div>
+              <motion.p
+                className={`mt-2 text-center text-[0.7rem] font-semibold leading-none ${extra ? 'text-[#c2410c]' : 'text-muted-brand'}`}
+                initial={reduce ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.35 + index * 0.07, duration: 0.3 }}
+              >
+                {days[index]}
+              </motion.p>
+            </div>
+          );
+        })}
+      </div>
+      <motion.p
+        className="mt-3 text-center text-[0.8rem] font-semibold text-[#c2410c]"
+        initial={reduce ? false : { opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.9, duration: 0.35 }}
+      >
+        {extraLabel}
+      </motion.p>
+    </figure>
+  );
+}
+
+/** The fitness screen, inside the same iPhone frame as the meal-scan clip. */
+export function ActivityDemo({ src, alt }: { src: string; alt: string }) {
+  return (
+    <IphoneFrame>
+      <Image src={src} alt={alt} width={471} height={1024} className={SCREEN_MEDIA} />
+    </IphoneFrame>
+  );
+}
+
 /** The meal-scan clip from the mobile onboarding promo, in an iPhone frame. */
 export function MealSnapDemo({ label, compact = false }: { label: string; compact?: boolean }) {
   const reduce = useReducedMotion();
@@ -97,10 +164,10 @@ const LAUREL_LEAVES = (() => {
   return [...outer, ...inner].sort((a, b) => a.t - b.t);
 })();
 
-function Laurel({ flip = false }: { flip?: boolean }) {
+function Laurel({ flip = false, className }: { flip?: boolean; className?: string }) {
   const reduce = useReducedMotion();
   return (
-    <svg viewBox="-10 -6 50 100" className={cn('h-[5.6rem] w-auto shrink-0 text-gold', flip && '-scale-x-100')} aria-hidden="true">
+    <svg viewBox="-10 -6 50 100" className={cn('h-[5.6rem] w-auto shrink-0 text-gold', flip && '-scale-x-100', className)} aria-hidden="true">
       <motion.path
         d="M30 88 Q 2 50 24 4"
         fill="none"
@@ -153,14 +220,14 @@ export function GooglePlayMark({ className }: { className?: string }) {
 
 /**
  * The trust card before the plans: the customer count between laurels, then the store ratings.
- * Only confirmed numbers: 40,000+ customers, the 4.7 App Store rating and the 4.8 Google Play rating
+ * Only confirmed numbers: 200,000+ customers, the 4.7 App Store rating and the 4.8 Google Play rating
  * (copy.funnel.rating.googlePlay; set it to null to show the plain "available on Android" tile instead).
  */
 export function TrustCard({ className }: { className?: string }) {
   const copy = useCopy();
   const locale = useLocale();
   const rating = copy.funnel.rating;
-  // "40,000+" or "40.000+": count up to the digits, keep the locale grouping and the trailing "+".
+  // "200,000+" or "200.000+": count up to the digits, keep the locale grouping and the trailing "+".
   const countNumber = Number(rating.countValue.replace(/[^0-9]/g, ''));
   const countSuffix = rating.countValue.replace(/^[0-9.,\s]+/, '');
   const countFormat = new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US');
@@ -204,6 +271,30 @@ export const TRUST_AVATAR_IMAGES = ['/images/illustrations/trust-1.jpg', '/image
 /** What the store ratings say, for screen readers: "4.7 out of 5 on the App Store, 4.8 out of 5 on Google Play". */
 export function storeRatingsLine(rating: Copy['funnel']['rating']): string {
   return rating.googlePlay ? `${rating.line}, ${rating.googlePlay.line}` : rating.line;
+}
+
+/** Two store columns: mark and stars, the score, then the store name. */
+export function StoreLaurels({ className }: { className?: string }) {
+  const rating = useCopy().funnel.rating;
+  const play = rating.googlePlay;
+  const stores = [
+    { key: 'apple', mark: <AppleMark className="h-7 w-7 text-black" />, value: rating.value, name: 'App Store' },
+    { key: 'play', mark: <GooglePlayMark className="h-7 w-7" />, value: play?.value ?? rating.value, name: rating.googlePlayListing.name },
+  ];
+  return (
+    <div className={cn('grid grid-cols-2 gap-2', className)} aria-hidden="true">
+      {stores.map((store) => (
+        <div key={store.key} className="flex flex-col items-center text-center">
+          <span className="flex items-center gap-1.5">
+            {store.mark}
+            <StarRow value={Number(store.value)} className="text-[0.95rem] tracking-[0.08em]" />
+          </span>
+          <span className="mt-1.5 text-[1.15rem] font-extrabold leading-none tracking-[-0.03em] tabular-nums text-[#1c1c1e]">{store.value}{rating.outOf}</span>
+          <span className="mt-1 text-[0.75rem] font-semibold leading-snug text-[#8e8e93]">{store.name}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /**

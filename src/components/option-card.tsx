@@ -130,8 +130,6 @@ export function OptionCard({
   hint,
   icon,
   compact,
-  large,
-  plain,
   selected,
   onClick,
 }: {
@@ -148,39 +146,34 @@ export function OptionCard({
   onClick: () => void;
 }) {
   return (
-    <GlowingCard active={selected} compact={compact}>
+    <GlowingCard compact={compact}>
       <button
         type="button"
         onClick={onClick}
         aria-pressed={selected}
         className={cn(
-          'flex w-full items-center justify-between gap-3 text-left font-semibold transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-teal-brand/20 active:bg-black/[0.04]',
-          compact ? 'min-h-10 px-3.5 py-2 text-[13px]' : large ? 'min-h-[4.25rem] px-4 py-3 text-[16px]' : 'min-h-11 px-4 py-2.5 text-[15px]',
-          selected ? 'text-forest' : 'text-charcoal hover:text-forest',
+          'flex w-full items-center justify-between gap-3 text-left text-[1.02rem] font-medium text-[#1c1c1e] focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-teal-brand/20',
+          compact ? 'min-h-11 px-3.5' : 'min-h-[3.25rem] px-4',
         )}
       >
         <span className="flex min-w-0 items-center gap-3">
           {icon && <OptionIcon icon={icon} compact={compact} />}
           <span className="min-w-0">
-            <span className={cn('block', large && 'font-extrabold')}>{label}</span>
-            {hint && <span className="mt-0.5 block text-[13px] font-semibold leading-snug text-muted-brand">{hint}</span>}
+            <span className="block">{label}</span>
+            {hint && <span className="mt-0.5 block text-[0.867rem] font-normal leading-snug text-muted-brand">{hint}</span>}
           </span>
         </span>
-        {/* iOS selection mark: an empty ring, filled with a white check once chosen. */}
-        {!plain && (
-          <span
-            aria-hidden="true"
-            className={cn(
-              'flex shrink-0 items-center justify-center rounded-full transition-colors duration-200',
-              compact ? 'h-5 w-5' : 'h-[22px] w-[22px]',
-              selected ? 'bg-forest text-white' : 'border-[1.5px] border-[#c7c7cc] bg-white',
-            )}
-          >
-            {selected && (
-              <svg viewBox="0 0 12 12" className={compact ? 'h-2.5 w-2.5' : 'h-3 w-3'} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2.5 6.2 2.3 2.3 4.7-5" /></svg>
-            )}
-          </span>
-        )}
+        <span
+          aria-hidden="true"
+          className={cn(
+            'flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full',
+            selected ? 'bg-forest text-white' : 'border-[1.5px] border-[#c7c7cc] bg-white',
+          )}
+        >
+          {selected && (
+            <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2.5 6.2 2.3 2.3 4.7-5" /></svg>
+          )}
+        </span>
       </button>
     </GlowingCard>
   );

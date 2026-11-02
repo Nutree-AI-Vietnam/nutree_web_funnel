@@ -10,7 +10,7 @@ import { QuizStepFrame } from './quiz-step-frame';
 const optionClass = (selected: boolean) =>
   `rounded-2xl border shadow-sm backdrop-blur transition duration-300 focus:outline-none focus:ring-4 focus:ring-teal-brand/15 active:scale-[0.99] ${
     selected
-      ? 'border-teal-brand/75 bg-mist/90 text-forest ring-2 ring-teal-brand/15'
+      ? 'border-teal-brand/75 bg-mist/90 text-forest shadow-[inset_0_0_0_2px_rgb(31_168_146_/_0.35)]'
       : 'border-white/75 bg-white/82 text-charcoal hover:-translate-y-0.5 hover:border-teal-brand/50 hover:bg-white'
   }`;
 
@@ -32,12 +32,12 @@ export function TrainingDaysStep() {
             onClick={() => {
               setData({ training_days_per_week: d, training_minutes_per_session: d === 0 ? 0 : minutes });
               if (d === 0) {
-                goToQuizStep(router, 'eating_pattern');
+                goToQuizStep(router, 'activity_level');
               } else {
-                goToNextQuizStep(router, 'training_days');
+                goToNextQuizStep(router, 'target_weight');
               }
             }}
-            className={`${optionClass(value === d)} relative min-h-12 py-3 text-lg font-extrabold`}
+            className={`${optionClass(value === d)} relative min-h-12 py-3 text-lg font-medium`}
           >
             {d}
             {value === d && (
@@ -81,11 +81,11 @@ export function TrainingDurationStep({
           aria-pressed={value === Number(o.key)}
           onClick={() => {
             setData({ training_minutes_per_session: Number(o.key) });
-            goToNextQuizStep(router, 'training_duration');
+            goToNextQuizStep(router, 'target_weight');
           }}
           className={cn(
             optionClass(value === Number(o.key)),
-            'flex min-h-11 w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-[15px] font-semibold',
+            'flex min-h-11 w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-[1.02rem] font-medium',
           )}
         >
           <span>{o.label}</span>

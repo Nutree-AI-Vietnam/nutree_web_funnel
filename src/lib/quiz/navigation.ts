@@ -73,12 +73,12 @@ export function goToNextQuizStep(router: QuizRouter, step: QuizStep): void {
   if (next) {
     showQuizStep(router, next);
   } else {
-    useQuizStore.getState().setFunnelScreen('email');
+    useQuizStore.getState().setFunnelScreen('value');
   }
 }
 
 export function goToPreviousQuizStep(router: QuizRouter, step: QuizStep): void {
-  const { editReturn, setEditReturn, data } = useQuizStore.getState();
+  const { editReturn, setEditReturn } = useQuizStore.getState();
   if (editReturn) {
     setEditReturn(null);
     showQuizStep(router, editReturn);
@@ -86,8 +86,7 @@ export function goToPreviousQuizStep(router: QuizRouter, step: QuizStep): void {
   }
   const previous = previousStep(step);
   if (previous) {
-    // With no training days the session-length question was skipped on the way in.
-    showQuizStep(router, previous === 'training_duration' && data.training_days_per_week === 0 ? 'training_days' : previous);
+    showQuizStep(router, previous);
   } else {
     returnToFunnelStart();
   }

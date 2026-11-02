@@ -46,7 +46,7 @@ export function ConfidenceStep() {
         </p>
       )}
       <div className="mt-auto pt-3">
-        <PrimaryButton disabled={!answer} onClick={() => goToNextQuizStep(router, 'confidence')}>{confidence.cta}</PrimaryButton>
+        <PrimaryButton disabled={!answer} onClick={() => goToNextQuizStep(router, 'result')}>{confidence.cta}</PrimaryButton>
       </div>
     </QuizStepFrame>
   );

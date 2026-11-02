@@ -34,7 +34,7 @@ export function PlanLinkPageClient() {
         if (plan.units) store.setUnits(plan.units);
         if (plan.snapshot) store.setData(answersFromSnapshot(plan.snapshot));
         store.setLead(plan.lead);
-        store.setCurrentStep('confidence');
+        store.setCurrentStep('result');
         store.setFunnelScreen('paywall');
         if (plan.email) saveCheckoutEmail(plan.email);
         if (fragment.start) {

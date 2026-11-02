@@ -101,7 +101,7 @@ export function WelcomeStep() {
         transition={{ delay: 0.45, duration: 0.4 }}
         className="mt-auto pt-4"
       >
-        <PrimaryButton onClick={() => goToNextQuizStep(router, 'welcome')}>
+        <PrimaryButton onClick={() => goToNextQuizStep(router, 'age_group')}>
           {copy.welcome.cta}
         </PrimaryButton>
       </motion.div>
@@ -139,7 +139,7 @@ export function NotAloneStep() {
         </motion.h1>
       </div>
       <div className="w-full pt-5">
-        <PrimaryButton onClick={() => goToNextQuizStep(router, 'not_alone')}>{copy.funnel.notAlone.cta}</PrimaryButton>
+        <PrimaryButton onClick={() => goToNextQuizStep(router, 'activity_level')}>{copy.funnel.notAlone.cta}</PrimaryButton>
       </div>
     </QuizStepFrame>
   );
@@ -183,7 +183,7 @@ export function StepGoalStep() {
           {text.recommendedBody}
         </p>
       </div>
-      <PrimaryButton onClick={() => { setPlanAnswers({ stepGoal: goal }); goToNextQuizStep(router, 'step_goal'); }}>{text.cta}</PrimaryButton>
+      <PrimaryButton onClick={() => { setPlanAnswers({ stepGoal: goal }); goToNextQuizStep(router, 'activity_level'); }}>{text.cta}</PrimaryButton>
     </QuizStepFrame>
   );
 }

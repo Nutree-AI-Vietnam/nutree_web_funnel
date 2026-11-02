@@ -33,7 +33,7 @@ export function ChallengeStep() {
     if (pending) return;
     setPending(key);
     setData({ pain_points: key === 'none' ? [] : [key] });
-    timerRef.current = setTimeout(() => goToNextQuizStep(router, 'challenges'), 240);
+    timerRef.current = setTimeout(() => goToNextQuizStep(router, 'sex'), 0);
   };
 
   return (

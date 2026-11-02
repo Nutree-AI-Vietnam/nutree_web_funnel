@@ -35,7 +35,7 @@ export function BirthDateStep() {
     if (!valid) return;
     const birthYear = new Date().getFullYear() - parsedAge!;
     setData({ age: parsedAge!, birth_year: birthYear, birth_month: 1, birth_day: 1 });
-    goToNextQuizStep(router, 'age');
+    goToNextQuizStep(router, 'height');
   };
 
   return (

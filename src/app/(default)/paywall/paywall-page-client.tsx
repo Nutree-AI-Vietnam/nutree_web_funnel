@@ -490,6 +490,10 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   // and, when the offering has exit packages, uncovers that price on a scratch card first.
   const applyExitOffer = useCallback(() => {
     dismissCheckoutOverlay(document);
+    setShowCheckoutConfirm(false);
+    setError(null);
+    // The scratch card and the 75% price are a one-time exit. Later closes stay on the paywall.
+    if (hasExitOfferBeenClaimed()) return;
     saveSelectedPaywallPlan(SIX_MONTH_PLAN_ID);
     setSelectedId(SIX_MONTH_PLAN_ID);
     markExitOfferClaimed();
@@ -498,8 +502,6 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     setOfferKind('exit');
     setOfferExpiresAt(expiresAt);
     setSecondsLeft(PAYWALL_WELCOME_OFFER_SECONDS);
-    setShowCheckoutConfirm(false);
-    setError(null);
     const exitClaim = offerClaimFor(plans, 'exit');
     trackEvent('exit_offer_claimed', { discount_percent: exitClaim?.percent, plan: SIX_MONTH_PLAN_ID });
     if (exitClaim) setExitGiftOpen(true);
@@ -1002,7 +1004,8 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
     // including from a swipe that starts on Paddle's frame (an inner scroll box would not take that swipe on iOS).
     // While a background start loads, the sheet is laid out (so Paddle can size its frame) but invisible and inert.
     <div
-      className={cn('fixed inset-0 z-[70] overflow-y-auto overscroll-contain bg-[rgb(9_22_18_/_0.5)] backdrop-blur-[2px]', !checkoutSheetOpen && 'invisible pointer-events-none')}
+      inert={checkoutSheetOpen ? undefined : true}
+      className={cn('fixed inset-0 z-[70] bg-[rgb(9_22_18_/_0.5)] backdrop-blur-[2px]', checkoutSheetOpen ? 'overflow-y-auto overscroll-contain' : 'invisible pointer-events-none overflow-hidden')}
       role="dialog"
       aria-modal="true"
       aria-hidden={!checkoutSheetOpen || undefined}

@@ -115,11 +115,6 @@ export function GoalChart({ timeline, system, nowLabel, stageLabel, goalLabel, g
   }
 
   const goalText = formatWeight(timeline.targetKg, system, locale);
-  const bubbleW = Math.round(labelWidth(goalText, 13) + 22);
-  const bubbleH = 26;
-  const bubbleX = Math.min(Math.max(end.x - bubbleW / 2, 2), 324 - bubbleW);
-  const bubbleY = end.y - bubbleH - 15;
-  const pointerX = Math.min(Math.max(end.x, bubbleX + 10), bubbleX + bubbleW - 10);
   const draw = { duration: 1, ease: [0.22, 1, 0.36, 1] as const, delay: 0.15 };
 
   return (
@@ -131,13 +126,10 @@ export function GoalChart({ timeline, system, nowLabel, stageLabel, goalLabel, g
           <stop offset="1" stopColor="#1fa892" stopOpacity="0" />
         </linearGradient>
         <linearGradient id="plan-line" x1="0" x2="1" y1="0" y2="0">
-          <stop offset="0" stopColor="#7fd6c4" />
-          <stop offset="0.55" stopColor="#1fa892" />
+          <stop offset="0" stopColor="#d7a84d" />
+          <stop offset="0.45" stopColor="#1fa892" />
           <stop offset="1" stopColor="#17453a" />
         </linearGradient>
-        <filter id="plan-glow" x="-10%" y="-40%" width="120%" height="180%">
-          <feGaussianBlur stdDeviation="5" />
-        </filter>
       </defs>
       {/* The goal level, so the eye reads how far the line still has to travel. */}
       <path d={`M${left} ${end.y}H${end.x}`} stroke="#1fa892" strokeOpacity="0.35" strokeWidth="1.2" strokeDasharray="2 5" strokeLinecap="round" />
@@ -150,30 +142,17 @@ export function GoalChart({ timeline, system, nowLabel, stageLabel, goalLabel, g
         transition={{ duration: 0.6, delay: 0.55 }}
       />
       <path d={`M${end.x} ${end.y + 8}V${axis}`} stroke="#17453a" strokeOpacity="0.28" strokeWidth="1.2" strokeDasharray="2 4" strokeLinecap="round" />
-      {/* A soft glow under the line gives it depth without a shadow box. */}
-      <motion.path
-        d={curve}
-        fill="none"
-        stroke="#1fa892"
-        strokeOpacity="0.35"
-        strokeWidth="10"
-        strokeLinecap="round"
-        filter="url(#plan-glow)"
-        initial={play ? { pathLength: 0 } : false}
-        animate={play ? { pathLength: 1 } : undefined}
-        transition={draw}
-      />
       <motion.path
         d={curve}
         fill="none"
         stroke="url(#plan-line)"
-        strokeWidth="5.5"
+        strokeWidth="4.5"
         strokeLinecap="round"
         initial={play ? { pathLength: 0 } : false}
         animate={play ? { pathLength: 1 } : undefined}
         transition={draw}
       />
-      <circle cx={start.x} cy={start.y} r="6.5" fill="white" stroke="#7fbfb0" strokeWidth="3" />
+      <circle cx={start.x} cy={start.y} r="6" fill="#d7a84d" stroke="white" strokeWidth="3" />
       {stages.map((stage, index) => (
         <motion.g
           key={stage.n}
@@ -202,16 +181,14 @@ export function GoalChart({ timeline, system, nowLabel, stageLabel, goalLabel, g
         />
       )}
       <motion.g
-        initial={play ? { opacity: 0, y: 6 } : false}
-        animate={play ? { opacity: 1, y: 0 } : undefined}
-        transition={{ delay: 1, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        initial={play ? { opacity: 0, scale: 0 } : false}
+        animate={play ? { opacity: 1, scale: 1 } : undefined}
+        transition={{ delay: 0.95, duration: 0.3 }}
+        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
       >
-        <circle cx={end.x} cy={end.y} r="13" fill="#1fa892" fillOpacity="0.16" />
-        <circle cx={end.x} cy={end.y} r="7.5" fill="#17453a" stroke="white" strokeWidth="3" />
-        <rect x={bubbleX} y={bubbleY} width={bubbleW} height={bubbleH} rx="13" fill="#17453a" />
-        <path d={`M${pointerX - 6} ${bubbleY + bubbleH - 0.5} L${pointerX} ${bubbleY + bubbleH + 6} L${pointerX + 6} ${bubbleY + bubbleH - 0.5} Z`} fill="#17453a" />
-        <text x={bubbleX + bubbleW / 2} y={bubbleY + 17.5} textAnchor="middle" className="fill-white text-[13px] font-extrabold tabular-nums">{goalText}</text>
+        <circle cx={end.x} cy={end.y} r="7" fill="#17453a" stroke="white" strokeWidth="3" />
       </motion.g>
+      <text x={end.x} y={end.y - 14} textAnchor="end" className="fill-forest text-[12px] font-extrabold tabular-nums">{goalText}</text>
       <text x={start.x - 2} y="196" textAnchor="start" className="fill-forest text-[12.5px] font-extrabold tabular-nums">{formatWeight(timeline.currentKg, system, locale)}</text>
       <text x={start.x - 2} y="211" textAnchor="start" className="fill-muted-brand text-[10.5px] font-bold">{nowLabel}</text>
       {stages.map((stage) => (
@@ -357,17 +334,44 @@ export function PlanGoalCard({ data, tdee, system, className }: {
   );
 }
 
-/** "You said rushed mornings": the answer a first change comes from, as one line. The email teaser shows it too. */
+function readLine(group: object, key: string): string | undefined {
+  if (!Object.prototype.hasOwnProperty.call(group, key)) return undefined;
+  const value = (group as Record<string, unknown>)[key];
+  return typeof value === 'string' ? value : undefined;
+}
+
+/** The answer behind one change, as its own line. Rows do not share an opening. */
 export function useChangeSourceLine(): (source: ChangeSource) => string {
   const copy = useCopy();
   const said = copy.funnel.answers;
-  const sourceLabel = (source: ChangeSource) => {
-    if (source.kind === 'moment') return copy.eating_pattern.options.find((option) => option.key === source.key)?.label ?? said.yourGoal;
-    if (source.kind === 'challenge') return copy.challenges.options.find((option) => option.key === source.key)?.label ?? said.yourGoal;
-    if (source.kind === 'cooking') return said.eatOut;
-    return said.yourGoal;
+  return (source) => {
+    switch (source.kind) {
+      case 'moment':
+        return said.moment[source.key];
+      case 'cooking':
+        return said.eatOut;
+      case 'goal':
+        return said.goal[source.key];
+      case 'goal_protein':
+        return said.goalProtein[source.key];
+      case 'obstacle':
+        return said.obstacle[source.key];
+      case 'diet_style':
+        return said.dietStyle[source.key];
+      case 'activity':
+        return said.activity[source.key];
+      case 'plain':
+        return said.plain[source.id];
+      case 'challenge':
+        return readLine(said.challenge, source.key)
+          ?? copy.challenges.options.find((option) => option.key === source.key)?.label
+          ?? said.plain.protein;
+      default: {
+        const unreachable: never = source;
+        return unreachable;
+      }
+    }
   };
-  return (source) => `${said.youSaid} ${sourceLabel(source).toLowerCase()}`;
 }
 
 /** Three first changes, each under the answer it comes from. */
@@ -377,11 +381,18 @@ export function FirstChangesCard({ data, tdee, className, reveal }: { data: Onbo
   const sourceLine = useChangeSourceLine();
   const plan = copy.funnel.plan;
   const numbers = planNumbers(tdee);
+  const changes = firstChangePlan(data, {
+    cooking: answers.cooking,
+    goal: data.fitness_goal,
+    activity: data.job_type,
+    obstacle: answers.answers?.obstacle,
+    dietStyle: answers.answers?.diet_style,
+  });
   return (
     <section className={cn(CARD, className)}>
       <h2 className="text-[1.12rem] font-extrabold tracking-[-0.02em] text-forest">{copy.funnel.answers.title}</h2>
       <ol className="mt-3 divide-y divide-border-brand/60">
-        {firstChangePlan(data, answers).map((change, index) => (
+        {changes.map((change, index) => (
           <li key={change.id} className="py-3 first:pt-0 last:pb-0">
             <span className="block text-[0.78rem] font-bold text-teal-brand">{sourceLine(change.source)}</span>
             <span className="mt-0.5 block text-[1.05rem] font-extrabold leading-snug tracking-[-0.01em] text-forest"><Reveal on={reveal} index={index}>{plan.changes[change.id].title(numbers)}</Reveal></span>

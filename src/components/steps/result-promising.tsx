@@ -11,7 +11,7 @@ export function ResultPromisingStep() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="quiz-step-body -mx-5 min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain px-5">
+      <div className="quiz-step-body min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <div className="quiz-step-stack flex min-h-full flex-col gap-2.5">
       <div className="rounded-[1.7rem] border border-white/80 bg-white/78 p-3.5 shadow-[0_6px_16px_rgb(26_71_57_/_0.07)] backdrop-blur">
         <p className="mb-1 text-sm font-bold text-emerald-brand">{vi.result_promising.eyebrow}</p>

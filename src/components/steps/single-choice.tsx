@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { OptionCard } from '@/components/option-card';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import type { QuizStep } from '@/lib/quiz/steps';
-import { useHydrated, useQuizStore } from '@/lib/quiz/store';
+import { useQuizStore } from '@/lib/quiz/store';
 import type { OnboardingPayload } from '@/lib/quiz/types';
 import { QuizStepFrame } from './quiz-step-frame';
 
@@ -30,10 +30,6 @@ export function SingleChoiceStep<K extends keyof OnboardingPayload>({
   large?: boolean;
 }) {
   const router = useRouter();
-  const hydrated = useHydrated();
-  const stored = useQuizStore((s) => s.data[field]);
-  // Saved answers are tab-only. Ignore them until hydration so the server HTML matches.
-  const value = hydrated ? stored : undefined;
   const setData = useQuizStore((s) => s.setData);
   // Show the selection, then advance so feedback lands before navigation.
   const [pending, setPending] = useState<string | null>(null);
@@ -47,7 +43,7 @@ export function SingleChoiceStep<K extends keyof OnboardingPayload>({
     if (pending) return;
     setData({ [field]: key } as Partial<OnboardingPayload>);
     setPending(key);
-    timerRef.current = setTimeout(() => goToNextQuizStep(router, step), 240);
+    timerRef.current = setTimeout(() => goToNextQuizStep(router, step), 0);
   };
 
   return (
@@ -60,7 +56,7 @@ export function SingleChoiceStep<K extends keyof OnboardingPayload>({
             icon={o.icon}
             hint={hints?.[o.key]}
             large={large}
-            selected={pending ? pending === o.key : value === o.key}
+            selected={pending === o.key}
             onClick={() => choose(o.key)}
           />
         ))}

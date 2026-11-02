@@ -53,6 +53,20 @@ export function markExitOfferClaimed() {
   }
 }
 
+/** Drops the once-only flag so a fresh quiz can see the exit offer again. */
+export function clearExitOfferClaimed() {
+  if (typeof window !== 'undefined') {
+    try {
+      window.sessionStorage.removeItem(PAYWALL_EXIT_OFFER_CLAIMED_STORAGE_KEY);
+    } catch {
+      // Ignore unavailable session storage.
+    }
+  }
+  if (typeof document !== 'undefined') {
+    document.cookie = `${PAYWALL_EXIT_OFFER_CLAIMED_COOKIE}=; Path=/; Max-Age=0`;
+  }
+}
+
 export function activatePaywallExitOffer() {
   writeSessionValue(PAYWALL_OFFER_STATE_STORAGE_KEY, JSON.stringify({ kind: 'exit', expiresAt: Date.now() + PAYWALL_EXIT_OFFER_SECONDS * 1000 }));
 }

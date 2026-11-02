@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Hide the local N badge. It sits on top of the quiz and is not part of the product.
+  devIndicators: false,
   // PostHog capture endpoints use a trailing slash. Redirecting those breaks ingestion.
   skipTrailingSlashRedirect: true,
   experimental: {

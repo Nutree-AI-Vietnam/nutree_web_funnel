@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { StepRenderer } from '@/app/(default)/quiz/step-renderer';
@@ -15,6 +15,7 @@ import { goToQuizStep, startQuizFromLanding } from '@/lib/quiz/navigation';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { useSeedCountry } from '@/lib/quiz/use-units';
 import { isPurchaseHandoffInFlight } from '@/lib/revenuecat/purchase-handoff';
+import { clearExitOfferClaimed, clearPaywallOfferState, hasExitOfferBeenClaimed } from '@/lib/revenuecat/web';
 import { usePostcheckoutRedirect } from '@/lib/revenuecat/use-postcheckout-redirect';
 import type { FunnelScreen } from '@/lib/quiz/store';
 import type { ValueTourStep } from '@/lib/quiz/steps';
@@ -62,17 +63,27 @@ function SurveyPageContent({ language, countryCode }: { language: Locale; countr
   // Read before the URL is cleaned below: an ad that names the goal skips the goal question.
   const [adGoal] = useState(() => (typeof window === 'undefined' ? null : goalFromSearch(window.location.search)));
 
+  const resetRequested = useRef(false);
   useLayoutEffect(() => {
+    resetRequested.current = new URLSearchParams(window.location.search).get('reset') === '1';
     captureAttribution();
     stripNonAttributionParams();
   }, []);
+
+  useEffect(() => {
+    if (!hydrated || !resetRequested.current) return;
+    resetRequested.current = false;
+    startQuizFromLanding();
+    clearPaywallOfferState();
+    clearExitOfferClaimed();
+  }, [hydrated]);
 
   useLayoutEffect(() => {
     if (!SKIP_LANDING || !hydrated || screen !== 'landing') return;
     startQuizFromLanding();
     if (adGoal) {
       useQuizStore.getState().setData({ fitness_goal: adGoal });
-      useQuizStore.getState().setCurrentStep('age_group');
+      useQuizStore.getState().setCurrentStep('sex');
     }
   }, [adGoal, hydrated, screen]);
 
@@ -93,18 +104,23 @@ function SurveyPageContent({ language, countryCode }: { language: Locale; countr
     router.replace(`/survey/${nextLocale}`);
   }, [router, setLocale]);
 
-  // Back from the paywall reopens the tour on its last screen; from the email screen, the tour starts over.
+  // Back from email reopens the last plan screen. A fresh quiz opens the plan from the start.
   const [tourStart, setTourStart] = useState<ValueTourStep>('plan');
+  const previousScreen = useRef(screen);
+  useEffect(() => {
+    if (previousScreen.current === 'quiz' && screen === 'value') setTourStart('plan');
+    previousScreen.current = screen;
+  }, [screen]);
   // Screens without a ← still answer the phone's Back button with the screen before them; the quiz and the tour handle their own.
   const screenBack = !hydrated
     ? null
     : screen === 'email'
-      ? () => goToQuizStep(router, 'confidence')
+      ? () => {
+        setTourStart('plan');
+        goToScreen('value');
+      }
       : screen === 'paywall' && !isUserPurchased({ purchased, lead })
-        ? () => {
-          setTourStart('snap');
-          goToScreen('value');
-        }
+        ? () => goToScreen('email')
         : screen === 'exit-offer'
           ? () => goToScreen('paywall')
           : null;
@@ -133,12 +149,9 @@ function SurveyPageContent({ language, countryCode }: { language: Locale; countr
     case 'quiz':
       return <QuizShell step={currentStep}><StepRenderer step={currentStep} /></QuizShell>;
     case 'email':
-      return <EmailCaptureScreen onComplete={() => {
-        setTourStart('plan');
-        goToScreen('value');
-      }} />;
+      return <EmailCaptureScreen onComplete={() => goToScreen('paywall')} />;
     case 'value':
-      return <ValueTourScreen initialStep={tourStart} onComplete={() => goToScreen('paywall')} onBack={() => goToScreen('email')} onMissingLead={() => goToScreen('email')} />;
+      return <ValueTourScreen initialStep={tourStart} onComplete={() => goToScreen('email')} onBack={() => goToQuizStep(router, 'result')} />;
     case 'exit-offer': {
       if (isUserPurchased({ purchased, lead }) && !isPurchaseHandoffInFlight()) {
         return null;
@@ -147,7 +160,7 @@ function SurveyPageContent({ language, countryCode }: { language: Locale; countr
     }
     case 'paywall':
       return <PaywallPageClient initialCountryCode={language === 'vi' ? 'VN' : 'US'} exitOfferMode={false} onMissingLead={() => goToScreen('email')} onCheckoutCancelled={() => {
-        if (!isUserPurchased({ purchased, lead })) {
+        if (!isUserPurchased({ purchased, lead }) && !hasExitOfferBeenClaimed()) {
           goToScreen('exit-offer');
         }
       }} />;

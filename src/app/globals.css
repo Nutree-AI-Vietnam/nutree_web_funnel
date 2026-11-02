@@ -20,7 +20,7 @@
   --color-carbs: #0d9488;
   --color-fat: #caa515;
   --color-gold: #c8a24a;
-  --font-sans: var(--font-be-vietnam);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, "Segoe UI", sans-serif;
 
   /* Premium elevation tokens */
   --shadow-e1: 0 1px 2px rgb(16 39 32 / 0.04), 0 2px 8px rgb(16 39 32 / 0.05);
@@ -49,10 +49,10 @@ html {
   scroll-behavior: smooth;
 }
 
-@media (max-width: 1023px) {
-  html {
-    font-size: 18.5px;
-  }
+/* 93.75% of the browser default (15px when that default is 16px).
+   A percentage still follows the user's text-size setting; a px root would not. */
+html {
+  font-size: 93.75%;
 }
 
 h1,
@@ -321,14 +321,31 @@ h2 {
   -webkit-user-select: none;
 }
 
-/* Short lists sit in the middle. Tall lists start at the top and scroll. */
+/* The question sits above this list. Extra space stays under the options, not between them. */
 .quiz-step-stack {
-  justify-content: safe center;
+  justify-content: flex-start;
 }
 
-/* Keep the question and the action inside the screen; the body scrolls. */
+.quiz-step-frame[data-pin-top] .quiz-step-stack {
+  justify-content: flex-start;
+}
+
+/* Keep the question and the action inside the screen; the body scrolls.
+   A visible scrollbar, or a 1px ring sitting on the scrollport edge, cuts the card radius. */
 .quiz-step-body {
   height: 0;
+  scrollbar-width: none;
+  padding: 4px 3px;
+  margin-inline: -3px;
+}
+
+.quiz-step-body::-webkit-scrollbar {
+  display: none;
+}
+
+/* The local Next.js badge sits on the quiz. It is not part of the product. */
+nextjs-portal {
+  display: none !important;
 }
 
 /* Landscape phones: the question block has to shrink so the action stays on screen. */

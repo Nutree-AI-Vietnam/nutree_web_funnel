@@ -144,7 +144,7 @@ describe('home quiz entry', () => {
 
     expect(screen.queryByRole('button', { name: 'Quay lại' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Tiếng Việt' })).toBeTruthy();
-    expect(screen.getByRole('img', { name: '4.7/5 trên App Store, 4.8/5 trên CH Play. 40.000+ khách hàng đã chọn Nutree' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: '4.7/5 trên App Store, 4.8/5 trên CH Play. 200.000+ khách hàng đã chọn Nutree' })).toBeTruthy();
     expect(screen.getByRole('link', { name: /Bộ Công Thương/ }).getAttribute('href')).toBe(BCT_HREF);
 
     const terms = screen.getByRole('link', { name: 'Điều khoản' });
@@ -177,7 +177,7 @@ describe('home quiz entry', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: '1–5 kg' }));
-    expect(await screen.findByRole('heading', { name: 'Bạn thuộc nhóm tuổi nào?' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Giới tính sinh học của bạn?' })).toBeTruthy();
     expect(useQuizStore.getState().data.fitness_goal).toBe('cut');
     expect(screen.getByRole('button', { name: 'Quay lại' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Tiếng Việt' })).toBeNull();

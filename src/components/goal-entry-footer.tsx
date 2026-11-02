@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { BoCongThuongBadge } from '@/components/bo-cong-thuong-badge';
 import { LanguageMenu } from '@/components/language-menu';
 import { LegalConsent } from '@/components/legal-consent';
+import { StoreLaurels, storeRatingsLine } from '@/components/value-tour/value-tour-demos';
 import { useCopy, useLocale, useSetLocale } from '@/lib/copy/use-copy';
 import type { Locale } from '@/lib/copy';
 
@@ -25,9 +26,17 @@ export function GoalLanguageMenu() {
 export function GoalEntryFooter() {
   const copy = useCopy();
   const locale = useLocale();
+  const rating = copy.funnel.rating;
 
   return (
-    <footer className="flex shrink-0 flex-col items-center gap-[clamp(6px,0.9vh,10px)] px-1 pt-3">
+    <footer className="flex shrink-0 flex-col items-center gap-3 px-1 pt-3">
+      <div
+        role="img"
+        aria-label={`${storeRatingsLine(rating)}. ${rating.countValue} ${rating.chose}`}
+        className="w-full"
+      >
+        <StoreLaurels />
+      </div>
       {locale === 'vi' ? (
         <BoCongThuongBadge alt={copy.common.bctBadgeAlt} height={52} className="[&_img]:h-[clamp(28px,4.2vh,48px)] [&_img]:w-auto" />
       ) : null}

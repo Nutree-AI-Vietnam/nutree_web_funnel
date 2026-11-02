@@ -163,6 +163,18 @@ export function TargetWeightStep() {
   const valid = targetValue != null;
   const currentValue = data.weight_kg;
   const heightCm = typeof data.height_cm === 'number' && Number.isFinite(data.height_cm) && data.height_cm > 0 ? data.height_cm : null;
+  // The wheel only offers the direction of the goal, so a loss cannot scroll above today and a gain cannot scroll below it.
+  const goal = data.fitness_goal;
+  let weightMin = 30;
+  let weightMax = 250;
+  if (currentValue != null && Number.isFinite(currentValue)) {
+    if (goal === 'cut') weightMax = Math.min(weightMax, Math.floor(currentValue));
+    if (goal === 'bulk') weightMin = Math.max(weightMin, Math.ceil(currentValue));
+  }
+  if (weightMax < weightMin) weightMax = weightMin;
+  const directionNote = goal === 'cut' ? copy.target_weight.lossLimit : goal === 'bulk' ? copy.target_weight.gainLimit : null;
+  const startingTarget = data.target_weight_kg ?? presetTargetWeight(goal, data.weight_kg, data.height_cm);
+  const initialTarget = startingTarget == null ? undefined : Math.min(weightMax, Math.max(weightMin, Math.round(startingTarget)));
   // Adult BMI ranges apply to everyone: the funnel only takes adults.
   const targetBmi = targetValue != null && heightCm != null ? bmi(targetValue, heightCm) : null;
   const targetBmiCategory = targetBmi != null ? bmiCategory(targetBmi) : null;
@@ -211,15 +223,15 @@ export function TargetWeightStep() {
           </span>
           <span aria-hidden="true" className="text-[1.15rem] font-extrabold leading-tight text-[#e6a0a8]">»</span>
         </div>
-        <div className="relative flex w-56 max-w-[58vw] flex-1 flex-col">
+        <div className="relative flex w-full min-w-0 flex-1 flex-col">
           <UnitFields
             measure="weight"
             id="target-weight"
             label={copy.target_weight.label}
-            initialValue={data.target_weight_kg ?? presetTargetWeight(data.fitness_goal, data.weight_kg, data.height_cm)}
+            initialValue={initialTarget}
             unit={copy.target_weight.unit}
-            min={30}
-            max={250}
+            min={weightMin}
+            max={weightMax}
             variant="hero"
             showError={touched && system !== 'metric'}
             onChange={setTargetValue}
@@ -232,6 +244,9 @@ export function TargetWeightStep() {
           {copy.funnel.targetTooLow(formatWeight(healthyRange.lowKg, system, locale))}
         </p>
       ) : null}
+      {directionNote && (
+        <p className="text-center text-[0.8rem] font-medium leading-snug text-muted-brand">{directionNote}</p>
+      )}
       {healthyRange && (
         <p className="text-center text-xs font-bold text-muted-brand">
           {copy.funnel.healthyRange(formatWeight(healthyRange.lowKg, system, locale), formatWeight(healthyRange.highKg, system, locale))}
@@ -303,7 +318,7 @@ export function BodyReviewStep() {
   const candidates: Array<ReviewRow | null> = [
     data.fitness_goal ? { label: review.goalLabel, value: getGoalLabel(copy, data.fitness_goal), step: 'goal' as const } : null,
     sexLabel ? { label: review.sexLabel, value: sexLabel, step: 'sex' as const } : null,
-    age ? { label: review.ageLabel, value: String(age), step: 'age' as const } : null,
+    age ? { label: review.ageLabel, value: String(age), step: 'age_group' as const } : null,
     data.height_cm ? { label: review.heightLabel, value: formatHeight(data.height_cm, system), step: 'height' as const } : null,
     data.weight_kg ? { label: review.weightLabel, value: formatWeight(data.weight_kg, system, locale), step: 'weight' as const } : null,
     data.target_weight_kg
@@ -339,7 +354,7 @@ export function BodyReviewStep() {
               return;
             }
             setData({ body_review_confirmed_at: new Date().toISOString() });
-            goToNextQuizStep(router, 'body_review');
+            goToNextQuizStep(router, 'activity_level');
           }}
         >
           {copy.body_review.cta}
@@ -354,6 +369,7 @@ export function RoutineStep() {
   const copy = useCopy();
   const data = useQuizStore((s) => s.data);
   const setData = useQuizStore((s) => s.setData);
+  const [job, setJob] = useState<string | null>(null);
   const trainingDays = data.training_days_per_week;
   const durationRequired = trainingDays != null && trainingDays > 0;
 
@@ -366,8 +382,8 @@ export function RoutineStep() {
             key={option.key}
             compact
             label={option.label}
-            selected={data.job_type === option.key}
-            onClick={() => setData({ job_type: option.key as OnboardingPayload['job_type'] })}
+            selected={job === option.key}
+            onClick={() => { setJob(option.key); setData({ job_type: option.key as OnboardingPayload['job_type'] }); }}
           />
         ))}
       </div>
@@ -379,7 +395,7 @@ export function RoutineStep() {
               key={days}
               type="button"
               onClick={() => setData({ training_days_per_week: days, training_minutes_per_session: days === 0 ? 0 : data.training_minutes_per_session })}
-              className={`h-12 rounded-2xl text-sm font-extrabold shadow-sm transition ${
+              className={`h-12 rounded-2xl text-sm font-medium shadow-sm transition ${
                 trainingDays === days ? 'bg-forest text-white' : 'bg-white/82 text-forest'
               }`}
             >
@@ -395,7 +411,7 @@ export function RoutineStep() {
               key={minutes}
               type="button"
               onClick={() => setData({ training_minutes_per_session: minutes })}
-              className={`rounded-2xl px-2 py-3 text-xs font-extrabold shadow-sm transition ${
+              className={`rounded-2xl px-2 py-3 text-xs font-medium shadow-sm transition ${
                 data.training_minutes_per_session === minutes ? 'bg-teal-brand text-white' : 'bg-white/82 text-forest'
               }`}
             >

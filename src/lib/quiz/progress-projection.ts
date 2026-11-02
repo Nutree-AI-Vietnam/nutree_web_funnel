@@ -46,6 +46,16 @@ function finiteNumber(value: number | undefined): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+/**
+ * The weight chart is the step before activity, so `job_type` is still empty.
+ * Desk is the preview until they answer; a saved job type is never replaced.
+ */
+function projectionTdee(data: OnboardingPayload): TdeeResult | null {
+  const computed = computeTdeeResult(data);
+  if (computed || data.job_type) return computed;
+  return computeTdeeResult({ ...data, job_type: 'desk' });
+}
+
 function directionForGoal(goal: OnboardingPayload['fitness_goal']): ProgressDirection {
   if (goal === 'cut') return 'down';
   if (goal === 'bulk') return 'up';
@@ -62,7 +72,7 @@ export function buildProgressProjection(data: OnboardingPayload, tdee: TdeeResul
   const target = finiteNumber(data.target_weight_kg);
   if (current != null && target != null && Math.abs(current - target) > WEIGHT_GAP_KG) {
     const reducing = target < current;
-    const kgPerWeek = planKgPerWeek(tdee ?? computeTdeeResult(data), reducing);
+    const kgPerWeek = planKgPerWeek(tdee ?? projectionTdee(data), reducing);
     if (kgPerWeek != null) {
       const delta = Math.abs(current - target);
       return {

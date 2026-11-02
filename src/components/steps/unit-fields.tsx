@@ -142,7 +142,7 @@ export function UnitFields({
           onBlur={onBlur}
         />
       ) : (
-        <div className="flex flex-1 flex-col">
+        <div className="flex w-full min-w-0 flex-1 flex-col">
           <MetricWheelPicker
             id={id}
             label={label}

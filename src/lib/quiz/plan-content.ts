@@ -146,12 +146,69 @@ const CHANGE_FOR_CHALLENGE: Record<string, ChangeId> = {
   confusion: 'one_number',
 };
 
-/** Which answer a first change answers, so the plan can say "you said X, so Y". */
+type GoalKey = 'cut' | 'bulk' | 'recomp' | 'maintain';
+type ActivityKey = 'desk' | 'on_feet' | 'physical';
+type ObstacleKey = 'time' | 'snacks' | 'stress' | 'unsure';
+type DietStyleKey = 'free' | 'veg' | 'sweet' | 'protein';
+type PlainChangeId = 'protein' | 'photo_logging' | 'meal_ideas';
+
+/** Which answer a first change comes from. Each kind is a different line, so three rows never share one sentence. */
 export type ChangeSource =
   | { kind: 'moment'; key: NonNullable<OnboardingPayload['hardest_eating_moment']> }
   | { kind: 'challenge'; key: string }
   | { kind: 'cooking' }
-  | { kind: 'goal' };
+  | { kind: 'goal'; key: GoalKey }
+  | { kind: 'goal_protein'; key: 'bulk' | 'recomp' }
+  | { kind: 'obstacle'; key: ObstacleKey }
+  | { kind: 'diet_style'; key: DietStyleKey }
+  | { kind: 'activity'; key: ActivityKey }
+  | { kind: 'plain'; id: PlainChangeId };
+
+/** Quiz answers that can justify a default change. Missing answers stay off the line. */
+export interface FirstChangeContext {
+  cooking?: 'home' | 'out';
+  goal?: string;
+  activity?: string;
+  obstacle?: string;
+  dietStyle?: string;
+}
+
+const GOALS: readonly GoalKey[] = ['cut', 'bulk', 'recomp', 'maintain'];
+const ACTIVITIES: readonly ActivityKey[] = ['desk', 'on_feet', 'physical'];
+const OBSTACLES: readonly ObstacleKey[] = ['time', 'snacks', 'stress', 'unsure'];
+const DIET_STYLES: readonly DietStyleKey[] = ['free', 'veg', 'sweet', 'protein'];
+
+function oneOf<T extends string>(value: string | undefined, allowed: readonly T[]): T | undefined {
+  return value && (allowed as readonly string[]).includes(value) ? (value as T) : undefined;
+}
+
+/**
+ * The answer behind a default change, or a line that belongs only to that change.
+ * Protein, photo logging, and meal ideas must not all point at the goal.
+ */
+function sourceForDefaultChange(id: PlainChangeId, ctx: FirstChangeContext): ChangeSource {
+  const goal = oneOf(ctx.goal, GOALS);
+  const activity = oneOf(ctx.activity, ACTIVITIES);
+  const obstacle = oneOf(ctx.obstacle, OBSTACLES);
+  const diet = oneOf(ctx.dietStyle, DIET_STYLES);
+  const proteinClaimsMuscleGoal = (goal === 'bulk' || goal === 'recomp') && diet !== 'protein' && obstacle !== 'snacks';
+
+  if (id === 'protein') {
+    if (diet === 'protein') return { kind: 'diet_style', key: 'protein' };
+    if (obstacle === 'snacks') return { kind: 'obstacle', key: 'snacks' };
+    if (goal === 'bulk' || goal === 'recomp') return { kind: 'goal_protein', key: goal };
+    return { kind: 'plain', id: 'protein' };
+  }
+  if (id === 'photo_logging') {
+    if (obstacle === 'time') return { kind: 'obstacle', key: 'time' };
+    return { kind: 'plain', id: 'photo_logging' };
+  }
+  if (obstacle === 'unsure') return { kind: 'obstacle', key: 'unsure' };
+  if (diet === 'veg' || diet === 'sweet' || diet === 'free') return { kind: 'diet_style', key: diet };
+  if (goal && !proteinClaimsMuscleGoal) return { kind: 'goal', key: goal };
+  if (activity) return { kind: 'activity', key: activity };
+  return { kind: 'plain', id: 'meal_ideas' };
+}
 
 export interface FirstChange {
   id: ChangeId;
@@ -165,7 +222,7 @@ export interface FirstChange {
  */
 export function firstChangePlan(
   data: Pick<OnboardingPayload, 'hardest_eating_moment' | 'pain_points'>,
-  answers: { cooking?: 'home' | 'out' } = {},
+  answers: FirstChangeContext = {},
 ): FirstChange[] {
   const picks: FirstChange[] = [];
   const add = (id: ChangeId | undefined, source: ChangeSource) => {
@@ -174,7 +231,7 @@ export function firstChangePlan(
   if (data.hardest_eating_moment) add(data.hardest_eating_moment, { kind: 'moment', key: data.hardest_eating_moment });
   if (answers.cooking === 'out') add('eating_out', { kind: 'cooking' });
   for (const challenge of data.pain_points ?? []) add(CHANGE_FOR_CHALLENGE[challenge], { kind: 'challenge', key: challenge });
-  for (const fallback of ['protein', 'photo_logging', 'meal_ideas'] as const) add(fallback, { kind: 'goal' });
+  for (const fallback of ['protein', 'photo_logging', 'meal_ideas'] as const) add(fallback, sourceForDefaultChange(fallback, answers));
   return picks;
 }
 
@@ -206,7 +263,7 @@ export function appIncludeSources(
 
 export function firstChanges(
   data: Pick<OnboardingPayload, 'hardest_eating_moment' | 'pain_points'>,
-  answers: { cooking?: 'home' | 'out' } = {},
+  answers: FirstChangeContext = {},
 ): ChangeId[] {
   return firstChangePlan(data, answers).map((change) => change.id);
 }

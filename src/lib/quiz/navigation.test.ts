@@ -67,10 +67,10 @@ describe('quiz start navigation', () => {
 
   it('steps back inside the quiz without restarting', () => {
     useQuizStore.getState().setFunnelScreen('quiz');
-    useQuizStore.getState().setCurrentStep('age_group');
+    useQuizStore.getState().setCurrentStep('sex');
     useQuizStore.getState().setData({ fitness_goal: 'cut' });
 
-    goToPreviousQuizStep(router, 'age_group');
+    goToPreviousQuizStep(router, 'sex');
 
     expect(useQuizStore.getState().funnelScreen).toBe('quiz');
     expect(useQuizStore.getState().currentStep).toBe('goal');
@@ -79,7 +79,7 @@ describe('quiz start navigation', () => {
 
   it('sends exit intent to a fresh goal step', () => {
     useQuizStore.getState().setFunnelScreen('quiz');
-    useQuizStore.getState().setCurrentStep('motivation');
+    useQuizStore.getState().setCurrentStep('proof');
     useQuizStore.getState().setData({ fitness_goal: 'bulk', name: 'Anh' });
 
     returnToFunnelStart();
@@ -115,21 +115,21 @@ describe('editing an answer from the review screen', () => {
     useQuizStore.getState().reset();
     useQuizStore.getState().setData(answers);
     useQuizStore.getState().setFunnelScreen('quiz');
-    useQuizStore.getState().setCurrentStep('body_review');
+    useQuizStore.getState().setCurrentStep('result');
   });
 
   it('comes straight back to the review after the edited answer', () => {
-    editQuizAnswer(router, 'age');
-    expect(useQuizStore.getState().currentStep).toBe('age');
+    editQuizAnswer(router, 'sex');
+    expect(useQuizStore.getState().currentStep).toBe('sex');
 
-    useQuizStore.getState().setData({ age: 31 });
-    goToNextQuizStep(router, 'age');
+    useQuizStore.getState().setData({ gender: 'male' });
+    goToNextQuizStep(router, 'sex');
 
-    expect(useQuizStore.getState().currentStep).toBe('body_review');
+    expect(useQuizStore.getState().currentStep).toBe('result');
     expect(useQuizStore.getState().editReturn).toBeNull();
-    // Later answers go forward as usual again.
-    goToNextQuizStep(router, 'body_review');
-    expect(useQuizStore.getState().currentStep).toBe('activity_level');
+    // Later answers go forward as usual again. Result is the last quiz screen, so Continue opens the plan.
+    goToNextQuizStep(router, 'result');
+    expect(useQuizStore.getState().funnelScreen).toBe('value');
   });
 
   it('asks the target again when the new goal points the other way', () => {
@@ -140,7 +140,7 @@ describe('editing an answer from the review screen', () => {
 
     useQuizStore.getState().setData({ target_weight_kg: 74, fitness_goal: 'bulk' });
     goToNextQuizStep(router, 'target_weight');
-    expect(useQuizStore.getState().currentStep).toBe('body_review');
+    expect(useQuizStore.getState().currentStep).toBe('result');
   });
 
   it('asks the target again when a new height puts it under the healthy range', () => {
@@ -154,32 +154,20 @@ describe('editing an answer from the review screen', () => {
   it('returns to the review on Back without walking the questions in between', () => {
     editQuizAnswer(router, 'weight');
     goToPreviousQuizStep(router, 'weight');
-    expect(useQuizStore.getState().currentStep).toBe('body_review');
+    expect(useQuizStore.getState().currentStep).toBe('result');
     expect(useQuizStore.getState().editReturn).toBeNull();
   });
 });
 
-describe('Back skips screens that were skipped on the way in', () => {
+describe('Back skips the loader', () => {
   beforeEach(() => {
     sessionMem.clear();
     useQuizStore.getState().reset();
     useQuizStore.getState().setFunnelScreen('quiz');
   });
 
-  it('skips the session-length question when there are no training days', () => {
-    useQuizStore.getState().setData({ training_days_per_week: 0, training_minutes_per_session: 0 });
-    goToPreviousQuizStep(router, 'eating_pattern');
-    expect(useQuizStore.getState().currentStep).toBe('training_days');
-  });
-
-  it('keeps the session-length question for people who train', () => {
-    useQuizStore.getState().setData({ training_days_per_week: 3, training_minutes_per_session: 45 });
-    goToPreviousQuizStep(router, 'eating_pattern');
-    expect(useQuizStore.getState().currentStep).toBe('training_duration');
-  });
-
   it('goes from the plan to the last question, not the loader', () => {
     goToPreviousQuizStep(router, 'result');
-    expect(useQuizStore.getState().currentStep).toBe('not_alone');
+    expect(useQuizStore.getState().currentStep).toBe('with_you');
   });
 });

@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import type { CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { NutreeLogo } from '@/components/nutree-logo';
-import { BackgroundBeams } from '@/components/ui/background-beams';
 import { ExitIntentModal } from '@/components/exit-intent-modal';
 import { GoalLanguageMenu } from '@/components/goal-entry-footer';
 import { trackStepViewed } from '@/lib/analytics/track';
@@ -21,7 +20,10 @@ function enterStyle(order: number): CSSProperties {
 }
 
 /** Steps built around a wheel picker; they fill the viewport instead of growing past it. */
-const FIT_VIEWPORT_STEPS: readonly QuizStep[] = ['age', 'height', 'weight', 'target_weight'];
+const FIT_VIEWPORT_STEPS: readonly QuizStep[] = ['height', 'weight', 'target_weight'];
+
+/** Interstitials and the opening question. The bar starts once the visitor is answering. */
+const HIDE_PROGRESS_STEPS: readonly QuizStep[] = ['goal', 'proof', 'progress', 'with_you'];
 
 export function QuizShell({
   step,
@@ -65,15 +67,13 @@ export function QuizShell({
   const fitViewport = FIT_VIEWPORT_STEPS.includes(step);
 
   return (
+    <div className="flex h-dvh w-full justify-center bg-[#f4f7f5]">
     <main
       data-fit-viewport={fitViewport || undefined}
-      className={cn(
-        'quiz-shell relative mx-auto flex h-dvh w-full max-w-lg flex-col overflow-hidden px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(0.65rem,env(safe-area-inset-top))] sm:pt-4',
-      )}
+      className="quiz-shell relative flex h-dvh w-full max-w-lg flex-col overflow-hidden bg-[#f4f7f5] px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(0.65rem,env(safe-area-inset-top))] sm:pt-4"
     >
-      <BackgroundBeams className="opacity-70" />
       {/* z-20 keeps the language dropdown above the progress bar and the step below it. */}
-      <div className="quiz-shell-header enter-item relative z-20 mb-3 flex shrink-0 items-center justify-between gap-3" style={enterStyle(0)}>
+      <div className="quiz-shell-header enter-item relative z-20 mb-3 flex w-full max-w-lg shrink-0 items-center justify-between gap-3 pt-4" style={enterStyle(0)}>
         {hideBack ? (
           <div aria-hidden="true" className="w-14" />
         ) : step === 'calculating' ? (
@@ -98,14 +98,14 @@ export function QuizShell({
           <div aria-hidden="true" className="min-w-11" />
         )}
       </div>
-      {step !== 'goal' && step !== 'welcome' && (
+      {!HIDE_PROGRESS_STEPS.includes(step) && (
         <div
           role="progressbar"
           aria-label={copy.common.progress}
           aria-valuemin={1}
           aria-valuemax={totalSteps}
           aria-valuenow={currentStep}
-          className="quiz-shell-progress enter-item relative z-10 mb-4 h-1 shrink-0 overflow-hidden rounded-full bg-forest/10"
+          className="quiz-shell-progress enter-item relative z-10 mb-4 h-1 w-full max-w-lg shrink-0 overflow-hidden rounded-full bg-forest/10"
           style={enterStyle(1)}
         >
           <div
@@ -117,12 +117,13 @@ export function QuizShell({
       <div
         key={progressIndex ?? step}
         className={cn(
-          'quiz-shell-content relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden',
+          'quiz-shell-content relative z-10 flex min-h-0 w-full max-w-lg flex-1 flex-col overflow-hidden',
         )}
       >
         {children}
       </div>
       {showExitIntent && <ExitIntentModal currentStepIndex={stepIndex(step)} />}
     </main>
+    </div>
   );
 }

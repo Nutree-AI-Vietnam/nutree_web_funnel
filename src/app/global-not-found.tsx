@@ -1,13 +1,6 @@
 import type { Metadata } from 'next';
-import { Be_Vietnam_Pro } from 'next/font/google';
 import Link from 'next/link';
 import './globals.css';
-
-const beVietnam = Be_Vietnam_Pro({
-  subsets: ['latin', 'vietnamese'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-be-vietnam',
-});
 
 export const metadata: Metadata = {
   title: 'Không tìm thấy trang',
@@ -18,7 +11,7 @@ export const metadata: Metadata = {
 export default function GlobalNotFound() {
   return (
     <html lang="vi" className="h-full">
-      <body className={`${beVietnam.variable} flex min-h-full flex-col font-sans antialiased`}>
+      <body className="flex min-h-full flex-col font-sans antialiased">
         <main className="grid min-h-dvh place-items-center px-5 text-charcoal">
           <section className="mx-auto max-w-xl rounded-[2rem] border border-border-brand bg-white p-8 text-center shadow-[0_24px_70px_rgb(23_69_58_/_0.10)]">
             <p className="text-sm font-extrabold tracking-[0.02em] text-teal-brand">404</p>

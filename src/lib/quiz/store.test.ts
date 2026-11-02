@@ -197,14 +197,38 @@ describe('quiz store', () => {
     }
   });
 
-  it('sends a saved duration step on to motivation', () => {
+  it('sends a saved removed quiz step to the screen that replaced it', () => {
+    const cases = [
+      ['welcome', 'proof'],
+      ['body_review', 'calculating'],
+      ['training_days', 'activity_level'],
+      ['training_duration', 'activity_level'],
+      ['eating_pattern', 'activity_level'],
+      ['diet', 'activity_level'],
+      ['step_goal', 'activity_level'],
+      ['not_alone', 'activity_level'],
+      ['progress', 'progress'],
+      ['confidence', 'result'],
+    ] as const;
+    for (const [currentStep, expected] of cases) {
+      const migrated = migratePersistedQuizState({
+        funnelScreen: 'quiz',
+        currentStep,
+        data: { measurement_unit: 'metric' },
+      });
+      expect(migrated.currentStep).toBe(expected);
+      expect(migrated.funnelScreen).toBe('quiz');
+    }
+  });
+
+  it('sends a saved duration step on to activity level', () => {
     const migrated = migratePersistedQuizState({ funnelScreen: 'quiz', currentStep: 'duration', data: { measurement_unit: 'metric' } });
-    expect(migrated.currentStep).toBe('motivation');
+    expect(migrated.currentStep).toBe('activity_level');
     expect(migrated.funnelScreen).toBe('quiz');
   });
 
   it('reopens a version-12 tab saved on a removed step at the step that replaced it', async () => {
-    for (const [saved, expected] of [['care_pause', 'calculating'], ['duration', 'motivation']] as const) {
+    for (const [saved, expected] of [['care_pause', 'calculating'], ['duration', 'activity_level'], ['name_ask', 'sex'], ['age', 'height']] as const) {
       sessionMem.set(STORAGE_KEY, JSON.stringify({
         state: { funnelScreen: 'quiz', currentStep: saved, data: { measurement_unit: 'metric' }, locale: 'en' },
         version: 12,

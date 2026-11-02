@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { goalFromSearch } from '@/lib/funnel/ad-goal';
-import { appIncludeSources, dishFor, firstChanges, periodWeeks, planForTimeline, sampleDay } from './plan-content';
+import { appIncludeSources, dishFor, firstChangePlan, firstChanges, periodWeeks, planForTimeline, sampleDay } from './plan-content';
 import { firstWin, goalTimeline } from './progress-projection';
 
 describe('goalTimeline', () => {
@@ -33,6 +33,23 @@ describe('goalTimeline', () => {
     expect(firstWin(timeline, 'imperial', 'en').date).toEqual(timeline.month1Date);
     // In kilograms to one decimal the first week already shows.
     expect(firstWin(timeline, 'metric', 'vi').date).toEqual(timeline.week1Date);
+  });
+
+  it('still dates the chart before the activity question, using a desk-job preview', () => {
+    const timeline = goalTimeline({
+      measurement_unit: 'metric',
+      fitness_goal: 'cut',
+      gender: 'female',
+      birth_year: 1992,
+      birth_month: 1,
+      birth_day: 1,
+      height_cm: 160,
+      weight_kg: 50,
+      target_weight_kg: 48,
+    }, new Date(Date.UTC(2026, 10, 1)));
+    expect(timeline).not.toBeNull();
+    expect(timeline!.days).toBeGreaterThan(7);
+    expect(timeline!.reducing).toBe(true);
   });
 
   it('has no date while the answers behind the calorie targets are missing', () => {
@@ -79,6 +96,31 @@ describe('firstChanges', () => {
 
   it('adds eating out for people who rarely cook', () => {
     expect(firstChanges({ hardest_eating_moment: 'evening' }, { cooking: 'out' })).toEqual(['evening', 'eating_out', 'protein']);
+  });
+
+  it('ties each default change to a different answer, and never repeats the goal line', () => {
+    expect(firstChangePlan({}, {
+      goal: 'cut',
+      activity: 'desk',
+      obstacle: 'time',
+      dietStyle: 'protein',
+    }).map((change) => change.source)).toEqual([
+      { kind: 'diet_style', key: 'protein' },
+      { kind: 'obstacle', key: 'time' },
+      { kind: 'goal', key: 'cut' },
+    ]);
+    expect(firstChangePlan({}, { goal: 'cut', obstacle: 'snacks', dietStyle: 'veg' }).map((change) => change.source)).toEqual([
+      { kind: 'obstacle', key: 'snacks' },
+      { kind: 'plain', id: 'photo_logging' },
+      { kind: 'diet_style', key: 'veg' },
+    ]);
+    expect(firstChangePlan({}, { goal: 'bulk', activity: 'desk' }).map((change) => change.source)).toEqual([
+      { kind: 'goal_protein', key: 'bulk' },
+      { kind: 'plain', id: 'photo_logging' },
+      { kind: 'activity', key: 'desk' },
+    ]);
+    const sources = firstChangePlan({}, { goal: 'cut' }).map((change) => JSON.stringify(change.source));
+    expect(new Set(sources).size).toBe(3);
   });
 });
 

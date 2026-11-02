@@ -4,8 +4,14 @@ export interface OnboardingPayload {
   fitness_goal?: 'cut' | 'bulk' | 'recomp' | 'maintain';
   /** First-screen weight-loss band. Display only; calories still come from fitness_goal. */
   weight_loss_band?: 'small' | 'medium' | 'large' | 'unsure';
-  /** Illustrated age card. The exact age is still entered later. */
+  /** Illustrated age card. Calories use the band's representative age. */
   age_group?: '18_29' | '30_39' | '40_49' | '50_plus';
+  /** Illustrated current build. Display only; it does not change the calorie formula. */
+  body_current?: 'slim' | 'average' | 'fuller';
+  /** Illustrated target build. Display only; it does not change the calorie formula. */
+  body_target?: 'lean' | 'toned' | 'athletic';
+  /** Body areas the visitor wants to change. Display only; not sent to the backend. */
+  target_zones?: Array<'belly' | 'arms' | 'hips' | 'butt' | 'chest' | 'legs'>;
   target_weight_kg?: number;
   target_weight_unsure?: boolean;
   pain_points?: string[];
