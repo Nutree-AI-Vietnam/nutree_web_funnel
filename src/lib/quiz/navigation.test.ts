@@ -133,9 +133,9 @@ describe('editing an answer from the review screen', () => {
 
     expect(useQuizStore.getState().currentStep).toBe('result');
     expect(useQuizStore.getState().editReturn).toBeNull();
-    // Later answers go forward as usual again. Result is the last quiz screen, so Continue opens the plan.
+    // Later answers go forward as usual again. Result is the last quiz screen, so Continue opens the email form.
     goToNextQuizStep(router, 'result');
-    expect(useQuizStore.getState().funnelScreen).toBe('value');
+    expect(useQuizStore.getState().funnelScreen).toBe('email');
   });
 
   it('asks the target again when the new goal points the other way', () => {

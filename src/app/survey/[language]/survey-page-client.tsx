@@ -18,7 +18,7 @@ import { isPurchaseHandoffInFlight } from '@/lib/revenuecat/purchase-handoff';
 import { clearExitOfferClaimed, clearPaywallOfferState, hasExitOfferBeenClaimed } from '@/lib/revenuecat/web';
 import { usePostcheckoutRedirect } from '@/lib/revenuecat/use-postcheckout-redirect';
 import type { FunnelScreen } from '@/lib/quiz/store';
-import type { ValueTourStep } from '@/lib/quiz/steps';
+import { VALUE_TOUR_STEPS, type ValueTourStep } from '@/lib/quiz/steps';
 import type { Locale } from '@/lib/copy';
 
 // Screens after the quiz load on demand, so the first screen does not wait for the
@@ -104,23 +104,19 @@ function SurveyPageContent({ language, countryCode }: { language: Locale; countr
     router.replace(`/survey/${nextLocale}`);
   }, [router, setLocale]);
 
-  // Back from email reopens the last plan screen. A fresh quiz opens the plan from the start.
+  // Email comes before the day plan. Back from the paywall reopens the last tour screen.
   const [tourStart, setTourStart] = useState<ValueTourStep>('plan');
-  const previousScreen = useRef(screen);
-  useEffect(() => {
-    if (previousScreen.current === 'quiz' && screen === 'value') setTourStart('plan');
-    previousScreen.current = screen;
-  }, [screen]);
+  const lastTourStep = VALUE_TOUR_STEPS[VALUE_TOUR_STEPS.length - 1];
   // Screens without a ← still answer the phone's Back button with the screen before them; the quiz and the tour handle their own.
   const screenBack = !hydrated
     ? null
     : screen === 'email'
-      ? () => {
-        setTourStart('plan');
-        goToScreen('value');
-      }
+      ? () => goToQuizStep(router, 'result')
       : screen === 'paywall' && !isUserPurchased({ purchased, lead })
-        ? () => goToScreen('email')
+        ? () => {
+          setTourStart(lastTourStep);
+          goToScreen('value');
+        }
         : screen === 'exit-offer'
           ? () => goToScreen('paywall')
           : null;
@@ -149,9 +145,12 @@ function SurveyPageContent({ language, countryCode }: { language: Locale; countr
     case 'quiz':
       return <QuizShell step={currentStep}><StepRenderer step={currentStep} /></QuizShell>;
     case 'email':
-      return <EmailCaptureScreen onComplete={() => goToScreen('paywall')} />;
+      return <EmailCaptureScreen onComplete={() => {
+        setTourStart('plan');
+        goToScreen('value');
+      }} />;
     case 'value':
-      return <ValueTourScreen initialStep={tourStart} onComplete={() => goToScreen('email')} onBack={() => goToQuizStep(router, 'result')} />;
+      return <ValueTourScreen initialStep={tourStart} onComplete={() => goToScreen('paywall')} onBack={() => goToScreen('email')} />;
     case 'exit-offer': {
       if (isUserPurchased({ purchased, lead }) && !isPurchaseHandoffInFlight()) {
         return null;

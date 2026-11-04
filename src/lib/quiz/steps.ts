@@ -28,7 +28,7 @@ export const QUIZ_STEPS = [
 
 export type QuizStep = (typeof QUIZ_STEPS)[number];
 
-/** Product tour after email: the plan, then photo logging. Same onboarding bar as the quiz. The rating and feature list live on the paywall. */
+/** Product tour after the email form: the day plan, then photo logging. Same onboarding bar as the quiz. The rating and feature list live on the paywall. */
 export const VALUE_TOUR_STEPS = ['plan', 'snap', 'activity', 'macros', 'sources'] as const;
 
 export type ValueTourStep = (typeof VALUE_TOUR_STEPS)[number];

@@ -75,7 +75,8 @@ export function goToNextQuizStep(router: QuizRouter, step: QuizStep): void {
   if (next) {
     showQuizStep(router, next);
   } else {
-    useQuizStore.getState().setFunnelScreen('value');
+    // The day plan is shown after the email, so the last quiz screen opens the email form.
+    useQuizStore.getState().setFunnelScreen('email');
   }
 }
 

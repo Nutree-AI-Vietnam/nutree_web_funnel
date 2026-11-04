@@ -56,7 +56,7 @@ export function ValueTourScreen({
     <QuizShell step="result" progressIndex={valueProgressIndex(step)} onBack={goBack} showExitIntent={false}>
       {step === 'plan' && (
         <QuizStepFrame eyebrow={tour.plan.eyebrow} title={data.name?.trim() ? copy.funnel.plan.eyebrow(data.name.trim()) : copy.funnel.plan.eyebrowFallback}>
-          {/* The plan is readable here, before the email asks where to send it. */}
+          {/* The day plan comes after the email, so this screen never sits in front of the form. */}
           {tdee ? (
             <>
               <FirstChangesCard data={data} tdee={tdee} reveal />
