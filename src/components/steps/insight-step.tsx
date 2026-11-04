@@ -7,6 +7,8 @@ import { useCopy } from '@/lib/copy/use-copy';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { QuizStep } from '@/lib/quiz/steps';
+import { ILLUSTRATION_CAPTION } from '@/lib/quiz/vi-survey';
+import { Art } from './vi-art';
 import { QuizStepFrame } from './quiz-step-frame';
 
 export const INSIGHT_STEPS = [
@@ -51,6 +53,12 @@ export function InsightStep({ step }: { step: InsightStepId }) {
   return (
     <QuizStepFrame pinTop>
       <div className="flex flex-col gap-4">
+        {step === 'insight_pace' && (
+          <div className="flex flex-col items-center gap-2">
+            <Art id="twoLines" />
+            <p className="text-center text-[0.78rem] font-semibold text-muted-brand">{ILLUSTRATION_CAPTION}</p>
+          </div>
+        )}
         <div className="flex items-center gap-3">
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-mist text-teal-brand">
             <Icon name={ICONS[step]} className="h-6 w-6" />

@@ -7,6 +7,7 @@ import { ExitIntentModal } from './exit-intent-modal';
 
 describe('ExitIntentModal', () => {
   beforeEach(async () => {
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
     sessionStorage.clear();
     await useQuizStore.persist.rehydrate();
     useQuizStore.getState().setLocale('en');
@@ -30,6 +31,18 @@ describe('ExitIntentModal', () => {
     expect(screen.getByText(/You're \d+% of the way there/)).toBeTruthy();
     expect(screen.queryByText('Tiếp tục ngay')).toBeNull();
     expect(screen.queryByText('Bạn đang làm rất tốt!')).toBeNull();
+  });
+
+  it('does not open when the document is blurred', async () => {
+    vi.spyOn(document, 'hasFocus').mockReturnValue(false);
+    render(<ExitIntentModal currentStepIndex={4} />);
+    window.dispatchEvent(new Event('blur'));
+    document.dispatchEvent(new MouseEvent('mouseleave', { clientY: 0 }));
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    expect(screen.queryByRole('heading', { name: 'Your plan is taking shape' })).toBeNull();
+    expect(sessionStorage.getItem('nutree_exit_intent_shown')).toBeNull();
   });
 
   it('does not open when the pointer leaves to switch tabs', async () => {

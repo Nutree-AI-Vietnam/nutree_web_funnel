@@ -35,6 +35,7 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
     };
     const show = () => {
       timer = undefined;
+      if (!document.hasFocus()) return;
       if (document.visibilityState === 'hidden') return;
       sessionStorage.setItem(STORAGE_KEY, '1');
       setOpen(true);
@@ -42,6 +43,7 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
     // Leaving through the top of the page is also what a second tab or window does.
     // Opening immediately puts this sheet on top of Tiếp tục, so the last screen looks stuck.
     const handleMouseLeave = (event: MouseEvent) => {
+      if (!document.hasFocus()) return;
       if (event.clientY > 0) return;
       clearTimer();
       timer = window.setTimeout(show, OPEN_DELAY_MS);
