@@ -2,6 +2,7 @@
 
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { useQuizStore } from '@/lib/quiz/store';
+import { WEIGHT_THANKS } from '@/lib/quiz/vi-survey';
 import { bmi, bmiCategory, formatBmi } from '@/lib/tdee/insights';
 import { NumberInputStep } from './number-input-step';
 
@@ -24,7 +25,10 @@ export function WeightStep() {
       max={250}
       defaultValue={locale === 'en' ? ENGLISH_DEFAULT_WEIGHT_KG : undefined}
       insight={(weightKg) => {
-        if (weightKg == null || !heightCm) return null;
+        const thanks = locale === 'vi' && weightKg != null
+          ? <p className="text-center text-[0.95rem] font-semibold text-slate-brand">{WEIGHT_THANKS}</p>
+          : null;
+        if (weightKg == null || !heightCm) return thanks;
         const value = bmi(weightKg, heightCm);
         const category = bmiCategory(value);
         const tone = category === 'normal'
@@ -34,10 +38,13 @@ export function WeightStep() {
             : 'bg-red-50 text-red-800';
         const dot = category === 'normal' ? 'bg-emerald-500' : category === 'overweight' ? 'bg-amber-500' : 'bg-red-500';
         return (
-          <p aria-live="polite" className={`mx-auto flex shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-center text-sm font-extrabold shadow-sm ${tone}`}>
-            <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
-            {copy.funnel.weightBmi(formatBmi(value, locale), copy.funnel.bmiCategory[category])}
-          </p>
+          <div className="flex flex-col items-center gap-2">
+            <p aria-live="polite" className={`mx-auto flex shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-center text-sm font-extrabold shadow-sm ${tone}`}>
+              <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
+              {copy.funnel.weightBmi(formatBmi(value, locale), copy.funnel.bmiCategory[category])}
+            </p>
+            {thanks}
+          </div>
         );
       }}
     />

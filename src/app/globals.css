@@ -235,10 +235,16 @@ h2 {
   transform: translateX(120%);
 }
 
-/* The buying button breathes and a shine sweeps across it, so the eye keeps returning to it. */
+/* The buying button breathes and a shine sweeps across it, so the eye keeps returning to it.
+   Scale lives on ::before so the button's own box stays put and a click can land. */
 @keyframes cta-attention {
-  0%, 100% { transform: scale(1); box-shadow: var(--shadow-cta), 0 0 0 0 rgb(31 168 146 / 0.45); }
-  50% { transform: scale(1.045); box-shadow: var(--shadow-cta), 0 0 0 9px rgb(31 168 146 / 0); }
+  0%, 100% { box-shadow: var(--shadow-cta), 0 0 0 0 rgb(31 168 146 / 0.45); }
+  50% { box-shadow: var(--shadow-cta), 0 0 0 9px rgb(31 168 146 / 0); }
+}
+
+@keyframes cta-attention-scale {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.045); }
 }
 
 @keyframes cta-attention-sheen {
@@ -247,7 +253,25 @@ h2 {
 }
 
 .cta-attention {
+  position: relative;
+  isolation: isolate;
   animation: cta-attention 2.2s ease-in-out infinite;
+}
+
+.cta-attention > * {
+  position: relative;
+  z-index: 1;
+}
+
+.cta-attention::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: inherit;
+  pointer-events: none;
+  animation: cta-attention-scale 2.2s ease-in-out infinite;
 }
 
 .cta-attention::after {
@@ -256,8 +280,30 @@ h2 {
 
 @media (prefers-reduced-motion: reduce) {
   .cta-attention,
+  .cta-attention::before,
   .cta-attention::after {
     animation: none;
+  }
+}
+
+@keyframes vi-loader-bar {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.vi-loader-bar {
+  width: 100%;
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation-name: vi-loader-bar;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vi-loader-bar {
+    animation: none;
+    transform: none;
   }
 }
 
