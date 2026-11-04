@@ -59,6 +59,10 @@ function savedTargetStillFits(): boolean {
   return savedTargetFits(data, resolveUnitSystem(units, locale, countryCode));
 }
 
+function activeLocale() {
+  return useQuizStore.getState().locale;
+}
+
 export function goToNextQuizStep(router: QuizRouter, step: QuizStep): void {
   const { editReturn, setEditReturn } = useQuizStore.getState();
   if (editReturn) {
@@ -71,7 +75,7 @@ export function goToNextQuizStep(router: QuizRouter, step: QuizStep): void {
     showQuizStep(router, editReturn);
     return;
   }
-  const next = nextStep(step);
+  const next = nextStep(step, activeLocale());
   if (next) {
     showQuizStep(router, next);
   } else {
@@ -87,7 +91,7 @@ export function goToPreviousQuizStep(router: QuizRouter, step: QuizStep): void {
     showQuizStep(router, editReturn);
     return;
   }
-  let previous = previousStep(step);
+  let previous = previousStep(step, activeLocale());
   if (previous === 'training_duration' && useQuizStore.getState().data.training_days_per_week === 0) {
     previous = 'training_days';
   }

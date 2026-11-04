@@ -133,8 +133,10 @@ describe('editing an answer from the review screen', () => {
 
     expect(useQuizStore.getState().currentStep).toBe('result');
     expect(useQuizStore.getState().editReturn).toBeNull();
-    // Later answers go forward as usual again. Result is the last quiz screen, so Continue opens the email form.
+    // Later answers go forward again. The last Vietnamese screen opens the email form.
     goToNextQuizStep(router, 'result');
+    expect(useQuizStore.getState().currentStep).toBe('progress_final');
+    goToNextQuizStep(router, 'progress_final');
     expect(useQuizStore.getState().funnelScreen).toBe('email');
   });
 
@@ -176,7 +178,7 @@ describe('Back skips the loader', () => {
     goToPreviousQuizStep(router, 'result');
     expect(useQuizStore.getState().currentStep).toBe('day_plan');
     goToPreviousQuizStep(router, 'day_plan');
-    expect(useQuizStore.getState().currentStep).toBe('with_you');
+    expect(useQuizStore.getState().currentStep).toBe('referral');
   });
 });
 
@@ -193,10 +195,21 @@ describe('training answers before email', () => {
 
     goToNextQuizStep(router, 'training_duration');
 
+    expect(useQuizStore.getState().currentStep).toBe('obstacle');
+  });
+
+  it('keeps the English skip on the screen after session length', () => {
+    useQuizStore.getState().setLocale('en');
+    useQuizStore.getState().setCurrentStep('training_days');
+    useQuizStore.getState().setData({ training_days_per_week: 0, training_minutes_per_session: 0 });
+
+    goToNextQuizStep(router, 'training_duration');
+
     expect(useQuizStore.getState().currentStep).toBe('tried');
   });
 
   it('steps back past session length when training days are zero', () => {
+    useQuizStore.getState().setLocale('en');
     useQuizStore.getState().setData({ training_days_per_week: 0, training_minutes_per_session: 0 });
 
     goToPreviousQuizStep(router, 'tried');
