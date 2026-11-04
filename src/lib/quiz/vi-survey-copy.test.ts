@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { vi } from '@/lib/copy/vi';
-import { VI_QUIZ_STEPS, VI_STEP_KINDS } from './steps';
+import { VI_QUIZ_STEPS, VI_SURVEY } from './steps';
+import { flowScreen, viFlowStrings } from './vi-survey';
 
 const BANNED = [
   /#\s*1\b/,
@@ -19,87 +20,69 @@ const BANNED = [
   /chữa\s*(khỏi|bệnh)/i,
   /điều trị/i,
   /chẩn đoán/i,
+  /huấn luyện viên/i,
+  /coach người/i,
 ];
 
-function stringsIn(value: unknown, found: string[] = []): string[] {
-  if (typeof value === 'string') found.push(value);
-  else if (typeof value === 'function') found.push(value('Minh', '60 kg', '1 tháng', 3));
-  else if (Array.isArray(value)) value.forEach((item) => stringsIn(item, found));
-  else if (value && typeof value === 'object') Object.values(value).forEach((item) => stringsIn(item, found));
-  return found;
-}
-
-/** Copy the Vietnamese quiz actually shows. Paywall ratings stay out of this list. */
-function viQuizSurfaceCopy(): string[] {
-  const storySteps = ['aim', 'occasion', 'tried', 'obstacle', 'diet_style', 'weekend', 'trigger', 'with_you'] as const;
-  return [
-    ...stringsIn(vi.goal),
-    ...stringsIn(vi.sex),
-    ...stringsIn(vi.ageGroup),
-    ...stringsIn(vi.bodyCurrent),
-    ...stringsIn(vi.bodyTarget),
-    ...stringsIn(vi.zones),
-    ...stringsIn(vi.height),
-    ...stringsIn(vi.weight),
-    ...stringsIn(vi.target_weight.question),
-    ...stringsIn(vi.activity_level),
-    ...stringsIn(vi.training_days),
-    ...stringsIn(vi.training_duration),
-    ...stringsIn(vi.quizChapters),
-    ...stringsIn(vi.insights),
-    ...stringsIn(vi.planSummary),
-    ...stringsIn(vi.tdee_targets.headline),
-    ...stringsIn(vi.tdee_targets.aha),
-    ...stringsIn(vi.tdee_targets.eyebrow),
-    ...stringsIn(vi.funnel.loader),
-    ...stringsIn(vi.calculating.highlights.filter((item) => !('quote' in item))),
-    ...storySteps.flatMap((step) => stringsIn(vi.story[step])),
-  ];
-}
-
-describe('Vietnamese survey copy', () => {
-  it('has a title for every screen and no banned claim', () => {
-    const titles = {
+function titleFor(id: (typeof VI_QUIZ_STEPS)[number]): string {
+  const screen = flowScreen(id);
+  if (!screen) {
+    const specialized: Record<string, string> = {
       goal: vi.goal.question,
       sex: vi.sex.question,
       age_group: vi.ageGroup.question,
-      insight_pace: vi.insights.insight_pace.title,
       height: vi.height.question,
       weight: vi.weight.question,
       target_weight: vi.target_weight.question,
-      progress: vi.progress.question,
-      body_current: vi.bodyCurrent.question,
-      body_target: vi.bodyTarget.question,
       zones: vi.zones.question,
-      insight_body: vi.insights.insight_body.title,
-      aim: vi.story.aim.question,
       occasion: vi.story.occasion.question,
-      insight_why: vi.insights.insight_why.title,
+      with_you: vi.story.with_you.title,
+      insight_pace: vi.insights.insight_pace.title,
+      progress: vi.progress.question,
+      progress_habits: vi.progress.question,
+      progress_pace: vi.progress.question,
+      progress_final: vi.progress.question,
+      first_name: vi.name_ask.question,
+      restrictions: vi.diet.question,
       activity_level: vi.activity_level.question,
       training_days: vi.training_days.question,
       training_duration: vi.training_duration.question,
-      insight_movement: vi.insights.insight_movement.title,
-      tried: vi.story.tried.question,
       obstacle: vi.story.obstacle.question,
-      insight_obstacle: vi.insights.insight_obstacle.title,
       diet_style: vi.story.diet_style.question,
-      weekend: vi.story.weekend.question,
-      trigger: vi.story.trigger.question,
-      insight_habits: vi.insights.insight_habits.title,
-      with_you: vi.story.with_you.title,
+      aim: vi.story.aim.question,
       calculating: vi.funnel.loader.titleFallback,
       result: vi.tdee_targets.headline,
     };
-    expect(Object.keys(titles)).toEqual([...VI_QUIZ_STEPS]);
-    for (const title of Object.values(titles)) expect(title.trim().length).toBeGreaterThan(0);
+    return specialized[id] ?? '';
+  }
+  if (screen.type === 'explain') return screen.yes;
+  if (screen.type === 'cheer') return screen.title('bạn');
+  if (screen.type === 'archetype') return 'Kiểu ăn của bạn';
+  if (screen.type === 'loader' || screen.type === 'insight' || screen.type === 'choice' || screen.type === 'scale' || screen.type === 'quiz' || screen.type === 'multi') {
+    return screen.title;
+  }
+  return '';
+}
 
-    const surfaces = viQuizSurfaceCopy();
+describe('Vietnamese survey copy', () => {
+  it('names every screen and skips unsourced or medical claims', () => {
+    expect(VI_SURVEY).toHaveLength(VI_QUIZ_STEPS.length);
+    for (const step of VI_QUIZ_STEPS) {
+      expect(titleFor(step).trim().length, step).toBeGreaterThan(0);
+    }
+    const surfaces = [
+      ...viFlowStrings(),
+      vi.story.with_you.title,
+      vi.story.with_you.body,
+      vi.insights.insight_pace.title,
+      vi.insights.insight_pace.body,
+      vi.tdee_targets.headline,
+      vi.funnel.loader.titleFallback,
+    ];
     for (const text of surfaces) {
       for (const pattern of BANNED) {
         expect(text, `${pattern} matched ${text}`).not.toMatch(pattern);
       }
     }
-    expect(VI_STEP_KINDS.calculating).toBe('loader');
-    expect(VI_STEP_KINDS.result).toBe('plan');
   });
 });

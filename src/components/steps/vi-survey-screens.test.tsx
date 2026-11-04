@@ -9,6 +9,7 @@ import { useQuizStore } from '@/lib/quiz/store';
 import { VI_QUIZ_STEPS, VALUE_TOUR_STEPS } from '@/lib/quiz/steps';
 import { CalculatingStep } from './calculating';
 import { InsightStep } from './insight-step';
+import { ViFlowStep } from './vi-flow-step';
 import { TdeeTargetsStep } from './tdee-targets';
 
 vi.mock('next/navigation', () => ({
@@ -51,16 +52,21 @@ describe('Vietnamese survey screens', () => {
 
   it('renders an insight screen and continues to the next question', () => {
     render(<InsightStep step="insight_pace" />);
-    expect(screen.getByRole('heading', { name: 'Đi đều sẽ dễ giữ hơn là siết mạnh' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Thói quen nhỏ bền hơn một chế độ gắt' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Mình hiểu rồi' }));
-    expect(useQuizStore.getState().currentStep).toBe('height');
+    expect(useQuizStore.getState().currentStep).toBe('zones');
   });
 
-  it('personalizes the obstacle lesson from the saved answer', () => {
-    useQuizStore.getState().setPlanAnswers({ answers: { obstacle: 'time' } });
-    render(<InsightStep step="insight_obstacle" />);
-    expect(screen.getByRole('heading', { name: 'Chỗ đó có đường vòng, không cần thắng nó' })).toBeTruthy();
-    expect(screen.getByText(/Chụp một ảnh nhanh hơn/)).toBeTruthy();
+  it('renders a safety question and an agree scale', () => {
+    const { unmount } = render(<ViFlowStep step="pregnant" />);
+    expect(screen.getByRole('heading', { name: 'Bạn đang mang thai hoặc cho con bú không?' })).toBeTruthy();
+    expect(screen.getByText(/hỏi bác sĩ trước khi đổi cách ăn/)).toBeTruthy();
+    unmount();
+    render(<ViFlowStep step="profile_2" />);
+    expect(screen.getByRole('heading', { name: 'Tôi thích biết trước hôm nay ăn gì.' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Rất hợp' }));
+    expect(useQuizStore.getState().planAnswers.answers?.profile_2).toBe('5');
+    expect(useQuizStore.getState().currentStep).toBe('profile_3');
   });
 
   it('fires funnel_step_viewed for a new insight id and shows the chapter bar', () => {
@@ -73,8 +79,18 @@ describe('Vietnamese survey screens', () => {
     expect(gtag).toHaveBeenCalledWith('event', 'funnel_step_viewed', expect.objectContaining({ step: 'insight_pace' }));
     const bar = screen.getByRole('progressbar', { name: 'Tiến độ của bạn' });
     expect(bar.getAttribute('aria-valuemax')).toBe(String(VI_QUIZ_STEPS.length + VALUE_TOUR_STEPS.length));
-    expect(screen.getByText('Về bạn')).toBeTruthy();
+    expect(screen.getByText('Cơ thể')).toBeTruthy();
     expect(screen.queryByText(/200\.000|App Store|★★/)).toBeNull();
+  });
+
+  it('fires funnel_step_viewed for a new safety screen', () => {
+    render(
+      <QuizShell step="pregnant">
+        <p>safety</p>
+      </QuizShell>,
+    );
+    const gtag = (window as unknown as { gtag: ReturnType<typeof vi.fn> }).gtag;
+    expect(gtag).toHaveBeenCalledWith('event', 'funnel_step_viewed', expect.objectContaining({ step: 'pregnant' }));
   });
 
   it('keeps the English proof step off the chapter bar', () => {
@@ -85,7 +101,7 @@ describe('Vietnamese survey screens', () => {
       </QuizShell>,
     );
     expect(screen.queryByRole('progressbar')).toBeNull();
-    expect(screen.queryByText('Về bạn')).toBeNull();
+    expect(screen.queryByText('Cơ thể')).toBeNull();
     expect(useQuizStore.getState().currentStep).toBe('goal');
   });
 

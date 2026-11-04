@@ -1,4 +1,14 @@
 import type { Locale } from '@/lib/copy';
+import {
+  isLoaderStep,
+  VI_QUIZ_STEPS,
+  VI_SURVEY,
+  viChapter as viChapterOf,
+  viQuizChapter,
+  type StepKind,
+  type ViChapter,
+  type ViQuizStep,
+} from './vi-survey';
 
 /**
  * English survey order at /survey/en. Keep this list stable.
@@ -32,115 +42,16 @@ export const EN_QUIZ_STEPS = [
   'result',
 ] as const;
 
-/**
- * Vietnamese survey on `/`. Same answer-taking slugs as English, reordered like a
- * coaching quiz: profile, body, a projection, habits with short lessons between
- * clusters, a loader, then the plan summary.
- */
-export const VI_QUIZ_STEPS = [
-  'goal',
-  'sex',
-  'age_group',
-  'insight_pace',
-  'height',
-  'weight',
-  'target_weight',
-  'progress',
-  'body_current',
-  'body_target',
-  'zones',
-  'insight_body',
-  'aim',
-  'occasion',
-  'insight_why',
-  'activity_level',
-  'training_days',
-  'training_duration',
-  'insight_movement',
-  'tried',
-  'obstacle',
-  'insight_obstacle',
-  'diet_style',
-  'weekend',
-  'trigger',
-  'insight_habits',
-  'with_you',
-  'calculating',
-  'result',
-] as const;
+export { VI_QUIZ_STEPS, VI_SURVEY };
 
 /** English order. Runtime navigation must pass a locale and use quizStepsFor. */
 export const QUIZ_STEPS = EN_QUIZ_STEPS;
 
-export type QuizStep = (typeof EN_QUIZ_STEPS)[number] | (typeof VI_QUIZ_STEPS)[number];
+export type QuizStep = (typeof EN_QUIZ_STEPS)[number] | ViQuizStep;
 
-export type StepKind = 'question' | 'insight' | 'projection' | 'coaching' | 'loader' | 'plan';
+export type { StepKind, ViChapter };
 
-export const VI_STEP_KINDS = {
-  goal: 'question',
-  sex: 'question',
-  age_group: 'question',
-  insight_pace: 'insight',
-  height: 'question',
-  weight: 'question',
-  target_weight: 'question',
-  progress: 'projection',
-  body_current: 'question',
-  body_target: 'question',
-  zones: 'question',
-  insight_body: 'insight',
-  aim: 'question',
-  occasion: 'question',
-  insight_why: 'insight',
-  activity_level: 'question',
-  training_days: 'question',
-  training_duration: 'question',
-  insight_movement: 'insight',
-  tried: 'question',
-  obstacle: 'question',
-  insight_obstacle: 'insight',
-  diet_style: 'question',
-  weekend: 'question',
-  trigger: 'question',
-  insight_habits: 'insight',
-  with_you: 'coaching',
-  calculating: 'loader',
-  result: 'plan',
-} as const satisfies Record<(typeof VI_QUIZ_STEPS)[number], StepKind>;
-
-export type ViChapter = 'you' | 'body' | 'habits' | 'plan';
-
-const VI_CHAPTER_OF = {
-  goal: 'you',
-  sex: 'you',
-  age_group: 'you',
-  insight_pace: 'you',
-  height: 'body',
-  weight: 'body',
-  target_weight: 'body',
-  progress: 'body',
-  body_current: 'body',
-  body_target: 'body',
-  zones: 'body',
-  insight_body: 'body',
-  aim: 'habits',
-  occasion: 'habits',
-  insight_why: 'habits',
-  activity_level: 'habits',
-  training_days: 'habits',
-  training_duration: 'habits',
-  insight_movement: 'habits',
-  tried: 'habits',
-  obstacle: 'habits',
-  insight_obstacle: 'habits',
-  diet_style: 'habits',
-  weekend: 'habits',
-  trigger: 'habits',
-  insight_habits: 'habits',
-  with_you: 'habits',
-  calculating: 'plan',
-  result: 'plan',
-} as const satisfies Record<(typeof VI_QUIZ_STEPS)[number], ViChapter>;
+export const VI_STEP_KINDS = Object.fromEntries(VI_SURVEY.map((entry) => [entry.id, entry.kind])) as Record<ViQuizStep, StepKind>;
 
 /** Product tour after the calorie result and the email form. The day plan is a quiz screen before that result. */
 export const VALUE_TOUR_STEPS = ['snap', 'activity', 'macros', 'sources'] as const;
@@ -160,14 +71,18 @@ export function valueProgressIndex(step: ValueTourStep, locale: Locale = 'vi'): 
   return quizStepsFor(locale).length + VALUE_TOUR_STEPS.indexOf(step) + 1;
 }
 
+export function lastQuizStep(locale: Locale): QuizStep {
+  const steps = quizStepsFor(locale);
+  return steps[steps.length - 1];
+}
+
 export type QuizChapter = 'intent' | 'body' | 'routine' | 'plan';
 
-export const STEP_CHAPTERS: Record<QuizStep, QuizChapter> = {
+const EN_CHAPTERS: Record<(typeof EN_QUIZ_STEPS)[number], QuizChapter> = {
   goal: 'intent',
   sex: 'intent',
   age_group: 'intent',
   proof: 'intent',
-  insight_pace: 'intent',
   aim: 'intent',
   body_current: 'body',
   body_target: 'body',
@@ -177,33 +92,32 @@ export const STEP_CHAPTERS: Record<QuizStep, QuizChapter> = {
   weight: 'body',
   target_weight: 'body',
   progress: 'body',
-  insight_body: 'body',
   activity_level: 'routine',
   training_days: 'routine',
   training_duration: 'routine',
-  insight_movement: 'routine',
   tried: 'routine',
   obstacle: 'routine',
-  insight_obstacle: 'routine',
   diet_style: 'routine',
   weekend: 'routine',
   trigger: 'routine',
-  insight_habits: 'routine',
-  insight_why: 'routine',
   with_you: 'routine',
   calculating: 'plan',
   day_plan: 'plan',
   result: 'plan',
 };
 
+export const STEP_CHAPTERS = Object.fromEntries(
+  [...new Set<QuizStep>([...EN_QUIZ_STEPS, ...VI_QUIZ_STEPS])].map((step) => [
+    step,
+    step in EN_CHAPTERS ? EN_CHAPTERS[step as keyof typeof EN_CHAPTERS] : viQuizChapter(step),
+  ]),
+) as Record<QuizStep, QuizChapter>;
+
 export function viChapter(step: QuizStep): ViChapter {
-  if (Object.prototype.hasOwnProperty.call(VI_CHAPTER_OF, step)) {
-    return VI_CHAPTER_OF[step as keyof typeof VI_CHAPTER_OF];
-  }
-  return 'you';
+  return viChapterOf(step);
 }
 
-/** Screens that ask the visitor something. */
+/** Screens that ask the visitor something, on the English survey. */
 const EN_QUESTION_STEPS: readonly QuizStep[] = [
   'goal',
   'sex',
@@ -226,7 +140,7 @@ const EN_QUESTION_STEPS: readonly QuizStep[] = [
   'trigger',
 ];
 
-const VI_QUESTION_STEPS: readonly QuizStep[] = EN_QUESTION_STEPS;
+const VI_QUESTION_STEPS: readonly QuizStep[] = VI_SURVEY.filter((entry) => entry.kind === 'question').map((entry) => entry.id);
 
 const ALL_QUIZ_STEPS = new Set<string>([...EN_QUIZ_STEPS, ...VI_QUIZ_STEPS]);
 
@@ -252,20 +166,19 @@ export function nextStep(step: QuizStep, locale: Locale = 'vi'): QuizStep | null
   return steps[i + 1];
 }
 
-/** Returns the previous in-app screen, or null when the landing page precedes it. The loader only plays on the way forward. */
+/** Returns the previous in-app screen, or null when the landing page precedes it. Loaders only play on the way forward. */
 export function previousStep(step: QuizStep, locale: Locale = 'vi'): QuizStep | null {
   const steps = quizStepsFor(locale);
-  const i = (steps as readonly string[]).indexOf(step);
-  if (i <= 0) return null;
-  const previous = steps[i - 1];
-  return previous === 'calculating' ? steps[i - 2] ?? null : previous;
+  let i = (steps as readonly string[]).indexOf(step) - 1;
+  while (i >= 0 && isLoaderStep(steps[i])) i -= 1;
+  return i >= 0 ? steps[i] : null;
 }
 
 /** A saved step from the other language lands on the closest screen this language still shows. */
 export function nearestQuizStep(step: QuizStep, locale: Locale): QuizStep {
   const target = quizStepsFor(locale);
   if ((target as readonly string[]).includes(step)) return step;
-  if (locale === 'vi' && step === 'proof') return 'insight_pace';
+  if (locale === 'vi' && step === 'proof') return 'with_you';
   const source = locale === 'en' ? VI_QUIZ_STEPS : EN_QUIZ_STEPS;
   const start = Math.max(0, (source as readonly string[]).indexOf(step));
   for (let i = start; i >= 0; i -= 1) {

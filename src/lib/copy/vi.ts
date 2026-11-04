@@ -1233,8 +1233,8 @@ export const vi = {
   insights: {
     insight_pace: {
       eyebrow: 'Một lưu ý nhỏ',
-      title: 'Đi đều sẽ dễ giữ hơn là siết mạnh',
-      body: 'Cơ thể quen với thay đổi nhỏ lặp lại mỗi ngày hơn là một tuần ăn quá ít. Kế hoạch sẽ bắt đầu từ mức vừa sức, rồi chỉnh khi bạn đã vào nhịp.',
+      title: 'Thói quen nhỏ bền hơn một chế độ gắt',
+      body: 'Cơ thể quen với thay đổi nhỏ lặp lại mỗi ngày hơn là một tuần ăn quá ít. Kế hoạch giữ món bạn thích và chỉ chỉnh phần, không cấm cả nhóm món.',
       points: [
         'Không cần bỏ hết món bạn thích',
         'Một hai bữa đúng hướng đã là bắt đầu',
@@ -1408,9 +1408,9 @@ export const vi = {
       ],
     },
     with_you: {
-      title: 'Nutree sẽ đi cùng bạn từng bữa',
-      body: 'Bạn không cần đổi cả tuần ăn uống ngay hôm nay. Một kế hoạch vừa sức, và một chỗ để xem lại mỗi ngày.',
-      cta: 'Xem kế hoạch của tôi',
+      title: 'Bạn không đi một mình',
+      body: 'Bạn không cần tự nghĩ hết mọi bữa. Một kế hoạch vừa sức, và Nutree đi cùng bạn từng bữa.',
+      cta: 'Tiếp tục',
     },
     focus: {
       question: 'Tuần đầu bạn muốn Nutree giữ bạn ở đâu?',

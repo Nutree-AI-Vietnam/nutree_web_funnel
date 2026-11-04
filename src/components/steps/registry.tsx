@@ -5,6 +5,7 @@ import { GoalEntryFooter } from '@/components/goal-entry-footer';
 import { useCopy } from '@/lib/copy/use-copy';
 import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
 import type { QuizStep } from '@/lib/quiz/steps';
+import { VI_FLOW_STEPS, type ViQuizStep } from '@/lib/quiz/vi-survey';
 import { AgeGroupStep } from './age-group-step';
 import { BodyShapeStep } from './body-shape-step';
 import { CalculatingStep } from './calculating';
@@ -14,12 +15,15 @@ import { TargetWeightStep } from './final-web-steps';
 import { GoalChoice } from './goal-choice';
 import { NumberInputStep } from './number-input-step';
 import { InsightStep } from './insight-step';
+import { NameAskStep } from './text-input-step';
+import { MultiChoiceStep } from './multi-choice';
 import { ProofStep } from './proof-step';
 import { SexStep } from './sex-step';
 import { BeatStep, StoryStep } from './story-step';
 import { SingleChoiceStep } from './single-choice';
 import { TdeeTargetsStep } from './tdee-targets';
 import { TrainingDaysStep, TrainingDurationStep } from './training-days';
+import { ViFlowStep } from './vi-flow-step';
 import { WeightStep } from './weight-step';
 import { ZonesStep } from './zones-step';
 
@@ -28,7 +32,13 @@ import { ZonesStep } from './zones-step';
  * Each entry is a component, so screens that need copy read it with `useCopy()` and
  * re-render live when the active locale changes.
  */
-export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
+const flowComponents = Object.fromEntries(
+  VI_FLOW_STEPS.map((step) => [step, function FlowScreen() {
+    return <ViFlowStep step={step as ViQuizStep} />;
+  }]),
+) as Partial<Record<QuizStep, ComponentType>>;
+
+export const STEP_COMPONENTS = {
   goal: function GoalStep() {
     return (
       <>
@@ -41,11 +51,21 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
   age_group: () => <AgeGroupStep />,
   proof: () => <ProofStep step="proof" />,
   insight_pace: () => <InsightStep step="insight_pace" />,
-  insight_body: () => <InsightStep step="insight_body" />,
-  insight_why: () => <InsightStep step="insight_why" />,
-  insight_movement: () => <InsightStep step="insight_movement" />,
-  insight_obstacle: () => <InsightStep step="insight_obstacle" />,
-  insight_habits: () => <InsightStep step="insight_habits" />,
+  first_name: () => <NameAskStep step="first_name" />,
+  restrictions: function RestrictionsStep() {
+    const c = useCopy();
+    return (
+      <MultiChoiceStep
+        step="restrictions"
+        field="dietary_preferences"
+        question={c.diet.question}
+        description={c.diet.description}
+        hint={c.diet.hint}
+        options={c.diet.options}
+        ctaLabel={c.common.continue}
+      />
+    );
+  },
   aim: () => <StoryStep step="aim" />,
   body_current: () => <BodyShapeStep kind="current" />,
   body_target: () => <BodyShapeStep kind="target" />,
@@ -67,7 +87,10 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
   },
   weight: () => <WeightStep />,
   target_weight: () => <TargetWeightStep />,
-  progress: () => <ProgressStep />,
+  progress: () => <ProgressStep step="progress" />,
+  progress_habits: () => <ProgressStep step="progress_habits" />,
+  progress_pace: () => <ProgressStep step="progress_pace" />,
+  progress_final: () => <ProgressStep step="progress_final" />,
   tried: () => <StoryStep step="tried" />,
   obstacle: () => <StoryStep step="obstacle" />,
   diet_style: () => <StoryStep step="diet_style" />,
@@ -100,4 +123,5 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
   calculating: () => <CalculatingStep />,
   day_plan: () => <DayPlanStep />,
   result: () => <TdeeTargetsStep />,
-};
+  ...flowComponents,
+} as Record<QuizStep, ComponentType>;

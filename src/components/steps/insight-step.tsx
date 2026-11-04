@@ -72,12 +72,12 @@ export function InsightStep({ step }: { step: InsightStepId }) {
         {block.note ? <p className="text-[0.78rem] font-semibold leading-relaxed text-muted-brand">{block.note}</p> : null}
       </div>
       <div className="mt-auto pt-3">
-        <PrimaryButton onClick={() => goToNextQuizStep(router, step)}>{block.cta}</PrimaryButton>
+        <PrimaryButton onClick={() => goToNextQuizStep(router, step as QuizStep)}>{block.cta}</PrimaryButton>
       </div>
     </QuizStepFrame>
   );
 }
 
-export function isInsightStep(step: QuizStep): step is InsightStepId {
-  return (INSIGHT_STEPS as readonly string[]).includes(step);
+export function isInsightStep(step: QuizStep): step is 'insight_pace' {
+  return step === 'insight_pace';
 }

@@ -12,6 +12,7 @@ import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
 import { goToPreviousQuizStep } from '@/lib/quiz/navigation';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { nearestQuizStep, quizStepsFor, stepIndex, VALUE_TOUR_STEPS, viChapter, type QuizStep, type ViChapter } from '@/lib/quiz/steps';
+import { isLoaderStep } from '@/lib/quiz/vi-survey';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 
@@ -119,7 +120,7 @@ export function QuizShell({
 
   const progress = (currentStep / totalSteps) * 100;
   const fitViewport = FIT_VIEWPORT_STEPS.includes(shownStep);
-  const hideProgress = progressIndex == null && (locale === 'en' ? HIDE_PROGRESS_STEPS.includes(shownStep) : shownStep === 'calculating');
+  const hideProgress = progressIndex == null && (locale === 'en' ? HIDE_PROGRESS_STEPS.includes(shownStep) : isLoaderStep(shownStep));
   const chaptered = locale !== 'en' && progressIndex == null && !hideProgress;
 
   return (
@@ -132,7 +133,7 @@ export function QuizShell({
       <div className="quiz-shell-header enter-item relative z-20 mb-3 flex w-full max-w-lg shrink-0 items-center justify-between gap-3 pt-4" style={enterStyle(0)}>
         {hideBack ? (
           <div aria-hidden="true" className="w-14" />
-        ) : shownStep === 'calculating' ? (
+        ) : isLoaderStep(shownStep) ? (
           <div aria-hidden="true" className="min-w-11" />
         ) : (
           <button

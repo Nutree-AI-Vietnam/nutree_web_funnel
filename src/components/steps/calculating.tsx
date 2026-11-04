@@ -13,6 +13,7 @@ import { useUnits } from '@/lib/quiz/use-units';
 import { useQuizStore } from '@/lib/quiz/store';
 import { computeTdeeResult } from '@/lib/tdee/calculator';
 import type { TdeeResult } from '@/lib/quiz/types';
+import { CALC_POPUPS } from '@/lib/quiz/vi-survey';
 import { cn } from '@/lib/utils';
 
 // Deliberately paced so the "building your plan" moment feels substantial.
@@ -78,10 +79,15 @@ export function CalculatingStep() {
     ].filter((item): item is string => Boolean(item));
     return rows.length ? rows : [loader.calories];
   }, [data, loader, locale, storyAnswers, system, vi]);
-  // One yes/no question halfway through, unless it was answered on an earlier pass.
+  // English asks one cooking question. Vietnamese asks three habit questions spread through the loader.
+  const viPopupIndex = locale === 'vi' ? CALC_POPUPS.findIndex((popup) => !storyAnswers?.[popup.id]) : -1;
+  const viPopup = viPopupIndex >= 0 ? CALC_POPUPS[viPopupIndex] : undefined;
   const pauseAt = Math.floor(items.length / 2);
   const stageMs = TOTAL_MS / items.length;
-  const paused = !reduce && cooking == null && elapsed >= pauseAt * stageMs;
+  const viPauseAt = viPopup ? Math.max(1, Math.round(((viPopupIndex + 1) / (CALC_POPUPS.length + 1)) * items.length)) : items.length;
+  const paused = !reduce && (locale === 'vi'
+    ? Boolean(viPopup) && elapsed >= viPauseAt * stageMs
+    : cooking == null && elapsed >= pauseAt * stageMs);
 
   useEffect(() => {
     let cancelled = false;
@@ -266,10 +272,32 @@ export function CalculatingStep() {
       {paused && (
         <div className="fixed inset-0 z-50 grid place-items-end bg-slate-950/30 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-[2px] sm:place-items-center" role="presentation">
           <section role="dialog" aria-modal="true" aria-labelledby="loader-question" className="w-full max-w-md rounded-[1.8rem] bg-white p-5 shadow-[0_28px_80px_rgb(10_18_16_/_0.28)] animate-soft-enter">
-            <p id="loader-question" className="text-lg font-extrabold leading-snug text-forest">{loader.pauseQuestion}</p>
-            <div className="mt-4 grid grid-cols-2 gap-2.5">
-              <button type="button" autoFocus onClick={() => setPlanAnswers({ cooking: 'home' })} className="min-h-13 rounded-2xl bg-forest px-3 py-3 text-sm font-medium text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/30">{loader.yes}</button>
-              <button type="button" onClick={() => setPlanAnswers({ cooking: 'out' })} className="min-h-13 rounded-2xl border border-border-brand bg-white px-3 py-3 text-sm font-medium text-forest focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/30">{loader.no}</button>
+            <p id="loader-question" className="text-lg font-extrabold leading-snug text-forest">{viPopup ? viPopup.question : loader.pauseQuestion}</p>
+            <div className={cn('mt-4 grid gap-2.5', viPopup && viPopup.options.length > 2 ? 'grid-cols-1' : 'grid-cols-2')}>
+              {viPopup ? viPopup.options.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => {
+                    const current = useQuizStore.getState().planAnswers.answers ?? {};
+                    setPlanAnswers({
+                      answers: { ...current, [viPopup.id]: option.key },
+                      ...(option.cooking ? { cooking: option.cooking } : {}),
+                    });
+                    if (option.job && !useQuizStore.getState().data.job_type) {
+                      useQuizStore.getState().setData({ job_type: option.job });
+                    }
+                  }}
+                  className="min-h-13 rounded-2xl bg-forest px-3 py-3 text-sm font-medium text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/30"
+                >
+                  {option.label}
+                </button>
+              )) : (
+                <>
+                  <button type="button" autoFocus onClick={() => setPlanAnswers({ cooking: 'home' })} className="min-h-13 rounded-2xl bg-forest px-3 py-3 text-sm font-medium text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/30">{loader.yes}</button>
+                  <button type="button" onClick={() => setPlanAnswers({ cooking: 'out' })} className="min-h-13 rounded-2xl border border-border-brand bg-white px-3 py-3 text-sm font-medium text-forest focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/30">{loader.no}</button>
+                </>
+              )}
             </div>
           </section>
         </div>

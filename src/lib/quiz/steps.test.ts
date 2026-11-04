@@ -5,6 +5,7 @@ import {
   STEP_CHAPTERS,
   VI_QUIZ_STEPS,
   VI_STEP_KINDS,
+  VI_SURVEY,
   VALUE_TOUR_STEPS,
   isQuizStep,
   nearestQuizStep,
@@ -50,52 +51,39 @@ describe('quiz steps', () => {
     expect(QUIZ_STEPS).toEqual([...ENGLISH_ORDER]);
   });
 
-  it('orders the Vietnamese survey as questions, lessons, a projection, a loader, and a plan', () => {
-    expect(VI_QUIZ_STEPS).toEqual([
-      'goal',
-      'sex',
-      'age_group',
-      'insight_pace',
-      'height',
-      'weight',
-      'target_weight',
-      'progress',
-      'body_current',
-      'body_target',
-      'zones',
-      'insight_body',
-      'aim',
-      'occasion',
-      'insight_why',
-      'activity_level',
-      'training_days',
-      'training_duration',
-      'insight_movement',
-      'tried',
-      'obstacle',
-      'insight_obstacle',
-      'diet_style',
-      'weekend',
-      'trigger',
-      'insight_habits',
-      'with_you',
-      'calculating',
-      'result',
-    ]);
+  it('orders the Vietnamese survey like the full coaching flow, without an email gate', () => {
+    expect(new Set(VI_QUIZ_STEPS).size).toBe(VI_QUIZ_STEPS.length);
+    expect(VI_QUIZ_STEPS[0]).toBe('goal');
+    expect(VI_QUIZ_STEPS[1]).toBe('sex');
+    expect(VI_QUIZ_STEPS[2]).toBe('pregnant');
+    expect(VI_QUIZ_STEPS.at(-3)).toBe('calculating');
+    expect(VI_QUIZ_STEPS.at(-2)).toBe('result');
+    expect(VI_QUIZ_STEPS.at(-1)).toBe('progress_final');
+    expect(VI_QUIZ_STEPS).not.toContain('email');
+    const nooms = VI_SURVEY.map((entry) => entry.noom).filter((noom) => noom != null);
+    expect(new Set(nooms).size).toBe(nooms.length);
+    expect(nooms).not.toContain(3);
+    expect(nooms).not.toContain(20);
+    expect(nooms).not.toContain(76);
+    expect(nooms).toContain(1);
+    expect(nooms).toContain(73);
+    expect(nooms).toContain(75);
+    expect(nooms.length).toBe(73);
     expect(VI_STEP_KINDS.insight_pace).toBe('insight');
-    expect(VI_STEP_KINDS.progress).toBe('projection');
-    expect(VI_STEP_KINDS.with_you).toBe('coaching');
+    expect(VI_STEP_KINDS.profile_1).toBe('question');
+    expect(VI_STEP_KINDS.profile_result).toBe('archetype');
+    expect(VI_STEP_KINDS.food_light_why).toBe('explain');
     expect(VI_STEP_KINDS.calculating).toBe('loader');
     expect(VI_STEP_KINDS.result).toBe('plan');
-    const kinds = VI_QUIZ_STEPS.map((step) => VI_STEP_KINDS[step]);
-    expect(kinds.indexOf('insight')).toBeGreaterThan(kinds.indexOf('question'));
-    expect(kinds.lastIndexOf('insight')).toBeLessThan(kinds.indexOf('loader'));
-    expect(kinds.indexOf('loader')).toBe(kinds.indexOf('plan') - 1);
+    expect(VI_STEP_KINDS.progress_final).toBe('projection');
   });
 
   it('keeps the answer slugs the paywall and plan still read', () => {
-    for (const step of ['goal', 'sex', 'age_group', 'aim', 'body_current', 'body_target', 'zones', 'occasion', 'height', 'weight', 'target_weight', 'activity_level', 'training_days', 'training_duration', 'tried', 'obstacle', 'diet_style', 'weekend', 'trigger', 'calculating', 'result'] as const) {
+    for (const step of ['goal', 'sex', 'age_group', 'aim', 'zones', 'occasion', 'height', 'weight', 'target_weight', 'activity_level', 'training_days', 'training_duration', 'obstacle', 'diet_style', 'calculating', 'result'] as const) {
       expect(VI_QUIZ_STEPS).toContain(step);
+      expect(EN_QUIZ_STEPS).toContain(step);
+    }
+    for (const step of ['body_current', 'body_target', 'tried', 'weekend', 'trigger', 'proof'] as const) {
       expect(EN_QUIZ_STEPS).toContain(step);
     }
   });
@@ -129,16 +117,17 @@ describe('quiz steps', () => {
 
   it('navigates the Vietnamese survey through lessons before the plan', () => {
     expect(nextStep('goal', 'vi')).toBe('sex');
-    expect(nextStep('age_group', 'vi')).toBe('insight_pace');
-    expect(nextStep('insight_pace', 'vi')).toBe('height');
-    expect(nextStep('target_weight', 'vi')).toBe('progress');
-    expect(nextStep('progress', 'vi')).toBe('body_current');
-    expect(nextStep('zones', 'vi')).toBe('insight_body');
-    expect(nextStep('training_duration', 'vi')).toBe('insight_movement');
-    expect(nextStep('trigger', 'vi')).toBe('insight_habits');
-    expect(nextStep('with_you', 'vi')).toBe('calculating');
+    expect(nextStep('sex', 'vi')).toBe('pregnant');
+    expect(nextStep('pregnant', 'vi')).toBe('age_group');
+    expect(nextStep('target_weight', 'vi')).toBe('insight_pace');
+    expect(nextStep('insight_pace', 'vi')).toBe('zones');
+    expect(nextStep('progress', 'vi')).toBe('first_name');
+    expect(nextStep('profile_10', 'vi')).toBe('loader_profile');
+    expect(nextStep('training_duration', 'vi')).toBe('obstacle');
+    expect(nextStep('referral', 'vi')).toBe('calculating');
     expect(nextStep('calculating', 'vi')).toBe('result');
-    expect(nextStep('result', 'vi')).toBeNull();
+    expect(nextStep('result', 'vi')).toBe('progress_final');
+    expect(nextStep('progress_final', 'vi')).toBeNull();
   });
 
   it('counts screens that ask something', () => {
@@ -147,8 +136,7 @@ describe('quiz steps', () => {
     expect(questionCount('occasion', 'en')).toBe(12);
     expect(questionCount('calculating', 'en')).toBe(0);
     expect(questionCount('result', 'en')).toBe(0);
-    expect(questionCount('goal', 'vi')).toBe(19);
-    expect(questionCount('insight_pace', 'vi')).toBe(16);
+    expect(questionCount('goal', 'vi')).toBe(VI_SURVEY.filter((entry) => entry.kind === 'question').length);
     expect(questionCount('calculating', 'vi')).toBe(0);
   });
 
@@ -158,8 +146,9 @@ describe('quiz steps', () => {
     expect(previousStep('sex', 'en')).toBe('goal');
     expect(previousStep('body_current', 'en')).toBe('aim');
     expect(previousStep('goal', 'en')).toBeNull();
-    expect(previousStep('insight_pace', 'vi')).toBe('age_group');
-    expect(previousStep('height', 'vi')).toBe('insight_pace');
+    expect(previousStep('pregnant', 'vi')).toBe('sex');
+    expect(previousStep('age_group', 'vi')).toBe('pregnant');
+    expect(previousStep('first_name', 'vi')).toBe('progress');
     expect(previousStep('goal', 'vi')).toBeNull();
   });
 
@@ -167,13 +156,15 @@ describe('quiz steps', () => {
     expect(previousStep('result', 'en')).toBe('day_plan');
     expect(previousStep('day_plan', 'en')).toBe('with_you');
     expect(previousStep('calculating', 'en')).toBe('with_you');
-    expect(previousStep('result', 'vi')).toBe('with_you');
-    expect(previousStep('calculating', 'vi')).toBe('with_you');
+    expect(previousStep('result', 'vi')).toBe('referral');
+    expect(previousStep('calculating', 'vi')).toBe('referral');
+    expect(previousStep('progress_final', 'vi')).toBe('result');
+    expect(previousStep('profile_result', 'vi')).toBe('profile_10');
   });
 
   it('sends a saved English-only screen to the Vietnamese lesson that replaced it', () => {
-    expect(nearestQuizStep('proof', 'vi')).toBe('insight_pace');
-    expect(nearestQuizStep('insight_pace', 'en')).toBe('age_group');
+    expect(nearestQuizStep('proof', 'vi')).toBe('with_you');
+    expect(nearestQuizStep('insight_pace', 'en')).toBe('target_weight');
     expect(nearestQuizStep('height', 'vi')).toBe('height');
   });
 
@@ -183,7 +174,7 @@ describe('quiz steps', () => {
     expect(stepIndex('result', 'en')).toBe(25);
     expect(stepIndex('goal', 'vi')).toBe(1);
     expect(stepIndex('height', 'vi')).toBe(5);
-    expect(stepIndex('result', 'vi')).toBe(VI_QUIZ_STEPS.length);
+    expect(stepIndex('progress_final', 'vi')).toBe(VI_QUIZ_STEPS.length);
     expect(STEP_CHAPTERS.activity_level).toBe('routine');
   });
 
