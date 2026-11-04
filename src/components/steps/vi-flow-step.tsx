@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { OptionCard } from '@/components/option-card';
 import { PrimaryButton } from '@/components/primary-button';
@@ -101,7 +101,7 @@ function FlowBody({ step, screen }: { step: ViQuizStep; screen: FlowScreen }) {
 function TintedPanel({ art, children, cta }: { art?: ReactNode; children: ReactNode; cta: ReactNode }) {
   return (
     <div className="-mx-5 -mb-[max(1rem,env(safe-area-inset-bottom))] flex min-h-0 flex-1 flex-col bg-[#DDF1E8] px-5 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col">
         {art ? <div className="flex min-h-28 flex-1 items-center justify-center py-3">{art}</div> : null}
         <div className="flex flex-col gap-3 pb-1">{children}</div>
       </div>
@@ -218,11 +218,11 @@ function RelateIntro({ art, statement, note }: { art: ArtId; statement: string; 
     <div className="flex flex-col gap-3">
       <p className="text-[0.75rem] font-extrabold uppercase tracking-[0.08em] text-teal-brand">{RELATE_EYEBROW}</p>
       <div className="flex justify-center"><Art id={art} size={160} /></div>
-      <blockquote className="border-l-4 border-[#14473A] bg-white px-4 py-4 text-[1.12rem] font-extrabold leading-snug text-forest shadow-[0_6px_16px_rgb(20_71_58_/_0.06)]">
+      <h1 className="border-l-4 border-[#14473A] bg-white px-4 py-4 text-[1.12rem] font-extrabold leading-snug text-forest shadow-[0_6px_16px_rgb(20_71_58_/_0.06)]">
         <span aria-hidden="true" className="text-[#F08A6B]">“ </span>
         {stripQuotes(statement)}
         <span aria-hidden="true" className="text-[#F08A6B]"> ”</span>
-      </blockquote>
+      </h1>
       {note ? <p className="text-[0.98rem] font-semibold leading-relaxed text-slate-brand">{note}</p> : null}
     </div>
   );
@@ -389,17 +389,32 @@ function ArchetypeStep({ onNext }: { onNext: () => void }) {
 
 function FlowLoader({ step, title, lines, art }: { step: ViQuizStep; title: string; lines: readonly string[]; art?: ArtId }) {
   const router = useRouter();
+  const routerRef = useRef(router);
+  routerRef.current = router;
   const [shown, setShown] = useState(1);
   const durationMs = 700 * (lines.length + 1);
 
   useEffect(() => {
+    // Advance on timers only. A CSS bar can finish while this effect restarts, and
+    // useRouter() is a new object on many renders, so the router must not be a dependency.
+    let left = false;
+    const go = () => {
+      if (left) return;
+      if (useQuizStore.getState().currentStep !== step) return;
+      left = true;
+      goToNextQuizStep(routerRef.current, step);
+    };
     const timers = lines.map((_, index) => window.setTimeout(() => setShown(index + 1), 700 * (index + 1)));
-    const done = window.setTimeout(() => goToNextQuizStep(router, step), durationMs);
+    const done = window.setTimeout(go, durationMs);
+    const fallback = window.setTimeout(go, durationMs + 1500);
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer));
       window.clearTimeout(done);
+      window.clearTimeout(fallback);
     };
-  }, [durationMs, lines, router, step]);
+    // `lines` is the screen catalog array. Its identity is stable; length covers a catalog edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [durationMs, step]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col justify-center gap-4">

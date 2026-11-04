@@ -65,7 +65,7 @@ export function BeatStep({ step }: { step: BeatKey }) {
   if (locale === 'vi' && step === 'with_you') {
     return (
       <div className="-mx-5 -mb-[max(1rem,env(safe-area-inset-bottom))] flex min-h-0 flex-1 flex-col bg-[#DDF1E8] px-5 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex min-h-28 flex-1 items-center justify-center py-3">
             <Art id="hands" size={140} />
           </div>

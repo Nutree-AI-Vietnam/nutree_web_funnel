@@ -45,6 +45,59 @@ describe('ExitIntentModal', () => {
     expect(sessionStorage.getItem('nutree_exit_intent_shown')).toBeNull();
   });
 
+  it('does not open when the address bar blurs the window and the pointer then leaves the top', async () => {
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+    render(<ExitIntentModal currentStepIndex={57} />);
+    window.dispatchEvent(new Event('blur'));
+    document.dispatchEvent(new MouseEvent('mouseleave', { clientY: 0, relatedTarget: null }));
+    document.dispatchEvent(new MouseEvent('mouseout', { clientY: 0, relatedTarget: null }));
+
+    await new Promise((resolve) => setTimeout(resolve, 700));
+
+    expect(screen.queryByRole('heading', { name: 'Your plan is taking shape' })).toBeNull();
+    expect(sessionStorage.getItem('nutree_exit_intent_shown')).toBeNull();
+  });
+
+  it('does not open when the tab was just hidden, even if focus is reported', async () => {
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+    render(<ExitIntentModal currentStepIndex={57} />);
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    document.dispatchEvent(new Event('visibilitychange'));
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    document.dispatchEvent(new MouseEvent('mouseout', { clientY: 0, relatedTarget: null }));
+
+    await new Promise((resolve) => setTimeout(resolve, 700));
+
+    expect(screen.queryByRole('heading', { name: 'Your plan is taking shape' })).toBeNull();
+  });
+
+  it('names the selected age range instead of the band midpoint', async () => {
+    useQuizStore.getState().setLocale('vi');
+    useQuizStore.getState().setData({
+      fitness_goal: 'cut',
+      age_group: '30_39',
+      age: 24,
+      birth_year: new Date().getFullYear() - 24,
+      birth_month: 1,
+      birth_day: 1,
+    });
+    render(<ExitIntentModal currentStepIndex={57} />);
+    document.dispatchEvent(new MouseEvent('mouseleave', { clientY: 0 }));
+
+    expect(await screen.findByText(/30–39/)).toBeTruthy();
+    expect(screen.queryByText(/tuổi 24/)).toBeNull();
+  });
+
+  it('omits age when the visitor has not picked a range or a number', async () => {
+    useQuizStore.getState().setLocale('vi');
+    useQuizStore.getState().setData({ fitness_goal: 'cut' });
+    render(<ExitIntentModal currentStepIndex={57} />);
+    document.dispatchEvent(new MouseEvent('mouseleave', { clientY: 0 }));
+
+    expect(await screen.findByText(/kế hoạch riêng cho bạn/)).toBeTruthy();
+    expect(screen.queryByText(/tuổi/)).toBeNull();
+  });
+
   it('does not open when the pointer leaves to switch tabs', async () => {
     render(<ExitIntentModal currentStepIndex={4} />);
     document.dispatchEvent(new MouseEvent('mouseleave', { clientY: -1 }));
@@ -60,7 +113,7 @@ describe('ExitIntentModal', () => {
     render(<ExitIntentModal currentStepIndex={4} />);
     document.dispatchEvent(new MouseEvent('mouseleave', { clientY: -1 }));
     window.dispatchEvent(new Event('blur'));
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 1100));
 
     document.dispatchEvent(new MouseEvent('mouseleave', { clientY: 0 }));
 

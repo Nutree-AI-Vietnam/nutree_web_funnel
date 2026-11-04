@@ -28,7 +28,7 @@ export const vi = {
     ],
     greetingNamed: (name: string) => `${name} ơi`,
     greeting: 'Bạn ơi',
-    bodyWithGoal: (progress: number, goal: string, age: number) =>
+    bodyWithGoal: (progress: number, goal: string, age: number | string) =>
       `Bạn đã hoàn thành ${progress}% chặng đường. Chỉ cần thêm 1-2 phút nữa là Nutree sẽ tính xong kế hoạch ${goal.toLowerCase()} cho tuổi ${age} của bạn.`,
     body: (progress: number) =>
       `Bạn đã hoàn thành ${progress}% chặng đường. Chỉ cần thêm 1-2 phút nữa là Nutree sẽ tính xong kế hoạch riêng cho bạn.`,

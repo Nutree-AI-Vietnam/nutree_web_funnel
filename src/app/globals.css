@@ -253,7 +253,14 @@ h2 {
 }
 
 .cta-attention {
+  position: relative;
+  isolation: isolate;
   animation: cta-attention 2.2s ease-in-out infinite;
+}
+
+.cta-attention > * {
+  position: relative;
+  z-index: 1;
 }
 
 .cta-attention::before {
@@ -280,12 +287,14 @@ h2 {
 }
 
 @keyframes vi-loader-bar {
-  from { width: 0%; }
-  to { width: 100%; }
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
 
 .vi-loader-bar {
-  width: 0%;
+  width: 100%;
+  transform-origin: left center;
+  transform: scaleX(0);
   animation-name: vi-loader-bar;
   animation-timing-function: linear;
   animation-fill-mode: forwards;
@@ -294,7 +303,7 @@ h2 {
 @media (prefers-reduced-motion: reduce) {
   .vi-loader-bar {
     animation: none;
-    width: 100%;
+    transform: none;
   }
 }
 

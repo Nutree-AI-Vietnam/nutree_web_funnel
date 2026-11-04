@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  * @vitest-environment-options {"url":"https://quiz.nutreeai.com/"}
  */
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QuizShell } from '@/components/quiz-shell';
 import { useQuizStore } from '@/lib/quiz/store';
@@ -17,6 +17,10 @@ import { TdeeTargetsStep } from './tdee-targets';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
+}));
+
+vi.mock('@/lib/api/client', () => ({
+  previewTdee: vi.fn(() => new Promise(() => {})),
 }));
 
 vi.mock('next/image', () => ({
@@ -85,7 +89,7 @@ describe('Vietnamese survey screens', () => {
   it('maps a relate chip to the existing 1–5 scale and keeps choice keys', () => {
     const { container, unmount } = render(<ViFlowStep step="life_social" />);
     expect(screen.getByText('BẠN THẤY MÌNH TRONG CÂU NÀY?')).toBeTruthy();
-    expect(screen.getByText(/Ăn cùng bạn bè, tôi hay ăn nhiều hơn mình định/)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /Ăn cùng bạn bè, tôi hay ăn nhiều hơn mình định/ })).toBeTruthy();
     expect(container.querySelector('svg')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Đôi khi' }));
     expect(useQuizStore.getState().planAnswers.answers?.life_social).toBe('3');
@@ -178,6 +182,50 @@ describe('Vietnamese survey screens', () => {
     expect(screen.queryByRole('progressbar')).toBeNull();
     expect(screen.queryByText('Cơ thể')).toBeNull();
     expect(useQuizStore.getState().currentStep).toBe('goal');
+  });
+
+  it('advances a loader on a timer, not when the progress bar animation ends', async () => {
+    vi.useFakeTimers();
+    try {
+      useQuizStore.getState().setCurrentStep('loader_check');
+      render(<ViFlowStep step="loader_check" />);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2900);
+      });
+      expect(useQuizStore.getState().currentStep).toBe('explore');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('leaves the plan loader after the bars are full even if the preview never returns', async () => {
+    vi.useFakeTimers();
+    try {
+      useQuizStore.getState().setCurrentStep('calculating');
+      useQuizStore.getState().setData({
+        measurement_unit: 'metric',
+        name: 'Lan',
+        fitness_goal: 'cut',
+        gender: 'female',
+        age: 34,
+        birth_year: 1992,
+        birth_month: 1,
+        birth_day: 1,
+        height_cm: 160,
+        weight_kg: 70,
+        target_weight_kg: 60,
+        job_type: 'desk',
+      });
+      render(<CalculatingStep />);
+      expect(screen.getByRole('heading', { name: 'Đang tạo kế hoạch cho Lan' })).toBeTruthy();
+      expect(useQuizStore.getState().currentStep).toBe('calculating');
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3000);
+      });
+      expect(useQuizStore.getState().currentStep).toBe('day_plan');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('builds the plan without star ratings', () => {
