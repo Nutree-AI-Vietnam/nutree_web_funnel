@@ -9,6 +9,7 @@ import { useQuizStore } from '@/lib/quiz/store';
 import { stepIndex, VI_QUIZ_STEPS } from '@/lib/quiz/steps';
 import { CalculatingStep } from './calculating';
 import { InsightStep } from './insight-step';
+import { ProgressStep } from './progress';
 import { ViFlowStep } from './vi-flow-step';
 import { TdeeTargetsStep } from './tdee-targets';
 
@@ -155,5 +156,38 @@ describe('Vietnamese survey screens', () => {
     expect(screen.getByText('Việc nên làm tuần đầu')).toBeTruthy();
     expect(screen.getByText(/Khi thèm, uống nước/)).toBeTruthy();
     expect(screen.getByText(/không thay thế bác sĩ/)).toBeTruthy();
+  });
+
+  it('opens email from the last screen when a second tab steals the pointer', async () => {
+    useQuizStore.getState().setData({
+      measurement_unit: 'metric',
+      name: 'Lan',
+      fitness_goal: 'cut',
+      gender: 'female',
+      age: 32,
+      height_cm: 160,
+      weight_kg: 70,
+      target_weight_kg: 60,
+      job_type: 'desk',
+      training_days_per_week: 3,
+      training_minutes_per_session: 45,
+    });
+    useQuizStore.getState().setFunnelScreen('quiz');
+    useQuizStore.getState().setCurrentStep('progress_final');
+    render(
+      <QuizShell step="progress_final">
+        <ProgressStep step="progress_final" />
+      </QuizShell>,
+    );
+
+    expect(screen.getByText(`${VI_QUIZ_STEPS.length}/${VI_QUIZ_STEPS.length}`)).toBeTruthy();
+    document.dispatchEvent(new MouseEvent('mouseleave', { clientY: -1 }));
+    window.dispatchEvent(new Event('blur'));
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    expect(screen.queryByRole('button', { name: 'Tiếp tục ngay' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
+    expect(useQuizStore.getState().funnelScreen).toBe('email');
+    expect(useQuizStore.getState().currentStep).toBe('progress_final');
   });
 });
