@@ -30,13 +30,17 @@ export function GoalEntryFooter() {
 
   return (
     <footer className="flex shrink-0 flex-col items-center gap-3 px-1 pt-3">
-      <div
-        role="img"
-        aria-label={`${storeRatingsLine(rating)}. ${rating.countValue} ${rating.chose}`}
-        className="w-full"
-      >
-        <StoreLaurels />
-      </div>
+      {locale === 'vi' ? (
+        <p className="max-w-[18rem] text-center text-[0.82rem] font-semibold leading-snug text-slate-brand">{copy.goal.reassurance}</p>
+      ) : (
+        <div
+          role="img"
+          aria-label={`${storeRatingsLine(rating)}. ${rating.countValue} ${rating.chose}`}
+          className="w-full"
+        >
+          <StoreLaurels />
+        </div>
+      )}
       {locale === 'vi' ? (
         <BoCongThuongBadge alt={copy.common.bctBadgeAlt} height={52} className="[&_img]:h-[clamp(28px,4.2vh,48px)] [&_img]:w-auto" />
       ) : null}

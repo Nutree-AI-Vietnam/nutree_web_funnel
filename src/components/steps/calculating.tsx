@@ -147,11 +147,19 @@ export function CalculatingStep() {
   }, [complete, outcome, setTdee]);
 
   const rating = vi.funnel.rating;
-  const slides = useMemo(() => (vi.calculating.testimonials.length
-    ? vi.calculating.testimonials.map((item) => ({ kind: 'review' as const, key: item.name, quote: item.quote, name: item.name, title: '', body: '' }))
-    : vi.calculating.highlights.map((item) => ('quote' in item
+  const slides = useMemo(() => {
+    if (locale === 'vi') {
+      return vi.calculating.highlights
+        .filter((item): item is { title: string; body: string } => 'title' in item)
+        .map((item) => ({ kind: 'highlight' as const, key: item.title, quote: '', name: '', title: item.title, body: item.body }));
+    }
+    if (vi.calculating.testimonials.length) {
+      return vi.calculating.testimonials.map((item) => ({ kind: 'review' as const, key: item.name, quote: item.quote, name: item.name, title: '', body: '' }));
+    }
+    return vi.calculating.highlights.map((item) => ('quote' in item
       ? { kind: 'review' as const, key: item.name, quote: item.quote, name: item.name, title: '', body: '' }
-      : { kind: 'highlight' as const, key: item.title, quote: '', name: '', title: item.title, body: item.body }))), [vi]);
+      : { kind: 'highlight' as const, key: item.title, quote: '', name: '', title: item.title, body: item.body }));
+  }, [locale, vi]);
   const [slideIndex, setSlideIndex] = useState(0);
   const stage = Math.min(items.length, Math.floor(elapsed / stageMs));
 
@@ -213,12 +221,15 @@ export function CalculatingStep() {
           </ol>
         </section>
 
-        {/* Proof while the plan builds: the real rating and customer count, then a carousel that peeks the next card.
-            It shows verified reviews once the copy has them; until then, what the app does. */}
+        {/* English keeps the store rating while the plan builds. Vietnamese stays on coaching notes, with no review counts. */}
         <section aria-label={vi.calculating.testimonialsLabel} className="mt-1 rounded-[1.3rem] bg-white px-1 py-3">
-          <p className="text-center text-[1rem] font-extrabold text-forest">{rating.countValue} {rating.chose}</p>
-          <StoreRatings className="mt-1 text-[0.8rem]" />
-          <p className="sr-only">{storeRatingsLine(rating)}</p>
+          {locale === 'vi' ? null : (
+            <>
+              <p className="text-center text-[1rem] font-extrabold text-forest">{rating.countValue} {rating.chose}</p>
+              <StoreRatings className="mt-1 text-[0.8rem]" />
+              <p className="sr-only">{storeRatingsLine(rating)}</p>
+            </>
+          )}
           <div className="mt-2.5 overflow-hidden bg-white">
             <motion.ol
               className="flex gap-[2.5%]"

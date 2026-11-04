@@ -50,7 +50,7 @@ export function ValueTourScreen({
   };
 
   return (
-    <QuizShell step="result" progressIndex={valueProgressIndex(step)} onBack={goBack} showExitIntent={false}>
+    <QuizShell step="result" progressIndex={valueProgressIndex(step, locale)} onBack={goBack} showExitIntent={false}>
       {step === 'snap' && (
         <QuizStepFrame eyebrow={copy.valueTour.snap.eyebrow} title={copy.valueTour.snap.title} description={copy.valueTour.snap.body}>
           <MealSnapDemo label={copy.valueTour.snap.videoLabel} />

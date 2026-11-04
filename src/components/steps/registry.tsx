@@ -13,6 +13,7 @@ import { ProgressStep } from './progress';
 import { TargetWeightStep } from './final-web-steps';
 import { GoalChoice } from './goal-choice';
 import { NumberInputStep } from './number-input-step';
+import { InsightStep } from './insight-step';
 import { ProofStep } from './proof-step';
 import { SexStep } from './sex-step';
 import { BeatStep, StoryStep } from './story-step';
@@ -39,6 +40,12 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
   sex: () => <SexStep />,
   age_group: () => <AgeGroupStep />,
   proof: () => <ProofStep step="proof" />,
+  insight_pace: () => <InsightStep step="insight_pace" />,
+  insight_body: () => <InsightStep step="insight_body" />,
+  insight_why: () => <InsightStep step="insight_why" />,
+  insight_movement: () => <InsightStep step="insight_movement" />,
+  insight_obstacle: () => <InsightStep step="insight_obstacle" />,
+  insight_habits: () => <InsightStep step="insight_habits" />,
   aim: () => <StoryStep step="aim" />,
   body_current: () => <BodyShapeStep kind="current" />,
   body_target: () => <BodyShapeStep kind="target" />,

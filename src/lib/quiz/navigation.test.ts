@@ -193,10 +193,21 @@ describe('training answers before email', () => {
 
     goToNextQuizStep(router, 'training_duration');
 
+    expect(useQuizStore.getState().currentStep).toBe('insight_movement');
+  });
+
+  it('keeps the English skip on the screen after session length', () => {
+    useQuizStore.getState().setLocale('en');
+    useQuizStore.getState().setCurrentStep('training_days');
+    useQuizStore.getState().setData({ training_days_per_week: 0, training_minutes_per_session: 0 });
+
+    goToNextQuizStep(router, 'training_duration');
+
     expect(useQuizStore.getState().currentStep).toBe('tried');
   });
 
   it('steps back past session length when training days are zero', () => {
+    useQuizStore.getState().setLocale('en');
     useQuizStore.getState().setData({ training_days_per_week: 0, training_minutes_per_session: 0 });
 
     goToPreviousQuizStep(router, 'tried');
