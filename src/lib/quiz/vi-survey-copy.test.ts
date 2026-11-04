@@ -51,6 +51,7 @@ function titleFor(id: (typeof VI_QUIZ_STEPS)[number]): string {
       diet_style: vi.story.diet_style.question,
       aim: vi.story.aim.question,
       calculating: vi.funnel.loader.titleFallback,
+      day_plan: vi.funnel.plan.eyebrowFallback,
       result: vi.tdee_targets.headline,
     };
     return specialized[id] ?? '';
@@ -67,6 +68,17 @@ function titleFor(id: (typeof VI_QUIZ_STEPS)[number]): string {
 describe('Vietnamese survey copy', () => {
   it('names every screen and skips unsourced or medical claims', () => {
     expect(VI_SURVEY).toHaveLength(VI_QUIZ_STEPS.length);
+    const quizzes = VI_SURVEY.flatMap((entry) => {
+      const screen = flowScreen(entry.id);
+      return screen?.type === 'quiz' ? [screen] : [];
+    });
+    expect(quizzes).toHaveLength(6);
+    const positions = quizzes.map((screen) => screen.options.findIndex((option) => option.key === screen.correct));
+    expect(new Set(positions).size).toBeGreaterThan(1);
+    expect(positions.includes(0)).toBe(false);
+    for (const screen of quizzes) {
+      expect(screen.options.some((option) => option.key === screen.correct)).toBe(true);
+    }
     for (const step of VI_QUIZ_STEPS) {
       expect(titleFor(step).trim().length, step).toBeGreaterThan(0);
     }

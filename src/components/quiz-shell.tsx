@@ -49,7 +49,7 @@ function ChapterProgress({ step }: { step: QuizStep }) {
         role="progressbar"
         aria-label={copy.common.progress}
         aria-valuemin={1}
-        aria-valuemax={steps.length + VALUE_TOUR_STEPS.length}
+        aria-valuemax={steps.length}
         aria-valuenow={current}
         className="flex gap-1.5"
       >

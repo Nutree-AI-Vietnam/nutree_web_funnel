@@ -176,6 +176,8 @@ describe('Back skips the loader', () => {
 
   it('goes from the calorie result to the day plan, then past the loader', () => {
     goToPreviousQuizStep(router, 'result');
+    expect(useQuizStore.getState().currentStep).toBe('day_plan');
+    goToPreviousQuizStep(router, 'day_plan');
     expect(useQuizStore.getState().currentStep).toBe('referral');
   });
 });

@@ -62,12 +62,12 @@ export function quizStepsFor(locale: Locale): readonly QuizStep[] {
   return locale === 'en' ? EN_QUIZ_STEPS : VI_QUIZ_STEPS;
 }
 
-export function onboardingStepCount(locale: Locale = 'vi'): number {
+export function onboardingStepCount(locale: Locale): number {
   return quizStepsFor(locale).length + VALUE_TOUR_STEPS.length;
 }
 
 /** 1-based position of a value screen on the shared onboarding bar. */
-export function valueProgressIndex(step: ValueTourStep, locale: Locale = 'vi'): number {
+export function valueProgressIndex(step: ValueTourStep, locale: Locale): number {
   return quizStepsFor(locale).length + VALUE_TOUR_STEPS.indexOf(step) + 1;
 }
 
@@ -145,7 +145,7 @@ const VI_QUESTION_STEPS: readonly QuizStep[] = VI_SURVEY.filter((entry) => entry
 const ALL_QUIZ_STEPS = new Set<string>([...EN_QUIZ_STEPS, ...VI_QUIZ_STEPS]);
 
 /** Questions left from this step on, counting the step itself when it asks one. */
-export function questionCount(from: QuizStep = 'goal', locale: Locale = 'vi'): number {
+export function questionCount(from: QuizStep, locale: Locale): number {
   const steps = quizStepsFor(locale);
   const questions = locale === 'en' ? EN_QUESTION_STEPS : VI_QUESTION_STEPS;
   const list = steps as readonly string[];
@@ -159,7 +159,7 @@ export function isQuizStep(slug: string): slug is QuizStep {
 }
 
 /** Returns the next in-app screen, or null when the quiz is complete. */
-export function nextStep(step: QuizStep, locale: Locale = 'vi'): QuizStep | null {
+export function nextStep(step: QuizStep, locale: Locale): QuizStep | null {
   const steps = quizStepsFor(locale);
   const i = (steps as readonly string[]).indexOf(step);
   if (i < 0 || i === steps.length - 1) return null;
@@ -167,7 +167,7 @@ export function nextStep(step: QuizStep, locale: Locale = 'vi'): QuizStep | null
 }
 
 /** Returns the previous in-app screen, or null when the landing page precedes it. Loaders only play on the way forward. */
-export function previousStep(step: QuizStep, locale: Locale = 'vi'): QuizStep | null {
+export function previousStep(step: QuizStep, locale: Locale): QuizStep | null {
   const steps = quizStepsFor(locale);
   let i = (steps as readonly string[]).indexOf(step) - 1;
   while (i >= 0 && isLoaderStep(steps[i])) i -= 1;
@@ -189,7 +189,7 @@ export function nearestQuizStep(step: QuizStep, locale: Locale): QuizStep {
 }
 
 /** 1-based index for the progress bar. */
-export function stepIndex(step: QuizStep, locale: Locale = 'vi'): number {
+export function stepIndex(step: QuizStep, locale: Locale): number {
   const index = (quizStepsFor(locale) as readonly string[]).indexOf(step);
   return index < 0 ? 1 : index + 1;
 }

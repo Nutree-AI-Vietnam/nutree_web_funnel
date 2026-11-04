@@ -56,7 +56,8 @@ describe('quiz steps', () => {
     expect(VI_QUIZ_STEPS[0]).toBe('goal');
     expect(VI_QUIZ_STEPS[1]).toBe('sex');
     expect(VI_QUIZ_STEPS[2]).toBe('pregnant');
-    expect(VI_QUIZ_STEPS.at(-3)).toBe('calculating');
+    expect(VI_QUIZ_STEPS.at(-4)).toBe('calculating');
+    expect(VI_QUIZ_STEPS.at(-3)).toBe('day_plan');
     expect(VI_QUIZ_STEPS.at(-2)).toBe('result');
     expect(VI_QUIZ_STEPS.at(-1)).toBe('progress_final');
     expect(VI_QUIZ_STEPS).not.toContain('email');
@@ -125,7 +126,8 @@ describe('quiz steps', () => {
     expect(nextStep('profile_10', 'vi')).toBe('loader_profile');
     expect(nextStep('training_duration', 'vi')).toBe('obstacle');
     expect(nextStep('referral', 'vi')).toBe('calculating');
-    expect(nextStep('calculating', 'vi')).toBe('result');
+    expect(nextStep('calculating', 'vi')).toBe('day_plan');
+    expect(nextStep('day_plan', 'vi')).toBe('result');
     expect(nextStep('result', 'vi')).toBe('progress_final');
     expect(nextStep('progress_final', 'vi')).toBeNull();
   });
@@ -156,7 +158,8 @@ describe('quiz steps', () => {
     expect(previousStep('result', 'en')).toBe('day_plan');
     expect(previousStep('day_plan', 'en')).toBe('with_you');
     expect(previousStep('calculating', 'en')).toBe('with_you');
-    expect(previousStep('result', 'vi')).toBe('referral');
+    expect(previousStep('result', 'vi')).toBe('day_plan');
+    expect(previousStep('day_plan', 'vi')).toBe('referral');
     expect(previousStep('calculating', 'vi')).toBe('referral');
     expect(previousStep('progress_final', 'vi')).toBe('result');
     expect(previousStep('profile_result', 'vi')).toBe('profile_10');
@@ -176,6 +179,17 @@ describe('quiz steps', () => {
     expect(stepIndex('height', 'vi')).toBe(5);
     expect(stepIndex('progress_final', 'vi')).toBe(VI_QUIZ_STEPS.length);
     expect(STEP_CHAPTERS.activity_level).toBe('routine');
+  });
+
+  it('keeps the Vietnamese chapter bar moving forward', () => {
+    const rank = { you: 0, body: 1, habits: 2, plan: 3 } as const;
+    let previous = 0;
+    for (const entry of VI_SURVEY) {
+      const chapter = rank[entry.chapter];
+      expect(chapter, entry.id).toBeGreaterThanOrEqual(previous);
+      previous = chapter;
+    }
+    expect(stepIndex('first_name', 'vi')).toBeGreaterThan(stepIndex('progress', 'vi'));
   });
 
   it('continues the same progress bar through the value tour', () => {

@@ -6,7 +6,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QuizShell } from '@/components/quiz-shell';
 import { useQuizStore } from '@/lib/quiz/store';
-import { VI_QUIZ_STEPS, VALUE_TOUR_STEPS } from '@/lib/quiz/steps';
+import { stepIndex, VI_QUIZ_STEPS } from '@/lib/quiz/steps';
 import { CalculatingStep } from './calculating';
 import { InsightStep } from './insight-step';
 import { ViFlowStep } from './vi-flow-step';
@@ -78,9 +78,21 @@ describe('Vietnamese survey screens', () => {
     const gtag = (window as unknown as { gtag: ReturnType<typeof vi.fn> }).gtag;
     expect(gtag).toHaveBeenCalledWith('event', 'funnel_step_viewed', expect.objectContaining({ step: 'insight_pace' }));
     const bar = screen.getByRole('progressbar', { name: 'Tiến độ của bạn' });
-    expect(bar.getAttribute('aria-valuemax')).toBe(String(VI_QUIZ_STEPS.length + VALUE_TOUR_STEPS.length));
+    expect(bar.getAttribute('aria-valuenow')).toBe(String(stepIndex('insight_pace', 'vi')));
+    expect(bar.getAttribute('aria-valuemax')).toBe(String(VI_QUIZ_STEPS.length));
+    expect(screen.getByText(`${stepIndex('insight_pace', 'vi')}/${VI_QUIZ_STEPS.length}`)).toBeTruthy();
     expect(screen.getByText('Cơ thể')).toBeTruthy();
     expect(screen.queryByText(/200\.000|App Store|★★/)).toBeNull();
+  });
+
+  it('fires funnel_step_viewed for the day plan', () => {
+    render(
+      <QuizShell step="day_plan">
+        <p>day</p>
+      </QuizShell>,
+    );
+    const gtag = (window as unknown as { gtag: ReturnType<typeof vi.fn> }).gtag;
+    expect(gtag).toHaveBeenCalledWith('event', 'funnel_step_viewed', expect.objectContaining({ step: 'day_plan' }));
   });
 
   it('fires funnel_step_viewed for a new safety screen', () => {

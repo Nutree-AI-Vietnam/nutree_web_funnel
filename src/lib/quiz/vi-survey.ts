@@ -146,7 +146,7 @@ export const VI_SURVEY = [
     lines: ['Ghép mục tiêu và cân nặng', 'Chừa chỗ cho lịch của bạn', 'Phác một mốc đầu tiên'],
   } },
   { id: 'progress', kind: 'projection', noom: 21, chapter: 'body' },
-  { id: 'first_name', kind: 'question', noom: 22, chapter: 'you' },
+  { id: 'first_name', kind: 'question', noom: 22, chapter: 'body' },
   { id: 'profile_intro', kind: 'insight', noom: 23, chapter: 'habits', screen: {
     type: 'insight',
     eyebrow: 'Cách bạn ăn',
@@ -222,8 +222,8 @@ export const VI_SURVEY = [
     title: 'Món nào thuộc nhóm nhẹ?',
     correct: 'soup',
     options: [
-      { key: 'soup', label: 'Canh rau' },
       { key: 'rice', label: 'Cơm tấm sườn' },
+      { key: 'soup', label: 'Canh rau' },
       { key: 'fried', label: 'Gà rán' },
       { key: 'milk_tea', label: 'Trà sữa' },
     ],
@@ -241,9 +241,9 @@ export const VI_SURVEY = [
     title: 'Món nào thuộc nhóm vừa?',
     correct: 'chicken_rice',
     options: [
-      { key: 'chicken_rice', label: 'Cơm gà nướng' },
       { key: 'soda', label: 'Nước ngọt' },
       { key: 'fries', label: 'Khoai tây chiên' },
+      { key: 'chicken_rice', label: 'Cơm gà nướng' },
       { key: 'flan', label: 'Bánh flan' },
     ],
   } },
@@ -260,10 +260,10 @@ export const VI_SURVEY = [
     title: 'Món nào thuộc nhóm đậm?',
     correct: 'cake',
     options: [
-      { key: 'cake', label: 'Bánh ngọt kem' },
       { key: 'veg', label: 'Rau luộc' },
       { key: 'soup', label: 'Canh chua' },
       { key: 'grill', label: 'Ức gà áp chảo' },
+      { key: 'cake', label: 'Bánh ngọt kem' },
     ],
   } },
   { id: 'food_rich_why', kind: 'explain', noom: 51, chapter: 'habits', screen: {
@@ -377,9 +377,9 @@ export const VI_SURVEY = [
     title: 'Bữa phụ nào hợp một ngày bận?',
     correct: 'yogurt',
     options: [
-      { key: 'yogurt', label: 'Sữa chua và chuối' },
       { key: 'bread', label: 'Một ổ bánh mì ngọt' },
       { key: 'soda', label: 'Nước ngọt lon' },
+      { key: 'yogurt', label: 'Sữa chua và chuối' },
     ],
   } },
   { id: 'quiz_snack_why', kind: 'explain', noom: 66, chapter: 'plan', screen: {
@@ -395,8 +395,8 @@ export const VI_SURVEY = [
     title: 'Khi ăn, việc nào giúp bạn nhận ra đã no?',
     correct: 'slow',
     options: [
-      { key: 'slow', label: 'Để điện thoại xuống, ăn chậm hơn một chút' },
       { key: 'show', label: 'Vừa xem phim vừa ăn hết' },
+      { key: 'slow', label: 'Để điện thoại xuống, ăn chậm hơn một chút' },
       { key: 'stand', label: 'Ăn đứng trong bếp' },
     ],
   } },
@@ -413,9 +413,9 @@ export const VI_SURVEY = [
     title: 'Nên cân vào lúc nào để thấy nhịp?',
     correct: 'weekly',
     options: [
-      { key: 'weekly', label: 'Cùng một buổi, mỗi tuần một lần' },
       { key: 'each_meal', label: 'Sau mỗi bữa' },
       { key: 'mood', label: 'Chỉ khi thấy chán' },
+      { key: 'weekly', label: 'Cùng một buổi, mỗi tuần một lần' },
     ],
   } },
   { id: 'quiz_weigh_why', kind: 'explain', noom: 70, chapter: 'plan', screen: {
@@ -444,6 +444,7 @@ export const VI_SURVEY = [
     ],
   ) },
   { id: 'calculating', kind: 'loader', noom: 73, chapter: 'plan' },
+  { id: 'day_plan', kind: 'plan', noom: null, chapter: 'plan' },
   { id: 'result', kind: 'plan', noom: 74, chapter: 'plan' },
   { id: 'progress_final', kind: 'projection', noom: 75, chapter: 'plan' },
 ] as const satisfies readonly ViEntry[];
