@@ -1,9 +1,11 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { useQuizStore as useQuizStoreType } from './store';
 import type {
+  continueAfterTrainingAnswer as continueAfterTrainingAnswerType,
   editQuizAnswer as editQuizAnswerType,
   goToNextQuizStep as goToNextQuizStepType,
   goToPreviousQuizStep as goToPreviousQuizStepType,
+  requireTrainingBeforeEmail as requireTrainingBeforeEmailType,
   returnToFunnelStart as returnToFunnelStartType,
 } from './navigation';
 
@@ -31,6 +33,8 @@ let goToPreviousQuizStep: typeof goToPreviousQuizStepType;
 let goToNextQuizStep: typeof goToNextQuizStepType;
 let editQuizAnswer: typeof editQuizAnswerType;
 let returnToFunnelStart: typeof returnToFunnelStartType;
+let requireTrainingBeforeEmail: typeof requireTrainingBeforeEmailType;
+let continueAfterTrainingAnswer: typeof continueAfterTrainingAnswerType;
 
 const router = { push() {}, replace() {} };
 
@@ -43,6 +47,8 @@ describe('quiz start navigation', () => {
     goToNextQuizStep = navigation.goToNextQuizStep;
     editQuizAnswer = navigation.editQuizAnswer;
     returnToFunnelStart = navigation.returnToFunnelStart;
+    requireTrainingBeforeEmail = navigation.requireTrainingBeforeEmail;
+    continueAfterTrainingAnswer = navigation.continueAfterTrainingAnswer;
   });
 
   beforeEach(() => {
@@ -169,5 +175,47 @@ describe('Back skips the loader', () => {
   it('goes from the plan to the last question, not the loader', () => {
     goToPreviousQuizStep(router, 'result');
     expect(useQuizStore.getState().currentStep).toBe('with_you');
+  });
+});
+
+describe('training answers before email', () => {
+  beforeEach(() => {
+    sessionMem.clear();
+    useQuizStore.getState().reset();
+    useQuizStore.getState().setFunnelScreen('quiz');
+  });
+
+  it('skips session length when the visitor does not train', () => {
+    useQuizStore.getState().setCurrentStep('training_days');
+    useQuizStore.getState().setData({ training_days_per_week: 0, training_minutes_per_session: 0 });
+
+    goToNextQuizStep(router, 'training_duration');
+
+    expect(useQuizStore.getState().currentStep).toBe('tried');
+  });
+
+  it('steps back past session length when training days are zero', () => {
+    useQuizStore.getState().setData({ training_days_per_week: 0, training_minutes_per_session: 0 });
+
+    goToPreviousQuizStep(router, 'tried');
+
+    expect(useQuizStore.getState().currentStep).toBe('training_days');
+  });
+
+  it('sends a saved email screen back to the missing training question, then returns', () => {
+    useQuizStore.getState().setFunnelScreen('email');
+    useQuizStore.getState().setData({ measurement_unit: 'metric' });
+
+    expect(requireTrainingBeforeEmail()).toBe(false);
+    expect(useQuizStore.getState().funnelScreen).toBe('quiz');
+    expect(useQuizStore.getState().currentStep).toBe('training_days');
+
+    useQuizStore.getState().setData({ training_days_per_week: 3 });
+    continueAfterTrainingAnswer(router, 'training_days');
+    expect(useQuizStore.getState().currentStep).toBe('training_duration');
+
+    useQuizStore.getState().setData({ training_minutes_per_session: 45 });
+    continueAfterTrainingAnswer(router, 'training_duration');
+    expect(useQuizStore.getState().funnelScreen).toBe('email');
   });
 });

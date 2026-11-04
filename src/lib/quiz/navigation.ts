@@ -2,6 +2,7 @@ import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
 import { savedTargetFits } from './healthy-weight';
 import { useQuizStore } from './store';
 import { nextStep, previousStep, type QuizStep } from './steps';
+import { missingTrainingStep } from './training';
 import { resolveUnitSystem } from './units';
 
 type QuizRouter = {
@@ -29,6 +30,7 @@ export function startQuizFromLanding(): void {
     // The quiz still starts when session storage is blocked.
   }
   setFunnelScreen('quiz');
+  clearReturnAfterTraining();
 }
 
 /** Where leaving the quiz used to open the landing screen. */
@@ -84,10 +86,60 @@ export function goToPreviousQuizStep(router: QuizRouter, step: QuizStep): void {
     showQuizStep(router, editReturn);
     return;
   }
-  const previous = previousStep(step);
+  let previous = previousStep(step);
+  if (previous === 'training_duration' && useQuizStore.getState().data.training_days_per_week === 0) {
+    previous = 'training_days';
+  }
   if (previous) {
     showQuizStep(router, previous);
   } else {
     returnToFunnelStart();
   }
+}
+
+const RETURN_AFTER_TRAINING_KEY = 'quiz:returnAfterTraining';
+
+function clearReturnAfterTraining(): void {
+  try {
+    globalThis.sessionStorage?.removeItem(RETURN_AFTER_TRAINING_KEY);
+  } catch {
+    // The quiz still continues when session storage is blocked.
+  }
+}
+
+/**
+ * Email cannot be saved until training days (and session length, when they train)
+ * are answered. A visitor who already reached email is sent to the missing screen
+ * and brought back, instead of walking the rest of the quiz again.
+ */
+export function requireTrainingBeforeEmail(): boolean {
+  const missing = missingTrainingStep(useQuizStore.getState().data);
+  if (!missing) {
+    clearReturnAfterTraining();
+    return true;
+  }
+  try {
+    globalThis.sessionStorage?.setItem(RETURN_AFTER_TRAINING_KEY, 'email');
+  } catch {
+    // Still ask the question in this tab.
+  }
+  useQuizStore.getState().setCurrentStep(missing);
+  useQuizStore.getState().setFunnelScreen('quiz');
+  return false;
+}
+
+/** After a training answer: back to email when that screen sent them here, otherwise the next quiz step. */
+export function continueAfterTrainingAnswer(router: QuizRouter, from: QuizStep): void {
+  let returnToEmail = false;
+  try {
+    returnToEmail = globalThis.sessionStorage?.getItem(RETURN_AFTER_TRAINING_KEY) === 'email';
+  } catch {
+    returnToEmail = false;
+  }
+  if (returnToEmail && missingTrainingStep(useQuizStore.getState().data) == null) {
+    clearReturnAfterTraining();
+    useQuizStore.getState().setFunnelScreen('email');
+    return;
+  }
+  goToNextQuizStep(router, from);
 }

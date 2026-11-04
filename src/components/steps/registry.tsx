@@ -17,6 +17,7 @@ import { SexStep } from './sex-step';
 import { BeatStep, StoryStep } from './story-step';
 import { SingleChoiceStep } from './single-choice';
 import { TdeeTargetsStep } from './tdee-targets';
+import { TrainingDaysStep, TrainingDurationStep } from './training-days';
 import { WeightStep } from './weight-step';
 import { ZonesStep } from './zones-step';
 
@@ -74,6 +75,17 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
         question={c.activity_level.question}
         description={c.activity_level.description}
         options={c.activity_level.options}
+      />
+    );
+  },
+  training_days: () => <TrainingDaysStep />,
+  training_duration: function TrainingDuration() {
+    const c = useCopy();
+    return (
+      <TrainingDurationStep
+        question={c.training_duration.question}
+        description={c.training_duration.description}
+        options={c.training_duration.options}
       />
     );
   },

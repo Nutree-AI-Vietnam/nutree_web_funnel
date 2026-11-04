@@ -18,6 +18,8 @@ describe('quiz steps', () => {
       'target_weight',
       'progress',
       'activity_level',
+      'training_days',
+      'training_duration',
       'tried',
       'obstacle',
       'diet_style',
@@ -46,7 +48,9 @@ describe('quiz steps', () => {
     expect(nextStep('zones')).toBe('occasion');
     expect(nextStep('target_weight')).toBe('progress');
     expect(nextStep('progress')).toBe('activity_level');
-    expect(nextStep('activity_level')).toBe('tried');
+    expect(nextStep('activity_level')).toBe('training_days');
+    expect(nextStep('training_days')).toBe('training_duration');
+    expect(nextStep('training_duration')).toBe('tried');
     expect(nextStep('with_you')).toBe('calculating');
     expect(nextStep('calculating')).toBe('result');
   });
@@ -56,9 +60,9 @@ describe('quiz steps', () => {
   });
 
   it('counts screens that ask something', () => {
-    expect(questionCount()).toBe(17);
-    expect(questionCount('proof')).toBe(14);
-    expect(questionCount('occasion')).toBe(10);
+    expect(questionCount()).toBe(19);
+    expect(questionCount('proof')).toBe(16);
+    expect(questionCount('occasion')).toBe(12);
     expect(questionCount('calculating')).toBe(0);
     expect(questionCount('result')).toBe(0);
   });
@@ -80,7 +84,7 @@ describe('quiz steps', () => {
   it('exposes 1-based progress index', () => {
     expect(stepIndex('goal')).toBe(1);
     expect(stepIndex('height')).toBe(10);
-    expect(stepIndex('result')).toBe(22);
+    expect(stepIndex('result')).toBe(24);
     expect(STEP_CHAPTERS.activity_level).toBe('routine');
   });
 

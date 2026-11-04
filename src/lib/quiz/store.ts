@@ -46,8 +46,6 @@ const REMOVED_QUIZ_STEP_REDIRECTS: Record<string, QuizStep> = {
   focus: 'with_you',
   ready: 'calculating',
   body_review: 'calculating',
-  training_days: 'activity_level',
-  training_duration: 'activity_level',
   eating_pattern: 'activity_level',
   diet: 'activity_level',
   step_goal: 'activity_level',

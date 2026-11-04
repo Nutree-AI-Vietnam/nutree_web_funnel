@@ -12,6 +12,7 @@ import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { isLocalPreviewHost } from '@/lib/local-preview';
 import { isValidEmail } from '@/lib/quiz/email';
+import { requireTrainingBeforeEmail } from '@/lib/quiz/navigation';
 import { formatGoalDate, goalTimeline } from '@/lib/quiz/progress-projection';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { formatWeight } from '@/lib/quiz/units';
@@ -39,6 +40,11 @@ export function EmailCaptureScreen({ onComplete }: { onComplete: () => void }) {
 
   useEffect(() => trackStepViewed('email_capture'), []);
 
+  useEffect(() => {
+    if (!hydrated) return;
+    requireTrainingBeforeEmail();
+  }, [hydrated, data.training_days_per_week, data.training_minutes_per_session]);
+
   if (!hydrated) return null;
 
   const submit = async () => {
@@ -47,10 +53,11 @@ export function EmailCaptureScreen({ onComplete }: { onComplete: () => void }) {
       inputRef.current?.focus();
       return;
     }
+    if (!requireTrainingBeforeEmail()) return;
     setSubmitting(true);
     setError(null);
     try {
-      const lead = await createLead(email.trim(), data, { locale, units: system, off_plan_moment: data.hardest_eating_moment });
+      const lead = await createLead(email.trim(), data);
       setLead(lead);
       saveCheckoutEmail(email.trim());
       const secureCookie = window.location.protocol === 'https:' ? '; Secure' : '';

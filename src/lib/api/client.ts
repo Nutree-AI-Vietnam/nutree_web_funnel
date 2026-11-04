@@ -1,5 +1,6 @@
 import { deriveAge } from '../quiz/dob';
 import { toBackendGoal } from '../quiz/fitness-goal';
+import { trainingPair } from '../quiz/training';
 import { safeLeadProjection } from '../handoff/lead-projection';
 import type { Lead, OnboardingPayload, TdeeResult } from '../quiz/types';
 
@@ -48,8 +49,7 @@ export async function previewTdee(data: OnboardingPayload): Promise<TdeeResult> 
     height: data.height_cm,
     weight: data.weight_kg,
     job_type: data.job_type,
-    training_days_per_week: data.training_days_per_week,
-    training_minutes_per_session: data.training_days_per_week === 0 ? 0 : data.training_minutes_per_session,
+    ...trainingPair(data),
     goal: toBackendGoal(data.fitness_goal),
     unit_system: 'metric',
   };
@@ -64,39 +64,28 @@ export async function previewTdee(data: OnboardingPayload): Promise<TdeeResult> 
   };
 }
 
-/** Creates a possession-bound lead through the same-origin BFF. */
-/** How the plan was shown, so reminder emails use the same language and units. */
-export interface LeadDisplay {
-  locale?: 'vi' | 'en';
-  units?: 'metric' | 'imperial';
-  /** Times the buyer's first app reminders; kept out of the onboarding snapshot. */
-  off_plan_moment?: OnboardingPayload['hardest_eating_moment'];
-}
-
-export async function createLead(email: string, payload: OnboardingPayload, display: LeadDisplay = {}): Promise<Lead> {
+/**
+ * Creates a possession-bound lead through the same-origin BFF.
+ * Language stays on the `nutree_locale` cookie. The claim email does not read
+ * a body locale, and the lead contract rejects `locale` and `units`.
+ */
+export async function createLead(email: string, payload: OnboardingPayload): Promise<Lead> {
   if (!leadCreation) {
     const requestId = crypto.randomUUID();
-    leadCreation = createLeadOnce(email, payload, requestId, display).finally(() => { leadCreation = null; });
+    leadCreation = createLeadOnce(email, payload, requestId).finally(() => { leadCreation = null; });
   }
   return leadCreation;
 }
 
 let leadCreation: Promise<Lead> | null = null;
 
-async function createLeadOnce(email: string, payload: OnboardingPayload, requestId: string, display: LeadDisplay): Promise<Lead> {
+async function createLeadOnce(email: string, payload: OnboardingPayload, requestId: string): Promise<Lead> {
   await initializeLeadSession();
-  const post = (body: Record<string, unknown>, id: string) => fetch('/api/web-funnel/leads', {
+  const res = await fetch('/api/web-funnel/leads', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Request-ID': id },
-    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json', 'X-Request-ID': requestId },
+    body: JSON.stringify({ email, payload: toWebFunnelSnapshot(payload) }),
   });
-  const snapshot = { email, payload: toWebFunnelSnapshot(payload) };
-  let res = await post({ ...snapshot, ...display }, requestId);
-  // A backend that predates the display hints rejects them as extra fields; the lead matters more than the hints.
-  if (res.status === 422 && Object.keys(display).length > 0) {
-    const rejected = await res.clone().json().catch(() => null) as { detail?: unknown } | null;
-    if (rejectsDisplayHints(rejected?.detail)) res = await post(snapshot, crypto.randomUUID());
-  }
   if (!res.ok) {
     const response = await res.json().catch(() => null) as { detail?: unknown } | null;
     const detail = typeof response?.detail === 'string'
@@ -107,18 +96,6 @@ async function createLeadOnce(email: string, payload: OnboardingPayload, request
     throw new Error(detail);
   }
   return res.json() as Promise<Lead>;
-}
-
-const DISPLAY_HINT_FIELDS = new Set(['locale', 'units', 'off_plan_moment']);
-
-/** True when a 422 only objects to the display hints being present (pydantic `extra_forbidden`). */
-export function rejectsDisplayHints(detail: unknown): boolean {
-  if (!Array.isArray(detail) || detail.length === 0) return false;
-  return detail.every((issue) => {
-    const entry = issue as { type?: unknown; loc?: unknown };
-    const field = Array.isArray(entry.loc) ? entry.loc[entry.loc.length - 1] : null;
-    return entry.type === 'extra_forbidden' && typeof field === 'string' && DISPLAY_HINT_FIELDS.has(field);
-  });
 }
 
 /** Maps quiz field names to the backend's strict mobile onboarding contract. */
@@ -133,8 +110,7 @@ export function toWebFunnelSnapshot(data: OnboardingPayload) {
     // Body fat stays out, as in the app: the estimate isn't a measurement, and
     // a saved value would switch the user's later targets to another formula.
     job_type: data.job_type,
-    training_days_per_week: data.training_days_per_week,
-    training_minutes_per_session: data.training_days_per_week === 0 ? 0 : data.training_minutes_per_session,
+    ...trainingPair(data),
     goal: toBackendGoal(data.fitness_goal),
     pain_points: data.pain_points ?? [],
     dietary_preferences: data.dietary_preferences ?? [],

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   createLead,
-  rejectsDisplayHints,
   correlateRevenueCatCustomer,
   previewTdee,
   toWebFunnelSnapshot,
@@ -127,6 +126,13 @@ describe('previewTdee', () => {
   });
 });
 
+function withoutTraining(source: OnboardingPayload): OnboardingPayload {
+  const next = { ...source };
+  delete next.training_days_per_week;
+  delete next.training_minutes_per_session;
+  return next;
+}
+
 function previewResponse() {
   return new Response(
     JSON.stringify({ bmr: 1, tdee: 2, goal: 'cut', macros: { calories: 3, protein: 4, carbs: 5, fat: 6 } }),
@@ -156,24 +162,24 @@ describe('createLead', () => {
     await expect(createLead('person@example.com', payload)).rejects.toThrow('[{"loc":["body","payload","goal"],"msg":"Field required"}]');
   });
 
-  it('retries without the display hints when an older backend rejects them', async () => {
-    const extra = (field: string) => ({ type: 'extra_forbidden', loc: ['body', field], msg: 'Extra inputs are not permitted' });
+  it('posts only email and payload, with training ints when the quiz omitted them', async () => {
     (fetch as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(new Response(JSON.stringify({ ready: true }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ detail: [extra('locale'), extra('units'), extra('off_plan_moment')] }), { status: 422 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ lead_id: 'lead-2', masked_email: 'p***@example.com', status: 'payment_pending' }), { status: 201 }));
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        lead_id: 'lead-2', masked_email: 'p***@example.com', status: 'payment_pending',
+      }), { status: 201 }));
 
-    await expect(createLead('person@example.com', payload, { locale: 'vi', units: 'metric', off_plan_moment: 'late_night' })).resolves.toMatchObject({ lead_id: 'lead-2' });
-    const leadBodies = (fetch as ReturnType<typeof vi.fn>).mock.calls.filter(([url]) => url === '/api/web-funnel/leads').map(([, init]) => JSON.parse(init.body));
-    expect(leadBodies).toHaveLength(2);
-    expect(leadBodies[0]).toMatchObject({ locale: 'vi', units: 'metric', off_plan_moment: 'late_night' });
-    expect(leadBodies[1]).not.toHaveProperty('locale');
-    expect(leadBodies[1]).not.toHaveProperty('off_plan_moment');
-  });
+    await expect(createLead('person@example.com', withoutTraining(payload))).resolves.toMatchObject({ lead_id: 'lead-2' });
 
-  it('does not retry when the 422 is about the onboarding data itself', () => {
-    expect(rejectsDisplayHints([{ type: 'extra_forbidden', loc: ['body', 'locale'] }, { type: 'missing', loc: ['body', 'payload', 'goal'] }])).toBe(false);
-    expect(rejectsDisplayHints([{ type: 'extra_forbidden', loc: ['body', 'units'] }])).toBe(true);
+    const leadBodies = (fetch as ReturnType<typeof vi.fn>).mock.calls
+      .filter(([url]) => url === '/api/web-funnel/leads')
+      .map(([, init]) => JSON.parse(init.body as string));
+    expect(leadBodies).toHaveLength(1);
+    expect(Object.keys(leadBodies[0]).sort()).toEqual(['email', 'payload']);
+    expect(leadBodies[0].payload.training_days_per_week).toBe(0);
+    expect(leadBodies[0].payload.training_minutes_per_session).toBe(0);
+    expect(leadBodies[0]).not.toHaveProperty('locale');
+    expect(leadBodies[0]).not.toHaveProperty('units');
   });
 });
 
@@ -211,5 +217,15 @@ describe('toWebFunnelSnapshot', () => {
 
   it('leaves body fat out of the saved answers, as the app does', () => {
     expect(toWebFunnelSnapshot({ ...payload, body_fat_percentage: 22 })).not.toHaveProperty('body_fat_percentage');
+  });
+
+  it('sends zero training days and minutes when those answers were never collected', () => {
+    const snapshot = toWebFunnelSnapshot(withoutTraining(payload));
+    expect(snapshot.training_days_per_week).toBe(0);
+    expect(snapshot.training_minutes_per_session).toBe(0);
+    const posted = JSON.parse(JSON.stringify({ email: 'person@example.com', payload: snapshot })) as {
+      payload: { training_days_per_week: number; training_minutes_per_session: number };
+    };
+    expect(posted.payload).toMatchObject({ training_days_per_week: 0, training_minutes_per_session: 0 });
   });
 });

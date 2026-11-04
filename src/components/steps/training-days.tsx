@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCopy } from '@/lib/copy/use-copy';
-import { goToNextQuizStep, goToQuizStep } from '@/lib/quiz/navigation';
+import { continueAfterTrainingAnswer, goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import { cn } from '@/lib/utils';
 import { QuizStepFrame } from './quiz-step-frame';
@@ -32,9 +32,9 @@ export function TrainingDaysStep() {
             onClick={() => {
               setData({ training_days_per_week: d, training_minutes_per_session: d === 0 ? 0 : minutes });
               if (d === 0) {
-                goToQuizStep(router, 'activity_level');
+                continueAfterTrainingAnswer(router, 'training_duration');
               } else {
-                goToNextQuizStep(router, 'target_weight');
+                goToNextQuizStep(router, 'training_days');
               }
             }}
             className={`${optionClass(value === d)} relative min-h-12 py-3 text-lg font-medium`}
@@ -81,7 +81,7 @@ export function TrainingDurationStep({
           aria-pressed={value === Number(o.key)}
           onClick={() => {
             setData({ training_minutes_per_session: Number(o.key) });
-            goToNextQuizStep(router, 'target_weight');
+            continueAfterTrainingAnswer(router, 'training_duration');
           }}
           className={cn(
             optionClass(value === Number(o.key)),
