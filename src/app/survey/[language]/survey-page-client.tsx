@@ -104,8 +104,8 @@ function SurveyPageContent({ language, countryCode }: { language: Locale; countr
     router.replace(`/survey/${nextLocale}`);
   }, [router, setLocale]);
 
-  // Email comes before the day plan. Back from the paywall reopens the last tour screen.
-  const [tourStart, setTourStart] = useState<ValueTourStep>('plan');
+  // The day plan is a quiz screen before the calorie result. Back from the paywall reopens the last tour screen.
+  const [tourStart, setTourStart] = useState<ValueTourStep>('snap');
   const lastTourStep = VALUE_TOUR_STEPS[VALUE_TOUR_STEPS.length - 1];
   // Screens without a ← still answer the phone's Back button with the screen before them; the quiz and the tour handle their own.
   const screenBack = !hydrated
@@ -146,7 +146,7 @@ function SurveyPageContent({ language, countryCode }: { language: Locale; countr
       return <QuizShell step={currentStep}><StepRenderer step={currentStep} /></QuizShell>;
     case 'email':
       return <EmailCaptureScreen onComplete={() => {
-        setTourStart('plan');
+        setTourStart('snap');
         goToScreen('value');
       }} />;
     case 'value':

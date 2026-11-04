@@ -27,6 +27,7 @@ describe('quiz steps', () => {
       'trigger',
       'with_you',
       'calculating',
+      'day_plan',
       'result',
     ]);
   });
@@ -52,7 +53,8 @@ describe('quiz steps', () => {
     expect(nextStep('training_days')).toBe('training_duration');
     expect(nextStep('training_duration')).toBe('tried');
     expect(nextStep('with_you')).toBe('calculating');
-    expect(nextStep('calculating')).toBe('result');
+    expect(nextStep('calculating')).toBe('day_plan');
+    expect(nextStep('day_plan')).toBe('result');
   });
 
   it('continues from the result straight to email', () => {
@@ -76,21 +78,22 @@ describe('quiz steps', () => {
     expect(previousStep('goal')).toBeNull();
   });
 
-  it('skips the loader on the way back from the plan', () => {
-    expect(previousStep('result')).toBe('with_you');
+  it('skips the loader on the way back from the day plan', () => {
+    expect(previousStep('result')).toBe('day_plan');
+    expect(previousStep('day_plan')).toBe('with_you');
     expect(previousStep('calculating')).toBe('with_you');
   });
 
   it('exposes 1-based progress index', () => {
     expect(stepIndex('goal')).toBe(1);
     expect(stepIndex('height')).toBe(10);
-    expect(stepIndex('result')).toBe(24);
+    expect(stepIndex('result')).toBe(25);
     expect(STEP_CHAPTERS.activity_level).toBe('routine');
   });
 
   it('continues the same progress bar through the value tour', () => {
-    expect(valueProgressIndex('plan')).toBe(QUIZ_STEPS.length + 1);
+    expect(valueProgressIndex('snap')).toBe(QUIZ_STEPS.length + 1);
     expect(valueProgressIndex('sources')).toBe(onboardingStepCount());
-    expect(VALUE_TOUR_STEPS).toEqual(['plan', 'snap', 'activity', 'macros', 'sources']);
+    expect(VALUE_TOUR_STEPS).toEqual(['snap', 'activity', 'macros', 'sources']);
   });
 });

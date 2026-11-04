@@ -3,18 +3,16 @@
 import { useEffect, useState } from 'react';
 import { PrimaryButton } from '@/components/primary-button';
 import { QuizShell } from '@/components/quiz-shell';
-import { FirstChangesCard, PlanDayCard, PlanGoalCard } from '@/components/plan/plan-overview';
 import { QuizStepFrame } from '@/components/steps/quiz-step-frame';
 import { ActivityDemo, MacroDemo, MealSnapDemo, ReferenceSources } from '@/components/value-tour/value-tour-demos';
 import { trackStepViewed } from '@/lib/analytics/track';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
 import { VALUE_TOUR_STEPS, valueProgressIndex, type ValueTourStep } from '@/lib/quiz/steps';
 import { useHydrated, useQuizStore } from '@/lib/quiz/store';
-import { useUnits } from '@/lib/quiz/use-units';
 import { computeTdeeResult } from '@/lib/tdee/calculator';
 
 export function ValueTourScreen({
-  initialStep = 'plan',
+  initialStep = 'snap',
   onComplete,
   onBack,
 }: {
@@ -26,7 +24,6 @@ export function ValueTourScreen({
   const copy = useCopy();
   const locale = useLocale();
   const hydrated = useHydrated();
-  const { system } = useUnits();
   const data = useQuizStore((state) => state.data);
   const storedTdee = useQuizStore((state) => state.tdee);
   const [step, setStep] = useState<ValueTourStep>(initialStep);
@@ -54,22 +51,6 @@ export function ValueTourScreen({
 
   return (
     <QuizShell step="result" progressIndex={valueProgressIndex(step)} onBack={goBack} showExitIntent={false}>
-      {step === 'plan' && (
-        <QuizStepFrame eyebrow={tour.plan.eyebrow} title={data.name?.trim() ? copy.funnel.plan.eyebrow(data.name.trim()) : copy.funnel.plan.eyebrowFallback}>
-          {/* The day plan comes after the email, so this screen never sits in front of the form. */}
-          {tdee ? (
-            <>
-              <FirstChangesCard data={data} tdee={tdee} reveal />
-              <PlanDayCard data={data} tdee={tdee} reveal targets={false} />
-            </>
-          ) : (
-            <PlanGoalCard data={data} tdee={tdee} system={system} />
-          )}
-          <div className="mt-auto pt-3">
-            <PrimaryButton onClick={advance}>{tour.plan.cta}</PrimaryButton>
-          </div>
-        </QuizStepFrame>
-      )}
       {step === 'snap' && (
         <QuizStepFrame eyebrow={copy.valueTour.snap.eyebrow} title={copy.valueTour.snap.title} description={copy.valueTour.snap.body}>
           <MealSnapDemo label={copy.valueTour.snap.videoLabel} />

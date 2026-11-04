@@ -75,7 +75,7 @@ export function goToNextQuizStep(router: QuizRouter, step: QuizStep): void {
   if (next) {
     showQuizStep(router, next);
   } else {
-    // The day plan is shown after the email, so the last quiz screen opens the email form.
+    // The calorie result is the last quiz screen. The day plan is the screen before it.
     useQuizStore.getState().setFunnelScreen('email');
   }
 }

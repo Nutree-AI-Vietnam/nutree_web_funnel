@@ -8,6 +8,7 @@ import type { QuizStep } from '@/lib/quiz/steps';
 import { AgeGroupStep } from './age-group-step';
 import { BodyShapeStep } from './body-shape-step';
 import { CalculatingStep } from './calculating';
+import { DayPlanStep } from './day-plan-step';
 import { ProgressStep } from './progress';
 import { TargetWeightStep } from './final-web-steps';
 import { GoalChoice } from './goal-choice';
@@ -90,5 +91,6 @@ export const STEP_COMPONENTS: Record<QuizStep, ComponentType> = {
     );
   },
   calculating: () => <CalculatingStep />,
+  day_plan: () => <DayPlanStep />,
   result: () => <TdeeTargetsStep />,
 };

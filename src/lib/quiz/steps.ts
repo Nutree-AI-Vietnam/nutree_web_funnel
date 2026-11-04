@@ -23,13 +23,14 @@ export const QUIZ_STEPS = [
   'trigger',
   'with_you',
   'calculating',
+  'day_plan',
   'result',
 ] as const;
 
 export type QuizStep = (typeof QUIZ_STEPS)[number];
 
-/** Product tour after the email form: the day plan, then photo logging. Same onboarding bar as the quiz. The rating and feature list live on the paywall. */
-export const VALUE_TOUR_STEPS = ['plan', 'snap', 'activity', 'macros', 'sources'] as const;
+/** Product tour after the calorie result and the email form. The day plan is a quiz screen before that result. */
+export const VALUE_TOUR_STEPS = ['snap', 'activity', 'macros', 'sources'] as const;
 
 export type ValueTourStep = (typeof VALUE_TOUR_STEPS)[number];
 
@@ -67,6 +68,7 @@ export const STEP_CHAPTERS: Record<QuizStep, QuizChapter> = {
   trigger: 'routine',
   with_you: 'routine',
   calculating: 'plan',
+  day_plan: 'plan',
   result: 'plan',
 };
 
