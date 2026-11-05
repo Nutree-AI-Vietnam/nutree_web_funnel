@@ -125,9 +125,8 @@ export const vi = {
     cta: 'Bắt đầu ngay',
   },
   goal: {
-    question: 'Lần này, bạn muốn nhẹ đi khoảng bao nhiêu?',
-    description: 'Cứ chọn mức gần đúng. Kế hoạch sẽ chỉnh theo bạn.',
-    reassurance: 'Khoảng ba phút. Bạn sửa được câu trả lời bất cứ lúc nào.',
+    question: 'Bạn muốn giảm khoảng bao nhiêu?',
+    description: 'Mục tiêu này quyết định calo và cách chia bữa.',
     lossBands: [
       { key: 'small', metric: '1–5 kg', imperial: '2–10 lb' },
       { key: 'medium', metric: '6–10 kg', imperial: '11–20 lb' },
@@ -145,7 +144,7 @@ export const vi = {
     ],
   },
   target_weight: {
-    question: 'Cân nào khiến bạn thấy nhẹ nhõm?',
+    question: 'Cân nặng mục tiêu của bạn?',
     label: 'Cân nặng mục tiêu',
     hint: 'Chọn số tròn hoặc nhập trực tiếp nếu bạn đã có mục tiêu.',
     unit: 'kg',
@@ -243,15 +242,15 @@ export const vi = {
     cta: 'Tính mục tiêu của tôi',
   },
   sex: {
-    question: 'Calo mỗi ngày nên tính theo cơ thể nào?',
-    description: 'Giới tính sinh học giúp ước lượng năng lượng. Đây không phải một bài đánh giá sức khỏe.',
+    question: 'Giới tính sinh học của bạn?',
+    description: 'Dùng để ước tính lượng calo cơ thể đốt mỗi ngày.',
     options: [
       { key: 'male', label: 'Nam' },
       { key: 'female', label: 'Nữ' },
     ],
   },
   bodyCurrent: {
-    question: 'Dáng hiện tại của bạn gần với hình nào?',
+    question: 'Dáng của bạn hiện tại?',
     options: [
       { key: 'slim', label: 'Mảnh' },
       { key: 'average', label: 'Cân đối' },
@@ -259,7 +258,7 @@ export const vi = {
     ],
   },
   bodyTarget: {
-    question: 'Bạn muốn hướng tới dáng nào?',
+    question: 'Dáng bạn muốn hướng tới?',
     options: [
       { key: 'lean', label: 'Thanh gọn' },
       { key: 'toned', label: 'Săn chắc' },
@@ -267,7 +266,7 @@ export const vi = {
     ],
   },
   zones: {
-    question: 'Bạn muốn chú ý vùng nào trước?',
+    question: 'Bạn muốn thay đổi vùng nào?',
     cta: 'Tiếp tục',
     options: [
       { key: 'belly', label: 'Bụng' },
@@ -301,7 +300,7 @@ export const vi = {
     cta: 'Tiếp tục',
   },
   ageGroup: {
-    question: 'Bạn đang ở nhóm tuổi nào?',
+    question: 'Bạn thuộc nhóm tuổi nào?',
     options: [
       { key: '18_29', label: '18–29', image: '/images/illustrations/age-18-29.jpg' },
       { key: '30_39', label: '30–39', image: '/images/illustrations/age-30-39.jpg' },
@@ -324,15 +323,15 @@ export const vi = {
     hint: 'Dùng số đo gần nhất của bạn. Bạn có thể cuộn hoặc nhập trực tiếp.',
   },
   height: {
-    question: 'Bạn cao khoảng bao nhiêu?',
-    description: 'Chiều cao giúp ước lượng năng lượng mỗi ngày.',
+    question: 'Bạn cao bao nhiêu?',
+    description: 'Dùng để ước tính lượng calo bạn cần mỗi ngày.',
     heightLabel: 'Chiều cao',
     heightHint: 'Dùng chiều cao hiện tại của bạn.',
     heightUnit: 'cm',
   },
   weight: {
-    question: 'Hôm nay bạn nặng khoảng bao nhiêu?',
-    description: 'Số gần nhất là điểm bắt đầu. Không cần chính xác từng lạng.',
+    question: 'Cân nặng hiện tại của bạn?',
+    description: 'Số cân gần nhất là điểm xuất phát của kế hoạch.',
     weightLabel: 'Cân nặng hiện tại',
     weightHint: 'Dùng cân nặng gần nhất để tính TDEE.',
     weightUnit: 'kg',
@@ -414,12 +413,12 @@ export const vi = {
     unit: '%',
   },
   training_days: {
-    question: 'Một tuần bạn tập được mấy ngày?',
-    description: 'Không tập cũng không sao. Ngày đi lại vẫn được tính.',
+    question: 'Bạn tập mấy ngày mỗi tuần?',
+    description: 'Không tập cũng không sao.',
     unit: 'ngày/tuần',
   },
   training_duration: {
-    question: 'Mỗi buổi tập thường dài bao lâu?',
+    question: 'Mỗi buổi tập của bạn kéo dài bao lâu?',
     description: '',
     options: [
       { key: '30', label: '~30 phút' },
@@ -454,8 +453,8 @@ export const vi = {
     ],
   },
   activity_level: {
-    question: 'Ngày thường, bạn vận động nhiều đến mức nào?',
-    description: 'Tính việc bạn làm cả ngày, chưa tính buổi tập.',
+    question: 'Mức độ hoạt động hàng ngày của bạn?',
+    description: 'Chọn theo công việc của bạn, chưa tính buổi tập.',
     options: [
       { key: 'desk', label: 'Văn phòng / ngồi nhiều' },
       { key: 'on_feet', label: 'Đứng / di chuyển cả ngày' },
@@ -590,9 +589,9 @@ export const vi = {
     ],
   },
   tdee_targets: {
-    eyebrow: 'Dành riêng cho bạn',
-    headline: 'Kế hoạch ăn uống của bạn',
-    aha: 'Calo và đạm bên dưới là điểm bắt đầu, ước từ cơ thể và mục tiêu bạn vừa chọn. Chụp ảnh bữa ăn, Nutree đếm giúp.',
+    eyebrow: '',
+    headline: 'Con số mỗi ngày của bạn',
+    aha: 'Chỉ cần đạt calo và protein, phần còn lại sẽ theo sau. Chụp ảnh bữa ăn, Nutree đếm giúp bạn.',
     calories: 'Calo',
     summary: (calories: string, protein: number, carbs: number, fat: number) =>
       `${calories}\u00A0kcal mỗi ngày, ${protein}\u00A0g protein, ${carbs}\u00A0g carb và ${fat}\u00A0g chất béo.`,
@@ -913,8 +912,8 @@ export const vi = {
     reviewEdit: 'Sửa',
     loader: {
       title: (name: string) => `Đang tạo kế hoạch cho ${name}`,
-      titleFallback: 'Đang dựng kế hoạch từ những gì bạn vừa kể',
-      body: 'Nutree đang ghép cân nặng, mục tiêu và nhịp ngày của bạn. Chỉ vài giây.',
+      titleFallback: 'Đang tạo kế hoạch của bạn',
+      body: 'Đang ghép cơ thể, mục tiêu và nhịp sống của bạn thành lượng calo và protein giúp bạn đạt mục tiêu.',
       goal: {
         cut: 'Lần này bạn giảm cân',
         bulk: 'Tăng cơ là hướng bạn chọn',
@@ -1224,116 +1223,9 @@ export const vi = {
       help: 'Cần hỗ trợ? Email support@nutreeai.com',
     },
   },
-  quizChapters: {
-    you: 'Về bạn',
-    body: 'Cơ thể',
-    habits: 'Ngày của bạn',
-    plan: 'Kế hoạch',
-  },
-  insights: {
-    insight_pace: {
-      eyebrow: 'Một lưu ý nhỏ',
-      title: 'Thói quen nhỏ bền hơn một chế độ gắt',
-      body: 'Cơ thể quen với thay đổi nhỏ lặp lại mỗi ngày hơn là một tuần ăn quá ít. Kế hoạch giữ món bạn thích và chỉ chỉnh phần, không cấm cả nhóm món.',
-      points: [
-        'Không cần bỏ hết món bạn thích',
-        'Một hai bữa đúng hướng đã là bắt đầu',
-        'Bạn sửa được mục tiêu sau, khi đã thấy nhịp của mình',
-      ],
-      note: '',
-      cta: 'Mình hiểu rồi',
-      byAnswer: { fallback: '' },
-    },
-    insight_body: {
-      eyebrow: 'Về cơ thể',
-      title: 'Thay đổi đến từ cả ngày ăn uống',
-      body: 'Vùng bạn muốn chú ý là nơi bạn sẽ để ý trước. Cách ăn cả ngày mới kéo cân nặng đi theo. Không có món ăn hay bài tập nào chỉ làm nhỏ một chỗ.',
-      points: [
-        'Bụng, tay hay đùi đi cùng cân nặng chung',
-        'Ăn đủ đạm giúp bạn no và giữ cơ',
-        'Kế hoạch tính cho cả ngày, không phải một bữa phạt',
-      ],
-      note: 'Đây là cách sắp xếp bữa ăn, không phải lời khuyên y khoa.',
-      cta: 'Tiếp tục',
-      byAnswer: { fallback: '' },
-    },
-    insight_why: {
-      eyebrow: 'Lý do của bạn',
-      title: 'Mình sẽ giữ lý do này ở gần',
-      body: 'Lý do của bạn sẽ nằm trong kế hoạch, để những ngày lười vẫn còn một chỗ bám.',
-      points: [],
-      note: '',
-      cta: 'Giữ lý do này',
-      byAnswer: {
-        lose: 'Giảm cân dễ hơn khi bạn biết mình đang làm vì điều gì, không chỉ vì một con số trên cân. Nutree nhắc lại mục tiêu đó trong kế hoạch mỗi ngày.',
-        health: 'Muốn khỏe hơn là một lý do vững. Kế hoạch ưu tiên bữa đủ chất và nhịp bạn theo được, không phải một tuần ăn quá gắt.',
-        tone: 'Muốn săn chắc hơn nghĩa là vừa ăn đủ đạm, vừa có ngày tập. Nutree tính cả hai vào mục tiêu mỗi ngày.',
-        stress: 'Ăn uống đỡ căng khi bữa được chọn trước, không phải lúc đang đói và mệt. Kế hoạch sẽ làm phần đoán hộ bạn.',
-        fallback: 'Lý do của bạn sẽ nằm trong kế hoạch, để những ngày lười vẫn còn một chỗ bám.',
-      },
-    },
-    insight_movement: {
-      eyebrow: 'Vận động',
-      title: 'Đi lại cả ngày cũng được tính',
-      body: 'Tập thêm thì tốt, nhưng không phải cánh cửa duy nhất. Nutree cộng cả việc bạn làm trong ngày vào mục tiêu ăn.',
-      points: ['Ngày không tập vẫn có mục tiêu ăn', 'Ngày tập được cộng phần năng lượng đã đốt'],
-      note: '',
-      cta: 'Ổn rồi',
-      byAnswer: {
-        desk: 'Ngày ngồi nhiều thì bữa ăn càng cần rõ phần. Buổi tập, nếu có, là phần cộng thêm, không phải điều kiện để bắt đầu.',
-        on_feet: 'Bạn đã đi và đứng khá nhiều. Kế hoạch không bắt bạn tập thêm cho đủ chỉ tiêu. Ngày tập chỉ là phần bạn muốn giữ.',
-        physical: 'Công việc của bạn đã tốn sức. Ăn đủ để còn sức làm việc quan trọng hơn là cắt mạnh.',
-        fallback: 'Dù bạn tập hay không, calo mỗi ngày vẫn tính từ việc bạn làm cả ngày.',
-      },
-    },
-    insight_obstacle: {
-      eyebrow: 'Chỗ hay lệch',
-      title: 'Chỗ đó có đường vòng, không cần thắng nó',
-      body: 'Chúng ta sẽ xử lý đúng chỗ bạn hay lệch, không phải đổi cả cách ăn.',
-      points: [],
-      note: '',
-      cta: 'Nghe hợp',
-      byAnswer: {
-        time: 'Khi thiếu giờ, việc ghi bữa phải xong trong vài giây. Chụp một ảnh nhanh hơn là ngồi cộng calo.',
-        snacks: 'Cơn thèm thường dịu nếu bạn đã có một phần đạm chọn sẵn. Kế hoạch chừa chỗ cho bữa phụ, thay vì cấm.',
-        stress: 'Ăn lúc căng là phản xạ, không phải thiếu ý chí. Một bữa phụ đã lên trước giúp bạn khỏi quyết định lúc mệt.',
-        unsure: 'Không biết ăn gì thì kẹt ở lúc đói. Chọn trước một bữa trong ngày là đủ để gỡ nút đó.',
-        fallback: 'Chúng ta sẽ xử lý đúng chỗ bạn hay lệch, không phải đổi cả cách ăn.',
-      },
-    },
-    insight_habits: {
-      eyebrow: 'Thói quen ăn',
-      title: 'Ăn không chỉ vì đói, chuyện đó bình thường',
-      body: 'Biết mình ăn vì điều gì giúp bữa sau dễ chọn hơn. Không cần hoàn hảo.',
-      points: ['Không có bữa nào làm hỏng cả tuần', 'Kế hoạch chỉnh lại ở bữa tiếp theo'],
-      note: '',
-      cta: 'Mình muốn xem kế hoạch',
-      byAnswer: {
-        bored: 'Lúc chán, tay hay tìm đồ ăn. Uống nước rồi đợi vài phút thường đủ để qua.',
-        stress: 'Căng thẳng kéo bạn tới tủ lạnh. Gọi tên cảm giác đó trước khi mở tủ đã làm cơn đó nhẹ hơn.',
-        social: 'Ăn cùng mọi người không phải là thất bại. Cứ ăn, rồi chụp món để cả ngày vẫn còn chỗ.',
-        rarely: 'Bạn ít ăn khi chưa đói. Kế hoạch sẽ dựa vào bữa chính, và chừa chỗ linh hoạt.',
-        fallback: 'Biết mình ăn vì điều gì giúp bữa sau dễ chọn hơn. Không cần hoàn hảo.',
-      },
-    },
-  },
-  planSummary: {
-    eyebrow: 'Dành riêng cho bạn',
-    title: 'Kế hoạch ăn uống của bạn',
-    lead: 'Calo và đạm bên dưới là điểm bắt đầu, ước từ cơ thể và mục tiêu bạn vừa chọn.',
-    firstLabel: 'Việc nên làm tuần đầu',
-    firstByObstacle: {
-      time: 'Đừng cân từng món. Chụp một ảnh bữa ăn là đủ để biết hôm nay đang ở đâu.',
-      snacks: 'Khi thèm, uống nước và đợi vài phút, rồi mới quyết định có ăn thêm không.',
-      stress: 'Trước khi ăn lúc căng, hãy gọi tên cảm giác đó. Một bữa phụ nhỏ đã chọn vẫn ổn.',
-      unsure: 'Chọn trước một bữa trong ngày. Bữa đó khỏi phải đoán.',
-      fallback: 'Giữ một bữa trong ngày đủ đạm. Các bữa khác cứ linh hoạt.',
-    },
-    disclaimer: 'Đây là ước tính để bắt đầu. Mỗi người tiến bộ khác nhau. Nutree không thay thế bác sĩ.',
-  },
   story: {
     aim: {
-      question: 'Điều bạn thật sự muốn lần này là gì?',
+      question: 'Mục tiêu chính lần này là gì?',
       options: [
         { key: 'lose', label: 'Giảm cân' },
         { key: 'health', label: 'Khỏe hơn' },
@@ -1351,7 +1243,7 @@ export const vi = {
       ],
     },
     tried: {
-      question: 'Bạn đã thử thay đổi cách ăn trước đây chưa?',
+      question: 'Bạn đã thử giảm cân trước đây chưa?',
       options: [
         { key: 'never', label: 'Chưa lần nào' },
         { key: 'once', label: 'Một hai lần' },
@@ -1364,7 +1256,7 @@ export const vi = {
       cta: 'Tiếp tục',
     },
     obstacle: {
-      question: 'Chỗ nào hay khiến bạn lệch nhất?',
+      question: 'Chỗ nào hay làm bạn lệch nhất?',
       options: [
         { key: 'time', label: 'Không có thời gian' },
         { key: 'snacks', label: 'Thèm ăn vặt' },
@@ -1373,7 +1265,7 @@ export const vi = {
       ],
     },
     occasion: {
-      question: 'Có dịp nào bạn muốn sẵn sàng không?',
+      question: 'Bạn muốn đạt mục tiêu vào dịp nào?',
       options: [
         { key: 'none', label: 'Không có dịp cụ thể' },
         { key: 'trip', label: 'Đi chơi' },
@@ -1382,7 +1274,7 @@ export const vi = {
       ],
     },
     diet_style: {
-      question: 'Bạn muốn bữa ăn nghiêng về hướng nào?',
+      question: 'Bạn muốn ăn theo hướng nào?',
       options: [
         { key: 'free', label: 'Không kiêng gì' },
         { key: 'veg', label: 'Nhiều rau hơn' },
@@ -1391,7 +1283,7 @@ export const vi = {
       ],
     },
     weekend: {
-      question: 'Cuối tuần nhà bạn thường ăn thế nào?',
+      question: 'Cuối tuần bạn thường ăn thế nào?',
       options: [
         { key: 'same', label: 'Giống ngày thường' },
         { key: 'out', label: 'Hay ăn ngoài' },
@@ -1399,7 +1291,7 @@ export const vi = {
       ],
     },
     trigger: {
-      question: 'Khi chưa đói mà vẫn ăn, thường vì điều gì?',
+      question: 'Khi không đói, bạn hay ăn vì điều gì?',
       options: [
         { key: 'bored', label: 'Chán' },
         { key: 'stress', label: 'Căng thẳng' },
@@ -1408,8 +1300,8 @@ export const vi = {
       ],
     },
     with_you: {
-      title: 'Bạn không đi một mình',
-      body: 'Bạn không cần tự nghĩ hết mọi bữa. Một kế hoạch vừa sức, và Nutree đi cùng bạn từng bữa.',
+      title: 'Bạn không đi một mình.',
+      body: 'Rất nhiều người cũng bắt đầu từ đây. Một kế hoạch vừa sức, và Nutree đi cùng bạn từng bữa.',
       cta: 'Tiếp tục',
     },
     focus: {

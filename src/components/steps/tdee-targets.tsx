@@ -116,7 +116,6 @@ export function TdeeTargetsStep() {
   const router = useRouter();
   const data = useQuizStore((s) => s.data);
   const tdee = useQuizStore((s) => s.tdee);
-  const obstacle = useQuizStore((state) => state.planAnswers.answers?.obstacle);
 
   const missing = !tdee || !data.weight_kg || !data.height_cm;
   useEffect(() => {
@@ -129,8 +128,6 @@ export function TdeeTargetsStep() {
   const bmiValue = bmi(data.weight_kg, data.height_cm);
   const category = bmiCategory(bmiValue);
   const trainingMinutes = data.training_days_per_week ? data.training_minutes_per_session ?? 0 : 0;
-  const summary = vi.planSummary;
-  const firstStep = (obstacle && summary.firstByObstacle[obstacle as keyof typeof summary.firstByObstacle]) || summary.firstByObstacle.fallback;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -140,13 +137,6 @@ export function TdeeTargetsStep() {
         {vi.tdee_targets.eyebrow && <p className="text-xs font-extrabold tracking-[0.02em] text-teal-brand">{vi.tdee_targets.eyebrow}</p>}
         <h1 className="text-[1.45rem] font-extrabold leading-tight text-forest">{vi.tdee_targets.headline}</h1>
         <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-brand">{vi.tdee_targets.aha}</p>
-        {summary.firstLabel ? (
-          <section className="mt-4 rounded-2xl bg-mist px-3 py-3">
-            <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.08em] text-teal-brand">{summary.firstLabel}</p>
-            <p className="mt-1 text-[0.95rem] font-extrabold leading-snug text-forest">{firstStep}</p>
-            {summary.disclaimer ? <p className="mt-2 text-[0.75rem] font-semibold leading-relaxed text-muted-brand">{summary.disclaimer}</p> : null}
-          </section>
-        ) : null}
         <ResultHero tdee={tdee} locale={locale} />
         {/* Training never raises the daily target: as in the app, a logged workout adds what it burns to that day. */}
         <p className="mt-4 flex items-start gap-2 rounded-2xl bg-mist px-3 py-3 text-[0.82rem] font-semibold leading-snug text-forest">

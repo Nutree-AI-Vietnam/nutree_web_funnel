@@ -12,7 +12,6 @@ import { goalFromSearch } from '@/lib/funnel/ad-goal';
 import { useBrowserBack } from '@/lib/funnel/browser-back';
 import { SKIP_LANDING } from '@/lib/funnel/skip-landing';
 import { goToQuizStep, startQuizFromLanding } from '@/lib/quiz/navigation';
-import { lastQuizStep } from '@/lib/quiz/steps';
 import { isUserPurchased, useHydrated, useQuizStore } from '@/lib/quiz/store';
 import { useSeedCountry } from '@/lib/quiz/use-units';
 import { isPurchaseHandoffInFlight } from '@/lib/revenuecat/purchase-handoff';
@@ -112,7 +111,7 @@ function SurveyPageContent({ language, countryCode }: { language: Locale; countr
   const screenBack = !hydrated
     ? null
     : screen === 'email'
-      ? () => goToQuizStep(router, lastQuizStep(language))
+      ? () => goToQuizStep(router, 'result')
       : screen === 'paywall' && !isUserPurchased({ purchased, lead })
         ? () => {
           setTourStart(lastTourStep);

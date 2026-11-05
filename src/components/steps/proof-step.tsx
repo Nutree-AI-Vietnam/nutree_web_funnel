@@ -4,8 +4,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { PrimaryButton } from '@/components/primary-button';
 import { StoreLaurels } from '@/components/value-tour/value-tour-demos';
-import { useCopy, useLocale } from '@/lib/copy/use-copy';
-import { InsightStep } from './insight-step';
+import { useCopy } from '@/lib/copy/use-copy';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import type { QuizStep } from '@/lib/quiz/steps';
@@ -14,10 +13,8 @@ import { QuizStepFrame } from './quiz-step-frame';
 /** Social-proof beat. The count is Nutree's real customer figure. */
 export function ProofStep({ step }: { step: Extract<QuizStep, 'proof' | 'cohort'> }) {
   const copy = useCopy();
-  const locale = useLocale();
   const router = useRouter();
   const data = useQuizStore((state) => state.data);
-  if (locale !== 'en' && step === 'proof') return <InsightStep step="insight_pace" />;
   const block = copy[step];
   const sex = copy.sex.options.find((option) => option.key === data.gender)?.label;
   const age = copy.ageGroup.options.find((option) => option.key === data.age_group)?.label;

@@ -24,7 +24,7 @@ const FUNNEL_SCREENS = ['landing', 'quiz', 'email', 'value', 'paywall', 'exit-of
 export type FunnelScreen = (typeof FUNNEL_SCREENS)[number];
 
 export const STORAGE_KEY = 'nutree_funnel_v1';
-const STORE_VERSION = 16;
+const STORE_VERSION = 15;
 
 /** Where a tab saved on a removed quiz step picks up. */
 const REMOVED_QUIZ_STEP_REDIRECTS: Record<string, QuizStep> = {
@@ -51,11 +51,6 @@ const REMOVED_QUIZ_STEP_REDIRECTS: Record<string, QuizStep> = {
   step_goal: 'activity_level',
   not_alone: 'activity_level',
   confidence: 'result',
-  insight_body: 'zones',
-  insight_why: 'insight_plan',
-  insight_movement: 'activity_level',
-  insight_obstacle: 'obstacle',
-  insight_habits: 'insight_comeback',
 };
 
 interface QuizState {
