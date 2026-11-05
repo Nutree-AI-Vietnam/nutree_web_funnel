@@ -18,26 +18,6 @@ import { cn } from '@/lib/utils';
 
 // Deliberately paced so the "building your plan" moment feels substantial.
 const TOTAL_MS = 10000;
-/** A hung preview must not hold the 100% bar. The browser's own fetch timeout is much longer. */
-const PREVIEW_TIMEOUT_MS = 8000;
-/** After the bars read 100%, leave even if the preview promise is still pending. */
-const ADVANCE_AFTER_FULL_MS = 2000;
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = window.setTimeout(() => reject(new Error('preview timed out')), ms);
-    promise.then(
-      (value) => {
-        window.clearTimeout(timer);
-        resolve(value);
-      },
-      (error: unknown) => {
-        window.clearTimeout(timer);
-        reject(error);
-      },
-    );
-  });
-}
 
 
 function usePrefersReducedMotion() {
@@ -118,17 +98,16 @@ export function CalculatingStep() {
       const result = computeTdeeResult(data);
       return result ? { result, source: 'fallback' as const } : null;
     };
-    const preview = previewTdee(data)
-      .then((result) => ({ result, source: 'api' as const }))
-      .catch((fetchError: unknown) => {
-        // The local copy gives the same numbers, but a failing preview usually
-        // means a config problem (API URL, CORS), so leave a trace in the console.
-        console.warn('TDEE preview failed; using the local calculation.', fetchError);
-        return fallback();
-      });
     const fetchTdee = isLocalPreviewHost()
       ? Promise.resolve(fallback())
-      : withTimeout(preview, PREVIEW_TIMEOUT_MS).catch(() => fallback());
+      : previewTdee(data)
+        .then((result) => ({ result, source: 'api' as const }))
+        .catch((fetchError: unknown) => {
+          // The local copy gives the same numbers, but a failing preview usually
+          // means a config problem (API URL, CORS), so leave a trace in the console.
+          console.warn('TDEE preview failed; using the local calculation.', fetchError);
+          return fallback();
+        });
     void fetchTdee.then((result) => {
       if (!cancelled) setOutcome(result);
     });
@@ -172,22 +151,6 @@ export function CalculatingStep() {
     setReady(true);
     goToNextQuizStep(routerRef.current, 'calculating');
   }, [complete, outcome, setTdee]);
-
-  // The bars reach 100% on their own timer. Leaving must not wait on the network, and must not
-  // listen for animationend: a CSS bar can finish while the preview request is still open.
-  useEffect(() => {
-    if (!complete) return;
-    const timer = window.setTimeout(() => {
-      if (useQuizStore.getState().currentStep !== 'calculating') return;
-      const state = useQuizStore.getState();
-      if (!state.tdee) {
-        const result = computeTdeeResult(state.data);
-        if (result) state.setTdee(result, 'fallback');
-      }
-      goToNextQuizStep(routerRef.current, 'calculating');
-    }, ADVANCE_AFTER_FULL_MS);
-    return () => window.clearTimeout(timer);
-  }, [complete]);
 
   const rating = vi.funnel.rating;
   const slides = useMemo(() => {

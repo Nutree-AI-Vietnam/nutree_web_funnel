@@ -31,7 +31,7 @@ export const en: Copy = {
     ],
     greetingNamed: (name: string) => `${name},`,
     greeting: 'Hey there',
-    bodyWithGoal: (progress: number, goal: string, age: number | string) =>
+    bodyWithGoal: (progress: number, goal: string, age: number) =>
       `You're ${progress}% of the way there. One or two more minutes and Nutree will finish your ${goal.toLowerCase()} plan for age ${age}.`,
     body: (progress: number) =>
       `You're ${progress}% of the way there. One or two more minutes and Nutree will finish a plan made for you.`,
