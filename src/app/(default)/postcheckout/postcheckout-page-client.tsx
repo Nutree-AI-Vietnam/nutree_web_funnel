@@ -5,6 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { RedemptionEmailPreview } from '@/components/redemption-email-guide';
 import { trackEvent } from '@/lib/analytics/track';
 import { SUPPORT_EMAIL } from '@/lib/support';
+import { showsAppHandoffQr } from '@/lib/funnel/purchase-presentation';
 import { orderedStoreLinks, phoneStoreFromUserAgent } from '@/lib/store-links';
 import { correlateRevenueCatCustomer } from '@/lib/api/client';
 import { copyFor } from '@/lib/copy';
@@ -69,7 +70,7 @@ export function PostcheckoutPageClient() {
   const openUrl = `${origin}/open-nutree`;
 
   return (
-    <main className="grid min-h-dvh place-items-center bg-[#f6faf7] px-5 py-8 text-charcoal">
+    <main data-locale={vi ? 'vi' : 'en'} data-hydrated={hydrated ? 'yes' : 'no'} className="grid min-h-dvh place-items-center bg-[#f6faf7] px-5 py-8 text-charcoal">
       <section className="w-full max-w-xl rounded-[2rem] border border-border-brand bg-white p-6 text-center shadow-[0_24px_70px_rgb(23_69_58_/_0.10)] sm:p-10">
         <p className="text-sm font-extrabold tracking-[0.02em] text-teal-brand">{handoff.eyebrow}</p>
         <h1 className="mt-3 text-[2rem] font-extrabold leading-tight tracking-[-0.045em] text-forest">{handoff.title}</h1>
@@ -102,8 +103,8 @@ export function PostcheckoutPageClient() {
           </div>
         </div>
 
-        {!phone && origin && (
-          <div className="mt-6 flex flex-col items-center">
+        {showsAppHandoffQr(vi ? 'vi' : 'en', hydrated) && !phone && origin && (
+          <div className="mt-6 flex flex-col items-center" data-testid="app-handoff-qr">
             <p className="text-sm font-extrabold text-forest">{handoff.qrTitle}</p>
             <div className="mt-3 rounded-2xl border border-border-brand bg-white p-3">
               <QRCodeSVG value={openUrl} size={148} fgColor="#17453a" />
