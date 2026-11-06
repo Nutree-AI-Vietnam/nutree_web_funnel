@@ -55,7 +55,9 @@ function SurveyPageContent({ language, countryCode }: { language: Locale; countr
   const lead = useQuizStore((state) => state.lead);
   const purchased = useQuizStore((state) => state.purchased);
 
-  useEffect(() => {
+  // The URL is the incoming language. Apply it before paint so a stored
+  // Vietnamese choice cannot show Vietnamese purchase UI on /survey/en.
+  useLayoutEffect(() => {
     if (hydrated && activeLocale !== language) setLocale(language);
   }, [activeLocale, hydrated, language, setLocale]);
 

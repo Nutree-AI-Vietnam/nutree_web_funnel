@@ -23,12 +23,15 @@ export function isVietQrPurchasePackage(fields: Array<string | null | undefined>
 }
 
 /**
- * Locale used for purchase presentation.
- * Before the quiz store rehydrates, the route locale wins so an English
- * document cannot paint a Vietnamese QR and then remove it.
+ * Purchase presentation follows the survey URL, not a previously stored locale.
+ * An explicit `/survey/en` stays English after hydration even when the tab
+ * last saved Vietnamese. Country is not an input.
  */
 export function purchaseLocaleFor(routeLocale: PurchaseLocale, storedLocale: PurchaseLocale, hydrated: boolean): PurchaseLocale {
-  return (hydrated ? storedLocale : routeLocale) === 'en' ? 'en' : 'vi';
+  // The survey URL is the explicit handoff. A stored locale must not override it.
+  void storedLocale;
+  void hydrated;
+  return routeLocale;
 }
 
 export function showsVietQrPurchase(locale: PurchaseLocale): boolean {

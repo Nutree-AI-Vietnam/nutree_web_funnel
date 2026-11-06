@@ -13,7 +13,7 @@ import { useBrowserBack } from '@/lib/funnel/browser-back';
 import { identifyMetaUser } from '@/lib/analytics/meta-identity';
 import { identifyFunnelLead, registerPriceTestVariant } from '@/lib/analytics/posthog';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
-import { useCopy, useLocale } from '@/lib/copy/use-copy';
+import { useCopy, useLocale, useRouteLocale } from '@/lib/copy/use-copy';
 import { purchaseLocaleFor, visiblePaywallPlans } from '@/lib/funnel/purchase-presentation';
 import { orderedStoreLinks } from '@/lib/store-links';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
@@ -210,7 +210,11 @@ function isAlreadyPurchased(error: unknown): boolean {
 export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOfferMode, onMissingLead }: PaywallPageClientProps) {
   const router = useRouter();
   const copy = useCopy();
-  const routeLocale = useLocale();
+  // The survey segment is the explicit link. useLocale() follows the stored
+  // choice after hydration, which must not bring a Vietnamese QR back.
+  const explicitRouteLocale = useRouteLocale();
+  const sessionLocale = useLocale();
+  const routeLocale = explicitRouteLocale ?? sessionLocale;
   const { system } = useUnits();
   const hydrated = useHydrated();
   const lead = useQuizStore((state) => state.lead);
@@ -254,7 +258,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const resolvedCountryCode = normalizeCountryCode(countryCode) ?? 'VN';
   // English shows the price people pay as the price: no countdown, crossed-out price or "% off"
   // while the plans renew at the discounted price. Only the exit offer, which really ends, keeps a timer.
-  const plainPricing = activeLocale === 'en';
+  const plainPricing = purchaseLocale === 'en';
   const welcomeSeconds = plainPricing ? ENGLISH_WELCOME_SECONDS : OFFER_SECONDS;
   const inlineCheckout = INLINE_CHECKOUT;
   // Paddle's script and checkout frame otherwise start loading only after the first tap. Fetch the script

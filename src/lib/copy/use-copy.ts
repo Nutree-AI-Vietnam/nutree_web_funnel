@@ -11,6 +11,11 @@ export function RouteLocaleProvider({ locale, children }: { locale: Locale; chil
   return createElement(RouteLocaleContext.Provider, { value: locale }, children);
 }
 
+/** The `/survey/[language]` segment, or null when this page has no survey route. */
+export function useRouteLocale(): Locale | null {
+  return useContext(RouteLocaleContext);
+}
+
 /**
  * Active locale for the current session.
  *

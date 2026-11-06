@@ -27,11 +27,11 @@ describe('purchase presentation', () => {
     expect(isVietQrPurchasePackage(['$rc_monthly', '4-week', 'Payments are processed securely by Paddle.'])).toBe(false);
   });
 
-  it('uses the route locale before hydration and the selected locale after', () => {
+  it('lets an explicit English survey link override a stored Vietnamese locale', () => {
     expect(purchaseLocaleFor('en', 'vi', false)).toBe('en');
+    expect(purchaseLocaleFor('en', 'vi', true)).toBe('en');
     expect(purchaseLocaleFor('vi', 'en', false)).toBe('vi');
-    expect(purchaseLocaleFor('vi', 'en', true)).toBe('en');
-    expect(purchaseLocaleFor('en', 'vi', true)).toBe('vi');
+    expect(purchaseLocaleFor('vi', 'vi', true)).toBe('vi');
   });
 
   it('hides VietQR packages for English and keeps them for Vietnamese, ignoring country', () => {
