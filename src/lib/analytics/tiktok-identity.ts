@@ -1,4 +1,5 @@
 import { isValidEmail } from '@/lib/quiz/email';
+import { hasOptionalConsent } from './optional-consent';
 import { SHA256_HEX, sha256Hex } from './events-api';
 
 /**
@@ -75,6 +76,6 @@ export async function identifyTiktokUser(input: { email: string; externalId?: st
   } catch {
     // Matching is best-effort; never block the funnel.
   }
-  if (typeof window !== 'undefined') applyTiktokIdentity((window as Window & { ttq?: TiktokPixel }).ttq, identity);
+  if (typeof window !== 'undefined' && hasOptionalConsent()) applyTiktokIdentity((window as Window & { ttq?: TiktokPixel }).ttq, identity);
   return identity;
 }

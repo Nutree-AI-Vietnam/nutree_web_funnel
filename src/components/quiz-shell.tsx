@@ -127,7 +127,7 @@ export function QuizShell({
     <div className="flex h-dvh w-full justify-center bg-[#f4f7f5]">
     <main
       data-fit-viewport={fitViewport || undefined}
-      className="quiz-shell relative flex h-dvh w-full max-w-lg flex-col overflow-hidden bg-[#f4f7f5] px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(0.65rem,env(safe-area-inset-top))] sm:pt-4"
+      className="quiz-shell relative flex h-dvh w-full max-w-lg flex-col overflow-hidden bg-[#f4f7f5] px-5 pb-[calc(max(1rem,env(safe-area-inset-bottom))+var(--cookie-banner-offset,0px))] pt-[max(0.65rem,env(safe-area-inset-top))] sm:pt-4"
     >
       {/* z-20 keeps the language dropdown above the progress bar and the step below it. */}
       <div className="quiz-shell-header enter-item relative z-20 mb-3 flex w-full max-w-lg shrink-0 items-center justify-between gap-3 pt-4" style={enterStyle(0)}>
@@ -174,8 +174,9 @@ export function QuizShell({
       )}
       <div
         key={progressIndex ?? shownStep}
+        data-quiz-answer=""
         className={cn(
-          'quiz-shell-content relative z-10 flex min-h-0 w-full max-w-lg flex-1 flex-col overflow-hidden',
+          'quiz-shell-content relative z-10 flex min-h-0 w-full max-w-lg flex-1 flex-col overflow-hidden ph-mask ph-no-capture',
         )}
       >
         {children}

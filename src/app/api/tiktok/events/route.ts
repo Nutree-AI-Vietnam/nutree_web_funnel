@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginMutation } from '@/lib/handoff/lead-access-session';
+import { hasOptionalConsentCookie, OPTIONAL_CONSENT_COOKIE } from '@/lib/analytics/optional-consent';
 import { isProductionDeployment } from '@/lib/analytics/ad-pixel-host';
 import { clientIp } from '@/lib/analytics/events-api';
 import { parseTiktokBrowserEvent, TIKTOK_EVENTS_API_URL, tiktokEventsApiBody } from '@/lib/analytics/tiktok-events-api';
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
   }
   const event = parseTiktokBrowserEvent(input);
   if (!event) return NextResponse.json({ detail: 'Invalid event.' }, { status: 400 });
+  if (!hasOptionalConsentCookie(request.cookies.get(OPTIONAL_CONSENT_COOKIE)?.value)) return new NextResponse(null, { status: 204 });
   const body = tiktokEventsApiBody(pixelId, event, {
     eventTime: Math.floor(Date.now() / 1000),
     ip: clientIp(request.headers),

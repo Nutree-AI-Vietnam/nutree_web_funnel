@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { cleanup, render } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FunnelLocaleAnalytics } from './funnel-locale-analytics';
 
 const path = vi.hoisted(() => ({ current: '/survey/en' }));
@@ -16,6 +16,9 @@ vi.mock('posthog-js', () => ({
 }));
 
 describe('FunnelLocaleAnalytics', () => {
+  beforeEach(() => {
+    localStorage.setItem('nutree_optional_cookies_v1', '1.granted');
+  });
   afterEach(() => {
     cleanup();
     register.mockClear();

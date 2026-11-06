@@ -1,4 +1,5 @@
 import { isValidEmail } from '@/lib/quiz/email';
+import { hasOptionalConsent } from './optional-consent';
 import { sha256Hex } from './events-api';
 import { readLockedFunnelLocale, type FunnelLocale } from './funnel-locale';
 
@@ -111,7 +112,7 @@ export function identifyMetaUser(input: { email: string; externalId?: string; fi
   saveMetaIdentity(identity);
 
   const pixelId = activeMetaPixelId();
-  if (pixelId && typeof window !== 'undefined') {
+  if (hasOptionalConsent() && pixelId && typeof window !== 'undefined') {
     try {
       (window as AnyWindow).fbq?.('init', pixelId, identity);
     } catch {

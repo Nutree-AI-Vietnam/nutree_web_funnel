@@ -98,6 +98,8 @@ describe('home quiz entry', () => {
     window.history.replaceState(null, '', ENTRY_URL);
     sessionStorage.clear();
     localStorage.clear();
+    localStorage.setItem('nutree_optional_cookies_v1', '1.granted');
+    document.cookie = 'nutree_optional_cookies=1.granted; Path=/';
     vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
     vi.stubEnv('NEXT_PUBLIC_TIKTOK_PIXEL_ID', '');
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(null, { status: 204 }))));
@@ -287,5 +289,19 @@ describe('home quiz entry', () => {
     expect(screen.queryByRole('link', { name: /Bộ Công Thương/ })).toBeNull();
     expect(useQuizStore.getState().data.fitness_goal).toBe('cut');
     expect(viewContentCalls()).toHaveLength(0);
+  });
+
+  it('does not send the goal or a weight answer before optional cookies are allowed', async () => {
+    localStorage.setItem('nutree_optional_cookies_v1', '1.denied');
+    document.cookie = 'nutree_optional_cookies=1.denied; Path=/';
+    render(<HomePage />);
+    expect(await screen.findByRole('heading', { name: 'Lần này, bạn muốn nhẹ đi khoảng bao nhiêu?' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '1–5 kg' }));
+    expect(useQuizStore.getState().data.fitness_goal).toBe('cut');
+    expect(viewContentCalls()).toHaveLength(0);
+    expect(viewedSteps()).toEqual([]);
+    expect(metaServerEvents()).toHaveLength(0);
+    expect(document.getElementById('meta-pixel')).toBeNull();
+    expect((window as unknown as { dataLayer?: unknown }).dataLayer).toBeUndefined();
   });
 });

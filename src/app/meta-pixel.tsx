@@ -12,7 +12,7 @@ export function MetaPixel({ pixelId }: { pixelId: string }) {
   const snippet = metaPixelBootstrapScript(pixelId);
   if (!snippet) return null;
   return (
-    <Script id="meta-pixel" strategy="beforeInteractive">
+    <Script id="meta-pixel" strategy="afterInteractive">
       {snippet}
     </Script>
   );

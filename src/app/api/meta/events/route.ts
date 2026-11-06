@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginMutation } from '@/lib/handoff/lead-access-session';
+import { hasOptionalConsentCookie, OPTIONAL_CONSENT_COOKIE } from '@/lib/analytics/optional-consent';
 import { isAdPixelHost, isProductionDeployment } from '@/lib/analytics/ad-pixel-host';
 import { clientIp, isRecord } from '@/lib/analytics/events-api';
 import { isFunnelLocale, type FunnelLocale } from '@/lib/analytics/funnel-locale';
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
   if (!locale) return NextResponse.json({ detail: 'Invalid locale.' }, { status: 400 });
   const event = parseMetaBrowserEvent(input);
   if (!event) return NextResponse.json({ detail: 'Invalid event.' }, { status: 400 });
+  if (!hasOptionalConsentCookie(request.cookies.get(OPTIONAL_CONSENT_COOKIE)?.value)) return new NextResponse(null, { status: 204 });
   const dataset = metaDatasetForLocale(locale);
   if (!dataset.accessToken || !dataset.pixelId) return new NextResponse(null, { status: 204 });
   // Only the production deployment on the live quiz host forwards, so previews,
