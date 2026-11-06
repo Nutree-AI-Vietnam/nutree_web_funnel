@@ -109,7 +109,7 @@ describe('explicit English survey entry', () => {
 
     render(
       <RouteLocaleProvider locale="vi">
-        <PaywallPageClient initialCountryCode="VN" />
+        <PaywallPageClient initialCountryCode="VN" exitOfferMode={false} />
       </RouteLocaleProvider>,
     );
 
