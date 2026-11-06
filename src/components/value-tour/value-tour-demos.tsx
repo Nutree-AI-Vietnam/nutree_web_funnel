@@ -24,11 +24,14 @@ function IphoneFrame({ children, compact = false }: { children: React.ReactNode;
 
 const SCREEN_MEDIA = 'h-full w-full object-cover';
 
-/** Wednesday is the extra meal. The other days sit lower so the week still balances. */
-const MACRO_CALORIES = [1730, 1730, 1980, 1680, 1680, 1680, 1680] as const;
+/**
+ * A 1,730 kcal target with Wednesday 240 over. Like the app, the extra is spread over the four days
+ * left, today included, so Thursday to Sunday sit 60 lower and the week still sums to 7 × 1,730.
+ */
+const MACRO_CALORIES = [1730, 1730, 1970, 1670, 1670, 1670, 1670] as const;
 const MACRO_EXTRA_DAY = 2;
 
-/** Weekly calories ease after midweek. Heights keep the 1,880 to 1,730 step readable. */
+/** Weekly calories ease a little after the extra meal. Bar heights are relative to the tallest day. */
 export function MacroDemo({ alt, days, extraLabel }: { alt: string; days: readonly string[]; extraLabel: string }) {
   const locale = useLocale();
   const reduce = useReducedMotion();
