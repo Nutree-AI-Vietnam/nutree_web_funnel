@@ -13,7 +13,9 @@ import { useBrowserBack } from '@/lib/funnel/browser-back';
 import { identifyMetaUser } from '@/lib/analytics/meta-identity';
 import { identifyFunnelLead, registerPriceTestVariant } from '@/lib/analytics/posthog';
 import { trackEvent, trackStepViewed } from '@/lib/analytics/track';
-import { useCopy } from '@/lib/copy/use-copy';
+import { useCopy, useLocale } from '@/lib/copy/use-copy';
+import { purchaseLocaleFor, visiblePaywallPlans } from '@/lib/funnel/purchase-presentation';
+import { orderedStoreLinks } from '@/lib/store-links';
 import { getLocalPreviewCountry, isLocalPreviewHost, localPreviewData, localPreviewLead, localPreviewTdee } from '@/lib/local-preview';
 import { normalizeCountryCode } from '@/lib/market/country';
 import { clearPaywallCheckoutPending, configureRevenueCatForAnonymousCheckout, dismissCheckoutOverlay, EXIT_DISCOUNT_PERCENT, hasExitOfferBeenClaimed, hasPaywallCheckoutPending, markExitOfferClaimed, markPaywallCheckoutPending, paddleCheckoutClosedWithoutPayment, paddleCheckoutCompleted, paddleCheckoutIsOpen, PAYWALL_EXIT_OFFER_SECONDS, PAYWALL_OFFER_STATE_STORAGE_KEY, PAYWALL_WELCOME_OFFER_SECONDS, priceTestVariant, readRevenueCatWebConfig, readSelectedPaywallPlan, saveSelectedPaywallPlan, WELCOME_DISCOUNT_PERCENT } from '@/lib/revenuecat/web';
@@ -208,6 +210,7 @@ function isAlreadyPurchased(error: unknown): boolean {
 export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOfferMode, onMissingLead }: PaywallPageClientProps) {
   const router = useRouter();
   const copy = useCopy();
+  const routeLocale = useLocale();
   const { system } = useUnits();
   const hydrated = useHydrated();
   const lead = useQuizStore((state) => state.lead);
@@ -243,7 +246,9 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   const redemptionLinkHashRef = useRef<string | null>(null);
   // An automatically applied welcome offer is reported once the prices are in, with its real discount.
   const autoAppliedPendingRef = useRef(false);
-  const plans = paywall.plans;
+  // English never lists a VietQR package, even when the Vietnam offering is loaded for this country.
+  const purchaseLocale = purchaseLocaleFor(routeLocale, activeLocale, hydrated);
+  const plans = useMemo(() => visiblePaywallPlans(paywall.plans, purchaseLocale), [paywall.plans, purchaseLocale]);
 
   const countryCode = initialCountryCode ?? (isLocalPreviewHost() ? getLocalPreviewCountry() : undefined);
   const resolvedCountryCode = normalizeCountryCode(countryCode) ?? 'VN';
@@ -970,7 +975,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
             </>
           )}
         </div>
-        <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={onHeaderCta} className={cn('min-h-12 shrink-0 rounded-[1rem] px-4 text-[0.86rem] font-extrabold text-white transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50', exitOfferActive ? 'bg-[#C2410C] shadow-[0_10px_24px_rgb(194_65_12_/_0.25)] hover:bg-[#9A3412]' : 'cta-premium', offerRunning && !busy && 'cta-attention')}><span>{busy ? copy.paywall.loading : funnelPaywall.topCta}</span></button>
+        <button type="button" disabled={!pricesReady || busy || checkoutUnavailable || !plans.length} onClick={onHeaderCta} className={cn('min-h-12 shrink-0 rounded-[1rem] px-4 text-[0.86rem] font-extrabold text-white transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50', exitOfferActive ? 'bg-[#C2410C] shadow-[0_10px_24px_rgb(194_65_12_/_0.25)] hover:bg-[#9A3412]' : 'cta-premium', offerRunning && !busy && 'cta-attention')}><span>{busy ? copy.paywall.loading : funnelPaywall.topCta}</span></button>
       </div>
     </div>
   );
@@ -1090,7 +1095,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
   };
 
   const checkoutButton = (
-    <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className={cn('min-h-14 w-full rounded-2xl px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50', exitOfferActive ? 'bg-[#C2410C] hover:bg-[#9A3412]' : 'cta-premium', (welcomeOfferActive || exitOfferActive) && !busy && 'cta-attention')}><span>{busy ? copy.paywall.loading : englishCta}</span></button>
+    <button type="button" disabled={!pricesReady || busy || checkoutUnavailable || !plans.length} onClick={requestCheckout} className={cn('min-h-14 w-full rounded-2xl px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50', exitOfferActive ? 'bg-[#C2410C] hover:bg-[#9A3412]' : 'cta-premium', (welcomeOfferActive || exitOfferActive) && !busy && 'cta-attention')}><span>{busy ? copy.paywall.loading : englishCta}</span></button>
   );
 
   const planTdee = tdee ?? computeTdeeResult(data);
@@ -1155,6 +1160,16 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
         </div>
         <div className="mt-4">{checkoutButton}</div>
         <p className="mt-2.5 text-center text-[0.72rem] font-medium leading-relaxed text-muted-brand">{renewalLine}</p>
+        <div className="mt-4 border-t border-border-brand pt-4 text-center">
+          <p className="text-[0.8rem] font-extrabold text-forest">{copy.funnel.postcheckout.installTitle}</p>
+          <div className="mt-2 flex flex-wrap justify-center gap-2">
+            {orderedStoreLinks(null).map((store) => (
+              <a key={store.label} href={store.href} className="inline-flex min-h-11 items-center rounded-full border border-border-brand px-4 text-[0.8rem] font-extrabold text-forest focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25">
+                {store.label}
+              </a>
+            ))}
+          </div>
+        </div>
         <p className="mt-3 flex items-center justify-center gap-1 text-[0.7rem] font-bold text-muted-brand"><Icon name="lock" className="h-3.5 w-3.5" />{funnelPaywall.payWith}</p>
         <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1.5">
           {checkoutWallets.includes('apple_pay') && <ApplePayBadge />}
@@ -1183,7 +1198,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
             <Link href={`/survey/${activeLocale}`} aria-label="Nutree" className="block h-11 w-11 shrink-0"><NutreeLogo priority className="h-11 w-11" /></Link>
             <div><p className={cn('text-[0.74rem] font-bold leading-tight', exitOfferActive ? 'text-[#9A3412]' : 'text-muted-brand')}>{headerOfferLabel}</p>{isOriginalPricing ? <p className="mt-0.5 text-[0.92rem] font-extrabold leading-tight text-forest">{copy.paywall.standardTimer}</p> : <strong aria-live="polite" className={cn('mt-0.5 inline-flex rounded-md px-1.5 py-0.5 text-[1.2rem] font-extrabold leading-none tracking-[-0.035em] tabular-nums', exitOfferActive ? 'bg-[#C2410C] text-white' : 'text-[#111418]')}>{countdown}</strong>}</div>
-            <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={onHeaderCta} className={cn('min-h-11 rounded-[1rem] px-3.5 text-[0.78rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-[0.86rem]', exitOfferActive ? 'bg-[#C2410C] hover:bg-[#9A3412]' : 'bg-forest hover:bg-emerald-deep')}>{busy ? copy.paywall.loading : copy.paywall.topCta}</button>
+            <button type="button" disabled={!pricesReady || busy || checkoutUnavailable || !plans.length} onClick={onHeaderCta} className={cn('min-h-11 rounded-[1rem] px-3.5 text-[0.78rem] font-extrabold text-white shadow-[0_10px_24px_rgb(23_69_58_/_0.20)] transition focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-[0.86rem]', exitOfferActive ? 'bg-[#C2410C] hover:bg-[#9A3412]' : 'bg-forest hover:bg-emerald-deep')}>{busy ? copy.paywall.loading : copy.paywall.topCta}</button>
           </div>
         </div>
       )}
@@ -1208,7 +1223,7 @@ export function PaywallPageClient({ initialCountryCode, initialPlanId, exitOffer
           </div>
           <p className="mt-3 text-center text-[0.7rem] font-semibold leading-snug text-muted-brand">{copy.paywall.perDayFootnote}</p>
           {paywall.recommendationNote?.[activeLocale] && <p className="mt-5 text-[0.94rem] leading-relaxed text-slate-brand">{paywall.recommendationNote[activeLocale]}</p>}
-            <button type="button" disabled={!pricesReady || busy || checkoutUnavailable} onClick={requestCheckout} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta()}</button>
+            <button type="button" disabled={!pricesReady || busy || checkoutUnavailable || !plans.length} onClick={requestCheckout} className="mt-5 min-h-14 w-full rounded-2xl bg-forest px-5 text-base font-extrabold text-white shadow-[0_14px_28px_rgb(23_69_58_/_0.22)] transition hover:bg-emerald-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-brand/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50">{busy ? copy.paywall.loading : copy.paywall.cta()}</button>
           <p className="mt-4 text-center text-sm leading-relaxed text-muted-brand">{priceSummary}</p>
         </section>
 
