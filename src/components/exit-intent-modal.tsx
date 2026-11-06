@@ -1,94 +1,43 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PrimaryButton } from './primary-button';
-import { useCopy, useLocale } from '@/lib/copy/use-copy';
+import { useCopy } from '@/lib/copy/use-copy';
 import { returnToFunnelStart } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
 import { deriveAge } from '@/lib/quiz/dob';
-import { quizStepsFor } from '@/lib/quiz/steps';
+import { QUIZ_STEPS } from '@/lib/quiz/steps';
 
 const STORAGE_KEY = 'nutree_exit_intent_shown';
 const MIN_STEP_INDEX = 3;
-/** Long enough that a tab or window switch blurs before the sheet opens. */
-const OPEN_DELAY_MS = 400;
-/** Clicking the address bar blurs the window, then the pointer often leaves through the top edge. Chrome can still report document.hasFocus() as true. */
-const BLUR_GUARD_MS = 1000;
 
 export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number }) {
   const copy = useCopy();
-  const locale = useLocale();
   const data = useQuizStore((s) => s.data);
   const [open, setOpen] = useState(false);
-  const openRef = useRef(false);
-  useEffect(() => {
-    openRef.current = open;
-  }, [open]);
 
   useEffect(() => {
     if (currentStepIndex < MIN_STEP_INDEX) return;
     if (sessionStorage.getItem(STORAGE_KEY)) return;
 
-    let timer: number | undefined;
-    let distractedUntil = 0;
-    const clearTimer = () => {
-      if (timer != null) window.clearTimeout(timer);
-      timer = undefined;
-    };
-    const noteDistraction = () => {
-      distractedUntil = Date.now() + BLUR_GUARD_MS;
-      clearTimer();
-    };
-    const distracted = () => Date.now() < distractedUntil || !document.hasFocus() || document.visibilityState === 'hidden';
-    const show = () => {
-      timer = undefined;
-      if (distracted()) return;
-      sessionStorage.setItem(STORAGE_KEY, '1');
-      setOpen(true);
-    };
-    // Leaving through the top of the page is also what a second tab or window does.
-    // Opening immediately puts this sheet on top of Tiếp tục, so the last screen looks stuck.
-    // mouseout covers browsers that leave the window without a document mouseleave.
-    const handlePointerLeave = (event: MouseEvent) => {
-      if (event.relatedTarget instanceof Node && document.documentElement.contains(event.relatedTarget)) return;
-      if (distracted()) return;
-      if (event.clientY > 0) return;
-      clearTimer();
-      timer = window.setTimeout(show, OPEN_DELAY_MS);
-    };
-    const cancelPending = () => clearTimer();
-    const handleVisibility = () => {
-      if (document.visibilityState !== 'hidden') return;
-      noteDistraction();
-      // The sheet was never answered. A hidden tab should not leave it on Tiếp tục, or spend the one prompt.
-      if (!openRef.current) return;
-      sessionStorage.removeItem(STORAGE_KEY);
-      setOpen(false);
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (e.clientY <= 0) {
+        sessionStorage.setItem(STORAGE_KEY, '1');
+        setOpen(true);
+      }
     };
 
-    document.addEventListener('mouseleave', handlePointerLeave);
-    document.addEventListener('mouseout', handlePointerLeave);
-    document.addEventListener('mouseenter', cancelPending);
-    document.addEventListener('visibilitychange', handleVisibility);
-    window.addEventListener('blur', noteDistraction);
+    document.addEventListener('mouseleave', handleMouseLeave);
 
     return () => {
-      clearTimer();
-      document.removeEventListener('mouseleave', handlePointerLeave);
-      document.removeEventListener('mouseout', handlePointerLeave);
-      document.removeEventListener('mouseenter', cancelPending);
-      document.removeEventListener('visibilitychange', handleVisibility);
-      window.removeEventListener('blur', noteDistraction);
+      document.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, [currentStepIndex]);
 
   const encouragement = copy.exitIntent.messages[currentStepIndex % copy.exitIntent.messages.length];
-  const progress = Math.round((currentStepIndex / quizStepsFor(locale).length) * 100);
-  // A band stores a midpoint (18–29 → 24) for calories. The sheet should name the range the visitor picked.
-  const rangeLabel = copy.ageGroup.options.find((option) => option.key === data.age_group)?.label;
-  const typedAge = rangeLabel ? null : deriveAge(data);
-  const ageLabel = rangeLabel ?? (typedAge != null ? String(typedAge) : null);
+  const progress = Math.round((currentStepIndex / QUIZ_STEPS.length) * 100);
+  const age = deriveAge(data);
   const name = data.name;
   const goal = data.fitness_goal;
 
@@ -167,8 +116,8 @@ export function ExitIntentModal({ currentStepIndex }: { currentStepIndex: number
                 transition={{ delay: 0.25 }}
                 className="mb-4 text-sm font-semibold leading-relaxed text-slate-brand"
               >
-                {ageLabel && goalLabel
-                  ? copy.exitIntent.bodyWithGoal(progress, goalLabel, ageLabel)
+                {age && goalLabel
+                  ? copy.exitIntent.bodyWithGoal(progress, goalLabel, age)
                   : copy.exitIntent.body(progress)}
               </motion.p>
 

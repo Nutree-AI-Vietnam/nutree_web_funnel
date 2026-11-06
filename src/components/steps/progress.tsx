@@ -11,7 +11,6 @@ import { useQuizStore } from '@/lib/quiz/store';
 import { formatWeight } from '@/lib/quiz/units';
 import { useUnits } from '@/lib/quiz/use-units';
 import { computeTdeeResult } from '@/lib/tdee/calculator';
-import type { QuizStep } from '@/lib/quiz/steps';
 import { QuizStepFrame } from './quiz-step-frame';
 
 const CHARTS: Record<ProgressDirection, { line: string; area: string; startY: number; endY: number }> = {
@@ -35,7 +34,7 @@ const CHARTS: Record<ProgressDirection, { line: string; area: string; startY: nu
   },
 };
 
-export function ProgressStep({ step = 'progress' }: { step?: QuizStep }) {
+export function ProgressStep() {
   const router = useRouter();
   const copy = useCopy();
   const locale = useLocale();
@@ -80,7 +79,7 @@ export function ProgressStep({ step = 'progress' }: { step?: QuizStep }) {
           <p className="mt-2 text-[0.75rem] font-semibold leading-snug text-muted-brand">{funnel.estimateAtPace(rate)}</p>
         </section>
         <div className="mt-auto pt-2">
-          <PrimaryButton onClick={() => goToNextQuizStep(router, step)}>{copy.progress.cta}</PrimaryButton>
+          <PrimaryButton onClick={() => goToNextQuizStep(router, 'progress')}>{copy.progress.cta}</PrimaryButton>
         </div>
       </QuizStepFrame>
     );
@@ -154,7 +153,7 @@ export function ProgressStep({ step = 'progress' }: { step?: QuizStep }) {
       </section>
       <p className="text-xs italic leading-relaxed text-muted-brand">{copy.progress.disclaimer}</p>
       <div className="mt-auto pt-2">
-        <PrimaryButton onClick={() => goToNextQuizStep(router, step)}>{copy.progress.cta}</PrimaryButton>
+        <PrimaryButton onClick={() => goToNextQuizStep(router, 'progress')}>{copy.progress.cta}</PrimaryButton>
       </div>
     </QuizStepFrame>
   );

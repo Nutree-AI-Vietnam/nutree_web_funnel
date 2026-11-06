@@ -5,11 +5,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { OptionCard } from '@/components/option-card';
 import { PrimaryButton } from '@/components/primary-button';
-import { useCopy, useLocale } from '@/lib/copy/use-copy';
+import { useCopy } from '@/lib/copy/use-copy';
 import { goToNextQuizStep } from '@/lib/quiz/navigation';
 import { useQuizStore } from '@/lib/quiz/store';
-import { OCCASION_SUB, WITH_YOU_LINE } from '@/lib/quiz/vi-survey';
-import { Art } from './vi-art';
 import { QuizStepFrame } from './quiz-step-frame';
 
 type StoryKey = 'aim' | 'tried' | 'obstacle' | 'occasion' | 'diet_style' | 'weekend' | 'trigger';
@@ -18,7 +16,6 @@ type BeatKey = 'with_you';
 /** One tap question. The answer stays in the browser; calories do not use it. */
 export function StoryStep({ step }: { step: StoryKey }) {
   const copy = useCopy();
-  const locale = useLocale();
   const router = useRouter();
   const block = copy.story[step];
   const setPlanAnswers = useQuizStore((state) => state.setPlanAnswers);
@@ -38,7 +35,7 @@ export function StoryStep({ step }: { step: StoryKey }) {
   };
 
   return (
-    <QuizStepFrame title={block.question} hint={locale === 'vi' && step === 'occasion' ? OCCASION_SUB : undefined} className="gap-3">
+    <QuizStepFrame title={block.question} className="gap-3">
       <div className="flex flex-col gap-2.5">
         {block.options.map((option) => (
           <OptionCard
@@ -58,29 +55,9 @@ export function StoryStep({ step }: { step: StoryKey }) {
 /** A pause between question clusters. Nothing to answer. */
 export function BeatStep({ step }: { step: BeatKey }) {
   const copy = useCopy();
-  const locale = useLocale();
   const router = useRouter();
   const reduce = useReducedMotion();
   const block = copy.story[step];
-  if (locale === 'vi' && step === 'with_you') {
-    return (
-      <div className="-mx-5 -mb-[max(1rem,env(safe-area-inset-bottom))] flex min-h-0 flex-1 flex-col bg-[#DDF1E8] px-5 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex min-h-28 flex-1 items-center justify-center py-3">
-            <Art id="hands" size={140} />
-          </div>
-          <div className="flex flex-col gap-3 pb-1 text-center">
-            <h1 className="text-[1.55rem] font-extrabold leading-tight text-forest">{block.title}</h1>
-            <p className="text-[1.02rem] font-semibold leading-relaxed text-slate-brand">{block.body}</p>
-            <p className="text-[1.02rem] font-semibold leading-relaxed text-forest">{WITH_YOU_LINE}</p>
-          </div>
-        </div>
-        <div className="shrink-0 bg-[#DDF1E8] pt-3">
-          <PrimaryButton onClick={() => goToNextQuizStep(router, step)}>{block.cta}</PrimaryButton>
-        </div>
-      </div>
-    );
-  }
   return (
     <QuizStepFrame className="justify-center">
       <div className="flex flex-1 flex-col items-center justify-center gap-3 px-2 text-center">
