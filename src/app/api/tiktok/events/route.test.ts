@@ -40,7 +40,7 @@ function request(body: unknown, headers: Record<string, string> = {}) {
     method: 'POST',
     headers: {
       origin: 'https://quiz.test',
-      cookie: '_ttp=ttp-cookie-1; other=1',
+      cookie: '_ttp=ttp-cookie-1; other=1; nutree_optional_cookies=1.granted',
       'x-forwarded-for': '203.0.113.7, 10.0.0.1',
       'user-agent': 'Mozilla/5.0 Test',
       'content-type': 'application/json',
@@ -159,5 +159,15 @@ describe('TikTok Events API route', () => {
     const response = await POST(request(browserEvent));
     expect(response.status).toBe(204);
     expect(console.warn).toHaveBeenCalledWith('TikTok Events API request failed', { event: 'Purchase', error: 'TypeError' });
+  });
+
+  it('does not forward without the optional-cookie grant', async () => {
+    const denied = new NextRequest(url, {
+      method: 'POST',
+      headers: { origin: 'https://quiz.test', cookie: '_ttp=ttp-cookie-1', 'content-type': 'application/json' },
+      body: JSON.stringify({ ...browserEvent, properties: { ...properties, weight_kg: 70 } }),
+    });
+    expect((await POST(denied)).status).toBe(204);
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

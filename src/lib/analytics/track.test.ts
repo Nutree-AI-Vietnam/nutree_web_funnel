@@ -44,6 +44,11 @@ describe('analytics', () => {
       fbq: vi.fn(),
       ttq: { track: vi.fn() },
       location: { hostname: 'quiz.nutreeai.com' },
+      localStorage: {
+        getItem: (key: string) => (store.has(key) ? store.get(key) ?? null : key === 'nutree_optional_cookies_v1' ? '1.granted' : null),
+        setItem: (key: string, value: string) => { store.set(key, value); },
+        removeItem: (key: string) => { store.delete(key); },
+      },
       sessionStorage: {
         getItem: (key: string) => store.get(key) ?? null,
         setItem: (key: string, value: string) => {
@@ -175,7 +180,7 @@ describe('analytics', () => {
 
   it('copies Meta standard events to the server when the pixel is blocked', async () => {
     vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '1234567890');
-    vi.stubGlobal('window', { location: { hostname: 'quiz.nutreeai.com' }, sessionStorage: (window as unknown as TestWindow).sessionStorage });
+    vi.stubGlobal('window', { location: { hostname: 'quiz.nutreeai.com' }, sessionStorage: (window as unknown as TestWindow).sessionStorage, localStorage: (window as unknown as { localStorage: Storage }).localStorage });
     trackStepViewed('landing');
     await vi.waitFor(() => expect(metaServerEvents().map(({ body }) => body.event_name)).toEqual(['ViewContent']));
   });
@@ -394,7 +399,7 @@ describe('analytics', () => {
 
   it('copies standard events to the server before the pixel has loaded', () => {
     vi.stubEnv('NEXT_PUBLIC_TIKTOK_PIXEL_ID', 'PIXEL');
-    vi.stubGlobal('window', { location: { hostname: 'quiz.nutreeai.com' }, sessionStorage: (window as unknown as TestWindow).sessionStorage });
+    vi.stubGlobal('window', { location: { hostname: 'quiz.nutreeai.com' }, sessionStorage: (window as unknown as TestWindow).sessionStorage, localStorage: (window as unknown as { localStorage: Storage }).localStorage });
     trackStepViewed('paywall');
     expect(serverEvents().map(({ body }) => body.event)).toEqual(['ViewContent']);
   });
@@ -484,5 +489,23 @@ describe('analytics', () => {
     const w = window as unknown as { gtag: ReturnType<typeof vi.fn>; ttq: { track: ReturnType<typeof vi.fn> } };
     expect(w.gtag).toHaveBeenCalledWith('event', 'funnel_step_viewed', { step: 'target_weight' });
     expect(w.ttq.track).not.toHaveBeenCalled();
+  });
+
+  it('drops health values and does not replay events that happened before consent', () => {
+    const storage = (window as unknown as { localStorage: { setItem: (key: string, value: string) => void } }).localStorage;
+    storage.setItem('nutree_optional_cookies_v1', '1.denied');
+    trackEvent('funnel_step_viewed', { step: 'weight', weight_kg: 70, height_cm: 165, target_weight_kg: 60, fitness_goal: 'cut' });
+    storage.setItem('nutree_optional_cookies_v1', '1.granted');
+    trackEvent('funnel_step_viewed', { step: 'email_capture', weight_kg: 70, height_cm: 165, target_weight_kg: 60, fitness_goal: 'cut' });
+    const w = window as unknown as { gtag: ReturnType<typeof vi.fn>; fbq: ReturnType<typeof vi.fn> };
+    expect(w.gtag).toHaveBeenCalledTimes(1);
+    const payload = w.gtag.mock.calls[0][2] as Record<string, unknown>;
+    expect(payload.step).toBe('email_capture');
+    expect(payload).not.toHaveProperty('weight_kg');
+    expect(payload).not.toHaveProperty('height_cm');
+    expect(payload).not.toHaveProperty('target_weight_kg');
+    expect(payload).not.toHaveProperty('fitness_goal');
+    expect(w.fbq).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

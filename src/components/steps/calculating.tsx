@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
+import { ResultDisclaimer } from '@/components/result-disclaimer';
 import { StoreRatings, storeRatingsLine } from '@/components/value-tour/value-tour-demos';
 import { previewTdee } from '@/lib/api/client';
 import { useCopy, useLocale } from '@/lib/copy/use-copy';
@@ -303,6 +304,7 @@ export function CalculatingStep() {
               <span key={slide.key} className={cn('h-1.5 rounded-full transition-all duration-300', index === slideIndex ? 'w-5 bg-teal-brand' : 'w-1.5 bg-forest/15')} />
             ))}
           </div>
+          <ResultDisclaimer className="mx-auto mt-3 max-w-[22rem] px-3" />
         </section>
       </div>
 

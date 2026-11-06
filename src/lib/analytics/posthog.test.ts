@@ -15,6 +15,8 @@ import { captureFunnelEvent, identifyFunnelLead, registerDocumentFunnelLocale, r
 
 describe('captureFunnelEvent', () => {
   beforeEach(() => {
+    const memory = new Map<string, string>([['nutree_optional_cookies_v1', '1.granted']]);
+    vi.stubGlobal('localStorage', { getItem: (key: string) => memory.get(key) ?? null, setItem: () => undefined });
     capture.mockClear();
   });
 
@@ -26,6 +28,8 @@ describe('captureFunnelEvent', () => {
 
 describe('identifyFunnelLead', () => {
   beforeEach(() => {
+    const memory = new Map<string, string>([['nutree_optional_cookies_v1', '1.granted']]);
+    vi.stubGlobal('localStorage', { getItem: (key: string) => memory.get(key) ?? null, setItem: () => undefined });
     identify.mockClear();
   });
 
@@ -42,6 +46,8 @@ describe('identifyFunnelLead', () => {
 
 describe('registerDocumentFunnelLocale', () => {
   beforeEach(() => {
+    const memory = new Map<string, string>([['nutree_optional_cookies_v1', '1.granted']]);
+    vi.stubGlobal('localStorage', { getItem: (key: string) => memory.get(key) ?? null, setItem: () => undefined });
     register.mockClear();
     getProperty.mockReset();
   });
@@ -62,6 +68,8 @@ describe('registerDocumentFunnelLocale', () => {
 
 describe('registerFunnelSuperProperties', () => {
   beforeEach(() => {
+    const memory = new Map<string, string>([['nutree_optional_cookies_v1', '1.granted']]);
+    vi.stubGlobal('localStorage', { getItem: (key: string) => memory.get(key) ?? null, setItem: () => undefined });
     register.mockClear();
   });
 

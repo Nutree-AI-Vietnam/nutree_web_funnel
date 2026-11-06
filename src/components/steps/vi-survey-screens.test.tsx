@@ -45,6 +45,7 @@ describe('Vietnamese survey screens', () => {
     vi.stubGlobal('IntersectionObserver', IntersectionObserverStub);
     window.scrollTo = () => undefined;
     sessionStorage.clear();
+    localStorage.setItem('nutree_optional_cookies_v1', '1.granted');
     Object.assign(window, { gtag: vi.fn(), fbq: vi.fn() });
     await useQuizStore.persist.rehydrate();
     useQuizStore.getState().reset();

@@ -15,6 +15,10 @@ describe('meta identity', () => {
     vi.stubEnv('NEXT_PUBLIC_META_PIXEL_ID', '863565810110494');
     vi.stubGlobal('window', {
       fbq: vi.fn(),
+      localStorage: {
+        getItem: (key: string) => (key === 'nutree_optional_cookies_v1' ? '1.granted' : null),
+        setItem: () => undefined,
+      },
       sessionStorage: {
         getItem: (key: string) => store.get(key) ?? null,
         setItem: (key: string, value: string) => {

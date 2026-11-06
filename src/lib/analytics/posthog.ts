@@ -1,4 +1,5 @@
 import posthog from 'posthog-js';
+import { hasOptionalConsent } from './optional-consent';
 import {
   analyticsLocale,
   carriesStoredFunnelLocale,
@@ -11,6 +12,7 @@ import {
 
 /** Super properties that split every later event by funnel language. */
 export function registerFunnelSuperProperties(locale: FunnelLocale): void {
+  if (!hasOptionalConsent()) return;
   try {
     posthog.register({
       funnel_locale: locale,
@@ -23,6 +25,7 @@ export function registerFunnelSuperProperties(locale: FunnelLocale): void {
 
 /** Locale already stored as a PostHog super property, once persistence is readable. */
 export function readRegisteredFunnelLocale(): FunnelLocale | null {
+  if (!hasOptionalConsent()) return null;
   try {
     const value = posthog.get_property?.('funnel_locale');
     return isFunnelLocale(value) ? value : null;
@@ -47,6 +50,7 @@ export function registerDocumentFunnelLocale(pathname: string | null | undefined
 
 /** Mirror a funnel event into PostHog so the quiz and checkout show up on the session. */
 export function captureFunnelEvent(name: string, properties: Record<string, unknown> = {}): void {
+  if (!hasOptionalConsent()) return;
   try {
     posthog.capture(name, properties);
   } catch {
@@ -56,7 +60,7 @@ export function captureFunnelEvent(name: string, properties: Record<string, unkn
 
 /** Attach the anonymous replay to the lead once checkout identity exists. */
 export function identifyFunnelLead(leadId: string, email?: string | null) {
-  if (!leadId) return;
+  if (!leadId || !hasOptionalConsent()) return;
   posthog.identify(leadId, {
     source: 'web_funnel',
     ...(email ? { email } : {}),
@@ -65,6 +69,7 @@ export function identifyFunnelLead(leadId: string, email?: string | null) {
 
 /** Tags every later event with the price-test arm. */
 export function registerPriceTestVariant(variant: string): void {
+  if (!hasOptionalConsent()) return;
   try {
     posthog.register({ price_test_variant: variant });
   } catch {

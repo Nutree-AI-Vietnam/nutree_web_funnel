@@ -13,6 +13,10 @@ describe('TikTok identity', () => {
     identify = vi.fn();
     vi.stubGlobal('window', {
       ttq: { track: vi.fn(), identify },
+      localStorage: {
+        getItem: (key: string) => (key === 'nutree_optional_cookies_v1' ? '1.granted' : store.get(key) ?? null),
+        setItem: (key: string, value: string) => { store.set(key, value); },
+      },
       sessionStorage: {
         getItem: (key: string) => store.get(key) ?? null,
         setItem: (key: string, value: string) => {

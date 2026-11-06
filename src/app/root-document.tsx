@@ -1,6 +1,5 @@
-import { AnalyticsScripts } from '@/components/analytics-scripts';
 import { FunnelLocaleAnalytics } from '@/components/funnel-locale-analytics';
-import { MetaPixel } from '@/app/meta-pixel';
+import { OptionalCookieConsent } from '@/components/optional-cookie-consent';
 import type { FunnelLocale } from '@/lib/analytics/funnel-locale';
 
 /**
@@ -25,12 +24,9 @@ export function RootDocument({
       data-meta-pixel-id={pixelId || undefined}
       data-scroll-behavior="smooth"
     >
-      <head>
-        <MetaPixel pixelId={pixelId} />
-      </head>
       <body className="flex min-h-full flex-col font-sans antialiased">
         <FunnelLocaleAnalytics />
-        <AnalyticsScripts />
+        <OptionalCookieConsent pixelId={pixelId} />
         {children}
       </body>
     </html>

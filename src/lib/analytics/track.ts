@@ -38,6 +38,7 @@ import { CUSTOM_EVENTS, META_EVENTS_PATH, type MetaBrowserEvent, type MetaCustom
 import { readLockedFunnelLocale } from './funnel-locale';
 import { activeMetaPixelId, hashMetaIdentity, readMetaIdentity } from './meta-identity';
 import { TIKTOK_EVENTS_PATH, type TiktokBrowserEvent, type TiktokProperties, type TiktokStandardEvent } from './tiktok-events-api';
+import { hasOptionalConsent, stripHealthFields } from './optional-consent';
 import { captureFunnelEvent } from './posthog';
 import { applyTiktokIdentity, readTiktokIdentity, type TiktokIdentity, type TiktokPixel } from './tiktok-identity';
 
@@ -307,9 +308,9 @@ function eventID(event: string): string {
 }
 
 export function trackEvent(name: string, params: Record<string, unknown> = {}): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || !hasOptionalConsent()) return;
   const w = window as AnyWindow;
-  const payload = withAttribution(params);
+  const payload = stripHealthFields(withAttribution(params));
   try {
     w.gtag?.('event', name, payload);
     trackMeta(w.fbq, name, payload);

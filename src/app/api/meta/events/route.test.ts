@@ -46,7 +46,7 @@ function request(body: unknown, headers: Record<string, string> = {}, origin = l
     method: 'POST',
     headers: {
       origin,
-      cookie: '_fbp=fb.1.1759990000000.1116446470; other=1',
+      cookie: '_fbp=fb.1.1759990000000.1116446470; other=1; nutree_optional_cookies=1.granted',
       'x-forwarded-for': '203.0.113.7, 10.0.0.1',
       'user-agent': 'Mozilla/5.0 Test',
       'content-type': 'application/json',
@@ -144,7 +144,7 @@ describe('Meta Conversions API route', () => {
       event_source_url: 'https://quiz.nutreeai.com/paywall?email=jane@example.com#token',
       user_data: { em: 'jane@example.com', fn: 'Jane', external_id: 'lead-1', fbc: fbclid, ph: sha256('0900000000') },
       custom_data: { ...customData, note: 'free text', content_type: 'product_group' },
-    }, { cookie: '_fbp=not-a-cookie' }));
+    }, { cookie: '_fbp=not-a-cookie; nutree_optional_cookies=1.granted' }));
     const [data] = sentBodies()[0].data;
     expect(data.event_source_url).toBe('https://quiz.nutreeai.com/paywall');
     expect(data.user_data).toEqual({ client_ip_address: '203.0.113.7', client_user_agent: 'Mozilla/5.0 Test' });
@@ -166,10 +166,10 @@ describe('Meta Conversions API route', () => {
 
   it('prefers the pixel _fbc cookie for the same click and the browser fbc for a newer one', async () => {
     const cookie = `fb.1.1759998000000.${fbclid}`;
-    await POST(request(browserEvent, { cookie: `_fbc=${cookie}` }));
-    await POST(request(browserEvent, { cookie: `_fbc=${cookie}.AQ` }));
-    await POST(request(browserEvent, { cookie: '_fbc=fb.1.1750000000000.older-click' }));
-    await POST(request({ ...browserEvent, user_data: {} }, { cookie: `_fbc=${cookie}` }));
+    await POST(request(browserEvent, { cookie: `_fbc=${cookie}; nutree_optional_cookies=1.granted` }));
+    await POST(request(browserEvent, { cookie: `_fbc=${cookie}.AQ; nutree_optional_cookies=1.granted` }));
+    await POST(request(browserEvent, { cookie: '_fbc=fb.1.1750000000000.older-click; nutree_optional_cookies=1.granted' }));
+    await POST(request({ ...browserEvent, user_data: {} }, { cookie: `_fbc=${cookie}; nutree_optional_cookies=1.granted` }));
     expect(sentBodies().map((body) => body.data[0].user_data.fbc)).toEqual([
       cookie,
       `${cookie}.AQ`,
@@ -293,5 +293,20 @@ describe('Meta Conversions API route', () => {
     const response = await POST(request(browserEvent));
     expect(response.status).toBe(204);
     expect(console.warn).toHaveBeenCalledWith('Meta Conversions API request failed', { event: 'Purchase', error: 'TypeError' });
+  });
+
+  it('does not forward without the optional-cookie grant, and drops health fields when granted', async () => {
+    const denied = new NextRequest(`${liveOrigin}/api/meta/events`, {
+      method: 'POST',
+      headers: { origin: liveOrigin, cookie: '_fbp=fb.1.1759990000000.1116446470', 'content-type': 'application/json' },
+      body: JSON.stringify({ ...browserEvent, custom_data: { ...customData, weight_kg: 70, height_cm: 165, target_weight_kg: 60 } }),
+    });
+    expect((await POST(denied)).status).toBe(204);
+    expect(fetch).not.toHaveBeenCalled();
+    await POST(request({ ...browserEvent, custom_data: { ...customData, weight_kg: 70, height_cm: 165, fitness_goal: 'cut' } }));
+    const forwarded = JSON.stringify(sentBodies());
+    expect(forwarded).not.toContain('weight_kg');
+    expect(forwarded).not.toContain('height_cm');
+    expect(forwarded).not.toContain('fitness_goal');
   });
 });
